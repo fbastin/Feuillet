@@ -4,8 +4,8 @@ import type { TexlyreConfig } from '@/types/texlyre';
 const config: TexlyreConfig = {
     title: 'Feuillet',
     tagline: 'A local-first LaTeX & Typst collaborative web editor with GitHub sync',
-    url: 'https://fbastin.github.io',
-    baseUrl: '/Feuillet/',
+    url: 'https://feuillet.slashbin.net',
+    baseUrl: '/',
     organizationName: 'fbastin',
     projectName: 'Feuillet',
     favicon: '/favicon.ico',
@@ -84,8 +84,9 @@ const config: TexlyreConfig = {
                 canvasRendererTextSelection: true,
                 collabAutoReconnect: false,
                 collabAwarenessTimeout: 30,
-                collabProviderType: 'webrtc',
+                collabProviderType: 'websocket',
                 collabSignalingServers: 'wss://ywebrtc.texlyre.org',
+                collabWebsocketServer: 'wss://feuillet.slashbin.net/collab',
                 editorAutoSaveDelay: 1000,
                 editorAutoSaveEnable: true,
                 editorFontFamily: 'monospace',
@@ -168,6 +169,7 @@ const config: TexlyreConfig = {
         local: {
             settings: {
                 collabSignalingServers: 'ws://localhost:4444/',
+                collabWebsocketServer: 'ws://localhost:1234',
                 fileSyncServerUrl: 'http://localhost:8080',
                 latexBusytexEndpoint: 'http://localhost:8070',
                 latexTexliveEndpoint: 'http://localhost:5004',

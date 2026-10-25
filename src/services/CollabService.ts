@@ -38,6 +38,7 @@ class CollabService {
 	private offlineStatusUnsubscribe: (() => void) | null = null;
 
 	private forceLocalConnections = false;
+	private defaultConnectOptions: CollabConnectOptions = {};
 
 	constructor() {
 		this.offlineStatusUnsubscribe = offlineService.addStatusListener(
@@ -49,6 +50,27 @@ class CollabService {
 
 	public setForceLocalConnections(forceLocalConnections: boolean): void {
 		this.forceLocalConnections = forceLocalConnections;
+	}
+
+	/**
+	 * Collaboration settings applied to connections whose caller does not set
+	 * them (chat, file sync, diagram viewers...), so every shared document uses
+	 * the configured provider and servers.
+	 */
+	public setDefaultConnectOptions(options: CollabConnectOptions): void {
+		this.defaultConnectOptions = options;
+	}
+
+	private withDefaultOptions(
+		options?: CollabConnectOptions,
+	): CollabConnectOptions {
+		const merged: CollabConnectOptions = { ...this.defaultConnectOptions };
+		for (const [key, value] of Object.entries(options ?? {})) {
+			if (value !== undefined) {
+				(merged as Record<string, unknown>)[key] = value;
+			}
+		}
+		return merged;
 	}
 
 	private isOfflineMode(): boolean {
@@ -125,7 +147,7 @@ class CollabService {
 			docId,
 			collectionName,
 			containerId,
-			options,
+			this.withDefaultOptions(options),
 		);
 	}
 

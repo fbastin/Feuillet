@@ -1,0 +1,20 @@
+{
+	"name": "feuillet-collab-server",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Feuillet real-time collaboration server (y-websocket protocol with LevelDB persistence)",
+	"license": "AGPL-3.0-or-later",
+	"main": "server.js",
+	"scripts": {
+		"start": "node server.js"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {
+		"ws": "^8.22.0",
+		"y-leveldb": "0.1.2",
+		"y-websocket": "1.5.4",
+		"yjs": "13.6.32"
+	}
+}

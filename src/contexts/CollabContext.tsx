@@ -107,6 +107,27 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 		(getSetting('collab-auto-reconnect')?.value as boolean | undefined) ??
 		false;
 
+	// Set during render: nested providers (chat, file tree, file sync) connect
+	// in their own effects, which run before this provider's effects.
+	useMemo(() => {
+		collabService.setDefaultConnectOptions({
+			providerType,
+			signalingServers:
+				signalingServers.length > 0
+					? signalingServers.split(',').map((s) => s.trim())
+					: undefined,
+			websocketServer,
+			autoReconnect,
+			awarenessTimeout: awarenessTimeout * 1000,
+		});
+	}, [
+		autoReconnect,
+		awarenessTimeout,
+		providerType,
+		signalingServers,
+		websocketServer,
+	]);
+
 	const projectId = useMemo(() => {
 		return docUrl.startsWith('yjs:')
 			? docUrl.slice(4)

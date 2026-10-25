@@ -6,7 +6,7 @@ import wasm from 'vite-plugin-wasm';
 
 const useHttps = process.env.VITE_USE_HTTPS === 'true';
 
-const basePath = '/Feuillet/';
+const basePath = '/';
 const appName = 'Feuillet';
 const appSourceUrl = 'https://github.com/fbastin/Feuillet';
 const appVersion = process.env.npm_package_version || '1.0.0';
