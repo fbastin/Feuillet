@@ -57,7 +57,7 @@
     "typst-sourcemap-enable": true
   },
   "properties": {
-    "latex-output-collapsed:global": true,
+    "latex-output-collapsed:global": false,
     "latex-output-width:global": 700,
     "log-visualizer-height:global": 600,
     "log-visualizer-collapsed:global": false,

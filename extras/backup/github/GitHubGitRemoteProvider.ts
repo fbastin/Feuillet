@@ -332,6 +332,7 @@ export const gitHubGitRemoteProvider: GitRemoteProvider = {
 			label: repository.full_name,
 			private: repository.private,
 			defaultBranch: repository.default_branch,
+			language: repository.language ?? undefined,
 		})),
 	listBranches: async (token, repositoryId) => {
 		const [owner, repo] = repositoryParts(repositoryId);

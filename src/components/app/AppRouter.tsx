@@ -25,7 +25,10 @@ import {
 	pushHash,
 	replaceHash,
 } from '../../utils/urlUtils';
-import { batchExtractArchive } from '../../utils/archiveUtils';
+import {
+	batchExtractArchive,
+	normalizeProjectArchiveEntries,
+} from '../../utils/archiveUtils';
 import { extractTempPrf } from '../../utils/chelysWebauthn';
 import AuthApp from './AuthApp';
 import EditorApp from './EditorApp';
@@ -97,7 +100,7 @@ const downloadAndExtractZip = async (
 		await fileStoreService.initialize(`yjs:${projectId}`);
 
 		const { files, directories } = await batchExtractArchive(zipFile, '/');
-		const allFiles = [...directories, ...files];
+		const allFiles = normalizeProjectArchiveEntries([...directories, ...files]);
 
 		await fileStoreService.batchStoreFiles(allFiles, {
 			showConflictDialog: false,

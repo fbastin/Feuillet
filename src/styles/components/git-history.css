@@ -687,15 +687,12 @@
 }
 
 .github-sync-button {
-	position: relative;
 	white-space: nowrap;
 }
 
 .github-sync-button[data-linked="true"]::after {
 	content: "";
-	position: absolute;
-	top: var(--space-xs);
-	inset-inline-end: var(--space-xs);
+	flex-shrink: 0;
 	width: 0.45rem;
 	height: 0.45rem;
 	border-radius: 50%;

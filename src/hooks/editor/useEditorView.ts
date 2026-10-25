@@ -26,7 +26,12 @@ import {
 	search,
 	searchKeymap,
 } from '@codemirror/search';
-import { Compartment, EditorState, type Extension } from '@codemirror/state';
+import {
+	Compartment,
+	EditorState,
+	type Extension,
+	Prec,
+} from '@codemirror/state';
 import { type ViewUpdate, ViewPlugin, keymap } from '@codemirror/view';
 import { lineNumbers } from '@codemirror/view';
 import { EditorView } from 'codemirror';
@@ -569,25 +574,48 @@ export const useEditorView = (
 			},
 		]);
 
+		const saveContent = async (content: string) => {
+			if (isEditingFile && currentFileId) await saveFileToStorage(content);
+			else if (!isEditingFile && documentId)
+				await saveDocumentToLinkedFile(content);
+		};
+
 		const saveBinding = keymap.of([
 			{
-				key: 'Ctrl-s',
+				key: 'Mod-s',
 				run: (view) => {
 					if (isViewOnly) {
 						setShowSaveIndicator(true);
 						setTimeout(() => setShowSaveIndicator(false), 2000);
 						return true;
 					}
-					const content = view.state.doc.toString();
-					if (isEditingFile && currentFileId) void saveFileToStorage(content);
-					else if (!isEditingFile && documentId)
-						void saveDocumentToLinkedFile(content);
+					void saveContent(view.state.doc.toString());
 					return true;
 				},
 			},
 		]);
 
-		return [formatBinding, saveBinding];
+		// Overleaf-style recompile: save the open file first so the compiler
+		// sees the latest edits, then compile. Takes precedence over the
+		// default Mod-Enter (insert blank line).
+		const compileBinding = Prec.highest(
+			keymap.of([
+				{
+					key: 'Mod-Enter',
+					run: (view) => {
+						const save = isViewOnly
+							? Promise.resolve()
+							: saveContent(view.state.doc.toString());
+						void save.finally(() =>
+							document.dispatchEvent(new CustomEvent('trigger-compile')),
+						);
+						return true;
+					},
+				},
+			]),
+		);
+
+		return [formatBinding, saveBinding, compileBinding];
 	};
 
 	const buildAnnotationExtensions = (): Extension[] =>

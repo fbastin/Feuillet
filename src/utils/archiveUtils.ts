@@ -486,6 +486,30 @@ export async function batchExtractArchive(
 	};
 }
 
+/**
+ * Drops archive noise (macOS resource forks, .DS_Store) and, when every entry
+ * sits inside one top-level folder (e.g. GitHub's `repo-main/`), moves the
+ * contents of that folder to the root.
+ */
+export function normalizeProjectArchiveEntries(nodes: FileNode[]): FileNode[] {
+	const entries = nodes.filter(
+		(node) =>
+			!node.path.split('/').includes('__MACOSX') && node.name !== '.DS_Store',
+	);
+	const roots = new Set(entries.map((node) => node.path.split('/')[1]));
+	if (roots.size !== 1) return entries;
+
+	const rootPath = `/${[...roots][0]}`;
+	const hasRootFolder = entries.some(
+		(node) => node.path === rootPath && node.type === 'directory',
+	);
+	if (!hasRootFolder || entries.length === 1) return entries;
+
+	return entries
+		.filter((node) => node.path !== rootPath)
+		.map((node) => ({ ...node, path: node.path.slice(rootPath.length) }));
+}
+
 export async function createArchiveFromFolder(
 	folderNode: FileNode,
 	getFileContent: (

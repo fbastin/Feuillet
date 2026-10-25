@@ -10,7 +10,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useTheme } from '../../hooks/useTheme';
+import { projectSeedService } from '../../services/ProjectSeedService';
 import type { Project, ProjectType, ProjectGroup } from '../../types/projects';
+import { createStarterFile } from '../../utils/projectStarterUtils';
 import {
 	isValidYjsUrl,
 	buildUrlWithFragments,
@@ -43,6 +45,9 @@ import ServiceStatusBanner from '../common/ServiceStatusBanner';
 import QuotaBanner from '../common/QuotaBanner';
 
 const moduleLog = createNamedLogger('ProjectApp');
+
+const withFileFragment = (docUrl: string, filePath?: string | null) =>
+	filePath ? `${docUrl}&file:${encodeURIComponent(filePath)}` : docUrl;
 
 interface ProjectManagerProps {
 	onOpenProject: (
@@ -221,6 +226,18 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 			setError(null);
 
 			const newProject = await createProject(projectData);
+			const starter = createStarterFile(
+				projectData.type,
+				projectData.name,
+				user?.name?.trim() || user?.username || '',
+			);
+			if (starter) {
+				await projectSeedService
+					.storeFiles(newProject.id, [starter])
+					.catch((seedError) => {
+						moduleLog.warn('Failed to add the starter file:', seedError);
+					});
+			}
 			setShowCreateModal(false);
 			await loadProjects();
 
@@ -236,7 +253,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 					}),
 				);
 				onOpenProject(
-					newProject.docUrl,
+					withFileFragment(newProject.docUrl, starter?.path),
 					newProject.name,
 					newProject.description,
 					newProject.type,
@@ -413,7 +430,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 		);
 	};
 
-	const openProject = async (project: Project) => {
+	const openProject = async (project: Project, filePath?: string) => {
 		if (!project.docUrl) {
 			moduleLog.error('Project has no document URL:', project);
 			setError(
@@ -433,7 +450,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 		}
 
 		onOpenProject(
-			project.docUrl,
+			withFileFragment(project.docUrl, filePath),
 			project.name,
 			project.description,
 			project.type,
@@ -696,6 +713,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 				isOpen={showImportModal}
 				onClose={() => setShowImportModal(false)}
 				onProjectsImported={handleProjectsImported}
+				onOpenProject={openProject}
 			/>
 
 			{/* Guest users cannot access backup features */}

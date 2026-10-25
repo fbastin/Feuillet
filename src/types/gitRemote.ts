@@ -4,6 +4,7 @@ export interface GitRemoteRepository {
 	label: string;
 	private?: boolean;
 	defaultBranch?: string;
+	language?: string;
 }
 
 export interface GitRemoteBranch {

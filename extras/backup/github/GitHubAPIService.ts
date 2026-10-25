@@ -16,6 +16,7 @@ interface GitHubRepo {
 	private: boolean;
 	default_branch: string;
 	html_url?: string;
+	language?: string | null;
 }
 interface GitHubUser {
 	login: string;

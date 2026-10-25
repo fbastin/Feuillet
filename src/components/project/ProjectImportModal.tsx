@@ -1,16 +1,18 @@
 // src/components/project/ProjectImportModal.tsx
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
+import { useAuth } from '../../hooks/useAuth';
 import {
 	type ImportOptions,
 	type ImportableProject,
 	projectImportService,
 } from '../../services/ProjectImportService';
 import { authService } from '../../services/AuthService';
+import { projectSeedService } from '../../services/ProjectSeedService';
 import { workspaceService } from '../../services/WorkspaceService';
-import type { TemplateProject } from '../../types/projects';
+import type { Project, TemplateProject } from '../../types/projects';
 import { ARCHIVE_ACCEPT, isArchiveFile } from '../../utils/archiveUtils';
 import { formatDate } from '../../utils/dateUtils';
 import {
@@ -22,6 +24,8 @@ import {
 	ZipFileIcon,
 } from '../common/Icons';
 import Modal from '../common/Modal';
+import { findGitHubPlugin } from '../history/GitHubSyncButton';
+import GitHubImportModal from './GitHubImportModal';
 import TemplateImportModal from './TemplateImportModal';
 import UrlImportModal from './UrlImportModal';
 import YjsLinkImportModal from './YjsLinkImportModal';
@@ -30,13 +34,19 @@ interface ProjectImportModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onProjectsImported: () => void;
+	onOpenProject?: (project: Project, filePath?: string) => void;
 }
 
 const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 	isOpen,
 	onClose,
 	onProjectsImported,
+	onOpenProject,
 }) => {
+	const { user, isGuestUser } = useAuth();
+	const gitHubPlugin = useMemo(findGitHubPlugin, []);
+	const canImportFromGitHub =
+		Boolean(gitHubPlugin?.gitRemote) && !isGuestUser(user);
 	const [importSource, setImportSource] = useState<'template' | 'zip' | null>(
 		null,
 	);
@@ -58,6 +68,7 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 	const [showTemplateModal, setShowTemplateModal] = useState(false);
 	const [showUrlModal, setShowUrlModal] = useState(false);
 	const [showYjsLinkModal, setShowYjsLinkModal] = useState(false);
+	const [showGitHubModal, setShowGitHubModal] = useState(false);
 
 	const handleFolderImport = async () => {
 		setError(null);
@@ -171,6 +182,10 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 			setSelectedZipFile(file);
 
 			const projects = await projectImportService.scanZipFile(file);
+			if (projects.length === 0) {
+				await createProjectFromPlainArchive(file);
+				return;
+			}
 			setAvailableProjects(projects);
 			setImportSource('zip');
 			setSelectedProjects(new Set());
@@ -183,6 +198,37 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 		} finally {
 			setIsScanning(false);
 		}
+	};
+
+	// Archives without a TeXlyre manifest (e.g. an Overleaf download) become
+	// a new project, like Overleaf's "Upload Project".
+	const createProjectFromPlainArchive = async (file: File) => {
+		const files = await projectSeedService.filesFromArchive(file);
+		if (!files.some((node) => node.type === 'file')) {
+			throw new Error(t('The archive does not contain any files.'));
+		}
+		const type = projectSeedService.detectProjectType(files);
+		const project = await authService.createProject({
+			name: projectSeedService.projectNameFromArchive(file.name),
+			description: '',
+			type,
+			tags: [],
+			isFavorite: false,
+		});
+		await projectSeedService.storeFiles(project.id, files);
+		onProjectsImported();
+		handleClose();
+		onOpenProject?.(
+			project,
+			projectSeedService.findMainFile(files, type) ?? undefined,
+		);
+	};
+
+	const handleGitHubImported = (project: Project) => {
+		setShowGitHubModal(false);
+		onProjectsImported();
+		handleClose();
+		onOpenProject?.(project);
 	};
 
 	const handleProjectToggle = (projectId: string) => {
@@ -352,6 +398,32 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 									</div>
 								</label>
 
+								{canImportFromGitHub && gitHubPlugin?.gitRemote ? (
+									<label
+										className='ui-choice-card'
+										onClick={() => setShowGitHubModal(true)}
+										style={{
+											pointerEvents:
+												isScanning || isImporting ? 'none' : 'auto',
+											opacity: isScanning || isImporting ? 0.5 : 1,
+										}}
+									>
+										<gitHubPlugin.icon />
+										<div>
+											<strong>
+												{t('From {provider}', {
+													provider: gitHubPlugin.gitRemote.displayName,
+												})}
+											</strong>
+											<p>
+												{t(
+													'Pick one of your repositories, including private ones. The project stays linked for push and pull.',
+												)}
+											</p>
+										</div>
+									</label>
+								) : null}
+
 								<label
 									className='ui-choice-card'
 									onClick={handleUrlImport}
@@ -377,7 +449,7 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 										<strong>{t('From Archive File')}</strong>
 										<p>
 											{t(
-												'Import projects from a TeXlyre export archive: Supports LaTeX and Typst',
+												'Import a TeXlyre export, or create a project from any archive such as an Overleaf download',
 											)}
 										</p>
 									</div>
@@ -567,6 +639,16 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 				onClose={() => setShowYjsLinkModal(false)}
 				onYjsLinkOpen={handleYjsLinkSelect}
 			/>
+
+			{showGitHubModal && gitHubPlugin?.gitRemote ? (
+				<GitHubImportModal
+					isOpen={showGitHubModal}
+					onClose={() => setShowGitHubModal(false)}
+					provider={gitHubPlugin.gitRemote}
+					icon={gitHubPlugin.icon}
+					onImported={handleGitHubImported}
+				/>
+			) : null}
 		</>
 	);
 };

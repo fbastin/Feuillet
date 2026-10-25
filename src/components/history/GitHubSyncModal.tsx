@@ -1,40 +1,48 @@
 // src/components/history/GitHubSyncModal.tsx
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { APP_NAME } from '@/branding';
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { useAuth } from '@/hooks/useAuth';
+import {
+	type GitActionSecrets,
+	useGitRemoteAccount,
+} from '@/hooks/useGitRemoteAccount';
 import { useSecrets } from '@/hooks/useSecrets';
 import { useSettings } from '@/hooks/useSettings';
 import {
 	DownloadIcon,
 	ExternalLinkIcon,
 	GitPushIcon,
-	KeyIcon,
 	UnlinkIcon,
 } from '@/components/common/Icons';
 import Modal from '@/components/common/Modal';
-import type { SecretsContextType } from '@/contexts/SecretsContext';
+import { fileStoreService } from '@/services/FileStoreService';
 import { gitFileSystemService } from '@/services/GitFileSystemService';
 import {
 	type GitProjectPullResult,
 	gitProjectSyncService,
 } from '@/services/GitProjectSyncService';
 import { gitService } from '@/services/GitService';
+import { projectSeedService } from '@/services/ProjectSeedService';
 import {
 	type GitRemoteSyncStatus,
 	gitSyncService,
 } from '@/services/GitSyncService';
 import type {
-	GitRemoteAccount,
 	GitRemoteBranch,
 	GitRemoteConfig,
 	GitRemoteProvider,
 	GitRemoteRepository,
 } from '@/types/gitRemote';
+import type { PendingGitImport } from '@/utils/gitPendingImport';
 import { ensureGitRemoteBranch } from '@/utils/gitUtils';
+import GitAccountTokenForm from './GitAccountTokenForm';
+import GitRepositoryPicker, {
+	type GitRepositorySelection,
+} from './GitRepositoryPicker';
 
 const moduleLog = createNamedLogger('GitHubSyncModal');
 
@@ -49,11 +57,10 @@ interface GitHubSyncModalProps {
 	projectDescription: string;
 	provider: GitRemoteProvider;
 	icon: React.ComponentType;
+	pendingImport?: PendingGitImport | null;
 }
 
 type LinkMode = 'create' | 'existing';
-
-type ActionSecrets = Pick<SecretsContextType, 'getSecret' | 'setSecret'>;
 
 const defaultCommitMessage = () => t('Update on {app}.', { app: APP_NAME });
 
@@ -83,9 +90,10 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	projectDescription,
 	provider,
 	icon: ProviderIcon,
+	pendingImport,
 }) => {
 	const { user } = useAuth();
-	const { getSecret, setSecret, hasSecret, removeSecret } = useSecrets();
+	const { removeSecret } = useSecrets();
 	const { getSetting } = useSettings();
 	const fileSystem = useMemo(
 		() => gitFileSystemService.get(projectId),
@@ -95,10 +103,9 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	const [remote, setRemote] = useState<GitRemoteConfig | undefined>(() =>
 		gitSyncService.getConfig(projectId),
 	);
-	const [hasAccountToken, setHasAccountToken] = useState(false);
-	const [account, setAccount] = useState<GitRemoteAccount | null>(null);
+	const gitAccount = useGitRemoteAccount(provider, isOpen && !remote);
+	const { account, createActionSecrets, readToken } = gitAccount;
 	const [showTokenForm, setShowTokenForm] = useState(false);
-	const [token, setToken] = useState('');
 
 	const [linkMode, setLinkMode] = useState<LinkMode>('create');
 	const [repositoryName, setRepositoryName] = useState(() =>
@@ -107,11 +114,9 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	const [repositoryDescription, setRepositoryDescription] =
 		useState(projectDescription);
 	const [isPrivate, setIsPrivate] = useState(true);
-	const [repositories, setRepositories] = useState<GitRemoteRepository[]>([]);
-	const [repositoryQuery, setRepositoryQuery] = useState('');
-	const [repositoryId, setRepositoryId] = useState('');
-	const [branches, setBranches] = useState<GitRemoteBranch[]>([]);
-	const [branch, setBranch] = useState('');
+	const [selection, setSelection] = useState<GitRepositorySelection | null>(
+		null,
+	);
 	const [cleanAnnotations, setCleanAnnotations] = useState(true);
 
 	const [commitMessage, setCommitMessage] = useState('');
@@ -123,8 +128,9 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	const [busyAction, setBusyAction] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
+	const importStartedRef = useRef(false);
 
-	const isBusy = busyAction !== null;
+	const isBusy = busyAction !== null || gitAccount.isLoading;
 	const remoteName = remote?.providerName ?? provider.displayName;
 	const storesGitOnDisk = fileSystem.getSettings().storeGitOnDisk;
 
@@ -137,122 +143,27 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		return gitSyncService.addListener(projectId, setRemote);
 	}, [projectId]);
 
-	/* biome-ignore lint/correctness/useExhaustiveDependencies(isOpen): Reopening the modal re-reads the stored account credential. */
-	useEffect(() => {
-		setHasAccountToken(
-			hasSecret(provider.backupPluginId, provider.backupTokenSecretKey, {
-				scope: 'global',
-			}),
-		);
-	}, [hasSecret, isOpen, provider]);
-
-	// One action can read the same secret several times (status, push, ...).
-	// Sharing the reads asks for the account password at most once per action.
-	const createActionSecrets = useCallback((): ActionSecrets => {
-		const reads = new Map<string, ReturnType<typeof getSecret>>();
-		return {
-			getSecret: (pluginId, secretKey, options) => {
-				const key = [
-					pluginId,
-					secretKey,
-					options?.scope ?? 'global',
-					options?.projectId ?? '',
-				].join('\u0000');
-				let read = reads.get(key);
-				if (!read) {
-					read = getSecret(pluginId, secretKey, options);
-					reads.set(key, read);
-				}
-				return read;
-			},
-			setSecret,
-		};
-	}, [getSecret, setSecret]);
-
 	const run = async (
 		label: string,
-		action: (secrets: ActionSecrets) => Promise<void>,
-	) => {
+		action: (secrets: GitActionSecrets) => Promise<void>,
+	): Promise<boolean> => {
 		setBusyAction(label);
 		setError(null);
 		setNotice(null);
 		try {
 			await action(createActionSecrets());
+			return true;
 		} catch (actionError) {
 			moduleLog.error(`GitHub action "${label}" failed:`, actionError);
 			setError(errorMessage(actionError, t('Git action failed')));
+			return false;
 		} finally {
 			setBusyAction(null);
 		}
 	};
 
-	const readAccountToken = useCallback(
-		async (secrets: ActionSecrets): Promise<string> => {
-			const secret = await secrets.getSecret(
-				provider.backupPluginId,
-				provider.backupTokenSecretKey,
-				{ scope: 'global' },
-			);
-			const value = secret?.value?.trim();
-			if (!value) {
-				throw new Error(
-					t('Your {provider} token is unavailable. Enter it again.', {
-						provider: provider.displayName,
-					}),
-				);
-			}
-			return value;
-		},
-		[provider],
-	);
-
-	const accountForToken = useCallback(
-		async (accountToken: string): Promise<GitRemoteAccount> => {
-			if (provider.getAccount) return provider.getAccount(accountToken);
-			if (!(await provider.testConnection(accountToken))) {
-				throw new Error(
-					t('{provider} did not accept the saved token.', {
-						provider: provider.displayName,
-					}),
-				);
-			}
-			return { login: provider.displayName };
-		},
-		[provider],
-	);
-
-	useEffect(() => {
-		if (!isOpen || remote || !hasAccountToken || account) return;
-		let active = true;
-		setBusyAction('account');
-		readAccountToken(createActionSecrets())
-			.then(accountForToken)
-			.then((loaded) => {
-				if (active) setAccount(loaded);
-			})
-			.catch((accountError) => {
-				if (active) {
-					setError(errorMessage(accountError, t('Git action failed')));
-				}
-			})
-			.finally(() => {
-				if (active) setBusyAction(null);
-			});
-		return () => {
-			active = false;
-		};
-	}, [
-		account,
-		accountForToken,
-		createActionSecrets,
-		hasAccountToken,
-		isOpen,
-		readAccountToken,
-		remote,
-	]);
-
 	const refreshStatus = useCallback(
-		async (secrets: ActionSecrets = createActionSecrets()) => {
+		async (secrets: GitActionSecrets = createActionSecrets()) => {
 			if (!gitSyncService.getConfig(projectId)) return;
 			if (await gitService.isInitialized(projectId)) {
 				setPendingChangeCount((await gitService.getChanges(projectId)).length);
@@ -278,71 +189,11 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		});
 	}, [createActionSecrets, isOpen, refreshStatus, linkedTarget]);
 
-	const saveToken = () =>
-		run('token', async (secrets) => {
-			const value = token.trim();
-			if (!value) throw new Error(t('A credential is required'));
-			if (!(await provider.testConnection(value))) {
-				throw new Error(
-					t('{provider} did not accept this token.', {
-						provider: provider.displayName,
-					}),
-				);
-			}
-			await secrets.setSecret(
-				provider.backupPluginId,
-				provider.backupTokenSecretKey,
-				value,
-				{
-					scope: 'global',
-					metadata: { tokenType: `${provider.id}-personal-access-token` },
-				},
-			);
-			const connected = await accountForToken(value);
-			setToken('');
-			setShowTokenForm(false);
-			setAccount(connected);
-			setHasAccountToken(true);
-		});
-
-	const loadRepositories = () =>
-		run('repositories', async (secrets) => {
-			const loaded = await provider.listRepositories(
-				await readAccountToken(secrets),
-			);
-			setRepositories(loaded);
-		});
-
-	const selectRepository = (nextId: string) =>
-		run('branches', async (secrets) => {
-			setRepositoryId(nextId);
-			setBranches([]);
-			setBranch('');
-			if (!nextId) return;
-			const loaded = await provider.listBranches(
-				await readAccountToken(secrets),
-				nextId,
-			);
-			const repository = repositories.find((item) => item.id === nextId);
-			setBranches(loaded);
-			setBranch(
-				loaded.find((item) => item.name === repository?.defaultBranch)?.name ??
-					loaded.find((item) => item.name === 'main')?.name ??
-					loaded.find((item) => item.name === 'master')?.name ??
-					loaded[0]?.name ??
-					repository?.defaultBranch ??
-					'main',
-			);
-		});
-
-	const applyAnnotationSetting = () => {
-		if (!storesGitOnDisk) fileSystem.setGitCleanAnnotations(cleanAnnotations);
-	};
-
 	const connectRepository = async (
-		secrets: ActionSecrets,
+		secrets: GitActionSecrets,
 		repository: GitRemoteRepository,
 		ref: string,
+		clean: boolean,
 	) => {
 		await gitSyncService.connect(
 			projectId,
@@ -355,10 +206,10 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			{ source: 'backup-global', token: '' },
 			secrets,
 		);
-		applyAnnotationSetting();
+		if (!storesGitOnDisk) fileSystem.setGitCleanAnnotations(clean);
 	};
 
-	const pushToNewRepository = async (secrets: ActionSecrets) => {
+	const pushToNewRepository = async (secrets: GitActionSecrets) => {
 		for (let attempt = 1; ; attempt++) {
 			try {
 				return await gitProjectSyncService.push(projectId, {
@@ -384,7 +235,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			const name = repositoryName.trim();
 			if (!name) throw new Error(t('Repository name is required'));
 			const repository = await provider.createRepository(
-				await readAccountToken(secrets),
+				await readToken(secrets),
 				{
 					name,
 					description: repositoryDescription.trim(),
@@ -395,6 +246,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				secrets,
 				repository,
 				repository.defaultBranch || 'main',
+				cleanAnnotations,
 			);
 
 			await gitProjectSyncService.commitPendingChanges(
@@ -419,34 +271,22 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			}
 		});
 
-	const normalizedQuery = provider.normalizeRepositoryInput
-		? provider.normalizeRepositoryInput(repositoryQuery)
-		: repositoryQuery.trim();
-	const filteredRepositories = repositories.filter((item) =>
-		item.label.toLowerCase().includes(repositoryQuery.trim().toLowerCase()),
-	);
-	const selectedRepository: GitRemoteRepository | null = repositoryId
-		? (repositories.find((item) => item.id === repositoryId) ?? {
-				id: repositoryId,
-				label: repositoryId,
-			})
-		: null;
-
-	const linkExistingRepository = () =>
+	const linkRepository = (
+		repository: GitRemoteRepository,
+		ref: string,
+		knownBranches: GitRemoteBranch[],
+		clean: boolean,
+	) =>
 		run('link', async (secrets) => {
-			if (!selectedRepository || !branch.trim()) {
-				throw new Error(t('Choose a repository and a branch'));
-			}
-			const ref = branch.trim();
 			await ensureGitRemoteBranch(
 				provider,
-				await readAccountToken(secrets),
-				selectedRepository.id,
+				await readToken(secrets),
+				repository.id,
 				ref,
-				branches,
-				selectedRepository.defaultBranch,
+				knownBranches,
+				repository.defaultBranch,
 			);
-			await connectRepository(secrets, selectedRepository, ref);
+			await connectRepository(secrets, repository, ref, clean);
 
 			const pulled = await gitProjectSyncService.pullWithLocalChanges(
 				projectId,
@@ -466,7 +306,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				}
 				setNotice(
 					t('Linked {repository} and pushed this project to it.', {
-						repository: selectedRepository.label,
+						repository: repository.label,
 					}),
 				);
 				return;
@@ -475,13 +315,60 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				pulled.status === 'cancelled'
 					? t(
 							'Linked {repository}. The merge was cancelled; pull again when you are ready.',
-							{ repository: selectedRepository.label },
+							{ repository: repository.label },
 						)
 					: t('Linked {repository} and pulled its files.', {
-							repository: selectedRepository.label,
+							repository: repository.label,
 						}),
 			);
 		});
+
+	const linkSelectedRepository = () => {
+		if (!selection) {
+			setError(t('Choose a repository and a branch'));
+			return;
+		}
+		void linkRepository(
+			selection.repository,
+			selection.branch,
+			selection.branches,
+			cleanAnnotations,
+		);
+	};
+
+	// Overleaf-style landing after an import: open the main document.
+	const openMainFile = async () => {
+		const files = await fileStoreService.getAllFiles(false, true, true);
+		const mainFile = projectSeedService.findMainFile(
+			files,
+			projectSeedService.detectProjectType(files),
+		);
+		if (mainFile) {
+			document.dispatchEvent(
+				new CustomEvent('navigate-to-compiled-file', {
+					detail: { filePath: mainFile },
+				}),
+			);
+		}
+	};
+
+	/* biome-ignore lint/correctness/useExhaustiveDependencies: The pending import runs once, when the editor first opens the imported project. */
+	useEffect(() => {
+		if (!isOpen || !pendingImport || remote || importStartedRef.current) return;
+		importStartedRef.current = true;
+		void linkRepository(
+			pendingImport.repository,
+			pendingImport.branch,
+			[],
+			pendingImport.cleanAnnotations,
+		).then(async (linked) => {
+			if (!linked) return;
+			await openMainFile().catch((openError) => {
+				moduleLog.warn('Failed to open the imported main file:', openError);
+			});
+			onClose();
+		});
+	}, [isOpen, pendingImport, remote]);
 
 	const pullNotice = (
 		result: GitProjectPullResult,
@@ -566,9 +453,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		run('unlink', async () => {
 			await gitSyncService.disconnect(projectId, { removeSecret });
 			setSyncStatus(null);
-			setRepositoryId('');
-			setBranches([]);
-			setBranch('');
+			setSelection(null);
 			setNotice(
 				t(
 					'The repository was unlinked. The project and its history were not changed.',
@@ -583,9 +468,16 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
 	const renderMessages = () => (
 		<>
-			{error ? (
+			{busyAction === 'link' && pendingImport ? (
+				<div className='ui-message' data-tone='info'>
+					{t('Importing {repository}...', {
+						repository: pendingImport.repository.label,
+					})}
+				</div>
+			) : null}
+			{error || gitAccount.error ? (
 				<div className='ui-message' data-tone='error'>
-					{error}
+					{error ?? gitAccount.error}
 				</div>
 			) : null}
 			{notice ? (
@@ -597,75 +489,18 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	);
 
 	const renderTokenForm = () => (
-		<section
-			className='ui-card ui-stack'
-			data-gap='sm'
-			data-padding='md'
-			data-surface='secondary'
-		>
-			<h3>
-				{t('Connect your {provider} account', {
-					provider: provider.displayName,
-				})}
-			</h3>
-			<p className='ui-note'>
-				{t(
-					'{app} talks to {provider} directly from your browser with a personal access token. The token is encrypted with your account password and stored only in this browser.',
-					{ app: APP_NAME, provider: provider.displayName },
-				)}
-			</p>
-			{provider.getTokenCreationUrl ? (
-				<p className='ui-note'>
-					<a
-						href={provider.getTokenCreationUrl(APP_NAME)}
-						target='_blank'
-						rel='noreferrer'
-					>
-						{t('Create a token on {provider}', {
-							provider: provider.displayName,
-						})}{' '}
-						<ExternalLinkIcon />
-					</a>{' '}
-					{t('(a classic token with the "repo" scope).')}
-				</p>
-			) : null}
-			<label className='ui-field-label' htmlFor='github-sync-token'>
-				{t('Personal access token')}
-			</label>
-			<input
-				id='github-sync-token'
-				type='password'
-				autoComplete='off'
-				value={token}
-				disabled={isBusy}
-				placeholder='ghp_...'
-				onChange={(event) => setToken(event.target.value)}
-				onKeyDown={(event) => {
-					if (event.key === 'Enter') void saveToken();
-				}}
-			/>
-			<div className='ui-actions'>
-				<button
-					type='button'
-					className='button primary'
-					disabled={isBusy || !token.trim()}
-					onClick={() => void saveToken()}
-				>
-					<KeyIcon />
-					{busyAction === 'token' ? t('Connecting...') : t('Connect account')}
-				</button>
-				{hasAccountToken ? (
-					<button
-						type='button'
-						className='button secondary'
-						disabled={isBusy}
-						onClick={() => setShowTokenForm(false)}
-					>
-						{t('Cancel')}
-					</button>
-				) : null}
-			</div>
-		</section>
+		<GitAccountTokenForm
+			provider={provider}
+			isBusy={isBusy}
+			onCancel={gitAccount.hasToken ? () => setShowTokenForm(false) : undefined}
+			onSubmit={async (value) => {
+				const connected = await run('token', () =>
+					gitAccount.connectToken(value),
+				);
+				if (connected) setShowTokenForm(false);
+				return connected;
+			}}
+		/>
 	);
 
 	const renderAccountLine = () => (
@@ -676,7 +511,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 							provider: provider.displayName,
 							login: account.login,
 						})
-					: busyAction === 'account'
+					: gitAccount.isLoading
 						? t('Checking your {provider} account...', {
 								provider: provider.displayName,
 							})
@@ -772,77 +607,15 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
 	const renderExistingForm = () => (
 		<div className='ui-stack' data-gap='sm'>
-			<label className='ui-field-label' htmlFor='github-sync-repo-search'>
-				{t('Repository')}
-			</label>
-			<input
-				id='github-sync-repo-search'
-				type='text'
-				value={repositoryQuery}
+			<GitRepositoryPicker
+				provider={provider}
+				readToken={() => readToken(createActionSecrets())}
 				disabled={isBusy}
-				placeholder={t('Search your repositories or paste owner/name or a URL')}
-				onChange={(event) => {
-					setRepositoryQuery(event.target.value);
-					setRepositoryId('');
-					setBranches([]);
-					setBranch('');
-				}}
+				onChange={setSelection}
+				onError={setError}
 			/>
-			{repositories.length > 0 ? (
-				<select
-					size={Math.min(8, Math.max(3, filteredRepositories.length))}
-					value={repositoryId}
-					disabled={isBusy}
-					onChange={(event) => {
-						const selected = repositories.find(
-							(item) => item.id === event.target.value,
-						);
-						setRepositoryQuery(selected?.label ?? event.target.value);
-						void selectRepository(event.target.value);
-					}}
-				>
-					{filteredRepositories.map((item) => (
-						<option key={item.id} value={item.id}>
-							{item.label}
-							{item.private ? ` (${t('private')})` : ''}
-						</option>
-					))}
-				</select>
-			) : null}
-			{!repositoryId && normalizedQuery.includes('/') ? (
-				<button
-					type='button'
-					className='button secondary'
-					disabled={isBusy}
-					onClick={() => void selectRepository(normalizedQuery)}
-				>
-					{t('Use {repository}', { repository: normalizedQuery })}
-				</button>
-			) : null}
-			{repositoryId ? (
+			{selection ? (
 				<>
-					<label className='ui-field-label' htmlFor='github-sync-branch'>
-						{t('Branch')}
-					</label>
-					<input
-						id='github-sync-branch'
-						type='text'
-						list='github-sync-branches'
-						value={branch}
-						disabled={isBusy}
-						onChange={(event) => setBranch(event.target.value)}
-					/>
-					<datalist id='github-sync-branches'>
-						{branches.map((item) => (
-							<option key={item.name} value={item.name} />
-						))}
-					</datalist>
-					{branches.length > 0 &&
-					!branches.some((item) => item.name === branch.trim()) ? (
-						<p className='ui-note'>
-							{t('A new remote branch will be created when you connect.')}
-						</p>
-					) : null}
 					{renderAnnotationOption()}
 					<p className='ui-note'>
 						{t(
@@ -852,8 +625,8 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 					<button
 						type='button'
 						className='button primary'
-						disabled={isBusy || !branch.trim()}
-						onClick={() => void linkExistingRepository()}
+						disabled={isBusy}
+						onClick={linkSelectedRepository}
 					>
 						{busyAction === 'link'
 							? t('Linking...')
@@ -891,10 +664,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 						name='github-sync-link-mode'
 						checked={linkMode === 'existing' || !provider.createRepository}
 						disabled={isBusy}
-						onChange={() => {
-							setLinkMode('existing');
-							if (repositories.length === 0) void loadRepositories();
-						}}
+						onChange={() => setLinkMode('existing')}
 					/>
 					<span>{t('Use an existing repository')}</span>
 				</label>
@@ -1065,7 +835,8 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
 	const renderBody = () => {
 		if (remote) return renderLinked(remote);
-		if (!hasAccountToken || showTokenForm) return renderTokenForm();
+		if (pendingImport && !error) return null;
+		if (!gitAccount.hasToken || showTokenForm) return renderTokenForm();
 		return renderLinkForm();
 	};
 

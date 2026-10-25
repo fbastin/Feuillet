@@ -56,6 +56,12 @@ const mockGitService = {
 
 jest.mock('@src/services/GitService', () => ({ gitService: mockGitService }));
 
+const mockGetAllFiles = jest.fn(async () => [] as unknown[]);
+
+jest.mock('@src/services/FileStoreService', () => ({
+	fileStoreService: { getAllFiles: mockGetAllFiles },
+}));
+
 const mockGitSyncService = {
 	getConfig: jest.fn(),
 	addListener: jest.fn(() => () => undefined),
@@ -206,6 +212,68 @@ describe('GitHubSyncModal', () => {
 			'project-1',
 			expect.objectContaining({ commitMessage: 'Initial commit from Feuillet' }),
 		);
+	});
+
+	it('links and pulls a repository imported from the dashboard', async () => {
+		mockSecrets.hasSecret.mockReturnValue(true);
+		mockGitService.getHeadOid.mockResolvedValue(null);
+		mockGitProjectSyncService.pullWithLocalChanges.mockResolvedValue({
+			status: 'adopted',
+			remoteLabel: 'octocat/thesis · main',
+			committedOid: null,
+		});
+		mockGetAllFiles.mockResolvedValue([
+			{
+				name: 'one.tex',
+				path: '/chapters/one.tex',
+				type: 'file',
+				content: '\\chapter{One}',
+			},
+			{
+				name: 'thesis.tex',
+				path: '/thesis.tex',
+				type: 'file',
+				content: '\\documentclass{report}',
+			},
+		]);
+		const opened = jest.fn();
+		document.addEventListener('navigate-to-compiled-file', opened);
+		const onClose = jest.fn();
+		render(
+			<GitHubSyncModal
+				isOpen
+				onClose={onClose}
+				projectId='project-1'
+				projectName='thesis'
+				projectDescription=''
+				provider={makeProvider()}
+				icon={() => null}
+				pendingImport={{
+					providerId: 'github',
+					repository: { id: 'octocat/thesis', label: 'octocat/thesis' },
+					branch: 'main',
+					cleanAnnotations: true,
+				}}
+			/>,
+		);
+
+		await screen.findByText('Linked octocat/thesis and pulled its files.');
+		expect(mockGitSyncService.connect).toHaveBeenCalledTimes(1);
+		expect(mockGitSyncService.connect).toHaveBeenCalledWith(
+			'project-1',
+			expect.objectContaining({ repositoryId: 'octocat/thesis', branch: 'main' }),
+			{ source: 'backup-global', token: '' },
+			expect.anything(),
+		);
+		expect(mockFileSystem.setGitCleanAnnotations).toHaveBeenCalledWith(true);
+		expect(mockGitProjectSyncService.pullWithLocalChanges).toHaveBeenCalledTimes(
+			1,
+		);
+		await waitFor(() => expect(onClose).toHaveBeenCalled());
+		expect((opened.mock.calls[0][0] as CustomEvent).detail).toEqual({
+			filePath: '/thesis.tex',
+		});
+		document.removeEventListener('navigate-to-compiled-file', opened);
 	});
 
 	it('pushes a linked project with the default commit message', async () => {

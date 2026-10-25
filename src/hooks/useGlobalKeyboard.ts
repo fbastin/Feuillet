@@ -23,6 +23,20 @@ export const useGlobalKeyboard = () => {
 				return;
 			}
 
+			// Ctrl/Cmd+Enter - Compile (Overleaf). The editor handles it itself
+			// (saving first) and marks the event as handled.
+			if (
+				event.key === 'Enter' &&
+				(event.ctrlKey || event.metaKey) &&
+				!event.shiftKey &&
+				!event.altKey &&
+				!event.defaultPrevented
+			) {
+				event.preventDefault();
+				document.dispatchEvent(new CustomEvent('trigger-compile'));
+				return;
+			}
+
 			// F8 - Stop compilation
 			if (event.key === 'F8' && !event.shiftKey && !event.ctrlKey) {
 				event.preventDefault();

@@ -56,6 +56,22 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 								data-surface='secondary'
 							>
 								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> +{' '}
+									<kbd>{t('Enter')}</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Save and compile document')}
+								</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
 									<kbd>{t('Shift')}</kbd> + <kbd>{t('F9')}</kbd>
 								</div>
 								<div className='ui-list-content'>
@@ -123,7 +139,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 								data-surface='secondary'
 							>
 								<div className='ui-actions' data-wrap='true'>
-									<kbd>{t('Ctrl')}</kbd> + <kbd>S</kbd>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd>
 								</div>
 								<div className='ui-list-content'>{t('Save current file')}</div>
 							</div>

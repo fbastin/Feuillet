@@ -7,9 +7,19 @@ import { GitRemoteIcon } from '@/components/common/Icons';
 import { pluginRegistry } from '@/plugins/PluginRegistry';
 import { gitSyncService } from '@/services/GitSyncService';
 import type { GitRemoteConfig } from '@/types/gitRemote';
+import {
+	type PendingGitImport,
+	takePendingGitImport,
+} from '@/utils/gitPendingImport';
 import GitHubSyncModal from './GitHubSyncModal';
 
 const GITHUB_PROVIDER_ID = 'github';
+
+export const findGitHubPlugin = () =>
+	pluginRegistry
+		.getBackup()
+		.find((candidate) => candidate.gitRemote?.id === GITHUB_PROVIDER_ID) ??
+	null;
 
 interface GitHubSyncButtonProps {
 	className?: string;
@@ -24,15 +34,11 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 	projectName,
 	projectDescription,
 }) => {
-	const plugin = useMemo(
-		() =>
-			pluginRegistry
-				.getBackup()
-				.find((candidate) => candidate.gitRemote?.id === GITHUB_PROVIDER_ID) ??
-			null,
-		[],
-	);
+	const plugin = useMemo(findGitHubPlugin, []);
 	const [isOpen, setIsOpen] = useState(false);
+	const [pendingImport, setPendingImport] = useState<PendingGitImport | null>(
+		null,
+	);
 	const [remote, setRemote] = useState<GitRemoteConfig | undefined>(() =>
 		projectId ? gitSyncService.getConfig(projectId) : undefined,
 	);
@@ -45,6 +51,14 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 		setRemote(gitSyncService.getConfig(projectId));
 		return gitSyncService.addListener(projectId, setRemote);
 	}, [projectId]);
+
+	useEffect(() => {
+		if (!projectId || !plugin?.gitRemote) return;
+		const pending = takePendingGitImport(projectId);
+		if (pending?.providerId !== plugin.gitRemote.id) return;
+		setPendingImport(pending);
+		setIsOpen(true);
+	}, [plugin, projectId]);
 
 	if (!plugin?.gitRemote || !projectId) return null;
 
@@ -75,12 +89,16 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 			{isOpen ? (
 				<GitHubSyncModal
 					isOpen={isOpen}
-					onClose={() => setIsOpen(false)}
+					onClose={() => {
+						setIsOpen(false);
+						setPendingImport(null);
+					}}
 					projectId={projectId}
 					projectName={projectName}
 					projectDescription={projectDescription}
 					provider={plugin.gitRemote}
 					icon={Icon}
+					pendingImport={pendingImport}
 				/>
 			) : null}
 		</>

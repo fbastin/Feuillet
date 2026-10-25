@@ -133,7 +133,7 @@ const config: TexlyreConfig = {
             },
             properties: {
                 global: {
-                    latexOutputCollapsed: true,
+                    latexOutputCollapsed: false,
                     latexOutputWidth: 700,
                     logVisualizerHeight: 600,
                     logVisualizerCollapsed: false,
@@ -161,6 +161,7 @@ const config: TexlyreConfig = {
             properties: {
                 global: {
                     projectListViewMode: 'list',
+                    latexOutputCollapsed: true,
                 }
             }
         },

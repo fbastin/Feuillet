@@ -335,7 +335,7 @@ export const MergeEditor = forwardRef<MergeEditorHandle, MergeEditorProps>(
 
 			const saveKeymap = keymap.of([
 				{
-					key: 'Ctrl-s',
+					key: 'Mod-s',
 					run: (view) => {
 						if (readOnly || !onSaveRef.current) return false;
 						onSaveRef.current(
