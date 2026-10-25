@@ -69,7 +69,7 @@ const config: TexlyreConfig = {
 
     // Overwrite priority is default < local < mobile for corresponding configs
     userdata: {
-        version: '1.3.5',
+        version: '1.3.6',
         forceUpdate: {
             settings: ['statusPageUrl', 'statusJsonUrl', 'themePlugin', 'fileSyncNotifications'],
             properties: [],
@@ -126,6 +126,7 @@ const config: TexlyreConfig = {
                 statusJsonUrl: 'https://raw.githubusercontent.com/TeXlyre/upptime/master/status.json',
                 statusPageUrl: 'https://texlyre.org/upptime',
                 templatesApiUrl: 'https://texlyre.github.io/texlyre-templates/api/templates.json',
+                texliveServer: 'wss://feuillet.slashbin.net/texlive/',
                 themePlugin: 'texlyre-compact-theme',
                 themeVariant: 'system',
                 typstAutoCompileOnOpen: false,
@@ -175,6 +176,7 @@ const config: TexlyreConfig = {
                 latexTexliveEndpoint: 'http://localhost:5004',
                 statusJsonUrl: '',
                 statusPageUrl: '',
+                texliveServer: 'ws://localhost:7045',
                 themeVariant: 'dark',
             },
             properties: {

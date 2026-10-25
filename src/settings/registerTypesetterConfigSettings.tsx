@@ -16,6 +16,7 @@ import {
 	type TypesetterServerConfig,
 } from '../services/GenericTypesetterService';
 import type { ToolConfigKind, ToolConfigStore } from '../types/toolConfig';
+import { TEXLIVE_SERVER_SETTING } from '../utils/texliveTypesetter';
 import {
 	buildTransportConfig,
 	joinList,
@@ -155,6 +156,7 @@ export function useRegisterTypesetterConfigSettings() {
 		const batchedSettings = batchGetSettings([
 			TYPESETTER_CONFIGS_SETTING,
 			TYPESETTER_DISABLED_CONFIGS_SETTING,
+			TEXLIVE_SERVER_SETTING,
 		]);
 
 		const readStoredValue = (id: string): string | unknown[] => {
@@ -178,6 +180,18 @@ export function useRegisterTypesetterConfigSettings() {
 			defaultValue: readStoredValue(TYPESETTER_CONFIGS_SETTING),
 			liveUpdate: true,
 			render: () => <ToolConfigCards kind={typesetterKind} />,
+		});
+
+		registerSetting({
+			id: TEXLIVE_SERVER_SETTING,
+			category: t('Compilation'),
+			subcategory: t('LaTeX'),
+			type: 'text',
+			label: t('TeX Live compile server'),
+			description: t(
+				'WebSocket URL of the server that compiles LaTeX projects with a full TeX Live. Leave empty to compile in the browser only.',
+			),
+			defaultValue: (batchedSettings[TEXLIVE_SERVER_SETTING] as string) ?? '',
 		});
 
 		registerSetting({

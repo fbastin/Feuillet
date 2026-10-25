@@ -118,4 +118,6 @@ export interface TypesetterProvider {
 	transport?: TypesetterTransportConfig;
 	capabilities: TypesetterCapabilities;
 	ui?: TypesetterUISchema;
+	/** Default compiler for its project type, ahead of the built-in ones. */
+	preferred?: boolean;
 }

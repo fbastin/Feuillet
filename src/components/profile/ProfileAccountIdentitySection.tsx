@@ -3,6 +3,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 
 import { t } from '@/i18n';
+import { CHELYS_ACCOUNTS_ENABLED } from '../../branding';
 import { generateRandomColor } from '../../utils/colorUtils';
 import { useAuth } from '../../hooks/useAuth';
 import { useChelys } from '../../hooks/useChelys';
@@ -264,7 +265,9 @@ const ProfileAccountIdentitySection: React.FC<
 				</button>
 			</div>
 
-			<ChelysConnectionSection isSubmitting={isSubmitting} />
+			{CHELYS_ACCOUNTS_ENABLED && (
+				<ChelysConnectionSection isSubmitting={isSubmitting} />
+			)}
 		</form>
 	);
 };

@@ -1,0 +1,116 @@
+// src/utils/texliveTypesetter.ts
+// Feuillet's TeX Live compile server (server/texlive) as a typesetter recipe.
+// It is registered for every user whose `texlive-server` setting is set, under
+// the same id everywhere, so shared projects compile the same way for all
+// collaborators.
+import type { TypesetterServerConfig } from '../services/GenericTypesetterService';
+import type { TypesetterUIField } from '../types/compilation';
+
+export const TEXLIVE_TYPESETTER_ID = 'texlive';
+export const TEXLIVE_SERVER_SETTING = 'texlive-server';
+
+const ENGINE_FIELD: TypesetterUIField = {
+	key: 'engine',
+	label: { key: '{typesetter} Engine:', params: { typesetter: 'LaTeX' } },
+	kind: 'select',
+	sendAs: 'option',
+	defaultValue: 'pdflatex',
+	options: [
+		{ label: 'pdfLaTeX', value: 'pdflatex' },
+		{ label: 'LuaLaTeX', value: 'lualatex' },
+		{ label: 'XeLaTeX', value: 'xelatex' },
+	],
+};
+
+export function createTexliveTypesetterConfig(
+	url: string,
+): TypesetterServerConfig {
+	return {
+		id: TEXLIVE_TYPESETTER_ID,
+		name: 'TeX Live',
+		enabled: true,
+		projectType: 'latex',
+		projectGroup: 'tex',
+		incrementalSync: true,
+		compileTimeoutMs: 240_000,
+		inputExtensions: ['tex'],
+		inputFiles: [
+			{
+				extension: 'tex',
+				label: { key: '{typesetter} File', params: { typesetter: 'LaTeX' } },
+				mimeType: 'application/x-tex',
+			},
+		],
+		outputFormats: [
+			{
+				id: 'pdf',
+				mimeType: 'application/pdf',
+				rendererPluginId: 'pdf-renderer',
+			},
+			{
+				id: 'canvas-pdf',
+				mimeType: 'application/pdf',
+				rendererPluginId: 'canvas-renderer',
+				outputType: 'canvas',
+			},
+		],
+		transportConfig: { type: 'websocket', url },
+		capabilities: { outline: false },
+		ui: {
+			compile: {
+				fields: [
+					{
+						key: 'format',
+						label: 'Output Format:',
+						kind: 'select',
+						sendAs: 'format',
+						defaultValue: 'pdf',
+						options: [
+							{ label: 'PDF', value: 'pdf' },
+							{ label: 'Canvas (PDF)', value: 'canvas-pdf' },
+						],
+					},
+					ENGINE_FIELD,
+				],
+			},
+			export: {
+				label: 'Export',
+				fields: [
+					{
+						key: 'format',
+						label: 'Export Format:',
+						kind: 'select',
+						sendAs: 'format',
+						defaultValue: 'pdf',
+						options: [{ label: 'PDF', value: 'pdf' }],
+					},
+					ENGINE_FIELD,
+				],
+			},
+			renderers: [
+				{ format: 'pdf', label: 'PDF' },
+				{ format: 'canvas-pdf', label: 'Canvas (PDF)' },
+			],
+			info: {
+				title: 'TeX Live',
+				rows: [
+					{
+						label: {
+							key: '{typesetter} Engine:',
+							params: { typesetter: 'LaTeX' },
+						},
+						value: 'TeX Live (full)',
+					},
+					{
+						label: {
+							key: '{typesetter} Compilers:',
+							params: { typesetter: 'LaTeX' },
+						},
+						value: 'pdfLaTeX, LuaLaTeX, XeLaTeX (latexmk)',
+					},
+					{ label: 'Output Formats:', value: 'PDF, Canvas (PDF)' },
+				],
+			},
+		},
+	};
+}

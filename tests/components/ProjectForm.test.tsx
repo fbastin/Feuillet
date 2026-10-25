@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { typesetterRegistryService } from '@src/services/TypesetterRegistryService';
 import ProjectForm from '@src/components/project/ProjectForm';
+import { createTexliveTypesetterConfig } from '@src/utils/texliveTypesetter';
 
 describe('ProjectForm Component', () => {
     const mockHandlers = {
@@ -121,5 +122,41 @@ describe('ProjectForm Component', () => {
 
         expect(screen.queryByLabelText(/tags/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/add to favorites/i)).not.toBeInTheDocument();
+    });
+
+    it('should default new LaTeX projects to a preferred TeX Live server', async () => {
+        const texlive = createTexliveTypesetterConfig('wss://feuillet.example/texlive/');
+        typesetterRegistryService.register({
+            id: texlive.id,
+            label: texlive.name,
+            source: 'chelys',
+            projectType: texlive.projectType,
+            projectGroup: texlive.projectGroup,
+            inputExtensions: texlive.inputExtensions,
+            outputFormats: texlive.outputFormats,
+            capabilities: texlive.capabilities,
+            preferred: true,
+        });
+
+        try {
+            const user = userEvent.setup();
+            render(<ProjectForm {...mockHandlers} />);
+
+            expect(screen.getByLabelText(/compiler/i)).toHaveValue('texlive');
+            await user.type(screen.getByLabelText(/project name/i), 'Paper');
+            await user.click(screen.getByRole('button', { name: /create project/i }));
+
+            await waitFor(() => {
+                expect(mockHandlers.onSubmit).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        type: 'latex',
+                        group: 'tex',
+                        compilerId: 'texlive',
+                    }),
+                );
+            });
+        } finally {
+            typesetterRegistryService.unregister(texlive.id);
+        }
     });
 });

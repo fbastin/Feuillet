@@ -3,6 +3,7 @@ import type React from 'react';
 import { useState } from 'react';
 
 import { t } from '@/i18n';
+import { CHELYS_ACCOUNTS_ENABLED } from '../../branding';
 import PasswordInfo from './PasswordInfo';
 import { useAuth } from '../../hooks/useAuth';
 import { useChelys } from '../../hooks/useChelys';
@@ -226,7 +227,7 @@ const Register: React.FC<RegisterProps> = ({
 							: t('Sign up')}
 				</button>
 
-				{!isUpgrade && (
+				{CHELYS_ACCOUNTS_ENABLED && !isUpgrade && (
 					<button
 						type='button'
 						className='button'

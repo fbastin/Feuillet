@@ -97,6 +97,7 @@ export interface UserDataSettings {
 	compilationAutoExpandOutput?: any;
 	externalTypesetterAutoCompileOnOpen?: any;
 	externalTypesetterAutoNavigateToMain?: any;
+	texliveServer?: string;
 	formatterLatexNotifications?: string;
 	formatterTypstNotifications?: string;
 	editorFontFamily?: any;

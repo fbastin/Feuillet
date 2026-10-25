@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
+import { CHELYS_ACCOUNTS_ENABLED } from '../../branding';
 import { useAuth } from '../../hooks/useAuth';
 import { useChelys } from '../../hooks/useChelys';
 import {
@@ -211,7 +212,7 @@ const Login: React.FC<LoginProps> = ({
 						{isLoading ? t('Logging in...') : t('Log in')}
 					</button>
 
-					{!confirmCreate ? (
+					{!CHELYS_ACCOUNTS_ENABLED ? null : !confirmCreate ? (
 						<button
 							type='button'
 							className='button'

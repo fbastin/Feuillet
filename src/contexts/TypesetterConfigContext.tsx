@@ -17,6 +17,11 @@ import {
 	type TypesetterServerConfig,
 } from '../services/GenericTypesetterService';
 import {
+	TEXLIVE_SERVER_SETTING,
+	TEXLIVE_TYPESETTER_ID,
+	createTexliveTypesetterConfig,
+} from '../utils/texliveTypesetter';
+import {
 	moveConfig,
 	parseTypesetterConfigs,
 	upsertConfig,
@@ -76,6 +81,21 @@ export const TypesetterConfigProvider: React.FC<
 		[settingValue, disabledConfigs],
 	);
 
+	const texliveServer = String(
+		getSetting(TEXLIVE_SERVER_SETTING)?.value ?? '',
+	).trim();
+
+	// Feuillet's TeX Live server is offered to everyone and preferred for new
+	// LaTeX projects, unless the user keeps a recipe under the same id. It is
+	// not part of the user's recipe list.
+	const builtinConfigs = useMemo(() => {
+		if (!texliveServer) return [];
+		const overridden = [...storedConfigs, ...disabledConfigs].some(
+			(config) => config.id === TEXLIVE_TYPESETTER_ID,
+		);
+		return overridden ? [] : [createTexliveTypesetterConfig(texliveServer)];
+	}, [texliveServer, storedConfigs, disabledConfigs]);
+
 	useEffect(() => {
 		setConfigs(storedConfigs);
 	}, [storedConfigs]);
@@ -85,11 +105,13 @@ export const TypesetterConfigProvider: React.FC<
 		const previousSerialized = lastSerializedRef.current;
 		const nextIds = new Set<string>();
 		const nextSerialized = new Map<string, string>();
+		const builtinIds = new Set(builtinConfigs.map((config) => config.id));
 
-		storedConfigs.forEach((config) => {
+		[...builtinConfigs, ...storedConfigs].forEach((config) => {
 			nextIds.add(config.id);
 
-			const serialized = JSON.stringify(config);
+			const preferred = builtinIds.has(config.id);
+			const serialized = JSON.stringify([config, preferred]);
 			nextSerialized.set(config.id, serialized);
 
 			if (previousSerialized.get(config.id) === serialized) {
@@ -115,6 +137,7 @@ export const TypesetterConfigProvider: React.FC<
 					transport: config.transportConfig,
 					capabilities: config.capabilities,
 					ui: config.ui,
+					...(preferred ? { preferred } : {}),
 				});
 			} else {
 				typesetterRegistryService.unregister(config.id);
@@ -130,7 +153,7 @@ export const TypesetterConfigProvider: React.FC<
 
 		registeredIdsRef.current = nextIds;
 		lastSerializedRef.current = nextSerialized;
-	}, [storedConfigs]);
+	}, [builtinConfigs, storedConfigs]);
 
 	const saveConfigs = useCallback(
 		(active: TypesetterServerConfig[], disabled: TypesetterServerConfig[]) => {

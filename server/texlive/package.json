@@ -1,0 +1,17 @@
+{
+	"name": "feuillet-texlive-server",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Feuillet TeX Live compile server (TeXlyre typesetter protocol over WebSocket)",
+	"license": "AGPL-3.0-or-later",
+	"main": "server.js",
+	"scripts": {
+		"start": "node server.js"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {
+		"ws": "^8.22.0"
+	}
+}

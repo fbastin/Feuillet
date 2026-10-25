@@ -108,23 +108,24 @@ class TypesetterRegistryService {
 	}
 
 	listForProjectType(projectType: string): TypesetterProvider[] {
-		const providers = this.list().filter(
-			(provider) => provider.projectType === projectType,
+		return this.byPriority(
+			this.list().filter((provider) => provider.projectType === projectType),
 		);
-		return [
-			...providers.filter((provider) => provider.source === 'builtin'),
-			...providers.filter((provider) => provider.source !== 'builtin'),
-		];
 	}
 
 	listForProjectGroup(projectGroup: string): TypesetterProvider[] {
-		const providers = this.list().filter(
-			(provider) => this.getProjectGroup(provider) === projectGroup,
+		return this.byPriority(
+			this.list().filter(
+				(provider) => this.getProjectGroup(provider) === projectGroup,
+			),
 		);
-		return [
-			...providers.filter((provider) => provider.source === 'builtin'),
-			...providers.filter((provider) => provider.source !== 'builtin'),
-		];
+	}
+
+	// Preferred providers first, then built-in ones, then the others.
+	private byPriority(providers: TypesetterProvider[]): TypesetterProvider[] {
+		const rank = (provider: TypesetterProvider) =>
+			provider.preferred ? 0 : provider.source === 'builtin' ? 1 : 2;
+		return [...providers].sort((a, b) => rank(a) - rank(b));
 	}
 
 	listProjectTypes(): TypesetterProjectType[] {

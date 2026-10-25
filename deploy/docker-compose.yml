@@ -1,6 +1,6 @@
 # deploy/docker-compose.yml
-# Feuillet collaboration server, reachable only from this machine; Apache
-# exposes it as wss://feuillet.slashbin.net/collab/.
+# Feuillet servers, reachable only from this machine; Apache exposes them as
+# wss://feuillet.slashbin.net/collab/ and wss://feuillet.slashbin.net/texlive/.
 name: feuillet
 
 services:
@@ -15,6 +15,29 @@ services:
     volumes:
       - collab-data:/data
       - collab-files:/files
+
+  # Compiles documents written by anyone who can open Feuillet: unprivileged,
+  # bounded in memory, processes and disk, and keeping nothing between runs.
+  texlive:
+    build: ../server/texlive
+    container_name: feuillet-texlive
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7045:7045"
+    environment:
+      ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
+      MAX_CONCURRENT: "2"
+      COMPILE_TIMEOUT_MS: "180000"
+    tmpfs:
+      - /work:size=2g,uid=10001,gid=10001,mode=0700
+      - /tmp:size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    cpus: 4
+    pids_limit: 256
 
 volumes:
   collab-data:

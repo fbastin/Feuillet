@@ -1,5 +1,5 @@
 {
-  "version": "1.3.5",
+  "version": "1.3.6",
   "settings": {
     "bibtex-viewer-auto-tidy": false,
     "bibtex-viewer-tidy-options": "standard",
@@ -51,6 +51,7 @@
     "status-json-url": "",
     "status-page-url": "",
     "templates-api-url": "https://texlyre.github.io/texlyre-templates/api/templates.json",
+    "texlive-server": "ws://localhost:7045",
     "theme-plugin": "texlyre-compact-theme",
     "theme-variant": "dark",
     "typst-auto-compile-on-open": false,
