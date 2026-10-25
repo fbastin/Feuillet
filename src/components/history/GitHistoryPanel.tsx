@@ -15,13 +15,12 @@ import {
 	type GitChange,
 	type GitComparisonFile,
 	type GitHistoryEntry,
-	type GitMergePlan,
 	type GitProjectState,
 } from '../../services/GitService';
+import { gitProjectSyncService } from '../../services/GitProjectSyncService';
 import { gitSyncService } from '../../services/GitSyncService';
 import {
 	mergeResolutionService,
-	type ConflictResolution,
 	type FileConflict,
 } from '../../services/MergeResolutionService';
 import type { GitRemoteConfig } from '../../types/gitRemote';
@@ -259,6 +258,9 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 
 	useEffect(() => {
 		void load();
+		const reload = () => void load();
+		document.addEventListener('git-history-changed', reload);
+		return () => document.removeEventListener('git-history-changed', reload);
 	}, [load]);
 
 	useEffect(() => {
@@ -698,80 +700,6 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 		}
 	};
 
-	const resolutionText = (
-		plan: GitMergePlan,
-		resolutions: Map<string, ConflictResolution>,
-	): Map<string, string> => {
-		const text = new Map<string, string>();
-		for (const conflict of plan.conflicts) {
-			const resolution = resolutions.get(conflict.path);
-			if (!resolution) continue;
-			const content =
-				resolution.action === 'keep-local'
-					? conflict.localContent
-					: resolution.action === 'keep-remote'
-						? conflict.remoteContent
-						: resolution.content;
-			if (typeof content !== 'string') {
-				throw new Error(
-					'Binary merge conflicts cannot be resolved in the text merge editor',
-				);
-			}
-			text.set(conflict.path, content);
-		}
-		return text;
-	};
-
-	const resolveBranchConflicts = async (
-		plan: GitMergePlan,
-		remoteLabel = plan.theirsBranch,
-	) => {
-		const unsupported = plan.conflicts.find(
-			(conflict) =>
-				conflict.isBinary || !conflict.localExists || !conflict.remoteExists,
-		);
-		if (unsupported) {
-			throw new Error(
-				t(
-					'Merge conflict in {path} involves a binary file or deletion and cannot be resolved safely in the text editor.',
-					{
-						path: unsupported.path,
-					},
-				),
-			);
-		}
-
-		const conflicts: FileConflict[] = plan.conflicts.map((conflict) => {
-			const local = stripAnnotationTagsWithSpans(
-				conflict.localContent as string,
-			);
-			const remote = stripAnnotationTagsWithSpans(
-				conflict.remoteContent as string,
-			);
-			return {
-				path: conflict.path,
-				isBinary: false,
-				baseContent: conflict.baseContent as string,
-				localContent: conflict.localContent,
-				remoteContent: conflict.remoteContent,
-				localViewContent: local.content,
-				remoteViewContent: remote.content,
-				localAnnotationSpans: local.spans,
-				annotationSpans: remote.spans,
-			};
-		});
-
-		const resolutions = await mergeResolutionService.resolveConflicts(
-			conflicts,
-			{
-				keepLocal: t('Keep {branch}', { branch: plan.oursBranch }),
-				keepRemote: t('Keep {branch}', { branch: remoteLabel }),
-			},
-		);
-		if (!resolutions) return null;
-		return resolutionText(plan, resolutions);
-	};
-
 	const mergeBranch = async (branch: GitBranch) => {
 		if (!projectId || isWorking) return;
 		setIsWorking(true);
@@ -780,7 +708,9 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 		try {
 			let result = await gitService.mergeBranch(projectId, branch.name, user);
 			if (result.status === 'conflicts') {
-				const resolved = await resolveBranchConflicts(result.plan);
+				const resolved = await gitProjectSyncService.resolveMergeConflicts(
+					result.plan,
+				);
 				if (!resolved) {
 					setNotice(t('Merge cancelled.'));
 					return;
@@ -813,65 +743,39 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 		setIsWorking(true);
 		setError(null);
 		setNotice(null);
-		let temporaryBranch: string | null = null;
 		let shouldReload = false;
 		try {
-			const fetched = await gitSyncService.fetchForMerge(projectId, secrets);
-			if (!fetched) {
-				setNotice(t('The remote branch is empty. Push to initialize it.'));
-				return;
-			}
-			temporaryBranch = fetched.temporaryBranch;
-			const remoteLabel = `${fetched.repositoryLabel} · ${fetched.remoteBranch}`;
-
-			if (!(await gitService.getHeadOid(projectId))) {
-				await gitSyncService.adoptFetched(projectId, fetched);
-				setNotice(
-					t('Pulled {remote}.', {
-						remote: remoteLabel,
-					}),
-				);
-			} else {
-				let result = await gitService.mergeBranch(
-					projectId,
-					fetched.temporaryBranch,
-					user,
-					{ allowUnrelatedHistories: true },
-				);
-				if (result.status === 'conflicts') {
-					const resolved = await resolveBranchConflicts(
-						result.plan,
-						remoteLabel,
+			const result = await gitProjectSyncService.pull(projectId, secrets, user);
+			switch (result.status) {
+				case 'empty-remote':
+					setNotice(t('The remote branch is empty. Push to initialize it.'));
+					return;
+				case 'cancelled':
+					setNotice(t('Pull cancelled.'));
+					return;
+				case 'adopted':
+					setNotice(t('Pulled {remote}.', { remote: result.remoteLabel }));
+					break;
+				case 'up-to-date':
+					setNotice(
+						t('Already up to date with {remote}.', {
+							remote: result.remoteLabel,
+						}),
 					);
-					if (!resolved) {
-						setNotice(t('Pull cancelled.'));
-						return;
-					}
-					result = await gitService.completeBranchMerge(
-						projectId,
-						result.plan,
-						resolved,
-						user,
+					break;
+				case 'fast-forward':
+					setNotice(
+						t('Pulled {remote} (fast-forward).', {
+							remote: result.remoteLabel,
+						}),
 					);
-				}
-				if (result.status === 'merged') {
-					if (result.alreadyMerged) {
-						setNotice(
-							t('Already up to date with {remote}.', { remote: remoteLabel }),
-						);
-					} else if (result.fastForward) {
-						setNotice(
-							t('Pulled {remote} (fast-forward).', { remote: remoteLabel }),
-						);
-					} else {
-						setNotice(
-							t('Pulled and merged {remote}.', { remote: remoteLabel }),
-						);
-					}
-				}
+					break;
+				case 'merged':
+					setNotice(
+						t('Pulled and merged {remote}.', { remote: result.remoteLabel }),
+					);
+					break;
 			}
-			await gitService.resetAll(projectId);
-			gitSyncService.markFetchedSynced(projectId, fetched);
 			setCompareSource(null);
 			onClearDiff();
 			shouldReload = true;
@@ -883,16 +787,6 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 					: t('Failed to pull remote'),
 			);
 		} finally {
-			if (temporaryBranch) {
-				await gitSyncService
-					.discardFetched(projectId, temporaryBranch)
-					.catch((cleanupError) => {
-						moduleLog.warn(
-							'Failed to remove temporary remote branch:',
-							cleanupError,
-						);
-					});
-			}
 			setIsWorking(false);
 			if (shouldReload) await load();
 		}

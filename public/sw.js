@@ -1,11 +1,12 @@
 // These constants are automatically generated. Do not edit directly.
-// Generated on: 2026-10-24T11:30:41.436Z
+// Generated on: 2026-10-25T14:41:37.283Z
 const CACHE_NAME = `texlyre-v0.13.4`;
-const BASE_PATH = '/texlyre/';
+const BASE_PATH = '/Feuillet/';
 const FONTS_CACHE_NAME = 'fonts-cache-v1';
 const AIRGAP_ALLOWED_DOMAINS = [
-	"texlyre.org",
+	"fbastin.github.io",
 	"texlyre.github.io",
+	"texlyre.org",
 	"typst.org"
 ];
 const AIRGAP_ALLOWED_PROTOCOLS = [

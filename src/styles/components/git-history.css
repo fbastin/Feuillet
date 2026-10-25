@@ -685,3 +685,67 @@
 .git-history-confirmation > p {
 	margin-top: 0;
 }
+
+.github-sync-button {
+	position: relative;
+	white-space: nowrap;
+}
+
+.github-sync-button[data-linked="true"]::after {
+	content: "";
+	position: absolute;
+	top: var(--space-xs);
+	inset-inline-end: var(--space-xs);
+	width: 0.45rem;
+	height: 0.45rem;
+	border-radius: 50%;
+	background-color: var(--color-success);
+}
+
+@media (max-width: 760px) {
+	.github-sync-button-label {
+		display: none;
+	}
+}
+
+.github-sync-modal > section {
+	margin: 0;
+}
+
+.github-sync-modal h3 {
+	margin: 0;
+	font-size: var(--font-size-body);
+}
+
+.github-sync-repository {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-sm);
+	word-break: break-word;
+}
+
+.github-sync-repository a {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+}
+
+.github-sync-account {
+	justify-content: space-between;
+	gap: var(--space-sm);
+}
+
+.github-sync-status {
+	margin: 0;
+	padding-inline-start: var(--space-lg);
+	font-size: var(--font-size-small);
+}
+
+.github-sync-status li {
+	margin-bottom: 0;
+}
+
+.github-sync-modal select[size] {
+	min-height: 6rem;
+}

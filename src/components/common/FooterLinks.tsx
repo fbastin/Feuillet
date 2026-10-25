@@ -2,6 +2,7 @@
 import type React from 'react';
 import { useRef, useState } from 'react';
 
+import { APP_SOURCE_URL, UPSTREAM_NAME } from '@/branding';
 import { t } from '@/i18n';
 import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
 import { useSettings } from '../../hooks/useSettings';
@@ -41,11 +42,7 @@ const FooterLinks: React.FC<FooterLinksProps> = ({
 				{t('Documentation')}
 			</a>{' '}
 			•{' '}
-			<a
-				href='https://github.com/TeXlyre/texlyre'
-				target='_blank'
-				rel='noreferrer'
-			>
+			<a href={APP_SOURCE_URL} target='_blank' rel='noreferrer'>
 				{t('Source Code')}
 			</a>{' '}
 			•{' '}
@@ -67,8 +64,16 @@ const FooterLinks: React.FC<FooterLinksProps> = ({
 				{t('Privacy')}
 			</button>{' '}
 			•
-			<a href='https://texlyre.org' target='_blank' rel='noreferrer'>
-				<img src={texlyreLogo} className='logo' alt={t('TeXlyre logo')} />
+			<a
+				href='https://texlyre.org'
+				target='_blank'
+				rel='noreferrer'
+				title={t('Based on {project}', {
+					project: UPSTREAM_NAME,
+					applyPostProcessor: false,
+				})}
+			>
+				<img src={texlyreLogo} className='logo' alt={UPSTREAM_NAME} />
 			</a>{' '}
 			{`v${__APP_VERSION__}`}
 		</span>

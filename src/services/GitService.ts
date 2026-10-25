@@ -1,6 +1,7 @@
 // src/services/GitService.ts
 import { Buffer } from 'buffer';
 
+import { APP_NAME } from '../branding';
 import type { User } from '../types/auth';
 import type { FileNode } from '../types/files';
 import { isBinaryFile } from '../utils/fileUtils';
@@ -118,7 +119,7 @@ export type GitComparisonRef =
 
 function authorForUser(user: User | null): { name: string; email: string } {
 	return {
-		name: user?.name?.trim() || user?.username?.trim() || 'TeXlyre User',
+		name: user?.name?.trim() || user?.username?.trim() || `${APP_NAME} User`,
 		email: user?.email?.trim() || DEFAULT_EMAIL,
 	};
 }

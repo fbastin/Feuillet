@@ -2,12 +2,12 @@
 import type { TexlyreConfig } from '@/types/texlyre';
 
 const config: TexlyreConfig = {
-    title: 'TeXlyre',
-    tagline: 'A local-first LaTeX & Typst collaborative web editor',
-    url: 'https://texlyre.org',
-    baseUrl: '/texlyre/',
-    organizationName: 'texlyre',
-    projectName: 'texlyre',
+    title: 'Feuillet',
+    tagline: 'A local-first LaTeX & Typst collaborative web editor with GitHub sync',
+    url: 'https://fbastin.github.io',
+    baseUrl: '/Feuillet/',
+    organizationName: 'fbastin',
+    projectName: 'Feuillet',
     favicon: '/favicon.ico',
 
 

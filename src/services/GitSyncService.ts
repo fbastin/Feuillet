@@ -1,4 +1,5 @@
 import type { SecretsContextType } from '../contexts/SecretsContext';
+import { APP_NAME } from '../branding';
 import type {
 	GitHistoryCredentialSource,
 	GitRemoteCommitChange,
@@ -43,6 +44,12 @@ export type GitCredentialChoice = 'new' | GitHistoryCredentialSource;
 export interface GitCredentialOption {
 	id: GitCredentialChoice;
 	label: string;
+}
+
+export interface GitRemoteSyncStatus {
+	remoteHead: string | null;
+	remoteChanged: boolean;
+	localAhead: boolean;
 }
 
 export interface GitPushSummary {
@@ -933,10 +940,26 @@ class GitSyncService {
 			return reversed.reverse();
 		}
 
+		// With preserved OIDs every ancestor of the sync base already exists on
+		// the remote, so a merge's other parents must not replay old history.
+		const synchronized = new Set<string>();
+		if (localBaseOid && preservesCommitOids) {
+			const pending = [localBaseOid];
+			while (pending.length > 0) {
+				const oid = pending.pop() as string;
+				if (synchronized.has(oid)) continue;
+				synchronized.add(oid);
+				pending.push(
+					...(await this.readLocalCommitMeta(projectId, oid)).parents,
+				);
+			}
+		}
+
 		const ordered: LocalPushCommit[] = [];
 		const seen = new Set<string>();
 		const visit = async (oid: string): Promise<void> => {
-			if (oid === localBaseOid || seen.has(oid)) return;
+			if (oid === localBaseOid || synchronized.has(oid) || seen.has(oid))
+				return;
 			seen.add(oid);
 			const commit = await this.readLocalCommitMeta(projectId, oid);
 			for (const parent of commit.parents) await visit(parent);
@@ -1145,7 +1168,7 @@ class GitSyncService {
 		});
 		if (localOid !== remote.oid) {
 			throw new Error(
-				`Remote commit ${remote.oid} was reconstructed but isomorphic-git wrote ${localOid}. TeXlyre will not alias different Git object IDs.`,
+				`Remote commit ${remote.oid} was reconstructed but isomorphic-git wrote ${localOid}. ${APP_NAME} will not alias different Git object IDs.`,
 			);
 		}
 		remoteToLocal.set(remote.oid, remote.oid);
@@ -1179,6 +1202,34 @@ class GitSyncService {
 		}
 		await fileSystem.flush();
 		document.dispatchEvent(new CustomEvent('git-history-changed'));
+	}
+
+	async getSyncStatus(
+		projectId: string,
+		secrets: GitSecretReader,
+	): Promise<GitRemoteSyncStatus> {
+		const transport = await this.resolveTransport(projectId, secrets);
+		const remoteHead = await transport.provider.historyTransport.getHead(
+			transport.token,
+			transport.config.repositoryId,
+			transport.config.branch,
+		);
+		const headOid = await gitService.getHeadOid(projectId);
+		const syncBase = transport.config.syncBase;
+		const remoteKnownLocally =
+			remoteHead !== null && (await this.hasCommit(projectId, remoteHead));
+		const localBaseOid = syncBase
+			? syncBase.localOid
+			: remoteKnownLocally
+				? remoteHead
+				: null;
+		return {
+			remoteHead,
+			remoteChanged:
+				remoteHead !== null &&
+				(syncBase ? remoteHead !== syncBase.remoteOid : !remoteKnownLocally),
+			localAhead: headOid !== null && headOid !== localBaseOid,
+		};
 	}
 
 	async fetchForMerge(
@@ -1345,7 +1396,7 @@ class GitSyncService {
 				localBaseOid = remoteHead;
 			else {
 				throw new Error(
-					'Pull this remote once before pushing so TeXlyre can establish a synchronization base.',
+					`Pull this remote once before pushing so ${APP_NAME} can establish a synchronization base.`,
 				);
 			}
 		}
@@ -1445,7 +1496,7 @@ class GitSyncService {
 			);
 			if (canonical.tree !== local.tree) {
 				throw new Error(
-					'The provider changed the pushed file tree. TeXlyre will not replace the local commit with a different snapshot.',
+					`The provider changed the pushed file tree. ${APP_NAME} will not replace the local commit with a different snapshot.`,
 				);
 			}
 			remoteByLocal.set(localOid, created.oid);

@@ -5,6 +5,7 @@ import type React from 'react';
 
 import { InfoIcon } from './Icons';
 import Modal from './Modal';
+import { APP_SOURCE_URL } from '@/branding';
 
 interface PrivacyModalProps {
 	isOpen: boolean;
@@ -298,7 +299,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 								strong: <strong />,
 								issues: (
 									<TransLink
-										href='https://github.com/texlyre/texlyre/issues'
+										href={`${APP_SOURCE_URL}/issues`}
 										target='_blank'
 										rel='noreferrer'
 									/>

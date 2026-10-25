@@ -11,6 +11,18 @@ export interface GitRemoteBranch {
 	protected?: boolean;
 }
 
+export interface GitRemoteAccount {
+	login: string;
+	name?: string;
+	profileUrl?: string;
+}
+
+export interface GitRemoteCreateRepositoryInput {
+	name: string;
+	description?: string;
+	private: boolean;
+}
+
 export type GitHistoryCredentialSource =
 	| 'history'
 	| 'backup-project'
@@ -140,5 +152,12 @@ export interface GitRemoteProvider {
 		sourceRef: string,
 	): Promise<void>;
 	normalizeRepositoryInput?(input: string): string;
+	getAccount?(token: string): Promise<GitRemoteAccount>;
+	createRepository?(
+		token: string,
+		input: GitRemoteCreateRepositoryInput,
+	): Promise<GitRemoteRepository>;
+	getRepositoryUrl?(repositoryId: string, branch?: string): string;
+	getTokenCreationUrl?(appName: string): string;
 	historyTransport: GitRemoteHistoryTransport;
 }

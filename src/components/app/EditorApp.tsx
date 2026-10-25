@@ -35,6 +35,7 @@ import BackupStatusIndicator from '../backup/BackupStatusIndicator';
 import ChatPanel from '../chat/ChatPanel';
 import CollabStatusIndicator from '../collab/CollabStatusIndicator';
 import CollaboratorAvatars from '../common/CollaboratorAvatars';
+import GitHubSyncButton from '../history/GitHubSyncButton';
 import { EditIcon, ProjectsIcon } from '../common/Icons';
 import Modal from '../common/Modal';
 import OfflineBanner from '../common/OfflineBanner';
@@ -728,6 +729,15 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 						className='header-share-button'
 						onOpenShareModal={() => setShowShareModal(true)}
 					/>
+
+					{!isGuestUser(user) && (
+						<GitHubSyncButton
+							className='header-github-sync'
+							projectId={sessionStorage.getItem('currentProjectId')}
+							projectName={projectName}
+							projectDescription={projectDescription}
+						/>
+					)}
 
 					{!isGuestUser(user) && (
 						<BackupStatusIndicator

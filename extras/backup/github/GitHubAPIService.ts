@@ -15,7 +15,15 @@ interface GitHubRepo {
 	full_name: string;
 	private: boolean;
 	default_branch: string;
+	html_url?: string;
 }
+interface GitHubUser {
+	login: string;
+	name?: string | null;
+	html_url?: string;
+}
+const PAGE_SIZE = 100;
+const MAX_PAGES = 10;
 interface GitHubTreeItem {
 	path: string;
 	mode: '100644' | '100755' | '040000' | '160000' | '120000';
@@ -118,8 +126,58 @@ export class GitHubAPIService {
 		}
 	}
 
+	private async _paginate<T>(token: string, endpoint: string): Promise<T[]> {
+		const separator = endpoint.includes('?') ? '&' : '?';
+		const items: T[] = [];
+		for (let page = 1; page <= MAX_PAGES; page++) {
+			const batch = await this._request<T[]>(
+				token,
+				`${endpoint}${separator}per_page=${PAGE_SIZE}&page=${page}`,
+			);
+			items.push(...batch);
+			if (batch.length < PAGE_SIZE) break;
+		}
+		return items;
+	}
+
 	async getRepositories(token: string): Promise<GitHubRepo[]> {
-		return this._request<GitHubRepo[]>(token, 'user/repos?per_page=100');
+		return this._paginate<GitHubRepo>(token, 'user/repos?sort=updated');
+	}
+
+	async getAuthenticatedUser(token: string): Promise<GitHubUser> {
+		return this._request<GitHubUser>(token, 'user');
+	}
+
+	async createRepository(
+		token: string,
+		input: { name: string; description?: string; private: boolean },
+	): Promise<GitHubRepo> {
+		const response = await fetch(`${this.baseUrl}/user/repos`, {
+			method: 'POST',
+			headers: {
+				Authorization: `token ${token}`,
+				Accept: 'application/vnd.github.v3+json',
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				name: input.name,
+				description: input.description || undefined,
+				private: input.private,
+				auto_init: false,
+			}),
+		});
+		if (!response.ok) {
+			const errorData = (await response.json().catch(() => ({}))) as {
+				message?: string;
+				errors?: Array<{ message?: string }>;
+			};
+			const detail =
+				errorData.errors?.find((item) => item.message)?.message ||
+				errorData.message ||
+				response.statusText;
+			throw new Error(`GitHub could not create the repository: ${detail}`);
+		}
+		return response.json();
 	}
 
 	async getRepositoryContents(
@@ -421,11 +479,10 @@ export class GitHubAPIService {
 		owner: string,
 		repo: string,
 	): Promise<{ name: string; protected: boolean }[]> {
-		const data = await this._request<{ name: string; protected: boolean }[]>(
+		return this._paginate<{ name: string; protected: boolean }>(
 			token,
 			`repos/${owner}/${repo}/branches`,
 		);
-		return data;
 	}
 }
 

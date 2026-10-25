@@ -782,6 +782,75 @@ describe('GitSyncService API transport', () => {
 		);
 	});
 
+	it('pushes only new commits after merging a pulled remote change', async () => {
+		transport.supportsMergeCommits = true;
+		localStorage.setItem(
+			'texlyre-git-remote:project-1',
+			JSON.stringify({
+				...config,
+				syncBase: { localOid: 'remote-base', remoteOid: 'remote-base' },
+			}),
+		);
+		const commit = (parent: string[], tree: string, message: string) => ({
+			tree,
+			parent,
+			message,
+			author: signature,
+			committer: signature,
+		});
+		localCommits.set('remote-root', commit([], 'base-tree', 'Root'));
+		localCommits.set(
+			'remote-base',
+			commit(['remote-root'], 'remote-tree', 'Remote change'),
+		);
+		localCommits.set(
+			'local-edit',
+			commit(['remote-root'], 'local-tree', 'Local edit'),
+		);
+		localCommits.set(
+			'local-head',
+			commit(['local-edit', 'remote-base'], 'merge-tree', 'Merge'),
+		);
+		const readme = {
+			path: 'README.md',
+			type: 'blob',
+			mode: '100644',
+			oid: 'readme-blob',
+		};
+		localTrees.set('remote-tree', [...localTrees.get('base-tree')!, readme]);
+		localTrees.set('merge-tree', [...localTrees.get('local-tree')!, readme]);
+		localBlobs.set('readme-blob', new TextEncoder().encode('readme'));
+
+		transport.getHead
+			.mockResolvedValueOnce('remote-base')
+			.mockResolvedValue('local-head');
+		transport.createCommit.mockImplementation(
+			async (_token, _repo, input: any) => ({
+				...remoteCommit,
+				oid: input.message === 'Merge' ? 'local-head' : 'local-edit',
+				message: input.message,
+				parents: input.parents,
+			}),
+		);
+
+		const summary = await gitSyncService.push('project-1', secrets);
+
+		expect(transport.createCommit).toHaveBeenCalledTimes(2);
+		expect(transport.createCommit).toHaveBeenNthCalledWith(
+			1,
+			'secret-token',
+			'owner/repo',
+			expect.objectContaining({ parents: ['remote-root'] }),
+		);
+		expect(transport.createCommit).toHaveBeenNthCalledWith(
+			2,
+			'secret-token',
+			'owner/repo',
+			expect.objectContaining({ parents: ['local-edit', 'remote-base'] }),
+		);
+		expect(summary.pushedCommits).toBe(2);
+	});
+
 	it('advances an empty remote branch while pushing multiple commits', async () => {
 		transport.supportsMergeCommits = true;
 		localCommits.set('local-one', {
@@ -1233,5 +1302,88 @@ describe('GitSyncService API transport', () => {
 		).rejects.toThrow(
 			'cannot be reconstructed exactly from the provider API',
 		);
+	});
+});
+
+describe('GitSyncService sync status', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		resetLocalHistory();
+		provider.id = 'github';
+		provider.displayName = 'GitHub';
+		mockGetGitRemoteProviders.mockReturnValue([provider]);
+		localStorage.clear();
+		mockGitService.getHeadOid.mockResolvedValue('local-head');
+	});
+
+	const storeConfig = (syncBase?: { localOid: string; remoteOid: string }) =>
+		localStorage.setItem(
+			'texlyre-git-remote:project-1',
+			JSON.stringify({ ...config, ...(syncBase ? { syncBase } : {}) }),
+		);
+
+	it('reports nothing to do when both sides match the sync base', async () => {
+		storeConfig({ localOid: 'local-head', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue('remote-tip');
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).resolves.toEqual({
+			remoteHead: 'remote-tip',
+			remoteChanged: false,
+			localAhead: false,
+		});
+	});
+
+	it('reports remote and local changes since the sync base', async () => {
+		storeConfig({ localOid: 'remote-base', remoteOid: 'remote-base' });
+		transport.getHead.mockResolvedValue('remote-newer');
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).resolves.toEqual({
+			remoteHead: 'remote-newer',
+			remoteChanged: true,
+			localAhead: true,
+		});
+	});
+
+	it('uses a locally known remote head when there is no sync base', async () => {
+		storeConfig();
+		transport.getHead.mockResolvedValue('remote-base');
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).resolves.toEqual({
+			remoteHead: 'remote-base',
+			remoteChanged: false,
+			localAhead: true,
+		});
+	});
+
+	it('treats an unknown remote head without a sync base as a remote change', async () => {
+		storeConfig();
+		transport.getHead.mockResolvedValue('remote-unknown');
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).resolves.toEqual({
+			remoteHead: 'remote-unknown',
+			remoteChanged: true,
+			localAhead: true,
+		});
+	});
+
+	it('reports only local commits for an empty remote branch', async () => {
+		storeConfig();
+		transport.getHead.mockResolvedValue(null);
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).resolves.toEqual({
+			remoteHead: null,
+			remoteChanged: false,
+			localAhead: true,
+		});
 	});
 });

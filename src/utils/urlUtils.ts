@@ -1,4 +1,5 @@
 // src/utils/urlUtils.ts
+import { APP_NAME } from '../branding';
 import type { UrlFragments } from '../types/yjs';
 
 const LEGACY_YJS_PROJECT_ID_RE = /^[a-z0-9]{20,32}$/;
@@ -66,8 +67,8 @@ export function buildUrlWithFragments(
 	return url;
 }
 
-export function getProjectName(fallback = 'TeXlyre'): string {
-	if (document.title && document.title !== 'TeXlyre') {
+export function getProjectName(fallback = APP_NAME): string {
+	if (document.title && document.title !== APP_NAME) {
 		return document.title;
 	}
 

@@ -48,6 +48,13 @@ const normalizeSignature = (signature: {
 	date: signature.date || new Date(0).toISOString(),
 });
 
+const webBaseUrl = (): string => {
+	const endpoint = apiConfiguration.endpoint.replace(/\/$/, '');
+	if (/^https:\/\/api\.github\.com$/i.test(endpoint))
+		return 'https://github.com';
+	return endpoint.replace(/\/api\/v3$/i, '');
+};
+
 const applyApiConfiguration = (
 	configuration: typeof apiConfiguration,
 ): void => {
@@ -354,5 +361,29 @@ export const gitHubGitRemoteProvider: GitRemoteProvider = {
 		});
 	},
 	normalizeRepositoryInput: normalizeGitRepositoryInput,
+	getAccount: async (token) => {
+		const user = await gitHubAPIService.getAuthenticatedUser(token);
+		return {
+			login: user.login,
+			name: user.name || undefined,
+			profileUrl: user.html_url,
+		};
+	},
+	createRepository: async (token, input) => {
+		const repository = await gitHubAPIService.createRepository(token, input);
+		return {
+			id: repository.full_name,
+			label: repository.full_name,
+			private: repository.private,
+			defaultBranch: repository.default_branch,
+		};
+	},
+	getRepositoryUrl: (repositoryId, branch) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const base = `${webBaseUrl()}/${owner}/${repo}`;
+		return branch ? `${base}/tree/${encodeURIComponent(branch)}` : base;
+	},
+	getTokenCreationUrl: (appName) =>
+		`${webBaseUrl()}/settings/tokens/new?scopes=repo&description=${encodeURIComponent(appName)}`,
 	historyTransport,
 };

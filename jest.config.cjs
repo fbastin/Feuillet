@@ -6,6 +6,8 @@ module.exports = {
 	setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
 	globals: {
 		__BASE_PATH__: '/texlyre',
+		__APP_NAME__: 'TeXlyre',
+		__APP_SOURCE_URL__: 'https://github.com/TeXlyre/texlyre',
 	},
 	transformIgnorePatterns: ['node_modules/(?!(wasm-latex-tools)/)'],
 	moduleNameMapper: {

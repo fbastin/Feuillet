@@ -222,6 +222,38 @@ describe('GitFileSystemService', () => {
 		expect(content).toBe('live content');
 	});
 
+	it('cleans annotations from text files stored as bytes', async () => {
+		const annotated =
+			"Hello `<### comment id: c1, user: u, time: 1, content64: 'eA==', responses: [], resolved: false ###>`from`</### comment id: c1 ###>` Git.\n";
+		const latin1 = new Uint8Array([0x63, 0x61, 0x66, 0xe9, 0x0a]);
+		mockFiles.set('/main.tex', {
+			id: 'main',
+			name: 'main.tex',
+			path: '/main.tex',
+			type: 'file',
+			content: Uint8Array.from(new TextEncoder().encode(annotated)).buffer,
+			lastModified: 1,
+		});
+		mockFiles.set('/legacy.tex', {
+			id: 'legacy',
+			name: 'legacy.tex',
+			path: '/legacy.tex',
+			type: 'file',
+			content: latin1.slice().buffer,
+			lastModified: 1,
+		});
+
+		const gitFileSystem = gitFileSystemService.get('project-1');
+		gitFileSystem.setGitCleanAnnotations(true);
+
+		await expect(
+			gitFileSystem.fs.promises.readFile('/main.tex', 'utf8'),
+		).resolves.toBe('Hello from Git.\n');
+		await expect(
+			gitFileSystem.fs.promises.readFile('/legacy.tex'),
+		).resolves.toEqual(latin1);
+	});
+
 	it('writes checkout changes through FileStore and linked Yjs documents', async () => {
 		mockFiles.set('/main.tex', {
 			id: 'main',

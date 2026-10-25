@@ -9,6 +9,7 @@ import {
 	useState,
 } from 'react';
 
+import { APP_NAME } from '@/branding';
 import { createNamedLogger } from '@/logging';
 import { pluginRegistry } from '../plugins/PluginRegistry';
 import type { BibliographyPlugin } from '../plugins/PluginInterface';
@@ -380,7 +381,7 @@ export const BibliographyProvider: React.FC<BibliographyProviderProps> = ({
 					name: fileName,
 					path: filePath,
 					type: 'file' as const,
-					content: '% Bibliography file created by TeXlyre\n\n',
+					content: `% Bibliography file created by ${APP_NAME}\n\n`,
 					lastModified: Date.now(),
 					size: 0,
 					mimeType: 'text/x-bibtex',

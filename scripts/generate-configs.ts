@@ -183,6 +183,18 @@ function generateViteConfig(config: any) {
 		`const basePath = "${config.baseUrl}";`,
 	);
 
+	viteContent = viteContent.replace(
+		/const appName = ['"`][^'"`]*['"`];/,
+		`const appName = ${JSON.stringify(config.title)};`,
+	);
+
+	viteContent = viteContent.replace(
+		/const appSourceUrl = ['"`][^'"`]*['"`];/,
+		`const appSourceUrl = ${JSON.stringify(
+			`https://github.com/${config.organizationName}/${config.projectName}`,
+		)};`,
+	);
+
 	fs.writeFileSync(viteConfigPath, viteContent);
 }
 

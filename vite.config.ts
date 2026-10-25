@@ -6,7 +6,9 @@ import wasm from 'vite-plugin-wasm';
 
 const useHttps = process.env.VITE_USE_HTTPS === 'true';
 
-const basePath = '/texlyre/';
+const basePath = '/Feuillet/';
+const appName = 'Feuillet';
+const appSourceUrl = 'https://github.com/fbastin/Feuillet';
 const appVersion = process.env.npm_package_version || '1.0.0';
 
 // @ts-expect-error
@@ -19,6 +21,8 @@ export default defineConfig({
 		__VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false',
 		'process.env.npm_package_version': JSON.stringify(appVersion),
 		__APP_VERSION__: JSON.stringify(appVersion),
+		__APP_NAME__: JSON.stringify(appName),
+		__APP_SOURCE_URL__: JSON.stringify(appSourceUrl),
 		__BASE_PATH__: JSON.stringify(basePath.slice(0, -1)),
 	},
 

@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 import { createNamedLogger } from '@/logging';
 import type { FileNode } from '../types/files';
 import { mergeAnnotatedSources } from '../utils/annotationMergeUtils';
-import { stripAnnotations } from '../utils/fileCommentUtils';
+import { cleanBytes, stripAnnotations } from '../utils/fileCommentUtils';
 import {
 	getMimeType,
 	isBinaryFile,
@@ -278,9 +278,12 @@ class GitFileSystem {
 				: text;
 			return new TextEncoder().encode(projected);
 		}
-		return file.content instanceof ArrayBuffer
-			? new Uint8Array(file.content)
-			: new Uint8Array();
+		if (!(file.content instanceof ArrayBuffer)) return new Uint8Array();
+		const bytes = new Uint8Array(file.content);
+		// Uploaded text files can be stored as bytes; they may still carry annotations.
+		return this.getSettings().gitCleanAnnotations && !isBinaryFile(file.path)
+			? cleanBytes(bytes)
+			: bytes;
 	}
 
 	private async readWorktreeFile(
