@@ -284,9 +284,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // The collaboration server (/collab/) answers live; file contents it
+  // returns are already stored by the app, so they are not cached here.
+  const isCollaborationRequest =
+    url.origin === self.location.origin &&
+    url.pathname.startsWith(`${BASE_PATH}collab/`);
+
   const isSameOriginAppResource =
     url.origin === self.location.origin &&
-    url.pathname.startsWith(BASE_PATH);
+    url.pathname.startsWith(BASE_PATH) &&
+    !isCollaborationRequest;
 
   const isAllowedExternalResource =
     url.origin !== self.location.origin &&
