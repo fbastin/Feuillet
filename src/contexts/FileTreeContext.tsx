@@ -20,7 +20,11 @@ import { fileConflictPromptService } from '../services/FileConflictPromptService
 import { fileOperationNotificationService } from '../services/FileOperationNotificationService';
 import { fileStoreService } from '../services/FileStoreService';
 import type { DocumentList } from '../types/documents';
-import type { FileNode, FileTreeContextType } from '../types/files';
+import type {
+	FileNode,
+	FileTreeContextType,
+	LinkFileOptions,
+} from '../types/files';
 import type { YjsDocUrl } from '../types/yjs';
 import { duplicateKeyDetectionService } from '../services/DuplicateKeyDetectionService';
 import {
@@ -254,13 +258,19 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 	);
 
 	const linkFileToDocument = useCallback(
-		async (fileId: string, documentId?: string) => {
+		async (
+			fileId: string,
+			documentId?: string,
+			options: LinkFileOptions = {},
+		) => {
 			try {
 				if (!fileStoreService.db) await fileStoreService.initialize();
 				const file = await fileStoreService.getFile(fileId);
 				if (file && changeDoc && doc) {
 					const linkConfirmation =
-						await fileConflictPromptService.confirmLink(file);
+						options.confirm === false
+							? 'link-with-copy'
+							: await fileConflictPromptService.confirmLink(file);
 
 					if (linkConfirmation === 'cancel') {
 						return;
@@ -378,7 +388,10 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 					await refreshFileTree();
 					if (createdDocId) {
 						const event = new CustomEvent('document-linked', {
-							detail: { documentId: createdDocId },
+							detail: {
+								documentId: createdDocId,
+								view: options.view ?? 'documents',
+							},
 						});
 						document.dispatchEvent(event);
 					}

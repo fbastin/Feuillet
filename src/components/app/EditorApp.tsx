@@ -6,7 +6,7 @@ import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { ChatProvider } from '../../contexts/ChatContext';
 import { CollabProvider } from '../../contexts/CollabContext';
-import { FileSyncProvider } from '../../contexts/PeerFileSyncContext';
+import { FileSyncProvider } from '../../contexts/FileSyncContext';
 import { FileTreeProvider } from '../../contexts/FileTreeContext';
 import { LaTeXProvider } from '../../contexts/LaTeXContext';
 import { TypstProvider } from '../../contexts/TypstContext';

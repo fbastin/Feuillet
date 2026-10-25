@@ -52,7 +52,7 @@ interface FileSyncProviderProps {
 	docUrl: YjsDocUrl;
 }
 
-export const FileSyncProvider: React.FC<FileSyncProviderProps> = ({
+export const PeerFileSyncProvider: React.FC<FileSyncProviderProps> = ({
 	children,
 	docUrl,
 }) => {

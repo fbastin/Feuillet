@@ -14,6 +14,8 @@ services:
       ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
     volumes:
       - collab-data:/data
+      - collab-files:/files
 
 volumes:
   collab-data:
+  collab-files:

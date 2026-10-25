@@ -14,10 +14,15 @@ import type {
 import type { FileNode } from '../../types/files';
 import type { YjsDocUrl } from '../../types/yjs';
 import { gotoEditor } from '../../utils/editorNavigator';
+import {
+	isBinaryFile as isBinaryFileName,
+	isTemporaryFile,
+} from '../../utils/fileUtils';
 import { buildUrlWithFragments, parseUrlFragments } from '../../utils/urlUtils';
 import { useAuth } from '../useAuth';
 import { useEditorTabs } from '../useEditorTabs';
 import { useFileTree } from '../useFileTree';
+import { useSettings } from '../useSettings';
 
 const moduleLog = createNamedLogger('useEditorNavigation');
 
@@ -36,6 +41,8 @@ const getExpandPaths = (filePath: string): string[] => {
 
 	return expandPaths;
 };
+
+const MAX_AUTO_LINK_BYTES = 2 * 1024 * 1024;
 
 interface UseEditorNavigationOptions {
 	documents: Document[];
@@ -60,8 +67,15 @@ export const useEditorNavigation = ({
 	targetFilePath,
 	setOutputForFileName,
 }: UseEditorNavigationOptions) => {
-	const { selectedFileId, getFile, fileTree, selectFile, getFileContent } =
-		useFileTree();
+	const {
+		selectedFileId,
+		getFile,
+		fileTree,
+		selectFile,
+		getFileContent,
+		linkFileToDocument,
+	} = useFileTree();
+	const { getSetting } = useSettings();
 	const { getProjectById, updateProject } = useAuth();
 	const { openTab, tabs } = useEditorTabs();
 	const [activeView, setActiveView] = useState<EditorSidebarView>('files');
@@ -273,10 +287,36 @@ export const useEditorNavigation = ({
 		[updateProjectLastOpened],
 	);
 
+	// With the collaboration server, opening a text file makes it a shared
+	// document, so collaborators edit it together in real time (as on
+	// Overleaf). The document-linked event then opens it.
+	const linkOnOpen = useCallback(
+		async (file: FileNode): Promise<boolean> => {
+			if (
+				getSetting('collab-provider-type')?.value !== 'websocket' ||
+				file.documentId ||
+				file.isBinary ||
+				isBinaryFileName(file.name) ||
+				isTemporaryFile(file.path) ||
+				(file.size ?? 0) > MAX_AUTO_LINK_BYTES
+			) {
+				return false;
+			}
+			lastOpenedFilePathRef.current = file.path;
+			await linkFileToDocument(file.id, undefined, {
+				confirm: false,
+				view: 'files',
+			});
+			return true;
+		},
+		[getSetting, linkFileToDocument],
+	);
+
 	const handleUserFileSelect = useCallback(
 		async (fileId: string) => {
 			const file = await getFile(fileId);
 			if (!file) return;
+			if (await linkOnOpen(file)) return;
 
 			if (file.documentId) {
 				openDocumentById(file.documentId, 'files');
@@ -287,7 +327,7 @@ export const useEditorNavigation = ({
 			await openFileByNode(file);
 			pushEditorRoute(undefined, file.path);
 		},
-		[getFile, openDocumentById, openFileByNode, pushEditorRoute],
+		[getFile, linkOnOpen, openDocumentById, openFileByNode, pushEditorRoute],
 	);
 
 	const handleDocumentSelect = useCallback(
@@ -603,7 +643,7 @@ export const useEditorNavigation = ({
 				setBootstrapResolved(true);
 				return;
 			}
-			await openFileByNode(targetFile);
+			if (!(await linkOnOpen(targetFile))) await openFileByNode(targetFile);
 			setBootstrapResolved(true);
 		};
 
@@ -612,15 +652,22 @@ export const useEditorNavigation = ({
 
 	useEffect(() => {
 		const handleDocumentLinked = (event: Event) => {
-			const { documentId } = (event as CustomEvent).detail;
-			if (documentId) openDocumentById(documentId, 'documents');
+			const { documentId, view } = (event as CustomEvent).detail;
+			if (!documentId) return;
+			openDocumentById(documentId, view === 'files' ? 'files' : 'documents');
+			if (view === 'files') {
+				pushEditorRoute(
+					documentId,
+					docToFileMapRef.current.get(documentId)?.filePath,
+				);
+			}
 		};
 
 		document.addEventListener('document-linked', handleDocumentLinked);
 		return () => {
 			document.removeEventListener('document-linked', handleDocumentLinked);
 		};
-	}, [openDocumentById]);
+	}, [openDocumentById, pushEditorRoute]);
 
 	const fileContentReady =
 		isEditingFile && loadedFile?.fileId === (selectedFileId || '');

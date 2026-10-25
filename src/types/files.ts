@@ -1,4 +1,11 @@
 // src/types/files.ts
+export interface LinkFileOptions {
+	/** Ask before linking (default). Without it, the content is copied. */
+	confirm?: boolean;
+	/** Sidebar view to show the linked document in (default: documents). */
+	view?: 'files' | 'documents';
+}
+
 export interface FileNode {
 	id: string;
 	name: string;
@@ -62,7 +69,11 @@ export interface FileTreeContextType {
 	) => Promise<void>;
 	createDirectory: (name: string, path: string) => Promise<void>;
 	deleteFileOrDirectory: (id: string) => Promise<void>;
-	linkFileToDocument: (fileId: string, documentId?: string) => Promise<void>;
+	linkFileToDocument: (
+		fileId: string,
+		documentId?: string,
+		options?: LinkFileOptions,
+	) => Promise<void>;
 	unlinkFileFromDocument: (fileId: string) => Promise<void>;
 	getFileContent: (fileId: string) => Promise<string | ArrayBuffer | undefined>;
 	getFile: (fileId: string) => Promise<FileNode | undefined>;
