@@ -10,6 +10,11 @@
 // restricted shell escape stays in force), one at a time per connection and
 // at most MAX_CONCURRENT at once, each bounded by COMPILE_TIMEOUT_MS.
 //
+// When the server runs as root (the Docker image), every connection compiles
+// under its own unprivileged uid, in a directory only that uid can open, so a
+// document cannot reach the files of other connections. Running as another
+// user (local development), all compiles share that user.
+//
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:7045)
 //   ALLOWED_ORIGINS     comma-separated browser origins allowed to connect;
@@ -21,6 +26,8 @@
 //   COMPILE_TIMEOUT_MS  per-compile limit (default 180000)
 //   IDLE_TIMEOUT_MS     closes connections without requests (default 900000)
 //   MAX_MESSAGE_BYTES   largest accepted request (default 100 MiB)
+//   SESSION_UID_BASE    first of the MAX_CONNECTIONS uids given to
+//                       connections when running as root (default 20000)
 
 const { spawn } = require('node:child_process');
 const crypto = require('node:crypto');
@@ -45,6 +52,8 @@ const maxConnections = readInt('MAX_CONNECTIONS', 100);
 const compileTimeoutMs = readInt('COMPILE_TIMEOUT_MS', 180_000);
 const idleTimeoutMs = readInt('IDLE_TIMEOUT_MS', 900_000);
 const maxPayload = readInt('MAX_MESSAGE_BYTES', 100 * 1024 * 1024);
+const sessionUidBase = readInt('SESSION_UID_BASE', 20000);
+const isolated = process.getuid?.() === 0;
 
 const MISSING_FILES_STATUS = -2;
 const MAX_LOG_CHARS = 1024 * 1024;
@@ -99,9 +108,35 @@ const releaseSlot = () => {
 	else running--;
 };
 
+// Session uids, reused in the order they were released.
+const freeUids = isolated
+	? Array.from({ length: maxConnections }, (_, index) => sessionUidBase + index)
+	: [];
+
+// Stops whatever a session uid left running before the uid is reused.
+const killUid = async (uid) => {
+	for (const entry of await fs.readdir('/proc')) {
+		if (!/^\d+$/.test(entry)) continue;
+		const status = await fs
+			.readFile(`/proc/${entry}/status`, 'utf8')
+			.catch(() => '');
+		if (Number(status.match(/^Uid:\s+(\d+)/m)?.[1]) !== uid) continue;
+		try {
+			process.kill(Number(entry), 'SIGKILL');
+		} catch {
+			// Already gone.
+		}
+	}
+};
+
 class Session {
-	constructor() {
-		this.dir = path.join(workDir, crypto.randomUUID());
+	// uid is null when compiles run as the server's own user.
+	constructor(uid) {
+		this.uid = uid;
+		this.root = path.join(workDir, crypto.randomUUID());
+		this.dir = path.join(this.root, 'project');
+		this.home = path.join(this.root, 'home');
+		this.tmp = path.join(this.home, 'tmp');
 		this.tracked = new Set();
 		this.child = null;
 		this.closed = false;
@@ -117,6 +152,20 @@ class Session {
 		return { relative, absolute: path.join(this.dir, relative) };
 	}
 
+	async own(target) {
+		if (this.uid !== null) await fs.chown(target, this.uid, this.uid);
+	}
+
+	// Creates a directory and its missing parents, owned by the session uid.
+	async makeDir(directory) {
+		const created = await fs.mkdir(directory, { recursive: true, mode: 0o700 });
+		if (!created) return;
+		for (let current = directory; ; current = path.dirname(current)) {
+			await this.own(current);
+			if (current === created || current === path.dirname(current)) break;
+		}
+	}
+
 	async reset() {
 		await fs.rm(this.dir, { recursive: true, force: true });
 		this.tracked.clear();
@@ -126,7 +175,8 @@ class Session {
 	// holds the changed files and lists every file the project should have.
 	async sync(files, manifest) {
 		if (!manifest) await this.reset();
-		await fs.mkdir(this.dir, { recursive: true });
+		await this.makeDir(this.dir);
+		await this.makeDir(this.tmp);
 
 		if (manifest) {
 			const listed = new Set(
@@ -141,8 +191,9 @@ class Session {
 
 		for (const file of files) {
 			const { relative, absolute } = this.resolve(file.path);
-			await fs.mkdir(path.dirname(absolute), { recursive: true });
+			await this.makeDir(path.dirname(absolute));
 			await fs.writeFile(absolute, Buffer.from(file.content, 'base64'));
+			await this.own(absolute);
 			this.tracked.add(relative);
 		}
 
@@ -157,15 +208,23 @@ class Session {
 	}
 
 	run(args, cwd) {
+		const env = { PATH: process.env.PATH, LANG: 'C.UTF-8' };
+		if (this.uid === null) {
+			env.HOME = process.env.HOME;
+		} else {
+			env.HOME = this.home;
+			env.TMPDIR = this.tmp;
+		}
+		// Biber's unpacked copy, prepared when the image is built.
+		if (process.env.PAR_GLOBAL_TEMP) {
+			env.PAR_GLOBAL_TEMP = process.env.PAR_GLOBAL_TEMP;
+		}
 		return new Promise((resolve) => {
 			const child = spawn('latexmk', args, {
 				cwd,
 				detached: true,
-				env: {
-					PATH: process.env.PATH,
-					HOME: process.env.HOME,
-					LANG: 'C.UTF-8',
-				},
+				env,
+				...(this.uid === null ? {} : { uid: this.uid, gid: this.uid }),
 				stdio: ['ignore', 'pipe', 'pipe'],
 			});
 			this.child = child;
@@ -289,7 +348,9 @@ class Session {
 	async close() {
 		this.closed = true;
 		this.kill();
-		await fs.rm(this.dir, { recursive: true, force: true });
+		if (this.uid !== null) await killUid(this.uid);
+		await fs.rm(this.root, { recursive: true, force: true });
+		if (this.uid !== null) freeUids.push(this.uid);
 	}
 }
 
@@ -333,7 +394,13 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', (conn) => {
-	const session = new Session();
+	const uid = isolated ? freeUids.shift() : null;
+	if (uid === undefined) {
+		// Closing connections give their uid back once their files are gone.
+		conn.close(1013, 'Too many connections');
+		return;
+	}
+	const session = new Session(uid);
 	let queue = Promise.resolve();
 	let idleTimer = null;
 
@@ -384,6 +451,8 @@ const start = async () => {
 	for (const entry of await fs.readdir(workDir)) {
 		await fs.rm(path.join(workDir, entry), { recursive: true, force: true });
 	}
+	// Session uids may cross WORK_DIR but not list it.
+	if (isolated) await fs.chmod(workDir, 0o711);
 	server.listen(port, host, () => {
 		log(
 			`listening on ${host}:${port};`,
@@ -391,6 +460,9 @@ const start = async () => {
 				? `origins: ${allowedOrigins.join(', ')};`
 				: 'any origin;',
 			`${maxConcurrent} concurrent compiles, ${compileTimeoutMs / 1000}s each;`,
+			isolated
+				? `one uid per connection from ${sessionUidBase};`
+				: 'compiles share the server user;',
 			`work in ${workDir}`,
 		);
 	});

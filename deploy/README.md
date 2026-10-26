@@ -62,8 +62,13 @@ keeps nothing: each connection compiles in its own temporary directory.
 ## TeX Live server limits
 
 Anyone who can open Feuillet can compile on this server, so the container is
-unprivileged and bounded (`docker-compose.yml`):
+bounded (`docker-compose.yml`) and connections are kept apart:
 
+- each connection compiles under its own uid, in a directory that only this
+  uid can open, with its own home and temporary directory. The server runs as
+  root in the container, with only the capabilities it needs for that
+  (changing owner and uid, removing files, stopping processes); compiles have
+  none.
 - latexmk never reads `latexmkrc` files from projects and never passes
   `-shell-escape`; TeX Live's restricted shell escape (BibTeX, makeindex,
   epstopdf, minted's latexminted…) stays in force. LuaLaTeX runs without its

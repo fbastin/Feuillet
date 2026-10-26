@@ -16,8 +16,9 @@ services:
       - collab-data:/data
       - collab-files:/files
 
-  # Compiles documents written by anyone who can open Feuillet: unprivileged,
-  # bounded in memory, processes and disk, and keeping nothing between runs.
+  # Compiles documents written by anyone who can open Feuillet: each
+  # connection under its own uid, bounded in memory, processes and disk, and
+  # keeping nothing between runs.
   texlive:
     build: ../server/texlive
     container_name: feuillet-texlive
@@ -29,10 +30,19 @@ services:
       MAX_CONCURRENT: "2"
       COMPILE_TIMEOUT_MS: "180000"
     tmpfs:
-      - /work:size=2g,uid=10001,gid=10001,mode=0700
+      - /work:size=2g,mode=0711
       - /tmp:size=256m
+    # What the server needs to run each connection under its own uid and clean
+    # up after it; the compiles themselves have no capability.
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - KILL
+      - SETGID
+      - SETUID
     security_opt:
       - no-new-privileges:true
     mem_limit: 4g

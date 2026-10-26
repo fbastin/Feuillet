@@ -17,18 +17,31 @@ COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && node --version
 
-RUN useradd --create-home --uid 10001 --user-group feuillet \
-    && install -d -o feuillet -g feuillet /work
+# Font caches are built now, in the system trees that every session uid
+# reads, rather than during the first compile of each connection.
+RUN (fc-cache -s && luaotfload-tool --update --quiet \
+    && cd /tmp \
+    && printf '%s\n' '\documentclass{article}\usepackage{fontspec}' \
+        '\begin{document}x\end{document}' >warm.tex \
+    && lualatex --nosocket --interaction=nonstopmode warm.tex >/dev/null \
+    && rm -f warm.*) || echo 'Font caches will be built during compiles.'
+
+# Biber is a self-extracting program. It is unpacked once here, readable by
+# the session uids, instead of into /tmp, where nothing may run.
+ENV PAR_GLOBAL_TEMP=/opt/biber
+RUN mkdir -p "$PAR_GLOBAL_TEMP" \
+    && biber --version \
+    && chmod -R a+rX "$PAR_GLOBAL_TEMP" \
+    && setpriv --reuid=20000 --regid=20000 --clear-groups biber --version
 
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY server.js ./
 
-USER feuillet
-# Builds LuaTeX's font cache now rather than during the first compile.
-RUN luaotfload-tool --update --quiet || true
-
+# The server stays root, with the few capabilities docker-compose.yml grants,
+# to give each connection its own uid; compiles run without any capability.
+RUN install -d -m 0711 /work
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=7045 \
