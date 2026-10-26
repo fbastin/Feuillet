@@ -1,9 +1,18 @@
 // src/components/output/ExternalTypesetterOutput.tsx
 import type React from 'react';
-import { createElement, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+	createElement,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 
 import { t } from '@/i18n';
+import { createNamedLogger } from '@/logging';
 import { fileStoreService } from '../../services/FileStoreService';
+import { filePathCacheService } from '../../services/FilePathCacheService';
 import { useExternalTypesetter } from '../../hooks/useExternalTypesetter';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { useFileTree } from '../../hooks/useFileTree';
@@ -14,6 +23,8 @@ import type { RendererController } from '../../plugins/PluginInterface';
 import type { TypesetterProvider } from '../../types/compilation';
 import type { SourceMapClickMode } from '../../types/sourceMap';
 import { toArrayBuffer } from '../../utils/fileUtils';
+import { gotoEditor } from '../../utils/editorNavigator';
+import ResizablePanel from '../common/ResizablePanel';
 import ExternalCompileButton from './ExternalCompileButton';
 import SourceMapFloatingButton from './SourceMapFloatingButton';
 import {
@@ -22,9 +33,12 @@ import {
 	resolveLabel,
 } from '../../utils/compilerUtils';
 
+const moduleLog = createNamedLogger('ExternalTypesetterOutput');
+
 interface ExternalTypesetterOutputProps {
 	provider: TypesetterProvider;
 	className?: string;
+	selectedDocId?: string | null;
 	onExpandExternalOutput?: () => void;
 	linkedFileInfo?: {
 		fileName?: string;
@@ -42,6 +56,7 @@ const indicatorColor: Record<string, string> = {
 const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 	provider,
 	className = '',
+	selectedDocId,
 	onExpandExternalOutput,
 	linkedFileInfo,
 }) => {
@@ -59,7 +74,7 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 
 	const projectId = fileStoreService.getCurrentProjectId() || undefined;
 	const { fileTree, selectedFileId, getFile } = useFileTree();
-	const { getProperty, setProperty } = useProperties();
+	const { getProperty, setProperty, registerProperty } = useProperties();
 	const {
 		reverseSync,
 		currentHighlight,
@@ -72,6 +87,45 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 	const clickCountRef = useRef(0);
 	const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const outputTabsRef = useWheelScroll<HTMLDivElement>();
+
+	// Same error list as the built-in compilers, for logs in their format.
+	const loggerPlugin = pluginRegistry.getLoggerForType(provider.projectType);
+	const [visualizerHeight, setVisualizerHeight] = useState(300);
+	const [visualizerCollapsed, setVisualizerCollapsed] = useState(false);
+
+	useEffect(() => {
+		registerProperty({
+			id: 'log-visualizer-height',
+			category: 'UI',
+			subcategory: 'Layout',
+			defaultValue: 300,
+		});
+		registerProperty({
+			id: 'log-visualizer-collapsed',
+			category: 'UI',
+			subcategory: 'Layout',
+			defaultValue: false,
+		});
+	}, [registerProperty]);
+
+	useEffect(() => {
+		const storedHeight = getProperty('log-visualizer-height');
+		const storedCollapsed = getProperty('log-visualizer-collapsed');
+		if (storedHeight !== undefined) setVisualizerHeight(Number(storedHeight));
+		if (storedCollapsed !== undefined) {
+			setVisualizerCollapsed(Boolean(storedCollapsed));
+		}
+	}, [getProperty]);
+
+	const handleVisualizerResize = (height: number) => {
+		setVisualizerHeight(height);
+		setProperty('log-visualizer-height', height);
+	};
+
+	const handleVisualizerCollapse = (collapsed: boolean) => {
+		setVisualizerCollapsed(collapsed);
+		setProperty('log-visualizer-collapsed', collapsed);
+	};
 
 	const tabs = useMemo(() => {
 		if (provider.ui?.renderers?.length) {
@@ -136,6 +190,42 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 		selectedFileId,
 		getFile,
 	]);
+
+	const handleLineClick = async (line: number, filePath?: string) => {
+		try {
+			const mainFile = await resolveCompileTarget();
+			const targetFile = filePath
+				? await filePathCacheService.findFileByPath(mainFile ?? '', filePath)
+				: null;
+			if (!targetFile) {
+				if (filePath) moduleLog.warn(`Diagnostic file not found: ${filePath}`);
+				if (selectedFileId) {
+					gotoEditor({ kind: 'file', fileId: selectedFileId }, { line });
+				}
+				return;
+			}
+
+			const target = targetFile.documentId
+				? { kind: 'document' as const, documentId: targetFile.documentId }
+				: { kind: 'file' as const, fileId: targetFile.id };
+			const isCurrent = targetFile.documentId
+				? selectedDocId === targetFile.documentId
+				: selectedFileId === targetFile.id;
+
+			if (isCurrent) {
+				gotoEditor(target, { line });
+			} else {
+				gotoEditor(target, { line }, { waitForReady: true });
+				document.dispatchEvent(
+					new CustomEvent('navigate-to-compiled-file', {
+						detail: { filePath: targetFile.path },
+					}),
+				);
+			}
+		} catch (error) {
+			moduleLog.error('Error handling line click:', error);
+		}
+	};
 
 	const handleTabSwitch = useCallback(
 		async (format: string) => {
@@ -313,9 +403,38 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 				<>
 					{currentView === 'log' && (
 						<div className='log-view-container'>
-							<div className='log-viewer ui-code-block' data-wrap='true'>
-								<pre>{compileLog}</pre>
-							</div>
+							{loggerPlugin ? (
+								<div className='split-log-view'>
+									<ResizablePanel
+										direction='vertical'
+										alignment='end'
+										height={visualizerHeight}
+										minHeight={150}
+										maxHeight={600}
+										className='visualizer-panel-wrapper'
+										onResize={handleVisualizerResize}
+										collapsed={visualizerCollapsed}
+										onCollapse={handleVisualizerCollapse}
+									>
+										<div className='visualizer-panel'>
+											{createElement(loggerPlugin.renderVisualizer, {
+												log: compileLog,
+												onLineClick: handleLineClick,
+											})}
+										</div>
+									</ResizablePanel>
+
+									<div className='raw-log-panel'>
+										<pre className='log-viewer ui-code-block' data-wrap='true'>
+											{compileLog}
+										</pre>
+									</div>
+								</div>
+							) : (
+								<div className='log-viewer ui-code-block' data-wrap='true'>
+									<pre>{compileLog}</pre>
+								</div>
+							)}
 						</div>
 					)}
 

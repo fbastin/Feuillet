@@ -223,9 +223,9 @@ function extractLatexError(
 
 		if (nextLine.startsWith('Type <return>')) continue;
 
-		if (nextLine.startsWith('See ') || nextLine.startsWith('Transcript ')) {
-			break;
-		}
+		// TeX prints its help pointer before the l.<number> context line.
+		if (nextLine.startsWith('See ')) continue;
+		if (nextLine.startsWith('Transcript ')) break;
 
 		if (nextLine.match(/^\s*\.{3,}\s*$/) || nextLine.trim() === '') {
 			if (j > i + 5) break;

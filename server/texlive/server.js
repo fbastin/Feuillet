@@ -10,6 +10,11 @@
 // restricted shell escape stays in force), one at a time per connection and
 // at most MAX_CONCURRENT at once, each bounded by COMPILE_TIMEOUT_MS.
 //
+// The log has the layout of the busytex harness that Feuillet's LaTeX log
+// viewer reads (extras/loggers/latex_visualizer/parser.ts): the viewer lists
+// the errors and warnings of the LOG section, the transcript of the last
+// pass, and the raw log also shows the output of latexmk.
+//
 // When the server runs as root (the Docker image), every connection compiles
 // under its own unprivileged uid, in a directory only that uid can open, so a
 // document cannot reach the files of other connections. Running as another
@@ -83,6 +88,24 @@ const ENGINE_ARGS = {
 
 const log = (...parts) =>
 	console.log(new Date().toISOString(), '[texlive]', ...parts);
+
+const lastChars = (text) =>
+	text.length > MAX_LOG_CHARS ? text.slice(-MAX_LOG_CHARS) : text;
+
+const formatLog = ({ engine, source, status, transcript, output, errors }) =>
+	[
+		`$ ${engine} ${source} (latexmk)`,
+		`EXITCODE: ${status}`,
+		'',
+		'LOG:',
+		transcript,
+		// Failures the transcript does not show, as TeX errors for the viewer.
+		...errors.map((error) => `! ${error}`),
+		'==',
+		'STDOUT:',
+		output,
+		'======',
+	].join('\n');
 
 const isAllowedOrigin = (origin) =>
 	allowedOrigins.length === 0 || allowedOrigins.includes(origin);
@@ -263,7 +286,12 @@ class Session {
 	}
 
 	run(args, cwd) {
-		const env = { PATH: process.env.PATH, LANG: 'C.UTF-8' };
+		// Unwrapped transcripts, which the log viewer reads more reliably.
+		const env = {
+			PATH: process.env.PATH,
+			LANG: 'C.UTF-8',
+			max_print_line: '10000',
+		};
 		if (this.uid === null) {
 			env.HOME = process.env.HOME;
 		} else {
@@ -296,14 +324,11 @@ class Session {
 			child.on('close', (code) => {
 				clearTimeout(timer);
 				this.child = null;
-				let output = Buffer.concat(chunks).toString('utf8');
-				if (output.length > MAX_LOG_CHARS) {
-					output = output.slice(-MAX_LOG_CHARS);
-				}
-				if (timedOut) {
-					output += `\nCompilation stopped after ${Math.round(compileTimeoutMs / 1000)} seconds.`;
-				}
-				resolve({ status: timedOut ? 1 : (code ?? 1), log: output });
+				resolve({
+					status: timedOut ? 1 : (code ?? 1),
+					output: lastChars(Buffer.concat(chunks).toString('utf8')),
+					timedOut,
+				});
 			});
 		});
 	}
@@ -331,22 +356,42 @@ class Session {
 			'-norc',
 			...ENGINE_ARGS[engine],
 			'-interaction=nonstopmode',
-			'-file-line-error',
-			'-halt-on-error',
 			'-synctex=1',
 			path.basename(source),
 		];
 		const directory = path.dirname(source);
 		const jobName = path.basename(source, path.extname(source));
 		const started = Date.now();
-		const { status, log: output } = await this.run(args, directory);
+		const { status, output, timedOut } = await this.run(args, directory);
 		log(
 			`compiled with ${engine}: status ${status} in ${Date.now() - started} ms`,
 		);
 
+		// Biber names the UTF-8 copy it makes of the .bib file.
+		const errors = [...output.matchAll(/^ERROR - (.+)$/gm)].map(
+			(match) =>
+				`Biber error: ${match[1].replace(/\S*biber_tmp_\S*?\.utf8/g, 'bibliography file')}`,
+		);
+		if (timedOut) {
+			errors.push(
+				`Compilation stopped after ${Math.round(compileTimeoutMs / 1000)} seconds.`,
+			);
+		}
+		const transcript = await fs
+			.readFile(path.join(directory, `${jobName}.log`), 'utf8')
+			.catch(() => '');
+		const report = formatLog({
+			engine,
+			source: path.basename(source),
+			status,
+			transcript: lastChars(transcript),
+			output,
+			errors,
+		});
+
 		const pdfPath = path.join(directory, `${jobName}.pdf`);
 		if (status !== 0 || !(await exists(pdfPath))) {
-			return { status: status || 1, log: output, format };
+			return { status: status || 1, log: report, format };
 		}
 
 		const artifacts = [];
@@ -362,7 +407,7 @@ class Session {
 
 		return {
 			status: 0,
-			log: output,
+			log: report,
 			format,
 			mimeType: 'application/pdf',
 			output: (await fs.readFile(pdfPath)).toString('base64'),

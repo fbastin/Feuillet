@@ -31,6 +31,24 @@ l.42 \\badcommand`;
             expect(result[0].line).toBe(42);
         });
 
+        it('should find the line of a LaTeX error after its help pointer', () => {
+            const log = `! LaTeX Error: \\begin{itemize} on input line 2 ended by \\end{enumerate}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...
+
+l.4 \\end{enumerate}
+
+Here is how much of TeX's memory you used:`;
+
+            const result = parseLatexLog(log);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].line).toBe(4);
+            expect(result[0].lineContent).toBe('\\end{enumerate}');
+        });
+
         it('should parse a generic error starting with !', () => {
             const log = `! Undefined control sequence.
 l.10 \\foo`;

@@ -137,6 +137,7 @@ const EditorOutputPanels: React.FC<EditorOutputPanelsProps> = ({
 				>
 					<ExternalTypesetterOutput
 						provider={activeExternalProvider}
+						selectedDocId={selectedDocId}
 						onExpandExternalOutput={
 							popoutViewerService.isWindowOpen()
 								? undefined
