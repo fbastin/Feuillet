@@ -4,10 +4,10 @@
 # biblatex document as a session uid would (server.js): its own directory of
 # links to the unpacked files, its own home, no write access to $BIBER_DIR.
 #
-# Biber unpacks some of its modules only when a run first needs them. At run
-# time the session directories are on a tmpfs where nothing may run, so a
-# full run here unpacks them into $BIBER_DIR, and the check fails if the
-# session run still had to unpack anything.
+# Biber unpacks its compiled libraries only when a run needs them, next to
+# the unpacked copy. At run time the session directories are on a tmpfs where
+# nothing may run, so the libraries a session run unpacks are added to
+# $BIBER_DIR, and the check fails if a second session run still unpacks any.
 set -eu
 
 document() {
@@ -28,6 +28,30 @@ TEX
 BIB
 }
 
+# Compiles the document in a new directory as uid 20000 and prints what the
+# run unpacked next to the links.
+session_run() {
+	dir=$(mktemp -d)
+	document "$dir"
+	mkdir "$dir/biber" "$dir/home"
+	chown -R 20000:20000 "$dir"
+	find "$BIBER_DIR" -mindepth 1 -maxdepth 1 ! -name inc.lock \
+		-exec ln -s {} "$dir/biber/" \;
+	if ! (cd "$dir" && setpriv --reuid=20000 --regid=20000 --clear-groups \
+		env -i PATH="$PATH" LANG=C.UTF-8 HOME="$dir/home" TMPDIR="$dir/home" \
+		PAR_GLOBAL_TEMP="$dir/biber" \
+		latexmk -norc -pdf -interaction=nonstopmode main.tex >latexmk.out 2>&1); then
+		tail -n 30 "$dir/latexmk.out" >&2
+		exit 1
+	fi
+	grep -q Knuth "$dir/main.bbl"
+	echo "$dir"
+}
+
+unpacked() {
+	find "$1/biber" -mindepth 1 -maxdepth 1 ! -type l ! -name inc.lock
+}
+
 mkdir -p "$BIBER_DIR"
 warm=$(mktemp -d)
 document "$warm"
@@ -38,29 +62,22 @@ document "$warm"
 }
 rm -rf "$warm"
 chmod -R a+rX "$BIBER_DIR"
+echo "Unpacked copy: $(find "$BIBER_DIR" -maxdepth 1 -name '*.so' | wc -l) libraries"
 
-check=$(mktemp -d)
-document "$check"
-mkdir "$check/biber" "$check/home"
-chown -R 20000:20000 "$check"
-find "$BIBER_DIR" -mindepth 1 -maxdepth 1 ! -name inc.lock \
-	-exec ln -s {} "$check/biber/" \;
+first=$(session_run)
+for file in $(unpacked "$first"); do
+	install -m 0755 -o root -g root "$file" "$BIBER_DIR/"
+	echo "Added $(basename "$file") from the session run"
+done
+rm -rf "$first"
 
-cd "$check"
-if ! setpriv --reuid=20000 --regid=20000 --clear-groups \
-	env -i PATH="$PATH" LANG=C.UTF-8 HOME="$check/home" TMPDIR="$check/home" \
-	PAR_GLOBAL_TEMP="$check/biber" \
-	latexmk -norc -pdf -interaction=nonstopmode main.tex >latexmk.out 2>&1; then
-	tail -n 30 latexmk.out
+second=$(session_run)
+if [ -n "$(unpacked "$second")" ]; then
+	echo 'A session run still unpacks files:' >&2
+	for file in $(unpacked "$second"); do
+		ls -la "$file" "$BIBER_DIR/$(basename "$file")" >&2 || true
+	done
 	exit 1
 fi
-grep -q Knuth main.bbl
-unpacked=$(find "$check/biber" -mindepth 1 ! -type l ! -name inc.lock)
-if [ -n "$unpacked" ]; then
-	echo "Biber unpacked files for the session uid:" >&2
-	echo "$unpacked" >&2
-	exit 1
-fi
-cd /
-rm -rf "$check"
+rm -rf "$second"
 echo 'Biber works for session uids.'
