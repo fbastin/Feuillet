@@ -127,6 +127,15 @@ export interface LoggerPlugin extends Plugin {
 	type: 'logger';
 	canHandle: (logType: string) => boolean;
 	renderVisualizer: React.ComponentType<LoggerProps>;
+	// Lists what a compile log reports, for the editor to mark the lines.
+	parseDiagnostics?: (log: string) => LogDiagnostic[];
+}
+
+export interface LogDiagnostic {
+	type: 'error' | 'warning' | 'info';
+	message: string;
+	line?: number;
+	file?: string;
 }
 
 export interface LoggerProps {

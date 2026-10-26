@@ -18,10 +18,12 @@ export function parseLatexLog(log: string): ParsedError[] {
 	const lines = preprocessLogLines(transcript).split('\n');
 
 	const result: ParsedError[] = [];
+	const fileStack: string[] = [];
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		const contextFile = getFileFromContext(lines, i);
+		followOpenFiles(fileStack, line);
+		const contextFile = fileStack[fileStack.length - 1] ?? DEFAULT_FILE;
 
 		const parsed =
 			extractLatexError(lines, i, contextFile) ??
@@ -159,18 +161,16 @@ function preprocessLogLines(log: string): string {
 	return processedLines.join('\n');
 }
 
-function getFileFromContext(lines: string[], lineIndex: number): string {
-	const fileStack: string[] = [];
-	const scanned = lines.slice(0, lineIndex + 1).join(' ');
-
-	for (let j = 0; j < scanned.length; j++) {
-		const char = scanned[j];
+// TeX prints "(file" when it opens a file and ")" when it closes it. The
+// stack is carried from line to line so that the log is read only once.
+function followOpenFiles(fileStack: string[], line: string): void {
+	for (let j = 0; j < line.length; j++) {
+		const char = line[j];
 
 		if (char === '(') {
-			const remaining = scanned.substring(j + 1);
-			const fileMatch = remaining.match(
-				/^(_?[^()\s]*\.(?:tex|sty|cls|def|fd|cfg|clo|ltx|bbl))/,
-			);
+			const fileMatch = line
+				.substring(j + 1)
+				.match(/^(_?[^()\s]*\.(?:tex|sty|cls|def|fd|cfg|clo|ltx|bbl))/);
 			if (fileMatch) {
 				const filePath = fileMatch[1];
 				const fileName = filePath.split('/').pop() || filePath;
@@ -180,8 +180,6 @@ function getFileFromContext(lines: string[], lineIndex: number): string {
 			if (fileStack.length > 0) fileStack.pop();
 		}
 	}
-
-	return fileStack.length > 0 ? fileStack[fileStack.length - 1] : DEFAULT_FILE;
 }
 
 function extractLatexError(

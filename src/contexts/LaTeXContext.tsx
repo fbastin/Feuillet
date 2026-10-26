@@ -13,6 +13,7 @@ import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { useFileTree } from '../hooks/useFileTree';
 import { useSettings } from '../hooks/useSettings';
+import { compileDiagnosticsService } from '../services/CompileDiagnosticsService';
 import { latexService } from '../services/LaTeXService';
 import type {
 	LaTeXContextType,
@@ -146,6 +147,7 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 			if (requestId !== requestRef.current) return;
 
 			setCompileLog(result.log);
+			void compileDiagnosticsService.publish('latex', result.log, mainFileName);
 			if (result.status === 0 && result.pdf) {
 				switch (format) {
 					case 'pdf': {
@@ -338,6 +340,7 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 			if (requestId !== requestRef.current) return;
 
 			setCompileLog(result.log);
+			void compileDiagnosticsService.publish('latex', result.log, mainFileName);
 			if (result.status === 0 && result.pdf) {
 				switch (format) {
 					case 'pdf': {

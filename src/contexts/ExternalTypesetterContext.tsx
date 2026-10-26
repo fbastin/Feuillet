@@ -4,6 +4,7 @@ import { type ReactNode, createContext, useCallback, useState } from 'react';
 
 import { typesetterRegistryService } from '../services/TypesetterRegistryService';
 import { fileStoreService } from '../services/FileStoreService';
+import { compileDiagnosticsService } from '../services/CompileDiagnosticsService';
 import { filePathCacheService } from '../services/FilePathCacheService';
 import { latexSourceMapService } from '../services/LaTeXSourceMapService';
 import {
@@ -127,6 +128,11 @@ export const ExternalTypesetterProvider: React.FC<
 				});
 
 				setCompileLog(result.log);
+				void compileDiagnosticsService.publish(
+					provider.projectType,
+					result.log,
+					mainFileName,
+				);
 
 				if (result.status === 0 && result.output) {
 					document.dispatchEvent(

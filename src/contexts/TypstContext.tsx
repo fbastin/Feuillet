@@ -15,6 +15,7 @@ import { createNamedLogger } from '@/logging';
 import { createTypstPagedPreviewSource } from '../extensions/typst.ts/TypstPagedPreviewSource';
 import { useFileTree } from '../hooks/useFileTree';
 import { useSettings } from '../hooks/useSettings';
+import { compileDiagnosticsService } from '../services/CompileDiagnosticsService';
 import { popoutViewerService } from '../services/PopoutViewerService';
 import { typstService } from '../services/TypstService';
 import type {
@@ -145,6 +146,7 @@ export const TypstProvider: React.FC<TypstProviderProps> = ({ children }) => {
 
 			if (requestId !== requestRef.current) return;
 			setCompileLog(result.log);
+			void compileDiagnosticsService.publish('typst', result.log, mainFileName);
 
 			if (result.status !== 0) {
 				setCompileError(

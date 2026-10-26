@@ -75,6 +75,7 @@ import { createMathLiveExtension } from '../../extensions/codemirror/MathLiveExt
 import { createPasteExtension } from '../../extensions/codemirror/PasteExtension';
 import { createListingsExtension } from '../../extensions/codemirror/ListingsExtension';
 import { createBurstDeferredLanguage } from '../../extensions/codemirror/BurstDeferLanguage';
+import { createCompileDiagnosticsExtension } from '../../extensions/codemirror/CompileDiagnosticsExtension';
 import {
 	createLinkNavigationExtension,
 	updateLinkNavigationFilePath,
@@ -761,6 +762,15 @@ export const useEditorView = (
 					fileName,
 					editorSettings.languageFeatures,
 				),
+			);
+		}
+
+		if (info.isLatex || info.isTypst) {
+			extensions.push(
+				createCompileDiagnosticsExtension({
+					fileId: currentFileId,
+					documentId: isEditingFile ? undefined : documentId,
+				}),
 			);
 		}
 

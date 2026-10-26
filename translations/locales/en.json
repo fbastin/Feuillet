@@ -623,6 +623,7 @@
   "Compile {typesetter}": "Compile {{typesetter}}",
   "Compile a document in the main window to see output here": "Compile a document in the main window to see output here",
   "Compile document": "Compile document",
+  "Compile log": "Compile log",
   "Compile documents to PDF": "Compile documents to PDF",
   "Compile with cleared cache": "Compile with cleared cache",
   "Compiler": "Compiler",
