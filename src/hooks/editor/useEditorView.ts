@@ -76,6 +76,7 @@ import { createPasteExtension } from '../../extensions/codemirror/PasteExtension
 import { createListingsExtension } from '../../extensions/codemirror/ListingsExtension';
 import { createBurstDeferredLanguage } from '../../extensions/codemirror/BurstDeferLanguage';
 import { createCompileDiagnosticsExtension } from '../../extensions/codemirror/CompileDiagnosticsExtension';
+import { createSpellingExtension } from '../../extensions/codemirror/SpellingExtension';
 import {
 	createLinkNavigationExtension,
 	updateLinkNavigationFilePath,
@@ -482,6 +483,15 @@ export const useEditorView = (
 
 			extensions.push(stateExtensions, filePathPlugin);
 			extensions.push(createPasteExtension(currentFileId, fileName));
+
+			if (info.isLatex) {
+				extensions.push(
+					createSpellingExtension({
+						setting: editorSettings.spellingLanguage,
+						interfaceLanguage: editorSettings.language,
+					}),
+				);
+			}
 
 			if (info.isLatex || info.isTypst) {
 				if (editorSettings.mathLiveEnabled) {

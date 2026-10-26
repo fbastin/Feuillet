@@ -11,6 +11,7 @@ import {
 } from '../contexts/EditorContext';
 import { useSettings } from '../hooks/useSettings';
 import type { EditorKeymapMode, FontFamily } from '../types/editor';
+import type { SpellingSetting } from '../types/spelling';
 
 export function useRegisterEditorSettings() {
 	const { batchGetSettings, registerSetting } = useSettings();
@@ -29,6 +30,7 @@ export function useRegisterEditorSettings() {
 			'editor-auto-save-delay',
 			'editor-keymap-mode',
 			'editor-spell-check',
+			'editor-spelling-language',
 			'editor-mathlive-enable',
 			'editor-mathlive-preview-mode',
 			'language',
@@ -61,6 +63,9 @@ export function useRegisterEditorSettings() {
 		const initialSpellCheck =
 			(batchedSettings['editor-spell-check'] as boolean) ??
 			defaultEditorSettings.spellCheck;
+		const initialSpellingLanguage =
+			(batchedSettings['editor-spelling-language'] as SpellingSetting) ??
+			defaultEditorSettings.spellingLanguage;
 		const initialMathLiveEnabled =
 			(batchedSettings['editor-mathlive-enable'] as boolean) ??
 			defaultEditorSettings.mathLiveEnabled;
@@ -204,13 +209,32 @@ export function useRegisterEditorSettings() {
 		});
 
 		registerSetting({
+			id: 'editor-spelling-language',
+			category: t('Viewers'),
+			subcategory: t('Text Editor'),
+			type: 'select',
+			label: t('Spell checking'),
+			description: t(
+				'Underline misspelled words in LaTeX files, leaving commands, math and references alone. Right-click a word for suggestions.',
+			),
+			defaultValue: initialSpellingLanguage,
+			options: [
+				{ label: t('Language of the document'), value: 'auto' },
+				{ label: t('French'), value: 'fr' },
+				{ label: t('English (United States)'), value: 'en-US' },
+				{ label: t('English (United Kingdom)'), value: 'en-GB' },
+				{ label: t('Off'), value: 'off' },
+			],
+		});
+
+		registerSetting({
 			id: 'editor-spell-check',
 			category: t('Viewers'),
 			subcategory: t('Text Editor'),
 			type: 'checkbox',
-			label: t('Enable spell checking'),
+			label: t('Browser spell checking'),
 			description: t(
-				'Enable browser spell checking in the editor (note: not compatible with typesetter syntax)',
+				'Also let the browser underline words; it does not understand LaTeX or Typst commands',
 			),
 			defaultValue: initialSpellCheck,
 		});

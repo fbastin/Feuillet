@@ -12,6 +12,7 @@ import type {
 	LanguageFeatureSettings,
 } from '../types/editor';
 import type { CollabConnectOptions, CollabProviderType } from '../types/collab';
+import type { SpellingSetting } from '../types/spelling';
 
 const LEGACY_FONT_SIZES: Record<string, number> = {
 	xs: 10,
@@ -95,6 +96,7 @@ export const defaultEditorSettings: EditorSettings = {
 	highlightTheme: 'auto' as HighlightTheme,
 	keymapMode: null as EditorKeymapMode,
 	spellCheck: true,
+	spellingLanguage: 'auto' as SpellingSetting,
 	mathLiveEnabled: true,
 	mathLivePreviewMode: 'cursor',
 	language: 'en',
@@ -189,6 +191,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 			spellCheck:
 				(getSetting('editor-spell-check')?.value as boolean) ??
 				defaultEditorSettings.spellCheck,
+			spellingLanguage:
+				(getSetting('editor-spelling-language')?.value as SpellingSetting) ??
+				defaultEditorSettings.spellingLanguage,
 			mathLiveEnabled:
 				(getSetting('editor-mathlive-enable')?.value as boolean) ??
 				defaultEditorSettings.mathLiveEnabled,
@@ -219,6 +224,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 				highlightTheme: 'editor-theme-highlights',
 				keymapMode: 'editor-keymap-mode',
 				spellCheck: 'editor-spell-check',
+				spellingLanguage: 'editor-spelling-language',
 				mathLiveEnabled: 'editor-mathlive-enable',
 				mathLivePreviewMode: 'editor-mathlive-preview-mode',
 				language: 'language',

@@ -783,6 +783,75 @@
 	font-weight: 700;
 }
 
+/* Misspelled words and their suggestions */
+.codemirror-editor-container .cm-spelling-error {
+	text-decoration: underline wavy var(--color-error);
+	text-decoration-skip-ink: none;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
+}
+
+.codemirror-editor-container .cm-tooltip.cm-spelling-menu {
+	display: flex;
+	flex-direction: column;
+	min-width: 12rem;
+	padding: var(--space-xs) 0;
+	background-color: var(--pico-background);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-md);
+	color: var(--text-color);
+	font-family: var(
+		--texlyre-font-family,
+		var(
+			--slim-font-family,
+			var(--mobile-font-family, Inter, system-ui, sans-serif)
+		)
+	);
+	font-size: var(--font-size-small);
+	z-index: var(--z-tooltip);
+}
+
+.codemirror-editor-container .cm-spelling-menu:focus {
+	outline: none;
+}
+
+.codemirror-editor-container .cm-spelling-menu-item {
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: 4px var(--space-sm);
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.codemirror-editor-container .cm-spelling-menu-suggestion {
+	font-weight: 600;
+}
+
+.codemirror-editor-container .cm-spelling-menu-item:is(:hover, :focus) {
+	background-color: var(--pico-primary-focus);
+	box-shadow: none;
+	outline: none;
+}
+
+.codemirror-editor-container .cm-spelling-menu-status {
+	padding: 4px var(--space-sm);
+	color: var(--pico-muted-color, var(--text-color));
+	font-style: italic;
+}
+
+.codemirror-editor-container .cm-spelling-menu-divider {
+	margin: var(--space-xs) 0;
+	border: 0;
+	border-top: 1px solid var(--accent-border);
+}
+
 .codemirror-editor-container .cm-lsp-document-highlight {
 	background-color: var(--pico-primary-focus);
 	border-radius: var(--radius-xs);

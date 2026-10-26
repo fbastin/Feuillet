@@ -1,4 +1,6 @@
 // src/types/editor.ts
+import type { SpellingSetting } from './spelling';
+
 export type FontFamily =
 	| 'monospace'
 	| 'serif'
@@ -88,6 +90,7 @@ export interface EditorSettings {
 	highlightTheme: HighlightTheme;
 	keymapMode: EditorKeymapMode;
 	spellCheck: boolean;
+	spellingLanguage: SpellingSetting;
 	mathLiveEnabled: boolean;
 	mathLivePreviewMode: 'hover-cursor' | 'hover' | 'cursor' | 'never';
 	language: string;

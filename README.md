@@ -250,6 +250,7 @@ TeXlyre builds upon several key technologies:
 - **[tex-fmt](https://github.com/WGUNDERWOOD/tex-fmt)** - LaTeX code formatter
 - **[TeXcount](https://app.uio.no/ifi/texcount/)** - Word counter for LaTeX documents
 - **[BibTeX-Tidy](https://github.com/FlamingTempura/bibtex-tidy)** - BibTeX file cleaner and formatter
+- **[Hunspell](https://github.com/hunspell/hunspell)** through **[hunspell-wasm](https://github.com/rotemdan/hunspell-wasm)** (MPL 1.1, GPL 2.0 or LGPL 2.0) - Spell checking, with the French dictionary of [Grammalecte](https://grammalecte.net/) (MPL 2.0) and the English dictionaries of [SCOWL](http://wordlist.aspell.net/) (MIT and BSD), packaged by [wooorm/dictionaries](https://github.com/wooorm/dictionaries)
 
 ### Typst Tools
 - **[typstyle](https://github.com/typstyle-rs/typstyle)** - Typst code formatter

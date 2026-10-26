@@ -182,6 +182,15 @@ importers:
       detypify-service:
         specifier: ^0.3.0
         version: 0.3.0
+      dictionary-en:
+        specifier: ^4.0.0
+        version: 4.0.0
+      dictionary-en-gb:
+        specifier: ^3.0.0
+        version: 3.0.0
+      dictionary-fr:
+        specifier: ^3.0.0
+        version: 3.0.0
       file-saver:
         specifier: ^2.0.5
         version: 2.0.5
@@ -191,6 +200,9 @@ importers:
       hash-wasm:
         specifier: ^4.12.0
         version: 4.12.0
+      hunspell-wasm:
+        specifier: ^0.3.0
+        version: 0.3.0
       i18next:
         specifier: ^26.3.6
         version: 26.3.6(typescript@6.0.2)
@@ -3225,6 +3237,15 @@ packages:
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
 
+  dictionary-en-gb@3.0.0:
+    resolution: {integrity: sha512-gU/dwC9xGYPh/0CCcmGNXO8OwSgOySAqevcSXxADCsgUD+tr6OJ52u7XaC7No7dNssvdUSfVjkzcqLrRZq3kPA==}
+
+  dictionary-en@4.0.0:
+    resolution: {integrity: sha512-3NHnE1uq33ZE/CIwaZ6gqxa4BnglHnxeAcTM0GJ7cmtRGcvX9InMK/IqLtYcUMFCUpUNgybH+DzkqdgAo3F1zg==}
+
+  dictionary-fr@3.0.0:
+    resolution: {integrity: sha512-fhDRX1cRyHPA69GJg8R4XgNYgSQvbNHj3kr5UqvEG1OS5pJqH6P3GbO7wpTCwvr5KMQ0NxGIsXps9P5NyXRVEg==}
+
   diff3@0.0.3:
     resolution: {integrity: sha512-iSq8ngPOt0K53A6eVr4d5Kn6GNrM2nQZtC740pzIriHtn4pOQ2lyzEXQMBeVcWERN0ye7fhBsk9PbLLQOnUx/g==}
 
@@ -3635,6 +3656,9 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  hunspell-wasm@0.3.0:
+    resolution: {integrity: sha512-D7/QLaeekJYYlE37D7KBq5v38vL4tQutTFIUBOUGBl0g9la8OUgfSd8+XbwNPV5uYMHS13umXR9MtdAxStpHJg==}
 
   i18next@26.3.6:
     resolution: {integrity: sha512-Bu5Z2nAXgfVyM8xvW3jk9EKRIuX37PudsrBViThNFx7CR7aaYTpP01cxNB/E4c4UUzTDiAZRstEhsRfPOL/8xA==}
@@ -9253,6 +9277,12 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
+  dictionary-en-gb@3.0.0: {}
+
+  dictionary-en@4.0.0: {}
+
+  dictionary-fr@3.0.0: {}
+
   diff3@0.0.3: {}
 
   diff@4.0.4: {}
@@ -9737,6 +9767,8 @@ snapshots:
       - supports-color
 
   human-signals@2.1.0: {}
+
+  hunspell-wasm@0.3.0: {}
 
   i18next@26.3.6(typescript@6.0.2):
     optionalDependencies:

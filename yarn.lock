@@ -4266,6 +4266,21 @@ devlop@^1.0.0, devlop@^1.1.0:
   dependencies:
     dequal "^2.0.0"
 
+dictionary-en-gb@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.npmjs.org/dictionary-en-gb/-/dictionary-en-gb-3.0.0.tgz"
+  integrity sha512-gU/dwC9xGYPh/0CCcmGNXO8OwSgOySAqevcSXxADCsgUD+tr6OJ52u7XaC7No7dNssvdUSfVjkzcqLrRZq3kPA==
+
+dictionary-en@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.npmjs.org/dictionary-en/-/dictionary-en-4.0.0.tgz"
+  integrity sha512-3NHnE1uq33ZE/CIwaZ6gqxa4BnglHnxeAcTM0GJ7cmtRGcvX9InMK/IqLtYcUMFCUpUNgybH+DzkqdgAo3F1zg==
+
+dictionary-fr@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.npmjs.org/dictionary-fr/-/dictionary-fr-3.0.0.tgz"
+  integrity sha512-fhDRX1cRyHPA69GJg8R4XgNYgSQvbNHj3kr5UqvEG1OS5pJqH6P3GbO7wpTCwvr5KMQ0NxGIsXps9P5NyXRVEg==
+
 diff@^4.0.1:
   version "4.0.4"
   resolved "https://registry.npmjs.org/diff/-/diff-4.0.4.tgz"
@@ -5068,6 +5083,11 @@ human-signals@^2.1.0:
   version "2.1.0"
   resolved "https://registry.npmjs.org/human-signals/-/human-signals-2.1.0.tgz"
   integrity sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==
+
+hunspell-wasm@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.npmjs.org/hunspell-wasm/-/hunspell-wasm-0.3.0.tgz"
+  integrity sha512-D7/QLaeekJYYlE37D7KBq5v38vL4tQutTFIUBOUGBl0g9la8OUgfSd8+XbwNPV5uYMHS13umXR9MtdAxStpHJg==
 
 i18next@^26.3.6, "i18next@>= 26.2.0":
   version "26.3.6"

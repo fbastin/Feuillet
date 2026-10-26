@@ -115,6 +115,8 @@ export default defineConfig({
 			'@': path.resolve(import.meta.dirname, './src'),
 			'@src': path.resolve(import.meta.dirname, './src'),
 			'@chelys': path.resolve(import.meta.dirname, './src/chelys'),
+			// Spelling dictionaries: their packages only export a Node.js loader.
+			'@dictionaries': path.resolve(import.meta.dirname, './node_modules'),
 			'@tests': path.resolve(import.meta.dirname, './tests'),
 			'@codemirror/state': path.resolve('./node_modules/@codemirror/state'),
 			'@codemirror/view': path.resolve('./node_modules/@codemirror/view'),
@@ -143,6 +145,7 @@ export default defineConfig({
 			'@myriaddreamin/typst.ts',
 			'@typstyle/typstyle-wasm-bundler',
 			'onnxruntime-web',
+			'hunspell-wasm',
 		],
 	},
 });
