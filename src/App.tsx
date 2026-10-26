@@ -20,6 +20,7 @@ import '@picocss/pico/css/pico.min.css';
 import i18next from 'i18next';
 import { useEffect, useState } from 'react';
 
+import { getBrowserLanguage } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import './styles/global.css';
 import './styles/components/editor.css';
@@ -97,12 +98,12 @@ function App() {
 
 		const storageKey = getStorageKey();
 		const storedSettings = localStorage.getItem(storageKey);
-		let targetLanguage = 'en';
+		let targetLanguage = getBrowserLanguage();
 
 		if (storedSettings) {
 			try {
 				const settings = JSON.parse(storedSettings);
-				targetLanguage = settings.language || 'en';
+				targetLanguage = settings.language || targetLanguage;
 			} catch (error) {
 				moduleLog.warn('Failed to parse stored settings', error);
 			}

@@ -15,6 +15,16 @@
       "filePath": "locales/en.json"
     },
     {
+      "code": "fr",
+      "name": "French",
+      "nativeName": "Français",
+      "direction": "ltr",
+      "coverage": 100,
+      "totalKeys": 2796,
+      "translatedKeys": 2796,
+      "filePath": "locales/fr.json"
+    },
+    {
       "code": "ar",
       "name": "Arabic",
       "nativeName": "العربية",

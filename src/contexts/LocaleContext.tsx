@@ -11,6 +11,7 @@ import {
 	useState,
 } from 'react';
 
+import { getBrowserLanguage } from '@/i18n';
 import { useSettings } from '../hooks/useSettings';
 import languagesConfig from '../../translations/locales.config.json';
 
@@ -81,7 +82,8 @@ export const LanguageProvider: React.FC<LocaleProviderProps> = ({
 		[availableLanguages],
 	);
 
-	const languageCode = (getSetting('language')?.value as string) || 'en';
+	const languageCode =
+		(getSetting('language')?.value as string) || getBrowserLanguage();
 	const directionValue =
 		(getSetting('text-direction')?.value as string) || 'auto';
 

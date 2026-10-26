@@ -1,7 +1,7 @@
 // src/settings/registerLanguageSettings.tsx
 import { useEffect, useRef } from 'react';
 
-import { t } from '@/i18n';
+import { getBrowserLanguage, t } from '@/i18n';
 import { useSettings } from '../hooks/useSettings';
 import languagesConfig from '../../translations/locales.config.json';
 
@@ -25,7 +25,7 @@ export function useRegisterLanguageSettings() {
 		if (settingsRegistered.current) return;
 
 		const initialLanguageCode =
-			(getSetting('language')?.value as string) || 'en';
+			(getSetting('language')?.value as string) || getBrowserLanguage();
 
 		registerSetting({
 			id: 'language',

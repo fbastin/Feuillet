@@ -6,6 +6,7 @@ import { APP_NAME, UPSTREAM_NAME } from './branding';
 
 import enTranslations from '../translations/locales/en.json';
 import deTranslations from '../translations/locales/de.json';
+import frTranslations from '../translations/locales/fr.json';
 import itTranslations from '../translations/locales/it.json';
 import arTranslations from '../translations/locales/ar.json';
 import zhCNTranslations from '../translations/locales/zh-CN.json';
@@ -30,6 +31,9 @@ i18next.use(initReactI18next).init({
 		de: {
 			translation: deTranslations,
 		},
+		fr: {
+			translation: frTranslations,
+		},
 		it: {
 			translation: itTranslations,
 		},
@@ -50,6 +54,20 @@ i18next.use(initReactI18next).init({
 	},
 	postProcess: ['appName'],
 });
+
+// The first of the browser's preferred languages that the interface offers,
+// used until the user picks one.
+export const getBrowserLanguage = (): string => {
+	const preferred =
+		typeof navigator === 'undefined'
+			? []
+			: (navigator.languages ?? [navigator.language]);
+	for (const code of preferred) {
+		const base = code?.split('-')[0]?.toLowerCase();
+		if (base && i18next.hasResourceBundle(base, 'translation')) return base;
+	}
+	return 'en';
+};
 
 export const t = (
 	key: string,
