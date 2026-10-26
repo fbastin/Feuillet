@@ -154,13 +154,23 @@ class ServerFileSyncService {
 			}, LOCAL_MANIFEST_ORIGIN);
 		}
 
-		const applied = await this.applyEntries(
-			plan.apply,
-			projectId,
-			docUrl,
-			baseUrl,
-			failures,
-		);
+		// Files linked to documents come first: the editor waits for the file
+		// of the open document, while images can take long to download.
+		const isLinked = (entry: FileManifestEntry) =>
+			Boolean(entry.documentId) && !entry.deleted;
+		let applied = 0;
+		for (const entries of [
+			plan.apply.filter(isLinked),
+			plan.apply.filter((entry) => !isLinked(entry)),
+		]) {
+			applied += await this.applyEntries(
+				entries,
+				projectId,
+				docUrl,
+				baseUrl,
+				failures,
+			);
+		}
 		return { published: published.length, applied, failures };
 	}
 

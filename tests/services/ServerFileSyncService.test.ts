@@ -129,6 +129,41 @@ describe('ServerFileSyncService', () => {
 		);
 	});
 
+	it('stores the files linked to documents before the others', async () => {
+		const image = bytes('image');
+		const tex = bytes('\\documentclass{article}');
+		server.set(`project-1/${sha(image)}`, image);
+		server.set(`project-1/${sha(tex)}`, tex);
+		mockPeerFileSync.getLocalFileSyncInfo.mockResolvedValue([]);
+		const doc = new Y.Doc();
+		const manifest = doc.getMap(FILE_MANIFEST_KEY);
+		manifest.set('/a.png', {
+			path: '/a.png',
+			checksum: sha(image),
+			size: image.byteLength,
+			lastModified: 1,
+			deleted: false,
+			updatedBy: 'bob',
+		});
+		manifest.set('/main.tex', {
+			path: '/main.tex',
+			checksum: sha(tex),
+			size: tex.byteLength,
+			lastModified: 1,
+			documentId: 'doc-1',
+			deleted: false,
+			updatedBy: 'bob',
+		});
+
+		const result = await serverFileSyncService.synchronize(options(doc));
+
+		expect(result.applied).toBe(2);
+		const batches = mockFileStore.batchStoreFiles.mock.calls.map((call) =>
+			((call as unknown as [Array<{ path: string }>])[0]).map((file) => file.path),
+		);
+		expect(batches).toEqual([['/main.tex'], ['/a.png']]);
+	});
+
 	it('rejects a download whose content does not match its checksum', async () => {
 		server.set(`project-1/${sha(bytes('expected'))}`, bytes('tampered'));
 		mockPeerFileSync.getLocalFileSyncInfo.mockResolvedValue([]);

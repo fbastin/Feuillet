@@ -141,7 +141,8 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 				addNotification({ type: 'sync_error', message: failure });
 			}
 			setLastSync(Date.now());
-			setReceivedProjectId(projectId);
+			// A file that could not be received may be the one of a document.
+			if (result.failures.length === 0) setReceivedProjectId(projectId);
 		} catch (error) {
 			moduleLog.error('File sync through the server failed:', error);
 			addNotification({
@@ -202,7 +203,8 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 			void waitForServerSync(provider).then(() => {
 				if (!active) return;
 				readyRef.current = true;
-				scheduleSync();
+				// Not debounced: the editor waits for the files of this sync.
+				void runSyncRef.current();
 			});
 		} else {
 			setReceivedProjectId(projectId);

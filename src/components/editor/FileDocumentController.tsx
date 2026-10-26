@@ -11,6 +11,7 @@ import { useEditorOutline } from '../../hooks/editor/useEditorOutline';
 import { useEditorOutput } from '../../hooks/editor/useEditorOutput';
 import { useAuth } from '../../hooks/useAuth';
 import { usePeerDocumentTracking } from '../../hooks/usePeerDocumentTracking';
+import { usePeerFileSync } from '../../hooks/usePeerFileSync';
 import type { Document } from '../../types/documents';
 import type { Project } from '../../types/projects';
 import type { YjsDocUrl } from '../../types/yjs';
@@ -23,6 +24,10 @@ import EditorSidebar from './EditorSidebar';
 import EditorTabs from './EditorTabs';
 
 const moduleLog = createNamedLogger('FileDocumentController');
+
+// The longest the editor waits for the file of the open document while the
+// project's files arrive from the collaboration server.
+const MAX_LINKED_FILE_WAIT_MS = 10000;
 
 interface FileDocumentControllerProps {
 	documents: Document[];
@@ -78,6 +83,8 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 		onRefreshFileContent: navigation.refreshCurrentFileContent,
 		onContentRefreshed: navigation.setCurrentEditorContent,
 	});
+	const { filesReceived } = usePeerFileSync();
+	const [linkedFileWaitOver, setLinkedFileWaitOver] = useState(false);
 	const [gitDiffView, setGitDiffView] = useState<GitDiffView | null>(null);
 	const [showCurrentProjectExportModal, setShowCurrentProjectExportModal] =
 		useState(false);
@@ -95,6 +102,23 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 			moduleLog.error('Error loading project for export:', error);
 		}
 	};
+
+	useEffect(() => {
+		if (filesReceived) return;
+		const timer = setTimeout(
+			() => setLinkedFileWaitOver(true),
+			MAX_LINKED_FILE_WAIT_MS,
+		);
+		return () => clearTimeout(timer);
+	}, [filesReceived]);
+
+	// A document opened before its file arrived would show as plain text.
+	const waitingForLinkedFile =
+		!filesReceived &&
+		!linkedFileWaitOver &&
+		!navigation.isEditingFile &&
+		!!selectedDocId &&
+		!navigation.linkedFileInfo.fileName;
 
 	const handleSwitchToHistory = useCallback(() => {
 		setGitDiffView(null);
@@ -221,7 +245,7 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 				>
 					<EditorTabs onTabSwitch={navigation.handleTabSwitch} />
 					<div className='git-editor-surface'>
-						{!navigation.bootstrapResolved ? (
+						{!navigation.bootstrapResolved || waitingForLinkedFile ? (
 							<div className='file-loading-overlay'>
 								<div className='loading-spinner' />
 							</div>
