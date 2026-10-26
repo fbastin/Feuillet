@@ -19,12 +19,18 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 # Font caches are built now, in the system trees that every session uid
 # reads, rather than during the first compile of each connection.
-RUN (fc-cache -s && luaotfload-tool --update --quiet \
+RUN (sysvar=$(kpsewhich -var-value TEXMFSYSVAR) \
+    && fc-cache -s \
+    && TEXMFVAR=$sysvar luaotfload-tool --update --quiet \
     && cd /tmp \
     && printf '%s\n' '\documentclass{article}\usepackage{fontspec}' \
         '\begin{document}x\end{document}' >warm.tex \
-    && lualatex --nosocket --interaction=nonstopmode warm.tex >/dev/null \
-    && rm -f warm.*) || echo 'Font caches will be built during compiles.'
+    && TEXMFVAR=$sysvar lualatex --nosocket --interaction=nonstopmode warm.tex >/dev/null \
+    && rm -f warm.* \
+    && chmod -R a+rX "$sysvar" \
+    && find "$sysvar" -name 'luaotfload-names*' | grep -q . \
+    && echo 'LuaTeX font names cached.') \
+    || echo 'Font caches will be built during compiles.'
 
 # Biber is a self-extracting program. It is unpacked once here instead of
 # into /tmp, where nothing may run; server.js links each session to it.
