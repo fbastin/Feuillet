@@ -42,6 +42,12 @@ const getExpandPaths = (filePath: string): string[] => {
 	return expandPaths;
 };
 
+const sameLinkedFile = (a: LinkedFileInfoState, b: LinkedFileInfoState) =>
+	a.fileId === b.fileId &&
+	a.filePath === b.filePath &&
+	a.fileName === b.fileName &&
+	a.mimeType === b.mimeType;
+
 const MAX_AUTO_LINK_BYTES = 2 * 1024 * 1024;
 
 interface UseEditorNavigationOptions {
@@ -83,7 +89,10 @@ export const useEditorNavigation = ({
 	const lastOpenedDocIdRef = useRef<string | null>(null);
 	const isViewerHandledRef = useRef(false);
 	const docToFileMapRef = useRef<Map<string, LinkedFileInfo>>(new Map());
-	const [docToFileMapReady, setDocToFileMapReady] = useState(false);
+	// Counts the builds of docToFileMapRef, so that the open document follows
+	// files that arrive after it was opened, from another device for instance.
+	const [docToFileMapVersion, setDocToFileMapVersion] = useState(0);
+	const docToFileMapReady = docToFileMapVersion > 0;
 	const [loadedFile, setLoadedFile] = useState<{
 		fileId: string;
 		content: string | ArrayBuffer;
@@ -455,12 +464,15 @@ export const useEditorNavigation = ({
 	}, [isEditingFile, selectedFileId, getFileContent]);
 
 	useEffect(() => {
+		let latestBuild = 0;
 		const buildDocToFileMap = async () => {
 			if (!docUrl) return;
+			const build = ++latestBuild;
 
 			await fileStoreService.initialize(docUrl);
 
 			const allFiles = await fileStoreService.getAllFiles(false, false, false);
+			if (build !== latestBuild) return;
 			const map = new Map<string, LinkedFileInfo>();
 
 			for (const file of allFiles) {
@@ -475,7 +487,7 @@ export const useEditorNavigation = ({
 			}
 
 			docToFileMapRef.current = map;
-			setDocToFileMapReady(true);
+			setDocToFileMapVersion((version) => version + 1);
 		};
 
 		void buildDocToFileMap();
@@ -483,6 +495,7 @@ export const useEditorNavigation = ({
 		document.addEventListener('file-saved', buildDocToFileMap);
 
 		return () => {
+			latestBuild += 1;
 			document.removeEventListener('refresh-file-tree', buildDocToFileMap);
 			document.removeEventListener('file-saved', buildDocToFileMap);
 		};
@@ -588,7 +601,7 @@ export const useEditorNavigation = ({
 	]);
 
 	useEffect(() => {
-		if (!docToFileMapReady) return;
+		if (docToFileMapVersion === 0) return;
 		if (isEditingFile) {
 			setLinkedFileInfo({});
 			return;
@@ -596,16 +609,13 @@ export const useEditorNavigation = ({
 		if (!selectedDocId) return;
 
 		const linkedFile = docToFileMapRef.current.get(selectedDocId);
-		if (linkedFile) {
-			setLinkedFileInfo(linkedFile);
-			setLinkedDocumentId(selectedDocId);
-			setOutputForFileName(linkedFile.fileName);
-		} else {
-			setLinkedFileInfo({});
-			setLinkedDocumentId(null);
-			setOutputForFileName(undefined);
-		}
-	}, [selectedDocId, isEditingFile, docToFileMapReady, setOutputForFileName]);
+		const next = linkedFile ?? {};
+		setLinkedFileInfo((current) =>
+			sameLinkedFile(current, next) ? current : next,
+		);
+		setLinkedDocumentId(linkedFile ? selectedDocId : null);
+		setOutputForFileName(linkedFile?.fileName);
+	}, [selectedDocId, isEditingFile, docToFileMapVersion, setOutputForFileName]);
 
 	/* biome-ignore lint/correctness/useExhaustiveDependencies: Bootstrap effect intentionally reacts only to URL-derived targets; openDocumentById identity changes (driven by tabs/documents churn) are not relevant triggers. */
 	useEffect(() => {

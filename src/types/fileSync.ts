@@ -68,6 +68,9 @@ export interface FileSyncContextType {
 	isEnabled: boolean;
 	isSyncing: boolean;
 	lastSync: number | null;
+	// False while this device may still be waiting for the project's files,
+	// so that a document is not called unlinked before its file arrives.
+	filesReceived: boolean;
 	notifications: FileSyncNotification[];
 	enableSync: () => void;
 	disableSync: () => void;

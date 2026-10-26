@@ -70,6 +70,10 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 
 	const [isSyncing, setIsSyncing] = useState(false);
 	const [lastSync, setLastSync] = useState<number | null>(null);
+	// The project whose files this device has received at least once.
+	const [receivedProjectId, setReceivedProjectId] = useState<string | null>(
+		null,
+	);
 	const [notifications, setNotifications] = useState<FileSyncNotification[]>(
 		[],
 	);
@@ -137,6 +141,7 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 				addNotification({ type: 'sync_error', message: failure });
 			}
 			setLastSync(Date.now());
+			setReceivedProjectId(projectId);
 		} catch (error) {
 			moduleLog.error('File sync through the server failed:', error);
 			addNotification({
@@ -199,6 +204,8 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 				readyRef.current = true;
 				scheduleSync();
 			});
+		} else {
+			setReceivedProjectId(projectId);
 		}
 
 		return () => {
@@ -232,6 +239,7 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 				isEnabled,
 				isSyncing,
 				lastSync,
+				filesReceived: !isEnabled || receivedProjectId === projectId,
 				notifications,
 				enableSync: scheduleSync,
 				disableSync: () => {},

@@ -20,6 +20,7 @@ import { hasToolbarSupport } from '../../extensions/codemirror/ToolbarExtension'
 import { useEditorView } from '../../hooks/editor/useEditorView';
 import { useCollab } from '../../hooks/useCollab';
 import { useComments } from '../../hooks/useComments';
+import { usePeerFileSync } from '../../hooks/usePeerFileSync';
 import { usePluginFileInfo } from '../../hooks/usePluginFileInfo';
 import { useSourceMap } from '../../hooks/useSourceMap';
 import { useSettings } from '../../hooks/useSettings';
@@ -218,6 +219,7 @@ const EditorContent: React.FC<{
 		forwardClickMode,
 	} = useSourceMap();
 	const { addComment, updateComments } = useComments();
+	const { filesReceived } = usePeerFileSync();
 	const fileInfo = usePluginFileInfo(fileId, fileName);
 	const {
 		data: doc,
@@ -361,7 +363,8 @@ const EditorContent: React.FC<{
 			!isEditingFile &&
 			documentId &&
 			!linkedFileInfo?.fileName &&
-			documents
+			documents &&
+			filesReceived
 		) {
 			timeoutId = setTimeout(() => setShowUnlinkedNotice(true), 750);
 		} else {
@@ -370,7 +373,13 @@ const EditorContent: React.FC<{
 		return () => {
 			if (timeoutId) clearTimeout(timeoutId);
 		};
-	}, [isEditingFile, documentId, linkedFileInfo?.fileName, documents]);
+	}, [
+		isEditingFile,
+		documentId,
+		linkedFileInfo?.fileName,
+		documents,
+		filesReceived,
+	]);
 
 	useEffect(() => {
 		const handleAddCommentToEditor = (event: Event) => {
