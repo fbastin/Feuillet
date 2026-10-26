@@ -26,13 +26,11 @@ RUN (fc-cache -s && luaotfload-tool --update --quiet \
     && lualatex --nosocket --interaction=nonstopmode warm.tex >/dev/null \
     && rm -f warm.*) || echo 'Font caches will be built during compiles.'
 
-# Biber is a self-extracting program. It is unpacked once here, readable by
-# the session uids, instead of into /tmp, where nothing may run.
-ENV PAR_GLOBAL_TEMP=/opt/biber
-RUN mkdir -p "$PAR_GLOBAL_TEMP" \
-    && biber --version \
-    && chmod -R a+rX "$PAR_GLOBAL_TEMP" \
-    && setpriv --reuid=20000 --regid=20000 --clear-groups biber --version
+# Biber is a self-extracting program. It is unpacked once here instead of
+# into /tmp, where nothing may run; server.js links each session to it.
+ENV BIBER_DIR=/opt/biber
+COPY check-biber.sh /tmp/
+RUN sh /tmp/check-biber.sh && rm /tmp/check-biber.sh
 
 WORKDIR /app
 COPY package.json package-lock.json ./

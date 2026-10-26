@@ -54,6 +54,8 @@ const idleTimeoutMs = readInt('IDLE_TIMEOUT_MS', 900_000);
 const maxPayload = readInt('MAX_MESSAGE_BYTES', 100 * 1024 * 1024);
 const sessionUidBase = readInt('SESSION_UID_BASE', 20000);
 const isolated = process.getuid?.() === 0;
+// Biber as unpacked when the image was built (check-biber.sh).
+const biberDir = process.env.BIBER_DIR || '';
 
 const MISSING_FILES_STATUS = -2;
 const MAX_LOG_CHARS = 1024 * 1024;
@@ -137,6 +139,7 @@ class Session {
 		this.dir = path.join(this.root, 'project');
 		this.home = path.join(this.root, 'home');
 		this.tmp = path.join(this.home, 'tmp');
+		this.biber = path.join(this.home, 'biber');
 		this.tracked = new Set();
 		this.child = null;
 		this.closed = false;
@@ -166,6 +169,20 @@ class Session {
 		}
 	}
 
+	// Biber's packer locks a file next to its unpacked copy at every run, so
+	// each session uid gets its own directory of links to that copy.
+	async linkBiber() {
+		if (!biberDir || this.uid === null || (await exists(this.biber))) return;
+		await this.makeDir(this.biber);
+		for (const entry of await fs.readdir(biberDir)) {
+			if (entry === 'inc.lock') continue;
+			await fs.symlink(
+				path.join(biberDir, entry),
+				path.join(this.biber, entry),
+			);
+		}
+	}
+
 	async reset() {
 		await fs.rm(this.dir, { recursive: true, force: true });
 		this.tracked.clear();
@@ -177,6 +194,7 @@ class Session {
 		if (!manifest) await this.reset();
 		await this.makeDir(this.dir);
 		await this.makeDir(this.tmp);
+		await this.linkBiber();
 
 		if (manifest) {
 			const listed = new Set(
@@ -215,9 +233,8 @@ class Session {
 			env.HOME = this.home;
 			env.TMPDIR = this.tmp;
 		}
-		// Biber's unpacked copy, prepared when the image is built.
-		if (process.env.PAR_GLOBAL_TEMP) {
-			env.PAR_GLOBAL_TEMP = process.env.PAR_GLOBAL_TEMP;
+		if (biberDir) {
+			env.PAR_GLOBAL_TEMP = this.uid === null ? biberDir : this.biber;
 		}
 		return new Promise((resolve) => {
 			const child = spawn('latexmk', args, {
