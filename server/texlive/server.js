@@ -29,7 +29,7 @@
 //   SESSION_UID_BASE    first of the MAX_CONNECTIONS uids given to
 //                       connections when running as root (default 20000)
 
-const { spawn } = require('node:child_process');
+const { execFileSync, spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const http = require('node:http');
@@ -56,6 +56,19 @@ const sessionUidBase = readInt('SESSION_UID_BASE', 20000);
 const isolated = process.getuid?.() === 0;
 // Biber as unpacked when the image was built (check-biber.sh).
 const biberDir = process.env.BIBER_DIR || '';
+
+// LuaTeX's font names database, built with the image (Dockerfile).
+const findFontNamesDir = () => {
+	try {
+		const sysvar = execFileSync('kpsewhich', ['-var-value', 'TEXMFSYSVAR'], {
+			encoding: 'utf8',
+		}).trim();
+		return sysvar ? path.join(sysvar, 'luatex-cache', 'generic', 'names') : '';
+	} catch {
+		return '';
+	}
+};
+const fontNamesDir = isolated ? findFontNamesDir() : '';
 
 const MISSING_FILES_STATUS = -2;
 const MAX_LOG_CHARS = 1024 * 1024;
@@ -140,6 +153,13 @@ class Session {
 		this.home = path.join(this.root, 'home');
 		this.tmp = path.join(this.home, 'tmp');
 		this.biber = path.join(this.home, 'biber');
+		this.texmfVar = path.join(this.home, 'texmf-var');
+		this.fontNames = path.join(
+			this.texmfVar,
+			'luatex-cache',
+			'generic',
+			'names',
+		);
 		this.tracked = new Set();
 		this.child = null;
 		this.closed = false;
@@ -169,16 +189,33 @@ class Session {
 		}
 	}
 
-	// Biber's packer locks a file next to its unpacked copy at every run, so
-	// each session uid gets its own directory of links to that copy.
-	async linkBiber() {
-		if (!biberDir || this.uid === null || (await exists(this.biber))) return;
-		await this.makeDir(this.biber);
-		for (const entry of await fs.readdir(biberDir)) {
-			if (entry === 'inc.lock') continue;
-			await fs.symlink(
-				path.join(biberDir, entry),
-				path.join(this.biber, entry),
+	// Links files prepared with the image into a directory of the session
+	// uid, where the programs using them can add files of their own.
+	async linkInto(source, target, keep) {
+		if (await exists(target)) return;
+		const entries = await fs.readdir(source).catch(() => []);
+		await this.makeDir(target);
+		for (const entry of entries) {
+			if (!keep(entry)) continue;
+			await fs.symlink(path.join(source, entry), path.join(target, entry));
+		}
+	}
+
+	async linkShared() {
+		if (this.uid === null) return;
+		// Biber's packer locks a file next to its unpacked copy at every run.
+		if (biberDir) {
+			await this.linkInto(
+				biberDir,
+				this.biber,
+				(entry) => entry !== 'inc.lock',
+			);
+		}
+		// luaotfload reads its font names database only from the cache it
+		// may write to, and rebuilds it there when missing (about 12 s).
+		if (fontNamesDir) {
+			await this.linkInto(fontNamesDir, this.fontNames, (entry) =>
+				entry.startsWith('luaotfload-names'),
 			);
 		}
 	}
@@ -194,7 +231,7 @@ class Session {
 		if (!manifest) await this.reset();
 		await this.makeDir(this.dir);
 		await this.makeDir(this.tmp);
-		await this.linkBiber();
+		await this.linkShared();
 
 		if (manifest) {
 			const listed = new Set(
@@ -232,6 +269,7 @@ class Session {
 		} else {
 			env.HOME = this.home;
 			env.TMPDIR = this.tmp;
+			env.TEXMFVAR = this.texmfVar;
 		}
 		if (biberDir) {
 			env.PAR_GLOBAL_TEMP = this.uid === null ? biberDir : this.biber;
