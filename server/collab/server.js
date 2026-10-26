@@ -5,7 +5,9 @@
 //    protocol) and persists them, so collaborators do not need to be online
 //    at the same time;
 //  - stores project file contents by SHA-256 (PUT/GET /files/<project>/<hash>),
-//    so every collaborator receives the files listed in the shared manifest.
+//    so every collaborator receives the files listed in the shared manifest;
+//  - keeps accounts and their project lists (/account/..., accounts.js), so
+//    that signing in on another device shows the same projects.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -14,6 +16,7 @@
 //   YPERSISTENCE        LevelDB directory for document storage (read by
 //                       y-websocket); unset keeps documents in memory only
 //   FILES_DIR           directory for file contents (default ./files)
+//   ACCOUNTS_DIR        directory for accounts (default ./accounts)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -22,6 +25,8 @@ const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
 const { WebSocketServer } = require('ws');
+
+const { createAccounts } = require('./accounts');
 
 const host = process.env.HOST || '0.0.0.0';
 const port = Number.parseInt(process.env.PORT || '1234', 10);
@@ -38,6 +43,7 @@ const maxFileBytes = Number.parseInt(
 	10,
 );
 const filesDir = path.resolve(process.env.FILES_DIR || 'files');
+const accountsDir = path.resolve(process.env.ACCOUNTS_DIR || 'accounts');
 
 // LevelDB does not create parent directories, and y-websocket opens it as
 // soon as its module loads.
@@ -56,6 +62,8 @@ const log = (...parts) =>
 
 const isAllowedOrigin = (origin) =>
 	allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+
+const accounts = createAccounts({ dir: accountsDir, log });
 
 const reject = (socket, status, reason) => {
 	socket.write(
@@ -158,6 +166,30 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
+	if (accounts.handles(url)) {
+		const origin = req.headers.origin;
+		if (origin && !isAllowedOrigin(origin)) {
+			send(res, 403, 'Forbidden\n');
+			req.resume();
+			return;
+		}
+		if (origin) {
+			res.setHeader('Access-Control-Allow-Origin', origin);
+			res.setHeader('Vary', 'Origin');
+		}
+		if (req.method === 'OPTIONS') {
+			res.writeHead(204, {
+				'Access-Control-Allow-Methods': 'GET, POST, DELETE',
+				'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+				'Access-Control-Max-Age': '86400',
+			});
+			res.end();
+			return;
+		}
+		accounts.handle(req, res, url);
+		return;
+	}
+
 	const fileRoute = url.match(FILE_ROUTE);
 	if (fileRoute) {
 		const origin = req.headers.origin;
@@ -231,7 +263,8 @@ server.listen(port, host, () => {
 		process.env.YPERSISTENCE
 			? `documents in ${process.env.YPERSISTENCE};`
 			: 'documents in memory only;',
-		`files in ${filesDir}`,
+		`files in ${filesDir};`,
+		`accounts in ${accountsDir}`,
 	);
 });
 

@@ -12,10 +12,16 @@ import type {
 	ProjectGroup,
 	ProjectType,
 } from '../types/projects';
+import { accountFieldsChanged } from '../utils/accountSyncUtils';
 import { generateRandomColor } from '../utils/colorUtils';
 import { cleanupProjectDatabases } from '../utils/dbDeleteUtils';
 import { generateYjsProjectId } from '../utils/urlUtils';
 import { getUserDataKey } from '../utils/userDataUtils';
+import {
+	type AccountSession,
+	AccountServerError,
+	accountSyncService,
+} from './AccountSyncService';
 import { diskBackupService } from './DiskBackupService';
 
 const moduleLog = createNamedLogger('AuthService');
@@ -72,6 +78,7 @@ class AuthService {
 							moduleLog.info(
 								`Restored user session: ${user.username} (${this.isGuestUser(user) ? 'guest' : 'full'})`,
 							);
+							if (!this.isGuestUser(user)) accountSyncService.start(user.id);
 						}
 					} else {
 						moduleLog.info(`User not found: ${userId}`);
@@ -197,6 +204,7 @@ class AuthService {
 			}
 		}
 
+		const session = await this.registerOnServer(username, password);
 		const passwordHash = await this.hashPassword(password);
 		const now = Date.now();
 		const oldGuestId = this.currentUser.id;
@@ -224,6 +232,8 @@ class AuthService {
 		this.currentUser = upgradedUser;
 		this.transferUserSettings(oldGuestId, newUserId);
 		localStorage.setItem('texlyre-current-user', newUserId);
+		if (session) accountSyncService.saveSession(newUserId, session);
+		accountSyncService.start(newUserId);
 
 		moduleLog.info(
 			`Upgraded guest account ${oldGuestId} to full account: ${username} (${newUserId})`,
@@ -360,6 +370,7 @@ class AuthService {
 			}
 		}
 
+		const session = await this.registerOnServer(username, password);
 		const passwordHash = await this.hashPassword(password);
 		const userId = crypto.randomUUID();
 		const now = Date.now();
@@ -376,6 +387,8 @@ class AuthService {
 		await this.db?.put(this.USER_STORE, newUser);
 		this.currentUser = newUser;
 		localStorage.setItem('texlyre-current-user', userId);
+		if (session) accountSyncService.saveSession(userId, session);
+		accountSyncService.start(userId);
 
 		return newUser;
 	}
@@ -383,18 +396,44 @@ class AuthService {
 	async login(username: string, password: string): Promise<User> {
 		if (!this.db) await this.initialize();
 
-		const user = await this.db?.getFromIndex(
+		const found = await this.db?.getFromIndex(
 			this.USER_STORE,
 			'username',
 			username,
 		);
-		if (!user || this.isGuestUser(user)) {
-			throw new Error(t('User not found'));
-		}
-
+		let user: User | undefined =
+			found && !this.isGuestUser(found) ? found : undefined;
 		const passwordHash = await this.hashPassword(password);
-		if (user.passwordHash !== passwordHash) {
-			throw new Error(t('Invalid password'));
+
+		if (user && user.passwordHash === passwordHash) {
+			void this.linkAccount(user, password);
+		} else {
+			// Unknown here, or another password: the account may have been
+			// created, or its password changed, on another device.
+			const session = await this.signInOnServer(
+				user?.username ?? username,
+				password,
+			);
+			if (!session) {
+				throw new Error(user ? t('Invalid password') : t('User not found'));
+			}
+
+			user ??= (await this.getUserByUsername(session.username)) ?? undefined;
+			// A local account that was never linked to this server account
+			// keeps its own password, even if someone took its name there.
+			if (user && !accountSyncService.wasLinkedTo(user.id, session.username)) {
+				void accountSyncService.endSession(session);
+				throw new Error(t('Invalid password'));
+			}
+			user = user
+				? { ...user, passwordHash }
+				: {
+						id: crypto.randomUUID(),
+						username: session.username,
+						passwordHash,
+						createdAt: Date.now(),
+					};
+			accountSyncService.saveSession(user.id, session);
 		}
 
 		user.lastLogin = Date.now();
@@ -402,8 +441,110 @@ class AuthService {
 
 		this.currentUser = user;
 		localStorage.setItem('texlyre-current-user', user.id);
+		accountSyncService.start(user.id);
 
 		return user;
+	}
+
+	// Creates the account on the server too, so that it can be opened on other
+	// devices. Without the server (offline, or none configured), the account
+	// stays in this browser and is linked at a later sign-in.
+	private async registerOnServer(
+		username: string,
+		password: string,
+	): Promise<AccountSession | null> {
+		try {
+			return await accountSyncService.register(
+				accountSyncService.serverFor(),
+				username,
+				password,
+			);
+		} catch (error) {
+			if (error instanceof AccountServerError) {
+				if (error.code === 'username_taken') {
+					throw new Error(
+						t(
+							'This username already has an account on the server. Log in with its password instead.',
+						),
+					);
+				}
+				if (error.code === 'too_many_attempts') {
+					throw new Error(
+						t('Too many attempts. Please try again in a few minutes.'),
+					);
+				}
+			}
+			moduleLog.warn('Account not created on the server:', error);
+			return null;
+		}
+	}
+
+	private async signInOnServer(
+		username: string,
+		password: string,
+	): Promise<AccountSession | null> {
+		try {
+			return await accountSyncService.login(
+				accountSyncService.serverFor(),
+				username,
+				password,
+			);
+		} catch (error) {
+			if (error instanceof AccountServerError) {
+				if (error.code === 'wrong_password') {
+					throw new Error(t('Invalid password'));
+				}
+				if (error.code === 'too_many_attempts') {
+					throw new Error(
+						t('Too many attempts. Please try again in a few minutes.'),
+					);
+				}
+			}
+			return null;
+		}
+	}
+
+	// Links an account of this browser to the same account on the server,
+	// creating it there if its name is free.
+	async linkAccount(
+		user: User,
+		password: string,
+	): Promise<'linked' | 'taken' | 'unreachable'> {
+		if (this.isGuestUser(user)) return 'unreachable';
+		if (accountSyncService.getSession(user.id)) return 'linked';
+
+		const server = accountSyncService.serverFor(user.id);
+		let session: AccountSession;
+		try {
+			session = await accountSyncService.login(server, user.username, password);
+		} catch (error) {
+			if (
+				!(error instanceof AccountServerError) ||
+				error.code !== 'unknown_username'
+			) {
+				return error instanceof AccountServerError &&
+					error.code === 'wrong_password'
+					? 'taken'
+					: 'unreachable';
+			}
+			try {
+				session = await accountSyncService.register(
+					server,
+					user.username,
+					password,
+				);
+			} catch (registerError) {
+				return registerError instanceof AccountServerError &&
+					registerError.code === 'username_taken'
+					? 'taken'
+					: 'unreachable';
+			}
+		}
+
+		accountSyncService.saveSession(user.id, session);
+		if (this.currentUser?.id === user.id) accountSyncService.start(user.id);
+		moduleLog.info(`Linked ${user.username} to the server account`);
+		return 'linked';
 	}
 
 	async logout(): Promise<void> {
@@ -412,6 +553,8 @@ class AuthService {
 		localStorage.removeItem('texlyre-current-user');
 
 		if (!user) return;
+
+		void accountSyncService.signOut(user.id);
 
 		if (this.isGuestUser(user)) {
 			try {
@@ -507,11 +650,39 @@ class AuthService {
 		return user.passwordHash === passwordHash;
 	}
 
-	async updatePassword(userId: string, newPassword: string): Promise<User> {
+	async updatePassword(
+		userId: string,
+		newPassword: string,
+		currentPassword?: string,
+	): Promise<User> {
 		if (!this.db) await this.initialize();
 
 		const user = await this.getUserById(userId);
 		if (!user) throw new Error(t('User not found'));
+
+		// The server account keeps the same password, or other devices could
+		// no longer sign in with the new one.
+		if (accountSyncService.getSession(userId)) {
+			if (!currentPassword) {
+				throw new Error(
+					t('Current password is required to set a new password'),
+				);
+			}
+			try {
+				await accountSyncService.changePassword(
+					userId,
+					currentPassword,
+					newPassword,
+				);
+			} catch (error) {
+				moduleLog.warn('Password not changed on the server:', error);
+				throw new Error(
+					t(
+						'The password could not be changed on the server. Check your connection and try again.',
+					),
+				);
+			}
+		}
 
 		const passwordHash = await this.hashPassword(newPassword);
 
@@ -609,6 +780,7 @@ class AuthService {
 		};
 
 		await db.put(this.PROJECT_STORE, newProject);
+		accountSyncService.projectChanged(currentUser.id);
 
 		if (shouldAutoSync()) {
 			diskBackupService.synchronize(newProject.id).catch(console.error);
@@ -629,12 +801,18 @@ class AuthService {
 			throw new Error(t('You do not have permission to update this project'));
 		}
 
+		const now = Date.now();
+		const listedFieldsChanged = accountFieldsChanged(existingProject, project);
 		const updatedProject: Project = {
 			...project,
-			updatedAt: Date.now(),
+			updatedAt: now,
+			...(listedFieldsChanged ? { accountUpdatedAt: now } : {}),
 		};
 
 		await this.db?.put(this.PROJECT_STORE, updatedProject);
+		if (listedFieldsChanged) {
+			accountSyncService.projectChanged(existingProject.ownerId);
+		}
 
 		if (shouldAutoSync() && !this.isGuestUser(this.currentUser)) {
 			diskBackupService.synchronize(project.id).catch(console.error);
@@ -689,6 +867,7 @@ class AuthService {
 
 		await this.db?.delete(this.PROJECT_STORE, id);
 		await cleanupProjectDatabases(project);
+		accountSyncService.projectDeleted(project.ownerId, id);
 
 		if (shouldAutoSync() && !this.isGuestUser(this.currentUser)) {
 			diskBackupService.synchronize().catch(console.error);
@@ -837,15 +1016,37 @@ class AuthService {
 			throw new Error(t('You do not have permission to modify this project'));
 		}
 
+		const now = Date.now();
 		const updatedProject: Project = {
 			...project,
 			isFavorite: !project.isFavorite,
-			updatedAt: Date.now(),
+			updatedAt: now,
+			accountUpdatedAt: now,
 		};
 
 		await this.db?.put(this.PROJECT_STORE, updatedProject);
+		accountSyncService.projectChanged(project.ownerId);
 		return updatedProject;
+	}
+
+	// Writes a project as the account lists it, from another device.
+	async storeSyncedProject(project: Project): Promise<void> {
+		const db = await this.getDatabase();
+		await db.put(this.PROJECT_STORE, project);
+	}
+
+	// Removes a project deleted on another device from this one.
+	async removeSyncedProject(project: Project): Promise<void> {
+		const db = await this.getDatabase();
+		await db.delete(this.PROJECT_STORE, project.id);
+		await cleanupProjectDatabases(project);
 	}
 }
 
 export const authService = new AuthService();
+
+accountSyncService.attachStore({
+	getProjects: (userId) => authService.getProjectsByUser(userId),
+	storeProject: (project) => authService.storeSyncedProject(project),
+	removeProject: (project) => authService.removeSyncedProject(project),
+});

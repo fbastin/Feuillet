@@ -19,6 +19,9 @@ export interface Project {
 	lastOpenedDocId?: string;
 	lastOpenedFilePath?: string;
 	isDiskLinked?: boolean;
+	// When the fields an account lists (name, tags…) last changed; opening a
+	// file updates updatedAt without changing them.
+	accountUpdatedAt?: number;
 }
 
 export type ProjectCreateInput = Omit<

@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import Modal from '../common/Modal';
 import { UserIcon } from '../common/Icons';
 import ProfileAccountIdentitySection from './ProfileAccountIdentitySection';
+import ProfileServerAccountSection from './ProfileServerAccountSection';
 import BrowserStorageSection from './ProfileBrowserStorageSection';
 import LocalStorageDataSection from './ProfileLocalStorageDataSection';
 
@@ -72,14 +73,22 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 			)}
 
 			{tab === 'account' ? (
-				<ProfileAccountIdentitySection
-					isOpen={isOpen}
-					isSubmitting={isSubmitting}
-					setIsSubmitting={setIsSubmitting}
-					onClose={onClose}
-					onError={setError}
-					onSuccess={setSuccessMessage}
-				/>
+				<>
+					<ProfileAccountIdentitySection
+						isOpen={isOpen}
+						isSubmitting={isSubmitting}
+						setIsSubmitting={setIsSubmitting}
+						onClose={onClose}
+						onError={setError}
+						onSuccess={setSuccessMessage}
+					/>
+					<ProfileServerAccountSection
+						isSubmitting={isSubmitting}
+						setIsSubmitting={setIsSubmitting}
+						onError={setError}
+						onSuccess={setSuccessMessage}
+					/>
+				</>
 			) : (
 				user && (
 					<>

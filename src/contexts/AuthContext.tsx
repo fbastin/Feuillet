@@ -211,8 +211,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const updatePassword = async (
 		userId: string,
 		newPassword: string,
+		currentPassword?: string,
 	): Promise<User> => {
-		const updatedUser = await authService.updatePassword(userId, newPassword);
+		const updatedUser = await authService.updatePassword(
+			userId,
+			newPassword,
+			currentPassword,
+		);
 		setUser(updatedUser);
 		return updatedUser;
 	};

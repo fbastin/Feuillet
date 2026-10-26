@@ -40,7 +40,11 @@ export interface AuthContextType {
 	searchProjects: (query: string) => Promise<Project[]>;
 	toggleFavorite: (projectId: string) => Promise<Project>;
 	verifyPassword: (userId: string, password: string) => Promise<boolean>;
-	updatePassword: (userId: string, newPassword: string) => Promise<User>;
+	updatePassword: (
+		userId: string,
+		newPassword: string,
+		currentPassword?: string,
+	) => Promise<User>;
 	isGuestUser: (user?: User | null) => boolean;
 	cleanupExpiredGuests: () => Promise<void>;
 }

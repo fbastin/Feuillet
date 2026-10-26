@@ -9,7 +9,11 @@ no peer-to-peer connection limit:
   over WebSocket and stored in LevelDB;
 - project files (images, bibliographies, any file in the tree) are listed in
   a shared manifest and their contents are stored by SHA-256 checksum;
-- opening a text file makes it a shared document, edited live by everyone.
+- opening a text file makes it a shared document, edited live by everyone;
+- accounts (username and password) keep the list of their projects, so that
+  logging in on another device shows the same projects, as on Overleaf.
+  Signing up creates the account there; an account created earlier in a
+  browser is linked at its next login, or from Profile Settings.
 
 LaTeX projects compile on a full TeX Live ([`server/texlive`](../server/texlive)),
 as on Overleaf. It is the default compiler for new LaTeX projects and for
@@ -43,8 +47,10 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/feuil
 - TeX Live packages: `sudo docker compose -f deploy/docker-compose.yml build --pull texlive`
   then `sudo docker compose -f deploy/docker-compose.yml up -d texlive`.
 
-Documents are kept in the `feuillet_collab-data` volume and file contents in
-`feuillet_collab-files`; neither is touched by an update. The TeX Live server
+Documents are kept in the `feuillet_collab-data` volume, file contents in
+`feuillet_collab-files` and accounts in `feuillet_collab-accounts` (one JSON
+file per account, with a scrypt hash of its password and the hashes of its
+session tokens); none is touched by an update. The TeX Live server
 keeps nothing: each connection compiles in its own temporary directory.
 
 ## Checks
@@ -58,6 +64,13 @@ keeps nothing: each connection compiles in its own temporary directory.
   duration). Only `https://feuillet.slashbin.net` is allowed
   (`ALLOWED_ORIGINS` in `docker-compose.yml`).
 - Files larger than 100 MiB are refused (`MAX_FILE_BYTES`).
+- `sudo docker logs feuillet-collab` shows each account created or deleted.
+  There is no e-mail, so a forgotten password cannot be reset; removing the
+  account frees its name (the projects themselves are kept):
+  ```
+  name=$(printf %s 'alice' | tr '[:upper:]' '[:lower:]' | sha256sum | cut -d' ' -f1)
+  sudo docker exec feuillet-collab rm "/accounts/$name.json"
+  ```
 
 ## TeX Live server limits
 

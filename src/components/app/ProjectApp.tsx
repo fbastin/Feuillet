@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useTheme } from '../../hooks/useTheme';
+import { ACCOUNT_PROJECTS_CHANGED } from '../../services/AccountSyncService';
 import { projectSeedService } from '../../services/ProjectSeedService';
 import type { Project, ProjectType, ProjectGroup } from '../../types/projects';
 import { createStarterFile } from '../../utils/projectStarterUtils';
@@ -162,6 +163,13 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 
 	useEffect(() => {
 		loadProjects();
+	}, [loadProjects]);
+
+	// Projects created, renamed or deleted on another device.
+	useEffect(() => {
+		const reload = () => void loadProjects();
+		window.addEventListener(ACCOUNT_PROJECTS_CHANGED, reload);
+		return () => window.removeEventListener(ACCOUNT_PROJECTS_CHANGED, reload);
 	}, [loadProjects]);
 
 	const handleAccountDeleted = async () => {

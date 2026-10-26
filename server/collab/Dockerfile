@@ -3,16 +3,17 @@ FROM node:22-slim
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-COPY server.js ./
+COPY server.js accounts.js ./
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=1234 \
     YPERSISTENCE=/data \
-    FILES_DIR=/files
+    FILES_DIR=/files \
+    ACCOUNTS_DIR=/accounts
 
-RUN mkdir -p /data /files && chown node:node /data /files
-VOLUME ["/data", "/files"]
+RUN mkdir -p /data /files /accounts && chown node:node /data /files /accounts
+VOLUME ["/data", "/files", "/accounts"]
 USER node
 EXPOSE 1234
 

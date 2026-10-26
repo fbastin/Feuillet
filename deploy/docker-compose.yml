@@ -15,6 +15,7 @@ services:
     volumes:
       - collab-data:/data
       - collab-files:/files
+      - collab-accounts:/accounts
 
   # Compiles documents written by anyone who can open Feuillet: each
   # connection under its own uid, bounded in memory, processes and disk, and
@@ -52,3 +53,4 @@ services:
 volumes:
   collab-data:
   collab-files:
+  collab-accounts:

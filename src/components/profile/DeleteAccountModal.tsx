@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { useAuth } from '../../hooks/useAuth';
+import { accountSyncService } from '../../services/AccountSyncService';
 import { cleanupProjectDatabases } from '../../utils/dbDeleteUtils';
 import { TrashIcon, ExportIcon } from '../common/Icons';
 import Modal from '../common/Modal';
@@ -32,6 +33,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 	const [error, setError] = useState<string | null>(null);
 
 	const expectedConfirmationText = `DELETE ${user?.username || ''}`;
+	const hasServerAccount = !!user && !!accountSyncService.getSession(user.id);
 
 	const handleDelete = async () => {
 		if (!user) return;
@@ -55,6 +57,18 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 			const isPasswordValid = await verifyPassword(user.id, currentPassword);
 			if (!isPasswordValid) {
 				throw new Error(t('Incorrect password'));
+			}
+
+			if (hasServerAccount) {
+				try {
+					await accountSyncService.deleteAccount(user.id, currentPassword);
+				} catch {
+					throw new Error(
+						t(
+							'The account could not be deleted on the server. Check your connection and try again.',
+						),
+					);
+				}
 			}
 
 			await deleteUserAccount(user.id);
@@ -169,6 +183,12 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 							<strong>{t('Your user profile')}</strong>&nbsp;
 							{t('and log in credentials')}
 						</li>
+						{hasServerAccount && (
+							<li>
+								<strong>{t('Your account on the server')}</strong>&nbsp;
+								{t('and its list of projects')}
+							</li>
+						)}
 					</ul>
 					<p>
 						<strong>

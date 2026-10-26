@@ -87,7 +87,7 @@ const ProfileAccountIdentitySection: React.FC<
 					throw new Error(t('Current password is incorrect'));
 				}
 
-				await updatePassword(user.id, newPassword);
+				await updatePassword(user.id, newPassword, currentPassword);
 			}
 
 			if (requiresPasswordForChelys && !newPassword) {
