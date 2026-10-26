@@ -8,7 +8,12 @@ import {
 } from '@src/utils/accountSyncUtils';
 import { FORCED_DEFAULTS_KEY } from '@src/utils/userDataUtils';
 
-const { cleanProject, mergeProjects } = require('../../../server/collab/accounts');
+const {
+	cleanProject,
+	cleanWord,
+	mergeProjects,
+	mergeWords,
+} = require('../../../server/collab/accounts');
 
 const project = (overrides: Partial<Project> = {}): Project => ({
 	id: 'p1',
@@ -166,5 +171,28 @@ describe('server-side project list', () => {
 		expect(
 			mergeProjects(stored, [{ id: 'p1', updatedAt: 100, deleted: true }]).p1.deleted,
 		).toBe(true);
+	});
+});
+
+describe('server-side dictionary', () => {
+	it('keeps words only', () => {
+		expect(cleanWord({ word: "aujourd'hui", updatedAt: 1 })).toEqual({
+			word: "aujourd'hui",
+			updatedAt: 1,
+		});
+		expect(cleanWord({ word: 'deux mots', updatedAt: 1 })).toBeNull();
+		expect(cleanWord({ word: '<script>', updatedAt: 1 })).toBeNull();
+		expect(cleanWord({ word: 'mot', updatedAt: 'tard' })).toBeNull();
+	});
+
+	it('keeps the most recent version of each word, a deletion included', () => {
+		const stored = mergeWords({}, [{ word: 'fautte', updatedAt: 100 }]);
+
+		expect(mergeWords(stored, [{ word: 'fautte', updatedAt: 50, deleted: true }]).fautte)
+			.toEqual({ word: 'fautte', updatedAt: 100 });
+		expect(mergeWords(stored, [{ word: 'fautte', updatedAt: 100, deleted: true }]).fautte)
+			.toEqual({ word: 'fautte', updatedAt: 100, deleted: true });
+		expect(Object.hasOwn(mergeWords({}, [{ word: 'constructor', updatedAt: 1 }]), 'constructor'))
+			.toBe(true);
 	});
 });

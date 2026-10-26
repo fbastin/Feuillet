@@ -5,17 +5,16 @@ import type {
 	SpellingRequest,
 } from '../extensions/codemirror/spelling/spelling.worker';
 import type { SpellingLanguage } from '../types/spelling';
+import { personalDictionaryService } from './PersonalDictionaryService';
 
 const moduleLog = createNamedLogger('SpellingService');
-
-const LEARNED_WORDS_KEY = 'feuillet-spelling-dictionary';
 
 type Request =
 	| { type: 'check'; words: string[] }
 	| { type: 'suggest'; word: string };
 
 // Checks words against Hunspell dictionaries in a worker and remembers the
-// answers. Also keeps the words added to the user's own dictionary.
+// answers; words of the user's own dictionary are always right.
 class SpellingService {
 	private worker: Worker | null = null;
 	private nextId = 1;
@@ -24,12 +23,10 @@ class SpellingService {
 		{ resolve: (result: string[]) => void; reject: (error: Error) => void }
 	>();
 	private answers = new Map<SpellingLanguage, Map<string, boolean>>();
-	private learned: Set<string> | null = null;
-	private listeners = new Set<() => void>();
 
 	// Whether `word` is misspelled, or undefined when it was not checked yet.
 	isMisspelled(language: SpellingLanguage, word: string): boolean | undefined {
-		if (this.isLearned(word)) return false;
+		if (personalDictionaryService.has(word)) return false;
 		const correct = this.answers.get(language)?.get(word);
 		return correct === undefined ? undefined : !correct;
 	}
@@ -52,56 +49,6 @@ class SpellingService {
 
 	suggest(language: SpellingLanguage, word: string): Promise<string[]> {
 		return this.request(language, { type: 'suggest', word });
-	}
-
-	isLearned(word: string): boolean {
-		const learned = this.learnedWords();
-		return learned.has(word) || learned.has(word.toLowerCase());
-	}
-
-	learnWord(word: string): void {
-		this.learnedWords().add(word);
-		this.saveLearnedWords();
-	}
-
-	forgetWord(word: string): void {
-		const learned = this.learnedWords();
-		learned.delete(word);
-		learned.delete(word.toLowerCase());
-		this.saveLearnedWords();
-	}
-
-	addListener(listener: () => void): () => void {
-		this.listeners.add(listener);
-		return () => this.listeners.delete(listener);
-	}
-
-	private learnedWords(): Set<string> {
-		if (!this.learned) {
-			try {
-				const stored = JSON.parse(
-					localStorage.getItem(LEARNED_WORDS_KEY) ?? '[]',
-				);
-				this.learned = new Set(Array.isArray(stored) ? stored : []);
-			} catch {
-				this.learned = new Set();
-			}
-		}
-		return this.learned;
-	}
-
-	private saveLearnedWords(): void {
-		try {
-			localStorage.setItem(
-				LEARNED_WORDS_KEY,
-				JSON.stringify([...this.learnedWords()].sort()),
-			);
-		} catch (error) {
-			moduleLog.warn('Could not save the personal dictionary:', error);
-		}
-		this.listeners.forEach((listener) => {
-			listener();
-		});
 	}
 
 	private request(language: SpellingLanguage, request: Request) {

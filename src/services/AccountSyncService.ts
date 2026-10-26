@@ -1,6 +1,7 @@
 // src/services/AccountSyncService.ts
 import { createNamedLogger } from '@/logging';
 import type { Project } from '../types/projects';
+import type { DictionaryEntry } from '../types/spelling';
 import {
 	type AccountProject,
 	getAccountServerUrl,
@@ -54,6 +55,12 @@ export interface AccountProjectStore {
 	removeProject(project: Project): Promise<void>;
 }
 
+export interface AccountDictionaryStore {
+	entries(userId: string): DictionaryEntry[];
+	merge(userId: string, entries: unknown[]): void;
+	addListener(listener: (userId: string, local: boolean) => void): () => void;
+}
+
 const sessionKey = (userId: string) => `feuillet-account-${userId}`;
 const deletionsKey = (userId: string) => `feuillet-account-${userId}-deleted`;
 // The server account a local account was linked to, kept after signing out.
@@ -68,10 +75,12 @@ const readJson = <T>(key: string, fallback: T): T => {
 	}
 };
 
-// Keeps the local project list in step with the Feuillet account on the
-// collaboration server, so that every device shows the same projects.
+// Keeps the local project list, and the user's own spelling dictionary, in
+// step with the Feuillet account on the collaboration server, so that every
+// device shows the same projects and accepts the same words.
 class AccountSyncService {
 	private store: AccountProjectStore | null = null;
+	private dictionary: AccountDictionaryStore | null = null;
 	private userId: string | null = null;
 	private running: Promise<void> | null = null;
 	private runAgain = false;
@@ -83,6 +92,14 @@ class AccountSyncService {
 
 	attachStore(store: AccountProjectStore): void {
 		this.store = store;
+	}
+
+	attachDictionary(dictionary: AccountDictionaryStore): void {
+		this.dictionary = dictionary;
+		// Words added or removed here reach the server shortly after.
+		dictionary.addListener((userId, local) => {
+			if (local) this.projectChanged(userId);
+		});
 	}
 
 	serverFor(userId?: string | null): string {
@@ -287,6 +304,7 @@ class AccountSyncService {
 				if (plan.create.length + plan.update.length + plan.remove.length) {
 					window.dispatchEvent(new CustomEvent(ACCOUNT_PROJECTS_CHANGED));
 				}
+				await this.syncDictionary(session, userId);
 				this.updateStatus('synced', Date.now());
 			} catch (error) {
 				if (error instanceof AccountServerError && error.status === 401) {
@@ -300,6 +318,32 @@ class AccountSyncService {
 				return;
 			}
 		} while (this.runAgain);
+	}
+
+	private async syncDictionary(
+		session: AccountSession,
+		userId: string,
+	): Promise<void> {
+		if (!this.dictionary) return;
+		try {
+			const { words } = await this.request(
+				session.server,
+				'POST',
+				'/account/dictionary',
+				{
+					token: session.token,
+					body: { words: this.dictionary.entries(userId) },
+				},
+			);
+			if (Array.isArray(words)) this.dictionary.merge(userId, words);
+		} catch (error) {
+			// A server without dictionaries still keeps the projects in step.
+			if (error instanceof AccountServerError && error.status === 404) {
+				moduleLog.info('The account server keeps no dictionaries');
+				return;
+			}
+			throw error;
+		}
 	}
 
 	private forgetDeletions(userId: string, sent: AccountProject[]): void {

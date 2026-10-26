@@ -23,6 +23,7 @@ import {
 	accountSyncService,
 } from './AccountSyncService';
 import { diskBackupService } from './DiskBackupService';
+import { personalDictionaryService } from './PersonalDictionaryService';
 
 const moduleLog = createNamedLogger('AuthService');
 
@@ -231,6 +232,7 @@ class AuthService {
 
 		this.currentUser = upgradedUser;
 		this.transferUserSettings(oldGuestId, newUserId);
+		personalDictionaryService.transfer(oldGuestId, newUserId);
 		localStorage.setItem('texlyre-current-user', newUserId);
 		if (session) accountSyncService.saveSession(newUserId, session);
 		accountSyncService.start(newUserId);
@@ -1050,3 +1052,8 @@ accountSyncService.attachStore({
 	storeProject: (project) => authService.storeSyncedProject(project),
 	removeProject: (project) => authService.removeSyncedProject(project),
 });
+
+personalDictionaryService.followUser(
+	() => authService.getCurrentUser()?.id ?? null,
+);
+accountSyncService.attachDictionary(personalDictionaryService);

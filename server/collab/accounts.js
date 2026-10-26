@@ -1,7 +1,8 @@
 // server/collab/accounts.js
-// Feuillet accounts: a username, a password and the list of the account's
-// projects, so that signing in on another device shows the same projects, as
-// on Overleaf. Project contents stay in the shared documents and files; an
+// Feuillet accounts: a username, a password, the list of the account's
+// projects and the words of its spelling dictionary, so that signing in on
+// another device shows the same projects and accepts the same words, as on
+// Overleaf. Project contents stay in the shared documents and files; an
 // account only lists them.
 //
 // Each account is one JSON file in ACCOUNTS_DIR, named after a hash of the
@@ -15,6 +16,8 @@
 //   DELETE /account           {password}                 (token)
 //   GET    /account/projects                             (token) -> {projects}
 //   POST   /account/projects  {projects}                 (token) -> {projects}
+//   GET    /account/dictionary                           (token) -> {words}
+//   POST   /account/dictionary {words}                   (token) -> {words}
 //
 // The token goes in an `Authorization: Bearer` header.
 
@@ -26,12 +29,16 @@ const SESSION_MS = 90 * 24 * 60 * 60 * 1000;
 const SESSION_TOUCH_MS = 24 * 60 * 60 * 1000;
 const MAX_SESSIONS = 50;
 const MAX_PROJECTS = 5000;
+const MAX_WORDS = 10000;
 const MAX_BODY_BYTES = 1024 * 1024;
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS_PER_IP = 30;
 const MAX_FAILURES_PER_ACCOUNT = 10;
 const PROJECT_ID = /^[A-Za-z0-9_-]{1,100}$/;
+// Words as the spell checker finds them: letters, with the apostrophes,
+// hyphens and middle dots inside words.
+const WORD = /^[\p{L}\p{M}'’·-]{1,100}$/u;
 
 class HttpError extends Error {
 	constructor(status, code) {
@@ -122,24 +129,43 @@ const cleanProject = (entry) => {
 	};
 };
 
-// The most recent version of each project wins; a deletion is a version too,
-// so that other devices remove the project as well.
-const mergeProjects = (stored, incoming) => {
+// A word added to the dictionary, or removed from it.
+const cleanWord = (entry) => {
+	if (!entry || typeof entry !== 'object') return null;
+	if (typeof entry.word !== 'string' || !WORD.test(entry.word)) return null;
+	const updatedAt = Number(entry.updatedAt);
+	if (!Number.isFinite(updatedAt)) return null;
+	return entry.deleted === true
+		? { word: entry.word, updatedAt, deleted: true }
+		: { word: entry.word, updatedAt };
+};
+
+// The most recent version of each entry wins; a deletion is a version too,
+// so that other devices remove the entry as well.
+const mergeLatest = (stored, incoming, clean, keyOf) => {
 	const merged = { ...stored };
 	for (const raw of incoming) {
-		const entry = cleanProject(raw);
+		const entry = clean(raw);
 		if (!entry) continue;
-		const current = merged[entry.id];
+		const key = keyOf(entry);
+		if (key === '__proto__') continue;
+		const current = Object.hasOwn(merged, key) ? merged[key] : undefined;
 		if (
 			!current ||
 			entry.updatedAt > current.updatedAt ||
 			(entry.updatedAt === current.updatedAt && entry.deleted)
 		) {
-			merged[entry.id] = entry;
+			merged[key] = entry;
 		}
 	}
 	return merged;
 };
+
+const mergeProjects = (stored, incoming) =>
+	mergeLatest(stored, incoming, cleanProject, (entry) => entry.id);
+
+const mergeWords = (stored, incoming) =>
+	mergeLatest(stored, incoming, cleanWord, (entry) => entry.word);
 
 const createAccounts = ({ dir, log }) => {
 	fs.mkdirSync(dir, { recursive: true });
@@ -347,6 +373,28 @@ const createAccounts = ({ dir, log }) => {
 			return { changed: true, body: { projects: listProjects(account) } };
 		});
 
+	const listWords = (account) => Object.values(account.dictionary ?? {});
+
+	const getDictionary = (req) =>
+		authenticate(req, (account) => ({
+			body: { words: listWords(account) },
+		}));
+
+	const syncDictionary = (req, body) =>
+		authenticate(req, (account) => {
+			if (!Array.isArray(body.words)) {
+				throw new HttpError(400, 'invalid_words');
+			}
+			const merged = mergeWords(account.dictionary ?? {}, body.words);
+			if (Object.keys(merged).length > MAX_WORDS) {
+				throw new HttpError(413, 'too_many_words');
+			}
+			const changed =
+				JSON.stringify(merged) !== JSON.stringify(account.dictionary ?? {});
+			account.dictionary = merged;
+			return { changed, body: { words: listWords(account) } };
+		});
+
 	const readBody = (req) =>
 		new Promise((resolve, reject) => {
 			let size = 0;
@@ -392,6 +440,8 @@ const createAccounts = ({ dir, log }) => {
 		'DELETE /account': (req, body) => deleteAccount(req, body),
 		'GET /account/projects': (req) => getProjects(req),
 		'POST /account/projects': (req, body) => syncProjects(req, body),
+		'GET /account/dictionary': (req) => getDictionary(req),
+		'POST /account/dictionary': (req, body) => syncDictionary(req, body),
 	};
 
 	const handles = (url) => url === '/account' || url.startsWith('/account/');
@@ -428,4 +478,10 @@ const createAccounts = ({ dir, log }) => {
 	return { handles, handle };
 };
 
-module.exports = { createAccounts, mergeProjects, cleanProject };
+module.exports = {
+	createAccounts,
+	mergeProjects,
+	cleanProject,
+	mergeWords,
+	cleanWord,
+};

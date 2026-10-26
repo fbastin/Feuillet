@@ -6,6 +6,7 @@ import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { useAuth } from '../../hooks/useAuth';
 import { accountSyncService } from '../../services/AccountSyncService';
+import { personalDictionaryService } from '../../services/PersonalDictionaryService';
 import { cleanupProjectDatabases } from '../../utils/dbDeleteUtils';
 import { TrashIcon, ExportIcon } from '../common/Icons';
 import Modal from '../common/Modal';
@@ -125,6 +126,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 		localStorage.removeItem(userChelysRoomKey);
 		localStorage.removeItem(userChelysCredentialKey);
 		chelysAccountSyncService.clearSyncState(userId);
+		personalDictionaryService.forget(userId);
 		localStorage.removeItem('texlyre-current-user');
 
 		moduleLog.info(

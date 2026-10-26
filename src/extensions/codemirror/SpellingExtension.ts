@@ -21,6 +21,7 @@ import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { filePathCacheService } from '../../services/FilePathCacheService';
 import { fileStoreService } from '../../services/FileStoreService';
+import { personalDictionaryService } from '../../services/PersonalDictionaryService';
 import { spellingService } from '../../services/SpellingService';
 import type { SpellingLanguage, SpellingSetting } from '../../types/spelling';
 import {
@@ -100,7 +101,7 @@ const misspellingsField = StateField.define<DecorationSet>({
 			} else if (effect.is(dropLearnedWords)) {
 				next = next.update({
 					filter: (_from, _to, value) =>
-						!spellingService.isLearned(value.spec.word),
+						!personalDictionaryService.has(value.spec.word),
 				});
 			}
 		}
@@ -221,7 +222,7 @@ function createSpellingMenu(view: EditorView, menu: SpellingMenu): TooltipView {
 			item(
 				t('Remove "{word}" from the dictionary', { word: menu.word }),
 				() => {
-					spellingService.forgetWord(menu.word);
+					personalDictionaryService.remove(menu.word);
 					close();
 				},
 			),
@@ -236,7 +237,7 @@ function createSpellingMenu(view: EditorView, menu: SpellingMenu): TooltipView {
 			status,
 			divider,
 			item(t('Add to dictionary'), () => {
-				spellingService.learnWord(menu.word);
+				personalDictionaryService.add(menu.word);
 				close();
 			}),
 		);
@@ -320,7 +321,7 @@ class SpellingPlugin {
 		private readonly view: EditorView,
 		private readonly options: SpellingOptions,
 	) {
-		this.removeListener = spellingService.addListener(() => {
+		this.removeListener = personalDictionaryService.addListener(() => {
 			view.dispatch({ effects: dropLearnedWords.of(null) });
 			this.schedule(0);
 		});
@@ -375,7 +376,7 @@ class SpellingPlugin {
 		const word = collectWords(state, line.from, line.to).find(
 			(candidate) => candidate.from <= pos && pos <= candidate.to,
 		);
-		return word && spellingService.isLearned(word.word)
+		return word && personalDictionaryService.has(word.word)
 			? { ...word, language: this.language, learned: true }
 			: null;
 	}

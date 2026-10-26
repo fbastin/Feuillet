@@ -10,8 +10,9 @@ no peer-to-peer connection limit:
 - project files (images, bibliographies, any file in the tree) are listed in
   a shared manifest and their contents are stored by SHA-256 checksum;
 - opening a text file makes it a shared document, edited live by everyone;
-- accounts (username and password) keep the list of their projects, so that
-  logging in on another device shows the same projects, as on Overleaf.
+- accounts (username and password) keep the list of their projects and the
+  words of their spelling dictionary, so that logging in on another device
+  shows the same projects and accepts the same words, as on Overleaf.
   Signing up creates the account there; an account created earlier in a
   browser is linked at its next login, or from Profile Settings.
 
