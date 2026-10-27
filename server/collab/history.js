@@ -87,6 +87,18 @@ const createHistory = ({
 		return names;
 	};
 
+	// Every editor saves the file a document is linked to as the document
+	// changes, so only changes to other files say who made them.
+	const changesOwnFiles = (doc, collection, transaction) => {
+		if (collection !== 'file_sync') return true;
+		const files = doc.getMap('files');
+		const keys = transaction?.changed?.get(files) ?? new Set();
+		return [...keys].some((key) => {
+			const entry = files.get(key);
+			return entry && !entry.documentId;
+		});
+	};
+
 	const schedule = (project, change) => {
 		const now = Date.now();
 		const entry = pending.get(project) ?? {
@@ -113,10 +125,15 @@ const createHistory = ({
 		if (!doc || tracked.has(doc)) return;
 		tracked.add(doc);
 		if (collection === 'chat') return;
-		doc.on('update', (_update, origin) => {
+		doc.on('update', (_update, origin, _doc, transaction) => {
 			// Loading the stored document is not a change.
 			if (!doc.conns.has(origin)) return;
-			schedule(project, { collection, authors: namesOf(doc, origin) });
+			schedule(project, {
+				collection,
+				authors: changesOwnFiles(doc, collection, transaction)
+					? namesOf(doc, origin)
+					: [],
+			});
 		});
 	};
 
@@ -232,9 +249,8 @@ const createHistory = ({
 		const changedPaths = new Set(changes.map((change) => change.path));
 		for (const file of manifest) {
 			const by = file?.updatedBy;
-			if (changedPaths.has(file?.path) && typeof by === 'string' && by) {
-				authors.add(by.slice(0, 100));
-			}
+			if (file?.documentId || typeof by !== 'string' || !by) continue;
+			if (changedPaths.has(file.path)) authors.add(by.slice(0, 100));
 		}
 
 		const time = Date.now();
