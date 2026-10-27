@@ -219,6 +219,46 @@
 	background: white;
 }
 
+/* Collaborators in the Share dialog: one per row, then the invite form. */
+.project-share-members {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.project-share-member {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+}
+
+.project-share-member > :first-child {
+	flex: 1;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.project-share-invite {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-sm);
+}
+
+.project-share-invite > input {
+	flex: 1 1 12rem;
+	width: auto;
+}
+
+.project-share-invite > :is(select, button) {
+	flex: 0 0 auto;
+	width: auto;
+	margin: 0;
+}
+
 .url-import-content {
 	display: grid;
 	grid-template-columns: 1fr 1fr;

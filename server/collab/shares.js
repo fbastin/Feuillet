@@ -1,5 +1,5 @@
 // server/collab/shares.js
-// Links to projects, as on Overleaf.
+// Links to projects and their collaborators, as on Overleaf.
 //
 // Editing: a project opens under the id it was created with, until its owner
 // replaces its editing link; from then on it opens under the new id only, and
@@ -9,34 +9,47 @@
 // Read-only: a view id opens the project too, but the server drops whatever
 // is sent through it to change the project.
 //
+// Collaborators: the owner, a Feuillet account, may invite other accounts by
+// name, as editors or readers. The project appears in their list, and they
+// may name it by a link that no longer opens it to learn the current one, so
+// they follow when it changes. Removing an editor replaces the editing link,
+// and removing a reader the read-only link, which cuts them off.
+//
 //   POST /share/view {project}               -> {view}, the same each time
 //   POST /share/view {project, reset: true}  -> {view}, a new one; the old
 //                                               one stops working
-//   POST /share/edit {project}       (token) -> {owner, edit}
+//   POST /share/edit {project}       (token) -> {owner, role, edit, view}
 //   POST /share/edit {project, claim: true}     the account becomes the owner
 //                                               if the project has none
-//   POST /share/edit {project, reset: true}     (owner only) a new editing
-//                                               id; the old one stops working
+//   POST /share/edit {project, reset: true}     (owner) a new editing id; the
+//                                               old one stops working
+//   POST /share/members {project}    (token) -> {members}, for the owner
+//   POST /share/members {project, add: {username, role}, name, type}
+//   POST /share/members {project, remove: username}
 //
-// `project` is an editing id. Knowing one is what lets someone edit the
-// project, so it also lets them create or replace its read-only link. Only
-// the owner, a Feuillet account, may replace the editing link, and may name
-// the project by an editing id that no longer opens it to learn the current
-// one. `owner` is "you", "other" or "none"; `edit`, the current editing id,
-// goes to the owner only.
+// `project` is an editing id, or for /share/edit any link the account holds.
+// Knowing an editing id is what lets someone edit the project, so it also
+// lets them create or replace its read-only link. `owner` is "you", "other"
+// or "none"; `role` is "owner", "editor", "reader" or null; `edit`, the
+// current editing id, goes to the owner and editors, and `view`, the current
+// read-only link, to readers who ask with one.
 //
 // SHARES_DIR keeps one file per project (projects/<project>.json: {view,
-// edit, owner}), one per read-only link (views/<view>.json: {project}) and one
-// per editing id given out (edits/<edit>.json: {project, replaced}).
+// edit, owner, members}), one per read-only link (views/<view>.json:
+// {project, replaced}) and one per editing id given out (edits/<edit>.json:
+// {project, replaced}).
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const MAX_BODY_BYTES = 4096;
+const MAX_MEMBERS = 200;
 const PROJECT_ID = /^[A-Za-z0-9_-]{1,100}$/;
 // Project ids are UUIDs, which never start with "view".
 const VIEW_ID = /^view[0-9a-f]{32}$/;
+const ROLES = ['editor', 'reader'];
+const PROJECT_TYPES = ['latex', 'typst'];
 
 class HttpError extends Error {
 	constructor(status, code) {
@@ -50,7 +63,7 @@ const isViewId = (id) => VIEW_ID.test(id);
 const isProjectId = (id) =>
 	typeof id === 'string' && PROJECT_ID.test(id) && !isViewId(id);
 
-const createShares = ({ dir, log, identify, onRevoke = () => {} }) => {
+const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 	const projectsDir = path.join(dir, 'projects');
 	const viewsDir = path.join(dir, 'views');
 	const editsDir = path.join(dir, 'edits');
@@ -77,49 +90,64 @@ const createShares = ({ dir, log, identify, onRevoke = () => {} }) => {
 	const viewPath = (view) => path.join(viewsDir, `${view}.json`);
 	const editPath = (edit) => path.join(editsDir, `${edit}.json`);
 
-	// What an id opens: {project, access}, where `project` is the id the
-	// project's documents and files are stored under and `access` is "edit",
-	// "view" or "replaced" (the id opened the project until its link was
-	// replaced); null when it opens nothing.
+	const readProject = (project) => readJson(projectPath(project)) ?? {};
+	const writeProject = (project, record) =>
+		writeJson(projectPath(project), record);
+
+	// What an id opens: {project, kind, access}, where `project` is the id
+	// the project's documents and files are stored under, `kind` is "edit" or
+	// "view", and `access` is "edit", "view" or "replaced" (the id opened the
+	// project until its link was replaced); null when it opens nothing.
 	const lookup = (id) => {
 		if (typeof id !== 'string' || !PROJECT_ID.test(id)) return null;
 		if (isViewId(id)) {
-			const project = readJson(viewPath(id))?.project;
-			return isProjectId(project) ? { project, access: 'view' } : null;
+			const given = readJson(viewPath(id));
+			return isProjectId(given?.project)
+				? {
+						project: given.project,
+						kind: 'view',
+						access: given.replaced ? 'replaced' : 'view',
+					}
+				: null;
 		}
 		const given = readJson(editPath(id));
 		if (given) {
 			return isProjectId(given.project)
 				? {
 						project: given.project,
+						kind: 'edit',
 						access: given.replaced ? 'replaced' : 'edit',
 					}
 				: null;
 		}
-		return readJson(projectPath(id))?.edit
-			? { project: id, access: 'replaced' }
-			: { project: id, access: 'edit' };
+		return {
+			project: id,
+			kind: 'edit',
+			access: readJson(projectPath(id))?.edit ? 'replaced' : 'edit',
+		};
 	};
 
-	// The editing id a request names, as the project it opens.
-	const projectNamed = (id) => {
-		const found = isProjectId(id) ? lookup(id) : null;
-		if (!found || found.access === 'view') {
-			throw new HttpError(400, 'invalid_project');
-		}
-		return found;
-	};
+	const roleOf = (record, account) =>
+		record.owner === account
+			? 'owner'
+			: (record.members?.[account]?.role ?? null);
 
-	const viewOf = (project, reset) => {
-		const record = readJson(projectPath(project)) ?? {};
+	// The read-only link, made on first use; `reset` replaces it and cuts off
+	// whoever opened the old one.
+	const viewOf = (project, reset = false) => {
+		const record = readProject(project);
 		const current = record.view;
 		if (isViewId(current) && !reset) return current;
 
 		const view = `view${crypto.randomBytes(16).toString('hex')}`;
 		writeJson(viewPath(view), { project, createdAt: Date.now() });
-		writeJson(projectPath(project), { ...record, view });
+		writeProject(project, { ...readProject(project), view });
 		if (isViewId(current)) {
-			fs.rmSync(viewPath(current), { force: true });
+			writeJson(viewPath(current), {
+				...readJson(viewPath(current)),
+				project,
+				replaced: true,
+			});
 			onRevoke(current);
 			log('read-only link replaced');
 		} else {
@@ -128,49 +156,140 @@ const createShares = ({ dir, log, identify, onRevoke = () => {} }) => {
 		return view;
 	};
 
+	// A new editing id; the previous one stops working.
+	const replaceEdit = (project) => {
+		const record = readProject(project);
+		const previous = record.edit;
+		const edit = crypto.randomUUID();
+		writeJson(editPath(edit), { project, createdAt: Date.now() });
+		writeProject(project, { ...record, edit });
+		if (previous) {
+			writeJson(editPath(previous), {
+				...readJson(editPath(previous)),
+				project,
+				replaced: true,
+			});
+		}
+		onRevoke(previous ?? project);
+		log('editing link replaced');
+		return edit;
+	};
+
+	const editOf = (project) => readProject(project).edit ?? project;
+
 	const shareView = (body) => {
-		const found = projectNamed(body.project);
+		const found = isProjectId(body.project) ? lookup(body.project) : null;
+		if (!found || found.kind !== 'edit') {
+			throw new HttpError(400, 'invalid_project');
+		}
 		if (found.access === 'replaced') throw new HttpError(403, 'link_replaced');
 		return { view: viewOf(found.project, body.reset === true) };
 	};
 
 	const shareEdit = async (req, body) => {
-		const found = projectNamed(body.project);
-		const owner = await identify(req);
+		const found = lookup(body.project);
+		if (!found) throw new HttpError(400, 'invalid_project');
+		const account = await accounts.identify(req);
 		const { project } = found;
-		const record = readJson(projectPath(project)) ?? {};
+		let record = readProject(project);
 
-		if (body.claim === true && !record.owner) {
-			record.owner = owner;
-			writeJson(projectPath(project), record);
+		// Only someone holding the current editing link may claim a project.
+		if (body.claim === true && !record.owner && found.access === 'edit') {
+			record = { ...record, owner: account };
+			writeProject(project, record);
 			log('project owner set');
 		}
-		const mine = record.owner === owner;
-		if (found.access === 'replaced' && !mine) {
+		const role = roleOf(record, account);
+		const edits = role === 'owner' || role === 'editor';
+		const views = edits || role === 'reader';
+		// Collaborators learn the current link from one that was replaced.
+		const follows = found.kind === 'edit' ? edits : views;
+		if (found.access === 'replaced' && !follows) {
 			throw new HttpError(403, 'link_replaced');
 		}
 
 		if (body.reset === true) {
-			if (!mine) throw new HttpError(403, 'not_owner');
-			const previous = record.edit;
-			const edit = crypto.randomUUID();
-			writeJson(editPath(edit), { project, createdAt: Date.now() });
-			record.edit = edit;
-			writeJson(projectPath(project), record);
-			if (previous) {
-				writeJson(editPath(previous), {
-					...readJson(editPath(previous)),
-					project,
-					replaced: true,
-				});
-			}
-			onRevoke(previous ?? project);
-			log('editing link replaced');
+			if (role !== 'owner') throw new HttpError(403, 'not_owner');
+			replaceEdit(project);
 		}
 
 		return {
-			owner: mine ? 'you' : record.owner ? 'other' : 'none',
-			...(mine ? { edit: record.edit ?? project } : {}),
+			owner: role === 'owner' ? 'you' : record.owner ? 'other' : 'none',
+			role,
+			...(edits ? { edit: editOf(project) } : {}),
+			...(found.kind === 'view' && views ? { view: viewOf(project) } : {}),
+		};
+	};
+
+	const listMembers = (record) =>
+		Object.values(record.members ?? {})
+			.map(({ username, role }) => ({ username, role }))
+			.sort((a, b) => a.username.localeCompare(b.username));
+
+	const shareMembers = async (req, body) => {
+		const found = isProjectId(body.project) ? lookup(body.project) : null;
+		if (!found) throw new HttpError(400, 'invalid_project');
+		const account = await accounts.identify(req);
+		const { project } = found;
+		if (roleOf(readProject(project), account) !== 'owner') {
+			throw new HttpError(403, 'not_owner');
+		}
+
+		let shared = null;
+		if (body.add && typeof body.add === 'object') {
+			const { role } = body.add;
+			if (!ROLES.includes(role)) throw new HttpError(400, 'invalid_role');
+			const member = accounts.findAccount(body.add.username);
+			if (!member) throw new HttpError(404, 'unknown_user');
+			if (member.id === account) throw new HttpError(400, 'already_owner');
+			const record = readProject(project);
+			const members = { ...record.members };
+			if (
+				!members[member.id] &&
+				Object.keys(members).length >= MAX_MEMBERS
+			) {
+				throw new HttpError(413, 'too_many_members');
+			}
+			const previous = members[member.id]?.role;
+			members[member.id] = {
+				username: member.username,
+				role,
+				addedAt: Date.now(),
+			};
+			writeProject(project, { ...record, members });
+			// A reader must not keep the editing link.
+			if (previous === 'editor' && role === 'reader') replaceEdit(project);
+			const link = role === 'editor' ? editOf(project) : viewOf(project);
+			const now = Date.now();
+			shared = accounts.shareProject(member.username, {
+				id: link,
+				docUrl: `yjs:${link}`,
+				name: typeof body.name === 'string' ? body.name : '',
+				type: PROJECT_TYPES.includes(body.type) ? body.type : 'latex',
+				createdAt: now,
+				updatedAt: now,
+			});
+			log('collaborator added');
+		} else if (typeof body.remove === 'string') {
+			const record = readProject(project);
+			const name = body.remove.trim().toLowerCase();
+			const entry = Object.entries(record.members ?? {}).find(
+				([, member]) => member.username.toLowerCase() === name,
+			);
+			if (!entry) throw new HttpError(404, 'unknown_member');
+			const [id, member] = entry;
+			const members = { ...record.members };
+			delete members[id];
+			writeProject(project, { ...record, members });
+			if (member.role === 'editor') replaceEdit(project);
+			else if (isViewId(record.view)) viewOf(project, true);
+			log('collaborator removed');
+		}
+
+		await shared;
+		return {
+			members: listMembers(readProject(project)),
+			edit: editOf(project),
 		};
 	};
 
@@ -201,6 +320,7 @@ const createShares = ({ dir, log, identify, onRevoke = () => {} }) => {
 	const routes = {
 		'/share/view': (_req, body) => shareView(body),
 		'/share/edit': (req, body) => shareEdit(req, body),
+		'/share/members': (req, body) => shareMembers(req, body),
 	};
 
 	const handles = (url) => Object.hasOwn(routes, url);

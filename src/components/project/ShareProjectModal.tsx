@@ -28,6 +28,7 @@ import {
 import { ShareIcon } from '../common/Icons';
 import CopyField from '../common/CopyField';
 import Modal from '../common/Modal';
+import ProjectMembersSection from './ProjectMembersSection';
 
 interface ShareProjectModalProps {
 	isOpen: boolean;
@@ -280,7 +281,7 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 								<div className='ui-actions' data-align='end'>
 									<span className='ui-meta'>
 										{t(
-											'Everyone using the current editing link will lose access. Send the new link to those who should keep it.',
+											'Everyone using the current editing link will lose access, except invited collaborators, who follow it. Send the new link to the others who should keep it.',
 										)}
 									</span>
 									<button
@@ -375,6 +376,14 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 							)
 						)}
 					</div>
+				)}
+
+				{serverLinks && access?.owner === 'you' && (
+					<ProjectMembersSection
+						projectId={projectId}
+						projectName={projectName}
+						projectType={doc?.projectMetadata?.type ?? 'latex'}
+					/>
 				)}
 
 				<div

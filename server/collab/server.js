@@ -11,7 +11,8 @@
 //  - gives projects read-only links (/share/view, shares.js): a connection
 //    through one receives the project, and its changes are dropped;
 //  - lets a project's owner replace its editing link (/share/edit,
-//    shares.js), which cuts off whoever kept the old one.
+//    shares.js), which cuts off whoever kept the old one, and invite other
+//    accounts, who follow its links as they change (/share/members).
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -82,7 +83,7 @@ const connections = new Map();
 const shares = createShares({
 	dir: sharesDir,
 	log,
-	identify: accounts.identify,
+	accounts,
 	onRevoke: (id) => {
 		for (const conn of connections.get(id) ?? []) {
 			conn.close(4403, 'Link replaced');

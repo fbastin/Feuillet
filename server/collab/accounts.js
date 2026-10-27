@@ -360,12 +360,32 @@ const createAccounts = ({ dir, log }) => {
 			return { deleted: true };
 		});
 
-	// Who sent a request: an id for the account that a new account with the
-	// same name will not have.
+	// An id for an account that a new account with the same name will not
+	// have.
+	const idOf = (account) => `${keyOf(account.username)}.${account.createdAt}`;
+
+	// Who sent a request.
 	const identify = (req) =>
-		authenticate(req, (account) => ({
-			body: `${keyOf(account.username)}.${account.createdAt}`,
-		}));
+		authenticate(req, (account) => ({ body: idOf(account) }));
+
+	// The account with this username, or null.
+	const findAccount = (username) => {
+		const name = normalizeUsername(username);
+		if (!validUsername(name)) return null;
+		const account = read(keyOf(name));
+		return account ? { id: idOf(account), username: account.username } : null;
+	};
+
+	// Adds a project shared with an account to its list, so that its devices
+	// show it.
+	const shareProject = (username, entry) => {
+		const key = keyOf(normalizeUsername(username));
+		return withAccount(key, (account) => {
+			if (!account) return;
+			account.projects = mergeProjects(account.projects ?? {}, [entry]);
+			write(key, account);
+		});
+	};
 
 	const getProjects = (req) =>
 		authenticate(req, (account) => ({
@@ -487,7 +507,7 @@ const createAccounts = ({ dir, log }) => {
 		}
 	};
 
-	return { handles, handle, identify };
+	return { handles, handle, identify, findAccount, shareProject };
 };
 
 module.exports = {

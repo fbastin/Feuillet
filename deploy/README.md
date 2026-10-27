@@ -23,7 +23,11 @@ no peer-to-peer connection limit:
   (on an older project, the first account to choose "Become the owner" in
   the Share dialog). Its owner can replace the editing link: whoever kept the
   old one is cut off and told so, those given the new one keep working, and
-  the owner's other devices move to it through the account.
+  the owner's other devices move to it through the account;
+- collaborators, as on Overleaf: the owner invites accounts by name, as
+  editors or readers. The project appears in their list, and they follow its
+  links when they change. Removing an editor replaces the editing link, and
+  removing a reader the read-only link, which cuts them off.
 
 LaTeX projects compile on a full TeX Live ([`server/texlive`](../server/texlive)),
 as on Overleaf. It is the default compiler for new LaTeX projects and for

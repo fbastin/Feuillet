@@ -51,11 +51,29 @@ export class AccountServerError extends Error {
 	}
 }
 
-// A project's editing link as an account sees it: whether the account owns
-// the project and, if so, the id the server opens it under.
+// A project's links as an account sees them: who owns the project, the
+// account's role in it, and the current editing link (for its owner and
+// editors) or read-only link (for its readers).
 export interface ProjectAccess {
 	owner: 'you' | 'other' | 'none';
+	role: ProjectRole | null;
 	edit?: string;
+	view?: string;
+}
+
+export type ProjectRole = 'owner' | 'editor' | 'reader';
+
+export interface ProjectMember {
+	username: string;
+	role: 'editor' | 'reader';
+}
+
+export interface MembersChange {
+	add?: ProjectMember;
+	remove?: string;
+	// What the invited account's project list shows.
+	name?: string;
+	type?: string;
 }
 
 export interface AccountProjectStore {
@@ -100,13 +118,14 @@ class AccountSyncService {
 	private listeners: Set<(status: AccountSyncStatus) => void> = new Set();
 
 	constructor() {
-		// When a project's link stops opening it, its owner moves on to the
-		// current one.
-		projectLinkService.setRecovery(async (projectId) =>
-			isReadOnlyProjectId(projectId)
-				? null
-				: ((await this.projectAccess(projectId))?.edit ?? null),
-		);
+		// When a project's link stops opening it, its owner and invited
+		// collaborators move on to the current one.
+		projectLinkService.setRecovery(async (projectId) => {
+			const access = await this.projectAccess(projectId);
+			return (
+				(isReadOnlyProjectId(projectId) ? access?.view : access?.edit) ?? null
+			);
+		});
 	}
 
 	attachStore(store: AccountProjectStore): void {
@@ -242,10 +261,10 @@ class AccountSyncService {
 	}
 
 	/**
-	 * Asks the collaboration server about a project's editing link, for the
+	 * Asks the collaboration server about a project's links, for the
 	 * signed-in account: `claim` makes the account its owner if it has none,
-	 * and `reset` (owner only) replaces the link, cutting off the old one.
-	 * Null when no account is signed in.
+	 * and `reset` (owner only) replaces the editing link, cutting off the old
+	 * one. Null when no account is signed in.
 	 */
 	async projectAccess(
 		projectId: string,
@@ -262,14 +281,55 @@ class AccountSyncService {
 		const owner = ['you', 'other', 'none'].includes(result?.owner)
 			? (result.owner as ProjectAccess['owner'])
 			: 'none';
-		const edit =
-			typeof result?.edit === 'string' &&
-			isValidYjsProjectId(result.edit) &&
-			!isReadOnlyProjectId(result.edit)
-				? result.edit
-				: undefined;
+		const role = ['owner', 'editor', 'reader'].includes(result?.role)
+			? (result.role as ProjectRole)
+			: null;
+		const edit = this.validLink(result?.edit, false);
+		const view = this.validLink(result?.view, true);
+		// A project opened through a read-only link moves to the current one.
+		const current = isReadOnlyProjectId(projectId) ? view : edit;
+		if (current) await this.rememberEditLink(userId, projectId, current);
+		return { owner, role, edit, view };
+	}
+
+	/**
+	 * The accounts the owner invited to a project, after adding or removing
+	 * one. Removing someone replaces the link they used.
+	 */
+	async projectMembers(
+		projectId: string,
+		change: MembersChange = {},
+	): Promise<ProjectMember[] | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/share/members',
+			{
+				token: session.token,
+				body: { project: projectLinkService.serverId(projectId), ...change },
+			},
+		);
+		const edit = this.validLink(result?.edit, false);
 		if (edit) await this.rememberEditLink(userId, projectId, edit);
-		return { owner, edit };
+		return Array.isArray(result?.members)
+			? result.members.filter(
+					(member: ProjectMember) =>
+						typeof member?.username === 'string' &&
+						(member.role === 'editor' || member.role === 'reader'),
+				)
+			: [];
+	}
+
+	private validLink(value: unknown, readOnly: boolean): string | undefined {
+		return typeof value === 'string' &&
+			isValidYjsProjectId(value) &&
+			isReadOnlyProjectId(value) === readOnly
+			? value
+			: undefined;
 	}
 
 	// Opens the project under `editId` from now on, here and, through the
