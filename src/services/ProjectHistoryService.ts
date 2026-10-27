@@ -22,6 +22,21 @@ export interface VersionEntry {
 	size: number;
 }
 
+// A name given to a version, like "Submitted"; labelled versions are kept
+// for good.
+export interface VersionLabel {
+	id: string;
+	version: string;
+	name: string;
+	by: string;
+	time: number;
+}
+
+export interface ProjectHistory {
+	versions: VersionSummary[];
+	labels: VersionLabel[];
+}
+
 export interface ProjectVersion extends VersionSummary {
 	// Documents edited together, with their text's checksum.
 	docs: Array<VersionEntry & { id: string }>;
@@ -33,6 +48,10 @@ const MAX_CACHED_CONTENTS = 200;
 
 const fail = (): never => {
 	throw new Error(t('Could not load the versions from the server.'));
+};
+
+const failLabel = (): never => {
+	throw new Error(t('Could not change the labels on the server.'));
 };
 
 /**
@@ -49,14 +68,49 @@ class ProjectHistoryService {
 		return `${baseUrl}/history/${serverId}${rest}`;
 	}
 
-	async listVersions(
+	async loadHistory(
 		baseUrl: string,
 		projectId: string,
-	): Promise<VersionSummary[]> {
+	): Promise<ProjectHistory> {
 		const response = await fetch(this.url(baseUrl, projectId)).catch(fail);
 		if (!response?.ok) fail();
 		const body = await response.json().catch(fail);
-		return Array.isArray(body?.versions) ? body.versions : [];
+		return {
+			versions: Array.isArray(body?.versions) ? body.versions : [],
+			labels: Array.isArray(body?.labels) ? body.labels : [],
+		};
+	}
+
+	/**
+	 * Labels a version, or without one the project as it is now (the server
+	 * saves its pending changes first).
+	 */
+	async addLabel(
+		baseUrl: string,
+		projectId: string,
+		label: { name: string; by: string; version?: string },
+	): Promise<VersionLabel> {
+		const response = await fetch(this.url(baseUrl, projectId, '/labels'), {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(label),
+		}).catch(failLabel);
+		if (!response?.ok) failLabel();
+		const body = await response.json().catch(failLabel);
+		if (!body?.label) failLabel();
+		return body.label;
+	}
+
+	async removeLabel(
+		baseUrl: string,
+		projectId: string,
+		labelId: string,
+	): Promise<void> {
+		const response = await fetch(
+			this.url(baseUrl, projectId, `/labels/${encodeURIComponent(labelId)}`),
+			{ method: 'DELETE' },
+		).catch(failLabel);
+		if (!response?.ok) failLabel();
 	}
 
 	async getVersion(

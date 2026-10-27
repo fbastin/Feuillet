@@ -30,8 +30,9 @@ no peer-to-peer connection limit:
   removing a reader the read-only link, which cuts them off;
 - versions, as on Overleaf: a short while after a project changes, the
   server saves a version with who changed what. The Versions tab lists them
-  by day, shows each change against the version before, and restores a file
-  or the whole project as it was.
+  by day, shows each change against the version before or compares any two,
+  labels versions (labelled ones are kept for good), and restores a file or
+  the whole project as it was.
 
 LaTeX projects compile on a full TeX Live ([`server/texlive`](../server/texlive)),
 as on Overleaf. It is the default compiler for new LaTeX projects and for

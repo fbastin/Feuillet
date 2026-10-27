@@ -27,6 +27,7 @@
 //   SHARES_DIR          directory for project links (default ./shares)
 //   HISTORY_DIR         directory for project versions (default ./history)
 //   HISTORY_IDLE_MS     quiet time before a version is saved (default 30 s)
+//   HISTORY_MAX_VERSIONS  unlabelled versions kept per project (default 1000)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -78,8 +79,6 @@ const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
 const PROJECT_ROOM =
 	/^([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}|[A-Za-z0-9_]+)-(.+)$/i;
 const FILE_ROUTE = /^\/files\/([A-Za-z0-9_-]{1,100})\/([0-9a-f]{64})$/;
-const HISTORY_ROUTE =
-	/^\/history\/([A-Za-z0-9_-]{1,100})(?:\/([0-9]{13}-[0-9a-f]{8}))?$/;
 
 const log = (...parts) =>
 	console.log(new Date().toISOString(), '[collab]', ...parts);
@@ -110,6 +109,7 @@ const history = createHistory({
 	persistence: getPersistence(),
 	log,
 	idleMs: Number(process.env.HISTORY_IDLE_MS) || undefined,
+	maxVersions: Number(process.env.HISTORY_MAX_VERSIONS) || undefined,
 });
 
 // A read-only connection may ask for the document (the first step of a
@@ -266,10 +266,12 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
-	const historyRoute = url.match(HISTORY_ROUTE);
+	const historyRoute = history.route(url);
 	if (historyRoute) {
 		const origin = req.headers.origin;
-		if (origin && !isAllowedOrigin(origin)) {
+		// Browsers always send Origin when changing labels.
+		const reads = req.method === 'GET' || req.method === 'HEAD';
+		if ((origin || !reads) && !isAllowedOrigin(origin || '')) {
 			send(res, 403, 'Forbidden\n');
 			req.resume();
 			return;
@@ -278,30 +280,13 @@ const server = http.createServer((req, res) => {
 			res.setHeader('Access-Control-Allow-Origin', origin);
 			res.setHeader('Vary', 'Origin');
 		}
-		req.resume();
-		if (req.method !== 'GET') {
-			res.setHeader('Allow', 'GET');
-			send(res, 405, 'Method not allowed\n');
-			return;
-		}
-		const [, id, versionId] = historyRoute;
-		const found = shares.lookup(id);
+		const found = shares.lookup(historyRoute.id);
 		if (!found || found.access === 'replaced') {
+			req.resume();
 			send(res, found ? 403 : 404, found ? 'Link replaced\n' : 'Not found\n');
 			return;
 		}
-		const body = versionId
-			? history.get(found.project, versionId)
-			: { versions: history.list(found.project) };
-		if (!body) {
-			send(res, 404, 'Not found\n');
-			return;
-		}
-		res.writeHead(200, {
-			'Content-Type': 'application/json',
-			'Cache-Control': 'no-store',
-		});
-		res.end(JSON.stringify(body));
+		void history.handle(req, res, historyRoute, found);
 		return;
 	}
 

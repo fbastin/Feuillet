@@ -764,6 +764,123 @@
 	background-color: var(--pico-background);
 }
 
+.versions-tabs {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	gap: var(--space-xs);
+}
+
+.versions-tabs > .ui-tab {
+	padding: 2px var(--space-sm);
+	border: 0;
+	border-radius: var(--radius-sm);
+	background: none;
+	color: var(--pico-secondary);
+	font: inherit;
+	font-size: var(--git-history-font-size);
+	cursor: pointer;
+}
+
+.versions-tabs > .ui-tab.active {
+	background-color: var(--pico-secondary-background);
+	color: var(--text-color);
+	font-weight: 600;
+}
+
+.versions-label-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xs);
+	padding: var(--space-xs) var(--space-sm);
+}
+
+.versions-label-form > input {
+	flex: 1 1 8rem;
+	width: auto;
+}
+
+.versions-label-form > .button {
+	flex: 0 0 auto;
+	width: auto;
+	margin: 0;
+}
+
+.versions-item .versions-label-form {
+	padding: var(--space-xs) 0 0;
+}
+
+.versions-compare {
+	padding: var(--space-xs) var(--space-sm);
+	border-bottom: 1px solid var(--accent-border);
+	background-color: var(--pico-background);
+	font-size: var(--git-history-font-size);
+}
+
+.versions-compare-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0 var(--space-sm);
+}
+
+/* The two versions compared, on their own line. */
+.versions-compare-head > .ui-meta {
+	order: 3;
+	flex-basis: 100%;
+}
+
+.versions-compare-check {
+	flex: 0 0 auto;
+	margin: 0;
+}
+
+.versions-item[data-compared] {
+	box-shadow: inset 3px 0 0 var(--pico-primary);
+}
+
+.versions-labels {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xs);
+	margin: var(--space-xs) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.versions-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 100%;
+	padding: 1px var(--space-xs);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	background-color: var(--pico-background);
+	font-size: var(--git-history-meta-font-size);
+}
+
+.versions-label > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.versions-label-remove {
+	display: inline-flex;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--pico-secondary);
+	cursor: pointer;
+}
+
+.versions-label-remove svg {
+	width: 12px;
+	height: 12px;
+}
+
 .versions-panel > .ui-message {
 	margin: var(--space-xs) var(--space-sm) 0;
 }
@@ -808,17 +925,30 @@
 }
 
 .versions-time {
+	flex: 1;
 	font-variant-numeric: tabular-nums;
 	font-weight: 600;
 }
 
+/* Under the time, past the compare box. */
 .versions-authors {
-	flex: 1;
-	min-width: 0;
 	overflow: hidden;
+	padding-inline-start: calc(13px + var(--space-sm));
 	color: var(--pico-secondary);
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.versions-label-now {
+	padding: var(--space-xs) var(--space-sm) 0;
+}
+
+.versions-label-now > .button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	width: 100%;
+	justify-content: center;
 }
 
 .versions-changes {
