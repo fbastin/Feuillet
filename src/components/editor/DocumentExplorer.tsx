@@ -60,7 +60,7 @@ const DocumentExplorer: React.FC<FileViewerProps> = ({
 	collabProjectId,
 	docsWithPeers,
 }) => {
-	const { collabService, getAwareness } = useCollab();
+	const { collabService, getAwareness, readOnly } = useCollab();
 
 	const [editingDocId, setEditingDocId] = useState<string | null>(null);
 	const [editName, setEditName] = useState('');
@@ -229,15 +229,17 @@ const DocumentExplorer: React.FC<FileViewerProps> = ({
 								<SyncIcon />
 							</button>
 						)}
-						<button
-							type='button'
-							className='ui-icon-button'
-							data-variant='subtle'
-							title={t('New Document')}
-							onClick={onCreateDocument}
-						>
-							<PlusIcon />
-						</button>
+						{!readOnly && (
+							<button
+								type='button'
+								className='ui-icon-button'
+								data-variant='subtle'
+								title={t('New Document')}
+								onClick={onCreateDocument}
+							>
+								<PlusIcon />
+							</button>
+						)}
 					</div>
 				</div>
 
@@ -333,17 +335,19 @@ const DocumentExplorer: React.FC<FileViewerProps> = ({
 										isOpen={activeMenu === doc.id}
 										onClose={() => setActiveMenu(null)}
 									>
-										<button
-											type='button'
-											className='ui-menu-item'
-											onClick={() => {
-												handleStartRename(doc.id);
-												setActiveMenu(null);
-											}}
-										>
-											<EditIcon />
-											<span>{t('Rename')}</span>
-										</button>
+										{!readOnly && (
+											<button
+												type='button'
+												className='ui-menu-item'
+												onClick={() => {
+													handleStartRename(doc.id);
+													setActiveMenu(null);
+												}}
+											>
+												<EditIcon />
+												<span>{t('Rename')}</span>
+											</button>
+										)}
 
 										<button
 											type='button'

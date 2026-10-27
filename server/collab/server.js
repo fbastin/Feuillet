@@ -7,7 +7,9 @@
 //  - stores project file contents by SHA-256 (PUT/GET /files/<project>/<hash>),
 //    so every collaborator receives the files listed in the shared manifest;
 //  - keeps accounts and their project lists (/account/..., accounts.js), so
-//    that signing in on another device shows the same projects.
+//    that signing in on another device shows the same projects;
+//  - gives projects read-only links (/share/view, shares.js): a connection
+//    through one receives the project, and its changes are dropped.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -17,6 +19,7 @@
 //                       y-websocket); unset keeps documents in memory only
 //   FILES_DIR           directory for file contents (default ./files)
 //   ACCOUNTS_DIR        directory for accounts (default ./accounts)
+//   SHARES_DIR          directory for read-only links (default ./shares)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -27,6 +30,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
+const { createShares, isViewId } = require('./shares');
 
 const host = process.env.HOST || '0.0.0.0';
 const port = Number.parseInt(process.env.PORT || '1234', 10);
@@ -44,6 +48,7 @@ const maxFileBytes = Number.parseInt(
 );
 const filesDir = path.resolve(process.env.FILES_DIR || 'files');
 const accountsDir = path.resolve(process.env.ACCOUNTS_DIR || 'accounts');
+const sharesDir = path.resolve(process.env.SHARES_DIR || 'shares');
 
 // LevelDB does not create parent directories, and y-websocket opens it as
 // soon as its module loads.
@@ -53,8 +58,10 @@ if (process.env.YPERSISTENCE) {
 }
 const { docs, setupWSConnection } = require('y-websocket/bin/utils');
 
-// Feuillet rooms are `<projectId>-<collection>`, e.g. `abc123-yjs_metadata`.
+// Feuillet rooms are `<projectId>-<collection>`, e.g. `abc123-yjs_metadata`;
+// through a read-only link, `<viewId>-<collection>`.
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
+const VIEW_ROOM = /^(view[0-9a-f]{32})-(.+)$/;
 const FILE_ROUTE = /^\/files\/([A-Za-z0-9_-]{1,100})\/([0-9a-f]{64})$/;
 
 const log = (...parts) =>
@@ -64,6 +71,42 @@ const isAllowedOrigin = (origin) =>
 	allowedOrigins.length === 0 || allowedOrigins.includes(origin);
 
 const accounts = createAccounts({ dir: accountsDir, log });
+
+// Connections opened through each read-only link, closed when it is replaced.
+const viewers = new Map();
+const shares = createShares({
+	dir: sharesDir,
+	log,
+	onRevoke: (view) => {
+		for (const conn of viewers.get(view) ?? []) {
+			conn.close(4403, 'Read-only link replaced');
+		}
+	},
+});
+
+// A read-only connection may ask for the document (the first step of a
+// sync) and show its presence; whatever else it sends is dropped, so that it
+// cannot change the project.
+const VIEWER_MESSAGES = [
+	(bytes) => bytes[0] === 0 && bytes[1] === 0,
+	(bytes) => bytes[0] === 1,
+];
+const makeReadOnly = (conn) => {
+	const on = conn.on.bind(conn);
+	conn.on = (event, listener) =>
+		on(
+			event,
+			event === 'message'
+				? (data, ...rest) => {
+						const bytes =
+							data instanceof Uint8Array ? data : new Uint8Array(data);
+						if (VIEWER_MESSAGES.some((allowed) => allowed(bytes))) {
+							listener(data, ...rest);
+						}
+					}
+				: listener,
+		);
+};
 
 const reject = (socket, status, reason) => {
 	socket.write(
@@ -166,7 +209,12 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
-	if (accounts.handles(url)) {
+	const api = accounts.handles(url)
+		? accounts
+		: shares.handles(url)
+			? shares
+			: null;
+	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {
 			send(res, 403, 'Forbidden\n');
@@ -186,7 +234,7 @@ const server = http.createServer((req, res) => {
 			res.end();
 			return;
 		}
-		accounts.handle(req, res, url);
+		api.handle(req, res, url);
 		return;
 	}
 
@@ -214,7 +262,14 @@ const server = http.createServer((req, res) => {
 			res.end();
 			return;
 		}
-		const [, projectId, hash] = fileRoute;
+		const [, id, hash] = fileRoute;
+		const viewing = isViewId(id);
+		const projectId = viewing ? shares.resolve(id) : id;
+		if (!projectId) {
+			req.resume();
+			send(res, 404, 'Not found\n');
+			return;
+		}
 		const projectDir = path.join(filesDir, projectId);
 		const filePath = path.join(projectDir, hash);
 		if (req.method === 'GET' || req.method === 'HEAD') {
@@ -222,6 +277,11 @@ const server = http.createServer((req, res) => {
 			return;
 		}
 		if (req.method === 'PUT') {
+			if (viewing) {
+				req.resume();
+				send(res, 403, 'Read-only link\n');
+				return;
+			}
 			storeFile(req, res, projectDir, filePath, hash);
 			return;
 		}
@@ -249,8 +309,27 @@ server.on('upgrade', (req, socket, head) => {
 		return;
 	}
 
+	const viewRoom = room.match(VIEW_ROOM);
+	const view = viewRoom?.[1];
+	const project = view ? shares.resolve(view) : null;
+	if (view && !project) {
+		reject(socket, 404, 'Not Found');
+		return;
+	}
+
 	wss.handleUpgrade(req, socket, head, (conn) => {
-		setupWSConnection(conn, req, { docName: room });
+		if (!view) {
+			setupWSConnection(conn, req, { docName: room });
+			return;
+		}
+		makeReadOnly(conn);
+		if (!viewers.has(view)) viewers.set(view, new Set());
+		viewers.get(view).add(conn);
+		conn.on('close', () => {
+			viewers.get(view)?.delete(conn);
+			if (viewers.get(view)?.size === 0) viewers.delete(view);
+		});
+		setupWSConnection(conn, req, { docName: `${project}-${viewRoom[2]}` });
 	});
 });
 
@@ -264,7 +343,8 @@ server.listen(port, host, () => {
 			? `documents in ${process.env.YPERSISTENCE};`
 			: 'documents in memory only;',
 		`files in ${filesDir};`,
-		`accounts in ${accountsDir}`,
+		`accounts in ${accountsDir};`,
+		`read-only links in ${sharesDir}`,
 	);
 });
 

@@ -1,0 +1,5 @@
+# Local development storage (see deploy/README.md)
+/data/
+/files/
+/accounts/
+/shares/

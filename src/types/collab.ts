@@ -23,6 +23,9 @@ export interface CollabContextType<T = unknown> {
 	data: T | undefined;
 	changeData: (fn: (data: T) => void) => void;
 	isConnected: boolean;
+	// Opened through a read-only link: changes are not offered, and the
+	// collaboration server would drop them anyway.
+	readOnly: boolean;
 	getAwareness: (collectionName: string) => Awareness | null;
 }
 

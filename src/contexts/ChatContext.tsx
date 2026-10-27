@@ -15,6 +15,7 @@ import { useSettings } from '../hooks/useSettings';
 import { collabService } from '../services/CollabService';
 import type { ChatContextType, ChatMessage } from '../types/chat';
 import type { YjsDocUrl } from '../types/yjs';
+import { isReadOnlyDocUrl } from '../utils/urlUtils';
 
 export const ChatContext = createContext<ChatContextType | null>(null);
 
@@ -34,6 +35,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 	const messagesArrayRef = useRef<Y.Array<ChatMessage> | null>(null);
 
 	const projectId = docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl;
+	const readOnly = isReadOnlyDocUrl(docUrl);
 
 	useEffect(() => {
 		if (!projectId) return;
@@ -85,7 +87,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 
 	const sendMessage = useCallback(
 		(content: string) => {
-			if (!content.trim() || !user || !messagesArrayRef.current) return;
+			if (!content.trim() || !user || !messagesArrayRef.current || readOnly) {
+				return;
+			}
 
 			const message: ChatMessage = {
 				id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -96,7 +100,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 
 			messagesArrayRef.current.push([message]);
 		},
-		[user],
+		[readOnly, user],
 	);
 
 	return (

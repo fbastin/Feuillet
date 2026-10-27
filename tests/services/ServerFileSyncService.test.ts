@@ -90,6 +90,35 @@ describe('ServerFileSyncService', () => {
 		);
 	});
 
+	it('never shares local files through a read-only link', async () => {
+		const content = bytes('\\documentclass{article}');
+		mockPeerFileSync.getLocalFileSyncInfo.mockResolvedValue([
+			{
+				fileId: 'f1',
+				fileName: 'main.tex',
+				filePath: '/main.tex',
+				lastModified: 100,
+				size: content.byteLength,
+				checksum: sha(content),
+				userId: 'alice-id',
+				username: 'alice',
+			},
+		]);
+		mockFileStore.getFile.mockResolvedValue({ content: content.slice().buffer });
+		const doc = new Y.Doc();
+		const view = `view${'a'.repeat(32)}`;
+
+		const result = await serverFileSyncService.synchronize({
+			...options(doc),
+			projectId: view,
+			docUrl: `yjs:${view}`,
+		});
+
+		expect(result).toEqual({ published: 0, applied: 0, failures: [] });
+		expect(fetchMock).not.toHaveBeenCalled();
+		expect(doc.getMap(FILE_MANIFEST_KEY).size).toBe(0);
+	});
+
 	it('downloads files listed by collaborators and keeps their metadata', async () => {
 		const content = bytes('figure');
 		server.set(`project-1/${sha(content)}`, content);

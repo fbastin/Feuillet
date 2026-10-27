@@ -3,6 +3,7 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
+import { useCollab } from '../../hooks/useCollab';
 import { useSearch } from '../../hooks/useSearch';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { SearchIcon, ReplaceIcon, FileTextIcon } from '../common/Icons';
@@ -33,7 +34,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 		caseSensitive,
 		wholeWord,
 		useRegex,
-		showReplace,
+		showReplace: replaceMode,
 		totalMatches,
 		setQuery,
 		setReplaceText,
@@ -49,6 +50,9 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 
 	const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const headerActionsRef = useWheelScroll<HTMLDivElement>();
+	const { readOnly } = useCollab();
+	// Replacing would change the project.
+	const showReplace = replaceMode && !readOnly;
 	const [showReplaceModal, setShowReplaceModal] = useState(false);
 	const [pendingReplace, setPendingReplace] = useState<{
 		type: 'file' | 'document' | 'all';
@@ -68,7 +72,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 				setQuery(selectedText);
 			}
 
-			if (mode === 'replace') {
+			if (mode === 'replace' && !readOnly) {
 				if (!showReplace) {
 					toggleReplace();
 				}
@@ -102,7 +106,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 		return () => {
 			document.removeEventListener('open-search-panel', handleOpenSearchPanel);
 		};
-	}, [showReplace, toggleReplace, setQuery]);
+	}, [readOnly, showReplace, toggleReplace, setQuery]);
 
 	useEffect(() => {
 		if (searchTimeoutRef.current) {
@@ -267,15 +271,17 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 					>
 						<SearchIcon />
 					</button>
-					<button
-						type='button'
-						className={`ui-icon-button ${showReplace ? 'active' : ''}`}
-						data-variant='subtle'
-						onClick={toggleReplace}
-						title={t('Search and Replace (Ctrl+Shift+H)')}
-					>
-						<ReplaceIcon />
-					</button>
+					{!readOnly && (
+						<button
+							type='button'
+							className={`ui-icon-button ${showReplace ? 'active' : ''}`}
+							data-variant='subtle'
+							onClick={toggleReplace}
+							title={t('Search and Replace (Ctrl+Shift+H)')}
+						>
+							<ReplaceIcon />
+						</button>
+					)}
 				</div>
 			</div>
 

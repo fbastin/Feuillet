@@ -14,7 +14,11 @@ no peer-to-peer connection limit:
   words of their spelling dictionary, so that logging in on another device
   shows the same projects and accepts the same words, as on Overleaf.
   Signing up creates the account there; an account created earlier in a
-  browser is linked at its next login, or from Profile Settings.
+  browser is linked at its next login, or from Profile Settings;
+- read-only links, as on Overleaf: the Share dialog gives a second link, and
+  whoever opens it receives the project and follows it live, but the server
+  drops everything they send to change it. The link does not reveal the
+  editing link, and replacing it cuts off everyone who used the old one.
 
 LaTeX projects compile on a full TeX Live ([`server/texlive`](../server/texlive)),
 as on Overleaf. It is the default compiler for new LaTeX projects and for
@@ -49,9 +53,10 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/feuil
   then `sudo docker compose -f deploy/docker-compose.yml up -d texlive`.
 
 Documents are kept in the `feuillet_collab-data` volume, file contents in
-`feuillet_collab-files` and accounts in `feuillet_collab-accounts` (one JSON
+`feuillet_collab-files`, accounts in `feuillet_collab-accounts` (one JSON
 file per account, with a scrypt hash of its password and the hashes of its
-session tokens); none is touched by an update. The TeX Live server
+session tokens) and read-only links in `feuillet_collab-shares`; none is
+touched by an update. The TeX Live server
 keeps nothing: each connection compiles in its own temporary directory.
 
 ## Checks
@@ -96,7 +101,8 @@ bounded (`docker-compose.yml`) and connections are kept apart:
 
 ```
 cd server/collab && npm install
-ALLOWED_ORIGINS=http://localhost:5173 YPERSISTENCE=./data FILES_DIR=./files npm start
+ALLOWED_ORIGINS=http://localhost:5173 YPERSISTENCE=./data FILES_DIR=./files \
+  ACCOUNTS_DIR=./accounts SHARES_DIR=./shares npm start
 ```
 
 ```

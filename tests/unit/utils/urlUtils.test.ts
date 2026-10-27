@@ -1,4 +1,6 @@
 import {
+    isReadOnlyDocUrl,
+    isReadOnlyProjectId,
     isValidYjsUrl,
     parseUrlFragments,
     buildUrlWithFragments,
@@ -19,6 +21,24 @@ describe('URL Utils', () => {
             expect(isValidYjsUrl('http://example.com')).toBe(false);
             expect(isValidYjsUrl('yjs:test-project-456')).toBe(false); // Invalid: contains hyphens
             expect(isValidYjsUrl('yjs:abc123')).toBe(false); // Invalid: too short
+        });
+    });
+
+    describe('read-only links', () => {
+        const view = `view${'0123456789abcdef'.repeat(2)}`;
+
+        it('opens a read-only link like a project link', () => {
+            expect(isValidYjsUrl(`yjs:${view}`)).toBe(true);
+            expect(parseUrlFragments(`yjs:${view}&doc:d1`).yjsUrl).toBe(`yjs:${view}`);
+        });
+
+        it('tells read-only links from project links', () => {
+            expect(isReadOnlyProjectId(view)).toBe(true);
+            expect(isReadOnlyDocUrl(`yjs:${view}`)).toBe(true);
+            expect(isReadOnlyDocUrl('yjs:550e8400-e29b-41d4-a716-446655440000')).toBe(false);
+            expect(isReadOnlyDocUrl('yjs:abcdef1234567890abcdef12')).toBe(false);
+            expect(isReadOnlyProjectId(`${view}0`)).toBe(false);
+            expect(isReadOnlyProjectId(view.toUpperCase())).toBe(false);
         });
     });
 

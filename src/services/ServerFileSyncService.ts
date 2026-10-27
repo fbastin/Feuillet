@@ -12,6 +12,7 @@ import {
 	manifestEntryFor,
 	planServerFileSync,
 } from '../utils/serverFileSyncUtils';
+import { isReadOnlyProjectId } from '../utils/urlUtils';
 import { fileStoreService } from './FileStoreService';
 import { peerFileSyncService } from './PeerFileSyncService';
 
@@ -120,8 +121,10 @@ class ServerFileSyncService {
 		const plan = planServerFileSync(localFiles, new Map(manifest.entries()));
 		const failures: string[] = [];
 
+		// Through a read-only link, files only come in.
+		const toPublish = isReadOnlyProjectId(projectId) ? [] : plan.publish;
 		const published: FileManifestEntry[] = [];
-		for (const file of plan.publish) {
+		for (const file of toPublish) {
 			try {
 				if (!file.deleted) {
 					await this.uploadContent(

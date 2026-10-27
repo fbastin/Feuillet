@@ -20,6 +20,7 @@ import type {
 	CollabProviderType,
 } from '../types/collab';
 import type { YjsDocUrl } from '../types/yjs';
+import { isReadOnlyDocUrl } from '../utils/urlUtils';
 
 const moduleLog = createNamedLogger('CollabContext');
 
@@ -133,6 +134,7 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 			? docUrl.slice(4)
 			: docUrl.replace(/[^a-zA-Z0-9]/g, '-');
 	}, [docUrl]);
+	const readOnly = isReadOnlyDocUrl(docUrl);
 
 	useEffect(() => {
 		if (!projectId || !collectionName) return;
@@ -219,7 +221,7 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 
 	const changeData = useCallback(
 		(fn: (currentData: any) => void) => {
-			if (!doc) return;
+			if (!doc || readOnly) return;
 
 			const ymap = doc.getMap('data');
 			isUpdatingRef.current = true;
@@ -242,7 +244,7 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 
 			isUpdatingRef.current = false;
 		},
-		[doc],
+		[doc, readOnly],
 	);
 
 	const getAwareness = useCallback(
@@ -258,6 +260,7 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 		data,
 		changeData,
 		isConnected,
+		readOnly,
 		getAwareness,
 	};
 

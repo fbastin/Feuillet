@@ -14,7 +14,7 @@ import type {
 	DocContainer,
 } from '../types/collab';
 import type { YjsDocUrl } from '../types/yjs';
-import { parseUrlFragments } from '../utils/urlUtils';
+import { isReadOnlyProjectId, parseUrlFragments } from '../utils/urlUtils';
 import { offlineService } from './OfflineService';
 
 const moduleLog = createNamedLogger('CollabService');
@@ -592,6 +592,8 @@ class CollabService {
 		documentId: string,
 		updater: (currentContent: string) => string,
 	): Promise<void> {
+		// The server would drop the change, leaving this copy apart.
+		if (isReadOnlyProjectId(projectId)) return;
 		const collectionName = `yjs_${documentId}`;
 		const containerId = `${projectId}-${collectionName}`;
 

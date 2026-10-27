@@ -5,11 +5,26 @@ import type { UrlFragments } from '../types/yjs';
 const LEGACY_YJS_PROJECT_ID_RE = /^[a-z0-9]{20,32}$/;
 const UUID_PROJECT_ID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// A read-only link to a project, given by the collaboration server: whoever
+// opens it receives the project, and the server drops their changes.
+const READ_ONLY_PROJECT_ID_RE = /^view[0-9a-f]{32}$/;
 
 export function isValidYjsProjectId(projectId: string): boolean {
 	const value = projectId.trim();
 
-	return LEGACY_YJS_PROJECT_ID_RE.test(value) || UUID_PROJECT_ID_RE.test(value);
+	return (
+		LEGACY_YJS_PROJECT_ID_RE.test(value) ||
+		UUID_PROJECT_ID_RE.test(value) ||
+		READ_ONLY_PROJECT_ID_RE.test(value)
+	);
+}
+
+export function isReadOnlyProjectId(projectId: string): boolean {
+	return READ_ONLY_PROJECT_ID_RE.test(projectId);
+}
+
+export function isReadOnlyDocUrl(docUrl: string): boolean {
+	return docUrl.startsWith('yjs:') && isReadOnlyProjectId(docUrl.slice(4));
 }
 
 export function isValidYjsUrl(url: string): boolean {

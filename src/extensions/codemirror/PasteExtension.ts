@@ -45,6 +45,8 @@ export const createPasteExtension = (
 
 	return EditorView.domEventHandlers({
 		paste: (event, view) => {
+			// Pasting an image adds a file to the project.
+			if (view.state.readOnly) return false;
 			const syncBlob = extractUploadableBlob(event);
 			if (syncBlob) {
 				event.preventDefault();

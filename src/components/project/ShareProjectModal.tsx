@@ -1,17 +1,20 @@
 // src/components/project/ShareProjectModal.tsx
 import QRCode from 'qrcode';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { t } from '@/i18n';
 import { useCollab } from '../../hooks/useCollab';
 import { useLSPConfig } from '../../hooks/useLSPConfig';
+import { useSettings } from '../../hooks/useSettings';
 import { useSharedToolPreferences } from '../../hooks/useSharedToolPreferences';
 import { useTypesetterConfig } from '../../hooks/useTypesetterConfig';
+import { requestReadOnlyProjectId } from '../../services/ReadOnlyLinkService';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import type { DocumentList } from '../../types/documents';
 import type { SharedLocalTool, SharedToolKind } from '../../types/sharedTools';
 import type { ToolConfigBlock } from '../../types/toolConfig';
+import { collabHttpBaseUrl } from '../../utils/serverFileSyncUtils';
 import {
 	describeSharedToolAvailability,
 	projectSharingKey,
@@ -25,6 +28,7 @@ interface ShareProjectModalProps {
 	onClose: () => void;
 	projectName: string;
 	shareUrl: string;
+	docUrl: string;
 }
 
 const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
@@ -32,9 +36,47 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 	onClose,
 	projectName,
 	shareUrl,
+	docUrl,
 }) => {
 	const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-	const { data: doc } = useCollab<DocumentList>();
+	const { data: doc, readOnly } = useCollab<DocumentList>();
+	const { getSetting } = useSettings();
+	const readOnlyLinks =
+		getSetting('collab-provider-type')?.value === 'websocket' && !readOnly;
+	const websocketServer =
+		(getSetting('collab-websocket-server')?.value as string | undefined) ?? '';
+	const projectId = docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl;
+	const [readOnlyId, setReadOnlyId] = useState<string | null>(null);
+	const [readOnlyError, setReadOnlyError] = useState<string | null>(null);
+	const [confirmReplace, setConfirmReplace] = useState(false);
+	const readOnlyUrl = readOnlyId
+		? `${window.location.origin}${window.location.pathname}#yjs:${readOnlyId}`
+		: '';
+
+	const loadReadOnlyLink = useCallback(
+		async (reset: boolean) => {
+			setReadOnlyError(null);
+			try {
+				setReadOnlyId(
+					await requestReadOnlyProjectId(
+						collabHttpBaseUrl(websocketServer),
+						projectId,
+						reset,
+					),
+				);
+			} catch (error) {
+				setReadOnlyError(
+					error instanceof Error ? error.message : String(error),
+				);
+			}
+		},
+		[projectId, websocketServer],
+	);
+
+	useEffect(() => {
+		if (isOpen && readOnlyLinks) void loadReadOnlyLink(false);
+		if (!isOpen) setConfirmReplace(false);
+	}, [isOpen, readOnlyLinks, loadReadOnlyLink]);
 	const typesetters = useTypesetterConfig();
 	const lsps = useLSPConfig();
 	const preferences = useSharedToolPreferences();
@@ -133,19 +175,82 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 						{projectName}"
 					</h4>
 					<p className='ui-meta'>
-						{t(
-							'Anyone with this link can view and collaborate on this project.',
-						)}
+						{readOnly
+							? t(
+									'Anyone with this link can view and compile this project, but not change it.',
+								)
+							: t(
+									'Anyone with this link can view and collaborate on this project.',
+								)}
 					</p>
 				</div>
 
 				<div>
 					<CopyField
 						id='share-url'
-						label={t('Project Link')}
+						label={readOnly ? t('Read-only link') : t('Project Link')}
 						value={shareUrl}
 					/>
 				</div>
+
+				{readOnlyLinks && (
+					<div className='ui-stack' data-gap='xs'>
+						{readOnlyError ? (
+							<div className='ui-message' data-tone='warning'>
+								{readOnlyError}
+							</div>
+						) : (
+							<CopyField
+								id='share-read-only-url'
+								label={t('Read-only link')}
+								value={readOnlyUrl || t('Getting the link...')}
+								disabled={!readOnlyUrl}
+							/>
+						)}
+						<p className='ui-meta'>
+							{t(
+								'Anyone with this link can view and compile this project, but not change it.',
+							)}
+						</p>
+						{confirmReplace ? (
+							<div className='ui-actions' data-align='end'>
+								<span className='ui-meta'>
+									{t('The current read-only link will stop working.')}
+								</span>
+								<button
+									type='button'
+									className='button secondary'
+									onClick={() => setConfirmReplace(false)}
+								>
+									{t('Cancel')}
+								</button>
+								<button
+									type='button'
+									className='button danger'
+									onClick={() => {
+										setConfirmReplace(false);
+										setReadOnlyId(null);
+										void loadReadOnlyLink(true);
+									}}
+								>
+									{t('Replace')}
+								</button>
+							</div>
+						) : (
+							readOnlyUrl && (
+								<div className='ui-actions' data-align='end'>
+									<button
+										type='button'
+										className='button secondary'
+										onClick={() => setConfirmReplace(true)}
+									>
+										{t('Replace the read-only link')}
+									</button>
+								</div>
+							)
+						)}
+					</div>
+				)}
 
 				<div
 					className='ui-card ui-stack'
@@ -241,20 +346,24 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 					</div>
 				)}
 
-				<div className='ui-message' data-tone='info'>
-					<h5>{t('Sharing Tips')}</h5>
-					<ul>
-						<li>
-							{t('All collaborators can edit documents and files in real-time')}
-						</li>
-						<li>{t('Changes are automatically saved and synchronized')}</li>
-						<li>
-							{t(
-								'The project remains accessible as long as someone has the link',
-							)}
-						</li>
-					</ul>
-				</div>
+				{!readOnly && (
+					<div className='ui-message' data-tone='info'>
+						<h5>{t('Sharing Tips')}</h5>
+						<ul>
+							<li>
+								{t(
+									'All collaborators can edit documents and files in real-time',
+								)}
+							</li>
+							<li>{t('Changes are automatically saved and synchronized')}</li>
+							<li>
+								{t(
+									'The project remains accessible as long as someone has the link',
+								)}
+							</li>
+						</ul>
+					</div>
+				)}
 			</div>
 		</Modal>
 	);

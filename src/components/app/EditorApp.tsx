@@ -92,6 +92,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 		changeData: changeDoc,
 		isConnected,
 		provider,
+		readOnly,
 	} = useCollab<DocumentList>();
 	const hasDoc = !!doc;
 
@@ -685,23 +686,35 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 				<div className='header-center'>
 					<div
 						className='project-title-container'
-						onClick={() => setIsEditingMetadata(true)}
+						onClick={() => !readOnly && setIsEditingMetadata(true)}
 					>
 						<div className='project-title-header'>
 							<h3 className='project-title'>{projectName}</h3>
-							<button
-								type='button'
-								className='ui-icon-button'
-								data-variant='subtle'
-								data-size='sm'
-								title={t('Edit Project Details')}
-								onClick={(e) => {
-									e.stopPropagation();
-									setIsEditingMetadata(true);
-								}}
-							>
-								<EditIcon />
-							</button>
+							{readOnly ? (
+								<span
+									className='ui-badge'
+									data-variant='label'
+									title={t(
+										'Opened through a read-only link: you can read and compile this project, but not change it.',
+									)}
+								>
+									{t('Read-only')}
+								</span>
+							) : (
+								<button
+									type='button'
+									className='ui-icon-button'
+									data-variant='subtle'
+									data-size='sm'
+									title={t('Edit Project Details')}
+									onClick={(e) => {
+										e.stopPropagation();
+										setIsEditingMetadata(true);
+									}}
+								>
+									<EditIcon />
+								</button>
+							)}
 							{provider?.awareness && (
 								<div
 									className='project-awareness'
@@ -730,7 +743,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 						onOpenShareModal={() => setShowShareModal(true)}
 					/>
 
-					{!isGuestUser(user) && (
+					{!isGuestUser(user) && !readOnly && (
 						<GitHubSyncButton
 							className='header-github-sync'
 							projectId={sessionStorage.getItem('currentProjectId')}
@@ -852,6 +865,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 				onClose={() => setShowShareModal(false)}
 				projectName={projectName}
 				shareUrl={shareUrl}
+				docUrl={docUrl}
 			/>
 
 			{!isGuestUser(user) && (

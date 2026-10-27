@@ -225,6 +225,7 @@ const EditorContent: React.FC<{
 		data: doc,
 		changeData: changeDoc,
 		getAwareness,
+		readOnly: readOnlyProject,
 	} = useCollab<DocumentList>();
 	const { viewRef, showSaveIndicator, toolbarController } = useEditorView(
 		editorRef,
@@ -698,7 +699,7 @@ const EditorContent: React.FC<{
 				)}
 
 				<PluginControlGroup>
-					{onSaveDocument && (
+					{onSaveDocument && !isViewOnly && (
 						<button
 							type='button'
 							onClick={onSaveDocument}
@@ -869,7 +870,17 @@ const EditorContent: React.FC<{
 			)}
 
 			<div className='editor-toolbar'>
-				{isViewOnly && linkedDocumentId && (
+				{readOnlyProject && (
+					<div className='linked-file-notice'>
+						<span>
+							{t(
+								'Read-only: you can read and compile this project, but not change it.',
+							)}
+						</span>
+					</div>
+				)}
+
+				{isViewOnly && linkedDocumentId && !readOnlyProject && (
 					<div className='linked-file-notice'>
 						<span>
 							{t(
@@ -890,7 +901,7 @@ const EditorContent: React.FC<{
 					</div>
 				)}
 
-				{showUnlinkedNotice && (
+				{showUnlinkedNotice && !readOnlyProject && (
 					<UnlinkedDocumentNotice
 						documentId={documentId}
 						documentName={
@@ -1019,6 +1030,7 @@ const Editor: React.FC<EditorComponentProps> = ({
 
 	const editorRef = useRef<HTMLDivElement>(null);
 	const isUpdatingRef = useRef<boolean>(false);
+	const { readOnly: readOnlyProject } = useCollab();
 
 	useEffect(() => {
 		const handleShowCommentModal = (event: Event) => {
@@ -1320,9 +1332,9 @@ const Editor: React.FC<EditorComponentProps> = ({
 		);
 	}
 
-	const isViewOnly = Boolean(
-		isEditingFile && linkedDocumentId && !collaborativeViewerPlugin,
-	);
+	const isViewOnly =
+		readOnlyProject ||
+		Boolean(isEditingFile && linkedDocumentId && !collaborativeViewerPlugin);
 
 	const handleContentUpdate = (newContent: string) => {
 		if (!isUpdatingRef.current && !isViewOnly) {

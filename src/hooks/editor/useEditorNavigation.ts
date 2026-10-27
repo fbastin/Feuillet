@@ -18,7 +18,11 @@ import {
 	isBinaryFile as isBinaryFileName,
 	isTemporaryFile,
 } from '../../utils/fileUtils';
-import { buildUrlWithFragments, parseUrlFragments } from '../../utils/urlUtils';
+import {
+	buildUrlWithFragments,
+	isReadOnlyDocUrl,
+	parseUrlFragments,
+} from '../../utils/urlUtils';
 import { useAuth } from '../useAuth';
 import { useEditorTabs } from '../useEditorTabs';
 import { useFileTree } from '../useFileTree';
@@ -303,6 +307,7 @@ export const useEditorNavigation = ({
 		async (file: FileNode): Promise<boolean> => {
 			if (
 				getSetting('collab-provider-type')?.value !== 'websocket' ||
+				isReadOnlyDocUrl(docUrl) ||
 				file.documentId ||
 				file.isBinary ||
 				isBinaryFileName(file.name) ||
@@ -318,7 +323,7 @@ export const useEditorNavigation = ({
 			});
 			return true;
 		},
-		[getSetting, linkFileToDocument],
+		[docUrl, getSetting, linkFileToDocument],
 	);
 
 	const handleUserFileSelect = useCallback(

@@ -2,6 +2,7 @@
 import type React from 'react';
 
 import { t } from '@/i18n';
+import { useCollab } from '../../hooks/useCollab';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import type { Document } from '../../types/documents';
 import type { EditorSidebarView } from '../../types/editor';
@@ -89,6 +90,8 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 	children,
 }) => {
 	const viewToggleRef = useWheelScroll<HTMLDivElement>();
+	// The project's history can restore older versions of its files.
+	const { readOnly } = useCollab();
 	const viewToggle = (
 		<div
 			className='ui-tab-list scroll-x'
@@ -122,15 +125,17 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 			>
 				<SearchIcon />
 			</button>
-			<button
-				type='button'
-				className={`view-toggle-icon ui-tab${activeView === 'history' ? ' active' : ''}`}
-				onClick={onHistorySelect}
-				title={t('History')}
-				aria-label={t('History')}
-			>
-				<HistoryIcon />
-			</button>
+			{!readOnly && (
+				<button
+					type='button'
+					className={`view-toggle-icon ui-tab${activeView === 'history' ? ' active' : ''}`}
+					onClick={onHistorySelect}
+					title={t('History')}
+					aria-label={t('History')}
+				>
+					<HistoryIcon />
+				</button>
+			)}
 		</div>
 	);
 

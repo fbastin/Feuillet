@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
+import { useCollab } from '../../hooks/useCollab';
 import { useOffline } from '../../hooks/useOffline';
 import { ChevronDownIcon, ChevronUpIcon } from '../common/Icons';
 import ChatMessage from './ChatMessage';
@@ -17,6 +18,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
 	const { user } = useAuth();
 	const { messages, isConnected, sendMessage } = useChat();
 	const { isCollabOfflineMode } = useOffline();
+	const { readOnly } = useCollab();
 	const [isCollapsed, setIsCollapsed] = useState(true);
 	const [inputValue, setInputValue] = useState('');
 	const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -119,10 +121,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
 							value={inputValue}
 							onChange={(e) => setInputValue(e.target.value)}
 							onKeyDown={handleKeyDown}
-							placeholder={t('Type a message...')}
+							placeholder={
+								readOnly
+									? t('Read-only link: you can read the chat, not write in it.')
+									: t('Type a message...')
+							}
 							className='ui-field-control'
 							data-role='chat-input'
-							disabled={!isConnected || isCollabOfflineMode}
+							disabled={!isConnected || isCollabOfflineMode || readOnly}
 							rows={1}
 						/>
 
@@ -130,7 +136,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
 							type='button'
 							onClick={handleSendMessage}
 							disabled={
-								!inputValue.trim() || !isConnected || isCollabOfflineMode
+								!inputValue.trim() ||
+								!isConnected ||
+								isCollabOfflineMode ||
+								readOnly
 							}
 							className='button primary'
 						>

@@ -4,6 +4,7 @@ import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
+import { useCollab } from '../../hooks/useCollab';
 import { useFileTree } from '../../hooks/useFileTree';
 import { useProperties } from '../../hooks/useProperties';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
@@ -131,6 +132,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		batchDeleteFiles,
 		batchMoveFiles,
 	} = useFileTree();
+	const { readOnly } = useCollab();
 
 	const { getProperty, setProperty, registerProperty } = useProperties();
 	const propertiesRegistered = useRef(false);
@@ -1303,55 +1305,61 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 							<ExportIcon />
 						</button>
 
-						<button
-							type='button'
-							className='ui-icon-button'
-							data-variant='subtle'
-							title={t('Open Folder from Disk')}
-							onClick={handleOpenFolder}
-							disabled={!currentProjectId || !workspaceService.isSupported()}
-						>
-							<FolderOpenIcon />
-						</button>
+						{!readOnly && (
+							<>
+								<button
+									type='button'
+									className='ui-icon-button'
+									data-variant='subtle'
+									title={t('Open Folder from Disk')}
+									onClick={handleOpenFolder}
+									disabled={
+										!currentProjectId || !workspaceService.isSupported()
+									}
+								>
+									<FolderOpenIcon />
+								</button>
 
-						<button
-							type='button'
-							className='ui-icon-button'
-							data-variant='subtle'
-							title={t('Upload Files')}
-							onClick={() => document.getElementById('file-input')?.click()}
-						>
-							<UploadIcon />
-						</button>
+								<button
+									type='button'
+									className='ui-icon-button'
+									data-variant='subtle'
+									title={t('Upload Files')}
+									onClick={() => document.getElementById('file-input')?.click()}
+								>
+									<UploadIcon />
+								</button>
 
-						<input
-							id='file-input'
-							type='file'
-							multiple
-							onChange={handleFileUpload}
-							style={{ display: 'none' }}
-						/>
+								<input
+									id='file-input'
+									type='file'
+									multiple
+									onChange={handleFileUpload}
+									style={{ display: 'none' }}
+								/>
 
-						<button
-							type='button'
-							ref={fileCreationButtonRef}
-							className='ui-icon-button'
-							data-variant='subtle'
-							title={t('New File')}
-							onClick={(e) => handleStartCreateFile('/', e.currentTarget)}
-						>
-							<FilePlusIcon />
-						</button>
+								<button
+									type='button'
+									ref={fileCreationButtonRef}
+									className='ui-icon-button'
+									data-variant='subtle'
+									title={t('New File')}
+									onClick={(e) => handleStartCreateFile('/', e.currentTarget)}
+								>
+									<FilePlusIcon />
+								</button>
 
-						<button
-							type='button'
-							className='ui-icon-button'
-							data-variant='subtle'
-							title={t('New Folder')}
-							onClick={() => handleStartCreateDirectory('/')}
-						>
-							<FolderPlusIcon />
-						</button>
+								<button
+									type='button'
+									className='ui-icon-button'
+									data-variant='subtle'
+									title={t('New Folder')}
+									onClick={() => handleStartCreateDirectory('/')}
+								>
+									<FolderPlusIcon />
+								</button>
+							</>
+						)}
 					</div>
 
 					<FileExplorerOptionsMenu
