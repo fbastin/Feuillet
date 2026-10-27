@@ -274,6 +274,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 					}),
 				);
 			}
+			await refreshStatus(secrets);
 		});
 
 	const linkRepository = (
@@ -314,6 +315,8 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 						repository: repository.label,
 					}),
 				);
+				// The status shown while linking predates the push.
+				await refreshStatus(secrets);
 				return;
 			}
 			setNotice(
@@ -326,6 +329,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 							repository: repository.label,
 						}),
 			);
+			await refreshStatus(secrets);
 		});
 
 	// The project already lives in the repository: this device continues
@@ -361,6 +365,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 							repository: repository.label,
 						}),
 			);
+			await refreshStatus(secrets);
 		});
 
 	const linkSelectedRepository = () => {
