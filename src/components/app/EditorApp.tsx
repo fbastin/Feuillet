@@ -73,6 +73,7 @@ const moduleLog = createNamedLogger('EditorApp');
 
 interface EditorAppProps {
 	docUrl: YjsDocUrl;
+	currentProjectId?: string | null;
 	onBackToProjects: () => void;
 	onLogout: () => void;
 	targetDocId?: string | null;
@@ -81,6 +82,7 @@ interface EditorAppProps {
 
 const EditorAppView: React.FC<EditorAppProps> = ({
 	docUrl,
+	currentProjectId,
 	onBackToProjects,
 	onLogout,
 	targetDocId,
@@ -281,11 +283,10 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 				return;
 			}
 
-			lastSyncedMetadata.current = next;
-
 			try {
 				const project = await getProjectById(projectId);
 				if (project) {
+					lastSyncedMetadata.current = next;
 					await updateProject({
 						...project,
 						name: next.name,
@@ -503,11 +504,12 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 		}
 	}, [doc, changeDoc]);
 
+	/* biome-ignore lint/correctness/useExhaustiveDependencies: currentProjectId changes once the project of a link just opened exists; its metadata may have arrived before it, and only then can it be kept. */
 	useEffect(() => {
 		if (doc?.projectMetadata) {
 			persistProjectMetadata(doc.projectMetadata);
 		}
-	}, [doc?.projectMetadata, persistProjectMetadata]);
+	}, [doc?.projectMetadata, persistProjectMetadata, currentProjectId]);
 
 	useEffect(() => {
 		if (targetDocId) return;

@@ -124,9 +124,7 @@ const AppRouter: React.FC = () => {
 		'auth' | 'projects' | 'editor'
 	>('auth');
 	const [docUrl, setDocUrl] = useState<YjsDocUrl | null>(null);
-	const [_currentProjectId, setCurrentProjectId] = useState<string | null>(
-		null,
-	);
+	const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 	const [targetDocId, setTargetDocId] = useState<string | null>(null);
 	const [targetFilePath, setTargetFilePath] = useState<string | null>(null);
 	const [isCreatingProject, setIsCreatingProject] = useState(false);
@@ -512,6 +510,7 @@ const AppRouter: React.FC = () => {
 			) : currentView === 'editor' && docUrl ? (
 				<EditorApp
 					docUrl={docUrl}
+					currentProjectId={currentProjectId}
 					onBackToProjects={handleBackToProjects}
 					onLogout={handleLogout}
 					targetDocId={targetDocId}
