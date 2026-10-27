@@ -97,7 +97,12 @@ export interface EditorSettings {
 	textDirection: 'auto' | 'ltr' | 'rtl';
 }
 
-export type EditorSidebarView = 'documents' | 'files' | 'search' | 'history';
+export type EditorSidebarView =
+	| 'documents'
+	| 'files'
+	| 'search'
+	| 'versions'
+	| 'history';
 
 export interface LinkedFileInfo {
 	fileName: string;

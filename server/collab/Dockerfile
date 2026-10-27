@@ -3,7 +3,7 @@ FROM node:22-slim
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-COPY server.js accounts.js shares.js ./
+COPY server.js accounts.js shares.js history.js ./
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
@@ -11,11 +11,12 @@ ENV NODE_ENV=production \
     YPERSISTENCE=/data \
     FILES_DIR=/files \
     ACCOUNTS_DIR=/accounts \
-    SHARES_DIR=/shares
+    SHARES_DIR=/shares \
+    HISTORY_DIR=/history
 
-RUN mkdir -p /data /files /accounts /shares \
-    && chown node:node /data /files /accounts /shares
-VOLUME ["/data", "/files", "/accounts", "/shares"]
+RUN mkdir -p /data /files /accounts /shares /history \
+    && chown node:node /data /files /accounts /shares /history
+VOLUME ["/data", "/files", "/accounts", "/shares", "/history"]
 USER node
 EXPOSE 1234
 

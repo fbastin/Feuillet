@@ -8,9 +8,16 @@ import type { Document } from '../../types/documents';
 import type { EditorSidebarView } from '../../types/editor';
 import type { ProjectType } from '../../types/projects';
 import type { YjsDocUrl } from '../../types/yjs';
-import { FileIcon, HistoryIcon, SearchIcon, UsersIcon } from '../common/Icons';
+import {
+	FileIcon,
+	GitBranchIcon,
+	HistoryIcon,
+	SearchIcon,
+	UsersIcon,
+} from '../common/Icons';
 import ResizablePanel from '../common/ResizablePanel';
 import GitHistoryPanel from '../history/GitHistoryPanel';
+import ProjectVersionsPanel from '../history/ProjectVersionsPanel';
 import type { GitDiffView } from '../history/GitDiffViewer';
 import DocumentExplorer from './DocumentExplorer';
 import FileExplorer from './FileExplorer';
@@ -28,6 +35,7 @@ interface EditorSidebarProps {
 	onExplorerResize: (height: number) => void;
 	onViewChange: (view: EditorSidebarView) => void;
 	onHistorySelect: () => void;
+	onVersionsSelect: () => void;
 	onOpenDiff: (view: GitDiffView) => void;
 	onClearDiff: () => void;
 	onNavigateToSearchResult: (
@@ -68,6 +76,7 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 	onExplorerResize,
 	onViewChange,
 	onHistorySelect,
+	onVersionsSelect,
 	onOpenDiff,
 	onClearDiff,
 	onNavigateToSearchResult,
@@ -90,8 +99,9 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 	children,
 }) => {
 	const viewToggleRef = useWheelScroll<HTMLDivElement>();
-	// The project's history can restore older versions of its files.
+	// The project's Git history can restore older versions of its files.
 	const { readOnly } = useCollab();
+	const projectId = docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl;
 	const viewToggle = (
 		<div
 			className='ui-tab-list scroll-x'
@@ -125,15 +135,24 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 			>
 				<SearchIcon />
 			</button>
+			<button
+				type='button'
+				className={`view-toggle-icon ui-tab${activeView === 'versions' ? ' active' : ''}`}
+				onClick={onVersionsSelect}
+				title={t('Versions')}
+				aria-label={t('Versions')}
+			>
+				<HistoryIcon />
+			</button>
 			{!readOnly && (
 				<button
 					type='button'
 					className={`view-toggle-icon ui-tab${activeView === 'history' ? ' active' : ''}`}
 					onClick={onHistorySelect}
-					title={t('History')}
-					aria-label={t('History')}
+					title={t('Git history')}
+					aria-label={t('Git history')}
 				>
-					<HistoryIcon />
+					<GitBranchIcon />
 				</button>
 			)}
 		</div>
@@ -150,7 +169,16 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 			onCollapse={onSidebarCollapse}
 			className='sidebar-container'
 		>
-			{activeView === 'history' ? (
+			{activeView === 'versions' ? (
+				<>
+					{viewToggle}
+					<ProjectVersionsPanel
+						projectId={projectId}
+						onOpenDiff={onOpenDiff}
+						onClearDiff={onClearDiff}
+					/>
+				</>
+			) : activeView === 'history' ? (
 				<>
 					{viewToggle}
 					<GitHistoryPanel

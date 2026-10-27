@@ -39,6 +39,34 @@ interface OnlineDocContainer extends DocContainer {
 
 type AnyDocContainer = OnlineDocContainer | OfflineDocContainer;
 
+const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff;
+const isLowSurrogate = (code: number) => code >= 0xdc00 && code <= 0xdfff;
+
+// Where two texts differ: everything between their common start and their
+// common end, never splitting a character in two.
+export const changedRange = (
+	before: string,
+	after: string,
+): { start: number; removed: number; inserted: string } => {
+	const shortest = Math.min(before.length, after.length);
+	let start = 0;
+	while (start < shortest && before[start] === after[start]) start++;
+	if (start > 0 && isHighSurrogate(before.charCodeAt(start - 1))) start--;
+	let end = 0;
+	while (
+		end < shortest - start &&
+		before[before.length - 1 - end] === after[after.length - 1 - end]
+	) {
+		end++;
+	}
+	if (end > 0 && isLowSurrogate(before.charCodeAt(before.length - end))) end--;
+	return {
+		start,
+		removed: before.length - start - end,
+		inserted: after.slice(start, after.length - end),
+	};
+};
+
 class CollabService {
 	private docContainers: Map<string, AnyDocContainer> = new Map();
 	private offlineStatusUnsubscribe: (() => void) | null = null;
@@ -688,10 +716,18 @@ class CollabService {
 		const currentContent = ytext.toString();
 		const newContent = updater(currentContent);
 
-		container.doc.transact(() => {
-			ytext.delete(0, ytext.length);
-			ytext.insert(0, newContent);
-		});
+		// Only the part that differs is replaced, so that the others' cursors
+		// stay where they are.
+		const { start, removed, inserted } = changedRange(
+			currentContent,
+			newContent,
+		);
+		if (removed > 0 || inserted) {
+			container.doc.transact(() => {
+				if (removed > 0) ytext.delete(start, removed);
+				if (inserted) ytext.insert(start, inserted);
+			});
+		}
 
 		if (!wasConnected) {
 			await new Promise((resolve) => setTimeout(resolve, 500));

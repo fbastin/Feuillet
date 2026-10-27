@@ -12,7 +12,9 @@
 //    through one receives the project, and its changes are dropped;
 //  - lets a project's owner replace its editing link (/share/edit,
 //    shares.js), which cuts off whoever kept the old one, and invite other
-//    accounts, who follow its links as they change (/share/members).
+//    accounts, who follow its links as they change (/share/members);
+//  - saves versions of each project a short while after it changes, with who
+//    changed it (/history/..., history.js), as on Overleaf.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -23,6 +25,8 @@
 //   FILES_DIR           directory for file contents (default ./files)
 //   ACCOUNTS_DIR        directory for accounts (default ./accounts)
 //   SHARES_DIR          directory for project links (default ./shares)
+//   HISTORY_DIR         directory for project versions (default ./history)
+//   HISTORY_IDLE_MS     quiet time before a version is saved (default 30 s)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -33,6 +37,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
+const { createHistory } = require('./history');
 const { createShares } = require('./shares');
 
 const host = process.env.HOST || '0.0.0.0';
@@ -52,6 +57,7 @@ const maxFileBytes = Number.parseInt(
 const filesDir = path.resolve(process.env.FILES_DIR || 'files');
 const accountsDir = path.resolve(process.env.ACCOUNTS_DIR || 'accounts');
 const sharesDir = path.resolve(process.env.SHARES_DIR || 'shares');
+const historyDir = path.resolve(process.env.HISTORY_DIR || 'history');
 
 // LevelDB does not create parent directories, and y-websocket opens it as
 // soon as its module loads.
@@ -59,7 +65,11 @@ fs.mkdirSync(filesDir, { recursive: true });
 if (process.env.YPERSISTENCE) {
 	fs.mkdirSync(process.env.YPERSISTENCE, { recursive: true });
 }
-const { docs, setupWSConnection } = require('y-websocket/bin/utils');
+const {
+	docs,
+	getPersistence,
+	setupWSConnection,
+} = require('y-websocket/bin/utils');
 
 // Feuillet rooms are `<projectId>-<collection>`, e.g. `abc123-yjs_metadata`,
 // where the project id is a UUID, an older id without dashes, or a read-only
@@ -68,6 +78,8 @@ const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
 const PROJECT_ROOM =
 	/^([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}|[A-Za-z0-9_]+)-(.+)$/i;
 const FILE_ROUTE = /^\/files\/([A-Za-z0-9_-]{1,100})\/([0-9a-f]{64})$/;
+const HISTORY_ROUTE =
+	/^\/history\/([A-Za-z0-9_-]{1,100})(?:\/([0-9]{13}-[0-9a-f]{8}))?$/;
 
 const log = (...parts) =>
 	console.log(new Date().toISOString(), '[collab]', ...parts);
@@ -89,6 +101,15 @@ const shares = createShares({
 			conn.close(4403, 'Link replaced');
 		}
 	},
+});
+
+const history = createHistory({
+	dir: historyDir,
+	filesDir,
+	docs,
+	persistence: getPersistence(),
+	log,
+	idleMs: Number(process.env.HISTORY_IDLE_MS) || undefined,
 });
 
 // A read-only connection may ask for the document (the first step of a
@@ -245,6 +266,45 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
+	const historyRoute = url.match(HISTORY_ROUTE);
+	if (historyRoute) {
+		const origin = req.headers.origin;
+		if (origin && !isAllowedOrigin(origin)) {
+			send(res, 403, 'Forbidden\n');
+			req.resume();
+			return;
+		}
+		if (origin) {
+			res.setHeader('Access-Control-Allow-Origin', origin);
+			res.setHeader('Vary', 'Origin');
+		}
+		req.resume();
+		if (req.method !== 'GET') {
+			res.setHeader('Allow', 'GET');
+			send(res, 405, 'Method not allowed\n');
+			return;
+		}
+		const [, id, versionId] = historyRoute;
+		const found = shares.lookup(id);
+		if (!found || found.access === 'replaced') {
+			send(res, found ? 403 : 404, found ? 'Link replaced\n' : 'Not found\n');
+			return;
+		}
+		const body = versionId
+			? history.get(found.project, versionId)
+			: { versions: history.list(found.project) };
+		if (!body) {
+			send(res, 404, 'Not found\n');
+			return;
+		}
+		res.writeHead(200, {
+			'Content-Type': 'application/json',
+			'Cache-Control': 'no-store',
+		});
+		res.end(JSON.stringify(body));
+		return;
+	}
+
 	const fileRoute = url.match(FILE_ROUTE);
 	if (fileRoute) {
 		const origin = req.headers.origin;
@@ -346,9 +406,9 @@ server.on('upgrade', (req, socket, head) => {
 			connections.get(id)?.delete(conn);
 			if (connections.get(id)?.size === 0) connections.delete(id);
 		});
-		setupWSConnection(conn, req, {
-			docName: `${found.project}-${collection}`,
-		});
+		const docName = `${found.project}-${collection}`;
+		setupWSConnection(conn, req, { docName });
+		history.track(found.project, collection, docs.get(docName));
 	});
 });
 
@@ -363,14 +423,18 @@ server.listen(port, host, () => {
 			: 'documents in memory only;',
 		`files in ${filesDir};`,
 		`accounts in ${accountsDir};`,
-		`project links in ${sharesDir}`,
+		`project links in ${sharesDir};`,
+		`versions in ${historyDir}`,
 	);
 });
 
 const shutdown = (signal) => {
 	log(`${signal} received, closing`);
 	for (const client of wss.clients) client.close(1001, 'Server restarting');
-	server.close(() => process.exit(0));
+	// Changes not saved in a version yet are saved first.
+	Promise.all([history.flush(), new Promise((done) => server.close(done))])
+		.catch((error) => log('could not save versions', error))
+		.then(() => process.exit(0));
 	setTimeout(() => process.exit(0), 5000).unref();
 };
 process.on('SIGTERM', () => shutdown('SIGTERM'));

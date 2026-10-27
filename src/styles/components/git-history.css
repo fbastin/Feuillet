@@ -746,3 +746,119 @@
 .github-sync-modal select[size] {
 	min-height: 6rem;
 }
+
+/* Versions saved by the collaboration server, newest first, by day. */
+.versions-panel {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.versions-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-sm);
+	padding: var(--space-sm);
+	border-bottom: 1px solid var(--accent-border);
+	background-color: var(--pico-background);
+}
+
+.versions-panel > .ui-message {
+	margin: var(--space-xs) var(--space-sm) 0;
+}
+
+.versions-note {
+	margin: var(--space-sm);
+}
+
+.versions-list {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-bottom: var(--space-md);
+}
+
+.versions-day-title {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	margin: 0;
+	padding: var(--space-xs) var(--space-sm);
+	background-color: var(--pico-secondary-background);
+	color: var(--pico-secondary);
+	font-size: var(--git-history-meta-font-size);
+	font-weight: 600;
+}
+
+.versions-day-title::first-letter {
+	text-transform: uppercase;
+}
+
+.versions-item {
+	padding: var(--space-xs) var(--space-sm);
+	border-bottom: 1px solid var(--accent-border);
+	font-size: var(--git-history-font-size);
+}
+
+.versions-item-head {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+}
+
+.versions-time {
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.versions-authors {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--pico-secondary);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.versions-changes {
+	margin: var(--space-xs) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.versions-change {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	border-radius: var(--radius-sm);
+}
+
+.versions-change[data-selected] {
+	background-color: var(--accent-background, var(--pico-background));
+}
+
+.versions-change-open {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: var(--space-xs);
+	min-width: 0;
+	padding: 2px var(--space-xs);
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.versions-change-open > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.versions-change-open:hover > span {
+	text-decoration: underline;
+}

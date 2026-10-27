@@ -27,7 +27,11 @@ no peer-to-peer connection limit:
 - collaborators, as on Overleaf: the owner invites accounts by name, as
   editors or readers. The project appears in their list, and they follow its
   links when they change. Removing an editor replaces the editing link, and
-  removing a reader the read-only link, which cuts them off.
+  removing a reader the read-only link, which cuts them off;
+- versions, as on Overleaf: a short while after a project changes, the
+  server saves a version with who changed what. The Versions tab lists them
+  by day, shows each change against the version before, and restores a file
+  or the whole project as it was.
 
 LaTeX projects compile on a full TeX Live ([`server/texlive`](../server/texlive)),
 as on Overleaf. It is the default compiler for new LaTeX projects and for
@@ -64,8 +68,9 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/feuil
 Documents are kept in the `feuillet_collab-data` volume, file contents in
 `feuillet_collab-files`, accounts in `feuillet_collab-accounts` (one JSON
 file per account, with a scrypt hash of its password and the hashes of its
-session tokens) and project links and owners in `feuillet_collab-shares`;
-none is touched by an update. The TeX Live server keeps nothing: each
+session tokens), project links and owners in `feuillet_collab-shares` and
+the list of each project's versions in `feuillet_collab-history` (their
+texts are with the files); none is touched by an update. The TeX Live server keeps nothing: each
 connection compiles in its own temporary directory.
 
 ## Checks
@@ -111,7 +116,7 @@ bounded (`docker-compose.yml`) and connections are kept apart:
 ```
 cd server/collab && npm install
 ALLOWED_ORIGINS=http://localhost:5173 YPERSISTENCE=./data FILES_DIR=./files \
-  ACCOUNTS_DIR=./accounts SHARES_DIR=./shares npm start
+  ACCOUNTS_DIR=./accounts SHARES_DIR=./shares HISTORY_DIR=./history npm start
 ```
 
 ```

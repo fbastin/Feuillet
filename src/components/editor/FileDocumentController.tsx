@@ -125,6 +125,16 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 		navigation.setActiveView('history');
 	}, [navigation.setActiveView]);
 
+	const handleSwitchToVersions = useCallback(() => {
+		setGitDiffView(null);
+		navigation.setActiveView('versions');
+	}, [navigation.setActiveView]);
+
+	const clearDiff = useCallback(() => setGitDiffView(null), []);
+	// Both history views show differences where the editor is.
+	const showingHistory =
+		navigation.activeView === 'history' || navigation.activeView === 'versions';
+
 	const handleLatexOutputCollapse = useCallback(
 		(collapsed: boolean) => {
 			layout.handleLatexOutputCollapse(collapsed);
@@ -165,15 +175,14 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 	]);
 
 	const currentProjectId = sessionStorage.getItem('currentProjectId');
-	const hideOutputs =
-		navigation.activeView === 'history' && gitDiffView !== null;
+	const hideOutputs = showingHistory && gitDiffView !== null;
 
 	return (
 		<div
 			className='main-content'
 			data-mobile-outline-preview={
 				layout.hasOutlinePreview &&
-				navigation.activeView !== 'history' &&
+				!showingHistory &&
 				outline.showOutline &&
 				layout.outlinePreview
 					? 'true'
@@ -181,7 +190,7 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 			}
 			data-mobile-outline-maximized={
 				layout.hasOutlineMaximize &&
-				navigation.activeView !== 'history' &&
+				!showingHistory &&
 				outline.showOutline &&
 				layout.outlineMaximized
 					? 'true'
@@ -200,8 +209,9 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 				onExplorerResize={layout.handleExplorerResize}
 				onViewChange={navigation.setActiveView}
 				onHistorySelect={handleSwitchToHistory}
+				onVersionsSelect={handleSwitchToVersions}
 				onOpenDiff={setGitDiffView}
-				onClearDiff={() => setGitDiffView(null)}
+				onClearDiff={clearDiff}
 				onNavigateToSearchResult={navigation.handleSearchResultNavigate}
 				documents={documents}
 				selectedDocId={selectedDocId}
@@ -220,22 +230,20 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 				onExportCurrentProject={handleExportCurrentProject}
 				projectType={output.projectType}
 			>
-				{navigation.activeView !== 'history' &&
-					outline.showOutline &&
-					outline.outlineKind && (
-						<EditorOutline
-							kind={outline.outlineKind}
-							content={navigation.currentEditorContent}
-							fileName={outline.outlineFileName}
-							currentLine={outline.currentLine}
-							onSectionClick={outline.handleOutlineSectionClick}
-							onRefresh={outline.handleOutlineRefresh}
-							linkedFileInfo={navigation.linkedFileInfo}
-							currentFilePath={navigation.currentFilePath}
-							isEditingFile={navigation.isEditingFile}
-							{...layout.outlineThemeControls}
-						/>
-					)}
+				{!showingHistory && outline.showOutline && outline.outlineKind && (
+					<EditorOutline
+						kind={outline.outlineKind}
+						content={navigation.currentEditorContent}
+						fileName={outline.outlineFileName}
+						currentLine={outline.currentLine}
+						onSectionClick={outline.handleOutlineSectionClick}
+						onRefresh={outline.handleOutlineRefresh}
+						linkedFileInfo={navigation.linkedFileInfo}
+						currentFilePath={navigation.currentFilePath}
+						isEditingFile={navigation.isEditingFile}
+						{...layout.outlineThemeControls}
+					/>
+				)}
 			</EditorSidebar>
 
 			<div className='editor-container-outer'>
@@ -306,7 +314,7 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 							/>
 						)}
 
-						{navigation.activeView === 'history' && gitDiffView && (
+						{showingHistory && gitDiffView && (
 							<div className='git-diff-editor-overlay'>
 								<GitDiffViewer view={gitDiffView} />
 							</div>
