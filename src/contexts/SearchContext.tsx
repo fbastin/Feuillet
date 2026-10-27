@@ -3,6 +3,7 @@ import type React from 'react';
 import { createContext, useCallback, useState, useEffect } from 'react';
 
 import { createNamedLogger } from '@/logging';
+import { projectLinkService } from '../services/ProjectLinkService';
 import { searchService, type SearchResult } from '../services/SearchService';
 
 const moduleLog = createNamedLogger('SearchContext');
@@ -51,7 +52,7 @@ export const SearchProvider: React.FC<{ children: React.ReactNode }> = ({
 		const hash = window.location.hash.substring(1);
 		const yjsUrl = hash.split('&')[0];
 		if (yjsUrl.startsWith('yjs:')) {
-			setProjectId(yjsUrl.slice(4));
+			setProjectId(projectLinkService.localId(yjsUrl.slice(4)));
 		}
 	}, []);
 

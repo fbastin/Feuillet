@@ -8,6 +8,8 @@ import {
 	planAccountSync,
 	toAccountProject,
 } from '../utils/accountSyncUtils';
+import { isReadOnlyProjectId, isValidYjsProjectId } from '../utils/urlUtils';
+import { projectLinkService } from './ProjectLinkService';
 
 const moduleLog = createNamedLogger('AccountSyncService');
 
@@ -47,6 +49,13 @@ export class AccountServerError extends Error {
 	) {
 		super(code);
 	}
+}
+
+// A project's editing link as an account sees it: whether the account owns
+// the project and, if so, the id the server opens it under.
+export interface ProjectAccess {
+	owner: 'you' | 'other' | 'none';
+	edit?: string;
 }
 
 export interface AccountProjectStore {
@@ -89,6 +98,16 @@ class AccountSyncService {
 	private lastFocusSync = 0;
 	private status: AccountSyncStatus = { state: 'unlinked' };
 	private listeners: Set<(status: AccountSyncStatus) => void> = new Set();
+
+	constructor() {
+		// When a project's link stops opening it, its owner moves on to the
+		// current one.
+		projectLinkService.setRecovery(async (projectId) =>
+			isReadOnlyProjectId(projectId)
+				? null
+				: ((await this.projectAccess(projectId))?.edit ?? null),
+		);
+	}
 
 	attachStore(store: AccountProjectStore): void {
 		this.store = store;
@@ -222,6 +241,58 @@ class AccountSyncService {
 		this.setStatus({ state: 'unlinked' });
 	}
 
+	/**
+	 * Asks the collaboration server about a project's editing link, for the
+	 * signed-in account: `claim` makes the account its owner if it has none,
+	 * and `reset` (owner only) replaces the link, cutting off the old one.
+	 * Null when no account is signed in.
+	 */
+	async projectAccess(
+		projectId: string,
+		options: { claim?: boolean; reset?: boolean } = {},
+	): Promise<ProjectAccess | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+
+		const result = await this.request(session.server, 'POST', '/share/edit', {
+			token: session.token,
+			body: { project: projectLinkService.serverId(projectId), ...options },
+		});
+		const owner = ['you', 'other', 'none'].includes(result?.owner)
+			? (result.owner as ProjectAccess['owner'])
+			: 'none';
+		const edit =
+			typeof result?.edit === 'string' &&
+			isValidYjsProjectId(result.edit) &&
+			!isReadOnlyProjectId(result.edit)
+				? result.edit
+				: undefined;
+		if (edit) await this.rememberEditLink(userId, projectId, edit);
+		return { owner, edit };
+	}
+
+	// Opens the project under `editId` from now on, here and, through the
+	// account, on the user's other devices.
+	private async rememberEditLink(
+		userId: string,
+		projectId: string,
+		editId: string,
+	): Promise<void> {
+		projectLinkService.setServerId(projectId, editId);
+		const project = (await this.store?.getProjects(userId))?.find(
+			(candidate) => candidate.docUrl === `yjs:${projectId}`,
+		);
+		const stored = editId === projectId ? undefined : editId;
+		if (!this.store || !project || project.editId === stored) return;
+		await this.store.storeProject({
+			...project,
+			editId: stored,
+			accountUpdatedAt: Date.now(),
+		});
+		this.projectChanged(userId);
+	}
+
 	projectChanged(userId: string): void {
 		if (!this.getSession(userId)) return;
 		if (this.changeTimer) clearTimeout(this.changeTimer);
@@ -300,6 +371,15 @@ class AccountSyncService {
 				}
 				for (const project of plan.remove) {
 					await this.store.removeProject(project);
+				}
+				// Projects whose editing link was replaced on another device.
+				for (const project of await this.store.getProjects(userId)) {
+					if (project.editId && project.docUrl.startsWith('yjs:')) {
+						projectLinkService.setServerId(
+							project.docUrl.slice(4),
+							project.editId,
+						);
+					}
 				}
 				if (plan.create.length + plan.update.length + plan.remove.length) {
 					window.dispatchEvent(new CustomEvent(ACCOUNT_PROJECTS_CHANGED));

@@ -22,6 +22,7 @@ import { useCollab } from '../../hooks/useCollab';
 import { useComments } from '../../hooks/useComments';
 import { usePeerFileSync } from '../../hooks/usePeerFileSync';
 import { usePluginFileInfo } from '../../hooks/usePluginFileInfo';
+import { useProjectLink } from '../../hooks/useProjectLink';
 import { useSourceMap } from '../../hooks/useSourceMap';
 import { useSettings } from '../../hooks/useSettings';
 import type {
@@ -220,6 +221,9 @@ const EditorContent: React.FC<{
 	} = useSourceMap();
 	const { addComment, updateComments } = useComments();
 	const { filesReceived } = usePeerFileSync();
+	const { cutOff } = useProjectLink(
+		docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl,
+	);
 	const fileInfo = usePluginFileInfo(fileId, fileName);
 	const {
 		data: doc,
@@ -870,14 +874,24 @@ const EditorContent: React.FC<{
 			)}
 
 			<div className='editor-toolbar'>
-				{readOnlyProject && (
+				{cutOff ? (
 					<div className='linked-file-notice'>
 						<span>
 							{t(
-								'Read-only: you can read and compile this project, but not change it.',
+								'This link no longer opens the project: it was replaced. Ask whoever shared it for the new link. You see the last version received.',
 							)}
 						</span>
 					</div>
+				) : (
+					readOnlyProject && (
+						<div className='linked-file-notice'>
+							<span>
+								{t(
+									'Read-only: you can read and compile this project, but not change it.',
+								)}
+							</span>
+						</div>
+					)
 				)}
 
 				{isViewOnly && linkedDocumentId && !readOnlyProject && (

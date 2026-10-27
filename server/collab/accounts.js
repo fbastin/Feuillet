@@ -110,6 +110,11 @@ const cleanProject = (entry) => {
 	return {
 		id: entry.id,
 		docUrl: text(entry.docUrl, 300) ?? `yjs:${entry.id}`,
+		// The id the project opens under since its editing link was replaced.
+		editId:
+			typeof entry.editId === 'string' && PROJECT_ID.test(entry.editId)
+				? entry.editId
+				: undefined,
 		name: text(entry.name, 300) ?? '',
 		description: text(entry.description, 5000) ?? '',
 		type: text(entry.type, 50) ?? 'latex',
@@ -355,6 +360,13 @@ const createAccounts = ({ dir, log }) => {
 			return { deleted: true };
 		});
 
+	// Who sent a request: an id for the account that a new account with the
+	// same name will not have.
+	const identify = (req) =>
+		authenticate(req, (account) => ({
+			body: `${keyOf(account.username)}.${account.createdAt}`,
+		}));
+
 	const getProjects = (req) =>
 		authenticate(req, (account) => ({
 			body: { projects: listProjects(account) },
@@ -475,7 +487,7 @@ const createAccounts = ({ dir, log }) => {
 		}
 	};
 
-	return { handles, handle };
+	return { handles, handle, identify };
 };
 
 module.exports = {

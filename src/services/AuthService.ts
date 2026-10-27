@@ -783,6 +783,13 @@ class AuthService {
 
 		await db.put(this.PROJECT_STORE, newProject);
 		accountSyncService.projectChanged(currentUser.id);
+		// Whoever creates a project owns it on the collaboration server, so
+		// that only they may replace its editing link.
+		if (!project.docUrl) {
+			void accountSyncService
+				.projectAccess(projectId, { claim: true })
+				.catch(() => {});
+		}
 
 		if (shouldAutoSync()) {
 			diskBackupService.synchronize(newProject.id).catch(console.error);

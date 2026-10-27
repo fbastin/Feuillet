@@ -19,6 +19,9 @@ export interface Project {
 	lastOpenedDocId?: string;
 	lastOpenedFilePath?: string;
 	isDiskLinked?: boolean;
+	// The id the collaboration server opens the project under, once its owner
+	// replaced its editing link.
+	editId?: string;
 	// When the fields an account lists (name, tags…) last changed; opening a
 	// file updates updatedAt without changing them.
 	accountUpdatedAt?: number;

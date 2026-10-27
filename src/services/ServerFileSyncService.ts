@@ -15,6 +15,7 @@ import {
 import { isReadOnlyProjectId } from '../utils/urlUtils';
 import { fileStoreService } from './FileStoreService';
 import { peerFileSyncService } from './PeerFileSyncService';
+import { projectLinkService } from './ProjectLinkService';
 
 const moduleLog = createNamedLogger('ServerFileSyncService');
 
@@ -44,8 +45,10 @@ const errorText = (error: unknown) =>
  * contents are stored on the server by SHA-256.
  */
 class ServerFileSyncService {
+	// The server stores files under the id it opens the project under.
 	private fileUrl(baseUrl: string, projectId: string, checksum: string) {
-		return `${baseUrl}/files/${encodeURIComponent(projectId)}/${checksum}`;
+		const serverId = projectLinkService.serverId(projectId);
+		return `${baseUrl}/files/${encodeURIComponent(serverId)}/${checksum}`;
 	}
 
 	private async readLocalContent(fileId: string): Promise<ArrayBuffer> {

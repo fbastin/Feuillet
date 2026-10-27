@@ -1,18 +1,33 @@
 // server/collab/shares.js
-// Read-only links to projects, as on Overleaf. A view id stands for a
-// project: whoever opens it receives the project's documents and files, but
-// the server drops everything they send to change them.
+// Links to projects, as on Overleaf.
+//
+// Editing: a project opens under the id it was created with, until its owner
+// replaces its editing link; from then on it opens under the new id only, and
+// whoever kept an older one is cut off. Its documents and files stay stored
+// under the id it was created with.
+//
+// Read-only: a view id opens the project too, but the server drops whatever
+// is sent through it to change the project.
 //
 //   POST /share/view {project}               -> {view}, the same each time
 //   POST /share/view {project, reset: true}  -> {view}, a new one; the old
 //                                               one stops working
+//   POST /share/edit {project}       (token) -> {owner, edit}
+//   POST /share/edit {project, claim: true}     the account becomes the owner
+//                                               if the project has none
+//   POST /share/edit {project, reset: true}     (owner only) a new editing
+//                                               id; the old one stops working
 //
-// Knowing a project id is what lets someone edit the project, so it is also
-// what lets them create or replace its read-only link. A view id does not
-// reveal the project id.
+// `project` is an editing id. Knowing one is what lets someone edit the
+// project, so it also lets them create or replace its read-only link. Only
+// the owner, a Feuillet account, may replace the editing link, and may name
+// the project by an editing id that no longer opens it to learn the current
+// one. `owner` is "you", "other" or "none"; `edit`, the current editing id,
+// goes to the owner only.
 //
-// SHARES_DIR keeps one file per project (projects/<project>.json: {view}) and
-// one per view (views/<view>.json: {project}).
+// SHARES_DIR keeps one file per project (projects/<project>.json: {view,
+// edit, owner}), one per read-only link (views/<view>.json: {project}) and one
+// per editing id given out (edits/<edit>.json: {project, replaced}).
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -32,12 +47,16 @@ class HttpError extends Error {
 }
 
 const isViewId = (id) => VIEW_ID.test(id);
+const isProjectId = (id) =>
+	typeof id === 'string' && PROJECT_ID.test(id) && !isViewId(id);
 
-const createShares = ({ dir, log, onRevoke = () => {} }) => {
+const createShares = ({ dir, log, identify, onRevoke = () => {} }) => {
 	const projectsDir = path.join(dir, 'projects');
 	const viewsDir = path.join(dir, 'views');
-	fs.mkdirSync(projectsDir, { recursive: true });
-	fs.mkdirSync(viewsDir, { recursive: true });
+	const editsDir = path.join(dir, 'edits');
+	for (const folder of [projectsDir, viewsDir, editsDir]) {
+		fs.mkdirSync(folder, { recursive: true });
+	}
 
 	const readJson = (file) => {
 		try {
@@ -56,23 +75,49 @@ const createShares = ({ dir, log, onRevoke = () => {} }) => {
 
 	const projectPath = (project) => path.join(projectsDir, `${project}.json`);
 	const viewPath = (view) => path.join(viewsDir, `${view}.json`);
+	const editPath = (edit) => path.join(editsDir, `${edit}.json`);
 
-	// The project a view id opens, or null when it opens nothing.
-	const resolve = (view) => {
-		if (!isViewId(view)) return null;
-		const project = readJson(viewPath(view))?.project;
-		return typeof project === 'string' && PROJECT_ID.test(project)
-			? project
-			: null;
+	// What an id opens: {project, access}, where `project` is the id the
+	// project's documents and files are stored under and `access` is "edit",
+	// "view" or "replaced" (the id opened the project until its link was
+	// replaced); null when it opens nothing.
+	const lookup = (id) => {
+		if (typeof id !== 'string' || !PROJECT_ID.test(id)) return null;
+		if (isViewId(id)) {
+			const project = readJson(viewPath(id))?.project;
+			return isProjectId(project) ? { project, access: 'view' } : null;
+		}
+		const given = readJson(editPath(id));
+		if (given) {
+			return isProjectId(given.project)
+				? {
+						project: given.project,
+						access: given.replaced ? 'replaced' : 'edit',
+					}
+				: null;
+		}
+		return readJson(projectPath(id))?.edit
+			? { project: id, access: 'replaced' }
+			: { project: id, access: 'edit' };
+	};
+
+	// The editing id a request names, as the project it opens.
+	const projectNamed = (id) => {
+		const found = isProjectId(id) ? lookup(id) : null;
+		if (!found || found.access === 'view') {
+			throw new HttpError(400, 'invalid_project');
+		}
+		return found;
 	};
 
 	const viewOf = (project, reset) => {
-		const current = readJson(projectPath(project))?.view;
+		const record = readJson(projectPath(project)) ?? {};
+		const current = record.view;
 		if (isViewId(current) && !reset) return current;
 
 		const view = `view${crypto.randomBytes(16).toString('hex')}`;
 		writeJson(viewPath(view), { project, createdAt: Date.now() });
-		writeJson(projectPath(project), { view });
+		writeJson(projectPath(project), { ...record, view });
 		if (isViewId(current)) {
 			fs.rmSync(viewPath(current), { force: true });
 			onRevoke(current);
@@ -81,6 +126,52 @@ const createShares = ({ dir, log, onRevoke = () => {} }) => {
 			log('read-only link created');
 		}
 		return view;
+	};
+
+	const shareView = (body) => {
+		const found = projectNamed(body.project);
+		if (found.access === 'replaced') throw new HttpError(403, 'link_replaced');
+		return { view: viewOf(found.project, body.reset === true) };
+	};
+
+	const shareEdit = async (req, body) => {
+		const found = projectNamed(body.project);
+		const owner = await identify(req);
+		const { project } = found;
+		const record = readJson(projectPath(project)) ?? {};
+
+		if (body.claim === true && !record.owner) {
+			record.owner = owner;
+			writeJson(projectPath(project), record);
+			log('project owner set');
+		}
+		const mine = record.owner === owner;
+		if (found.access === 'replaced' && !mine) {
+			throw new HttpError(403, 'link_replaced');
+		}
+
+		if (body.reset === true) {
+			if (!mine) throw new HttpError(403, 'not_owner');
+			const previous = record.edit;
+			const edit = crypto.randomUUID();
+			writeJson(editPath(edit), { project, createdAt: Date.now() });
+			record.edit = edit;
+			writeJson(projectPath(project), record);
+			if (previous) {
+				writeJson(editPath(previous), {
+					...readJson(editPath(previous)),
+					project,
+					replaced: true,
+				});
+			}
+			onRevoke(previous ?? project);
+			log('editing link replaced');
+		}
+
+		return {
+			owner: mine ? 'you' : record.owner ? 'other' : 'none',
+			...(mine ? { edit: record.edit ?? project } : {}),
+		};
 	};
 
 	const readBody = (req) =>
@@ -107,9 +198,14 @@ const createShares = ({ dir, log, onRevoke = () => {} }) => {
 			req.on('error', () => fail(new HttpError(400, 'interrupted')));
 		});
 
-	const handles = (url) => url === '/share/view';
+	const routes = {
+		'/share/view': (_req, body) => shareView(body),
+		'/share/edit': (req, body) => shareEdit(req, body),
+	};
 
-	const handle = async (req, res) => {
+	const handles = (url) => Object.hasOwn(routes, url);
+
+	const handle = async (req, res, url) => {
 		const reply = (status, body) => {
 			res.writeHead(status, {
 				'Content-Type': 'application/json',
@@ -125,18 +221,13 @@ const createShares = ({ dir, log, onRevoke = () => {} }) => {
 		}
 		try {
 			const body = await readBody(req);
-			const project = body.project;
-			// A view id cannot have a read-only link of its own.
-			if (
-				typeof project !== 'string' ||
-				!PROJECT_ID.test(project) ||
-				isViewId(project)
-			) {
-				throw new HttpError(400, 'invalid_project');
-			}
-			reply(200, { view: viewOf(project, body.reset === true) });
+			reply(200, await routes[url](req, body));
 		} catch (error) {
-			if (error instanceof HttpError) {
+			// Errors from the accounts (signed out...) carry a status too.
+			if (
+				Number.isInteger(error?.status) &&
+				typeof error.code === 'string'
+			) {
 				reply(error.status, { error: error.code });
 				return;
 			}
@@ -145,7 +236,7 @@ const createShares = ({ dir, log, onRevoke = () => {} }) => {
 		}
 	};
 
-	return { handles, handle, resolve };
+	return { handles, handle, lookup };
 };
 
 module.exports = { createShares, isViewId };

@@ -48,6 +48,18 @@ class WebsocketProviderRegistry {
 		}
 	}
 
+	// Moves a provider to another room on the same server, reconnecting it
+	// there with the same document.
+	moveProvider(roomName: string, newRoomName: string): void {
+		const entry = this.providers.get(roomName);
+		if (!entry || this.providers.has(newRoomName)) return;
+		this.providers.delete(roomName);
+		this.providers.set(newRoomName, entry);
+		entry.provider.roomname = newRoomName;
+		entry.provider.disconnect();
+		entry.provider.connect();
+	}
+
 	releaseProvider(roomName: string): boolean {
 		if (!this.providers.has(roomName)) {
 			moduleLog.warn(

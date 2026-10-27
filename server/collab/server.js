@@ -9,7 +9,9 @@
 //  - keeps accounts and their project lists (/account/..., accounts.js), so
 //    that signing in on another device shows the same projects;
 //  - gives projects read-only links (/share/view, shares.js): a connection
-//    through one receives the project, and its changes are dropped.
+//    through one receives the project, and its changes are dropped;
+//  - lets a project's owner replace its editing link (/share/edit,
+//    shares.js), which cuts off whoever kept the old one.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -19,7 +21,7 @@
 //                       y-websocket); unset keeps documents in memory only
 //   FILES_DIR           directory for file contents (default ./files)
 //   ACCOUNTS_DIR        directory for accounts (default ./accounts)
-//   SHARES_DIR          directory for read-only links (default ./shares)
+//   SHARES_DIR          directory for project links (default ./shares)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -30,7 +32,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
-const { createShares, isViewId } = require('./shares');
+const { createShares } = require('./shares');
 
 const host = process.env.HOST || '0.0.0.0';
 const port = Number.parseInt(process.env.PORT || '1234', 10);
@@ -58,10 +60,12 @@ if (process.env.YPERSISTENCE) {
 }
 const { docs, setupWSConnection } = require('y-websocket/bin/utils');
 
-// Feuillet rooms are `<projectId>-<collection>`, e.g. `abc123-yjs_metadata`;
-// through a read-only link, `<viewId>-<collection>`.
+// Feuillet rooms are `<projectId>-<collection>`, e.g. `abc123-yjs_metadata`,
+// where the project id is a UUID, an older id without dashes, or a read-only
+// link's view id.
 const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
-const VIEW_ROOM = /^(view[0-9a-f]{32})-(.+)$/;
+const PROJECT_ROOM =
+	/^([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}|[A-Za-z0-9_]+)-(.+)$/i;
 const FILE_ROUTE = /^\/files\/([A-Za-z0-9_-]{1,100})\/([0-9a-f]{64})$/;
 
 const log = (...parts) =>
@@ -72,14 +76,16 @@ const isAllowedOrigin = (origin) =>
 
 const accounts = createAccounts({ dir: accountsDir, log });
 
-// Connections opened through each read-only link, closed when it is replaced.
-const viewers = new Map();
+// Connections by the link they were opened through, closed when it is
+// replaced. Close codes 4400-4499 tell clients not to reconnect.
+const connections = new Map();
 const shares = createShares({
 	dir: sharesDir,
 	log,
-	onRevoke: (view) => {
-		for (const conn of viewers.get(view) ?? []) {
-			conn.close(4403, 'Read-only link replaced');
+	identify: accounts.identify,
+	onRevoke: (id) => {
+		for (const conn of connections.get(id) ?? []) {
+			conn.close(4403, 'Link replaced');
 		}
 	},
 });
@@ -263,14 +269,19 @@ const server = http.createServer((req, res) => {
 			return;
 		}
 		const [, id, hash] = fileRoute;
-		const viewing = isViewId(id);
-		const projectId = viewing ? shares.resolve(id) : id;
-		if (!projectId) {
+		const found = shares.lookup(id);
+		if (!found) {
 			req.resume();
 			send(res, 404, 'Not found\n');
 			return;
 		}
-		const projectDir = path.join(filesDir, projectId);
+		if (found.access === 'replaced') {
+			req.resume();
+			send(res, 403, 'Link replaced\n');
+			return;
+		}
+		const viewing = found.access === 'view';
+		const projectDir = path.join(filesDir, found.project);
 		const filePath = path.join(projectDir, hash);
 		if (req.method === 'GET' || req.method === 'HEAD') {
 			serveFile(req, res, filePath);
@@ -309,27 +320,34 @@ server.on('upgrade', (req, socket, head) => {
 		return;
 	}
 
-	const viewRoom = room.match(VIEW_ROOM);
-	const view = viewRoom?.[1];
-	const project = view ? shares.resolve(view) : null;
-	if (view && !project) {
-		reject(socket, 404, 'Not Found');
+	const projectRoom = room.match(PROJECT_ROOM);
+	if (!projectRoom) {
+		wss.handleUpgrade(req, socket, head, (conn) => {
+			setupWSConnection(conn, req, { docName: room });
+		});
 		return;
 	}
+	const [, id, collection] = projectRoom;
+	const found = shares.lookup(id);
 
 	wss.handleUpgrade(req, socket, head, (conn) => {
-		if (!view) {
-			setupWSConnection(conn, req, { docName: room });
+		// Closing, rather than refusing the upgrade, tells the client why and
+		// stops it from trying again.
+		if (!found || found.access === 'replaced') {
+			if (found) conn.close(4403, 'Link replaced');
+			else conn.close(4404, 'Unknown link');
 			return;
 		}
-		makeReadOnly(conn);
-		if (!viewers.has(view)) viewers.set(view, new Set());
-		viewers.get(view).add(conn);
+		if (found.access === 'view') makeReadOnly(conn);
+		if (!connections.has(id)) connections.set(id, new Set());
+		connections.get(id).add(conn);
 		conn.on('close', () => {
-			viewers.get(view)?.delete(conn);
-			if (viewers.get(view)?.size === 0) viewers.delete(view);
+			connections.get(id)?.delete(conn);
+			if (connections.get(id)?.size === 0) connections.delete(id);
 		});
-		setupWSConnection(conn, req, { docName: `${project}-${viewRoom[2]}` });
+		setupWSConnection(conn, req, {
+			docName: `${found.project}-${collection}`,
+		});
 	});
 });
 
@@ -344,7 +362,7 @@ server.listen(port, host, () => {
 			: 'documents in memory only;',
 		`files in ${filesDir};`,
 		`accounts in ${accountsDir};`,
-		`read-only links in ${sharesDir}`,
+		`project links in ${sharesDir}`,
 	);
 });
 

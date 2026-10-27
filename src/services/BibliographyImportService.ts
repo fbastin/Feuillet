@@ -4,6 +4,7 @@ import { createNamedLogger } from '@/logging';
 import { parseUrlFragments } from '../utils/urlUtils';
 import { fileStoreService } from './FileStoreService';
 import { collabService } from './CollabService';
+import { projectLinkService } from './ProjectLinkService';
 import type { BibEntry } from '../types/bibliography';
 
 const moduleLog = createNamedLogger('BibliographyImportService');
@@ -470,7 +471,9 @@ export class BibliographyImportService {
 			const currentFragment = parseUrlFragments(
 				window.location.hash.substring(1),
 			);
-			const projectId = currentFragment.yjsUrl?.slice(4);
+			const projectId = currentFragment.yjsUrl
+				? projectLinkService.localId(currentFragment.yjsUrl.slice(4))
+				: undefined;
 
 			if (projectId) {
 				await collabService.updateDocumentContent(

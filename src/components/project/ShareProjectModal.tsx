@@ -6,9 +6,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '@/i18n';
 import { useCollab } from '../../hooks/useCollab';
 import { useLSPConfig } from '../../hooks/useLSPConfig';
+import { useProjectLink } from '../../hooks/useProjectLink';
 import { useSettings } from '../../hooks/useSettings';
 import { useSharedToolPreferences } from '../../hooks/useSharedToolPreferences';
 import { useTypesetterConfig } from '../../hooks/useTypesetterConfig';
+import {
+	AccountServerError,
+	accountSyncService,
+	type ProjectAccess,
+} from '../../services/AccountSyncService';
 import { requestReadOnlyProjectId } from '../../services/ReadOnlyLinkService';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import type { DocumentList } from '../../types/documents';
@@ -41,17 +47,25 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 	const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
 	const { data: doc, readOnly } = useCollab<DocumentList>();
 	const { getSetting } = useSettings();
-	const readOnlyLinks =
+	// Projects synced through the collaboration server have links it manages.
+	const serverLinks =
 		getSetting('collab-provider-type')?.value === 'websocket' && !readOnly;
 	const websocketServer =
 		(getSetting('collab-websocket-server')?.value as string | undefined) ?? '';
 	const projectId = docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl;
+	const { serverId } = useProjectLink(projectId);
+	const linkBase = `${window.location.origin}${window.location.pathname}`;
+	// Its editing link changes when its owner replaces it.
+	const projectUrl = readOnly ? shareUrl : `${linkBase}#yjs:${serverId}`;
 	const [readOnlyId, setReadOnlyId] = useState<string | null>(null);
 	const [readOnlyError, setReadOnlyError] = useState<string | null>(null);
 	const [confirmReplace, setConfirmReplace] = useState(false);
-	const readOnlyUrl = readOnlyId
-		? `${window.location.origin}${window.location.pathname}#yjs:${readOnlyId}`
-		: '';
+	const readOnlyUrl = readOnlyId ? `${linkBase}#yjs:${readOnlyId}` : '';
+	// undefined while unknown; null when no account is signed in.
+	const [access, setAccess] = useState<ProjectAccess | null | undefined>();
+	const [accessError, setAccessError] = useState<string | null>(null);
+	const [confirmEditReplace, setConfirmEditReplace] = useState(false);
+	const [accessBusy, setAccessBusy] = useState(false);
 
 	const loadReadOnlyLink = useCallback(
 		async (reset: boolean) => {
@@ -60,7 +74,7 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 				setReadOnlyId(
 					await requestReadOnlyProjectId(
 						collabHttpBaseUrl(websocketServer),
-						projectId,
+						serverId,
 						reset,
 					),
 				);
@@ -70,13 +84,45 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 				);
 			}
 		},
-		[projectId, websocketServer],
+		[serverId, websocketServer],
+	);
+
+	const changeAccess = useCallback(
+		async (options: { claim?: boolean; reset?: boolean }) => {
+			setAccessError(null);
+			setAccessBusy(true);
+			try {
+				setAccess(await accountSyncService.projectAccess(projectId, options));
+			} catch (error) {
+				const code = error instanceof AccountServerError ? error.code : '';
+				setAccessError(
+					code === 'link_replaced'
+						? t(
+								'This link no longer opens the project: it was replaced. Ask whoever shared it for the new link. You see the last version received.',
+							)
+						: code === 'unreachable'
+							? t('Could not reach the collaboration server.')
+							: t('Could not manage the editing link.'),
+				);
+			} finally {
+				setAccessBusy(false);
+			}
+		},
+		[projectId],
 	);
 
 	useEffect(() => {
-		if (isOpen && readOnlyLinks) void loadReadOnlyLink(false);
+		if (isOpen && serverLinks) void loadReadOnlyLink(false);
 		if (!isOpen) setConfirmReplace(false);
-	}, [isOpen, readOnlyLinks, loadReadOnlyLink]);
+	}, [isOpen, serverLinks, loadReadOnlyLink]);
+
+	useEffect(() => {
+		if (isOpen && serverLinks) void changeAccess({});
+		if (!isOpen) {
+			setConfirmEditReplace(false);
+			setAccess(undefined);
+		}
+	}, [isOpen, serverLinks, changeAccess]);
 	const typesetters = useTypesetterConfig();
 	const lsps = useLSPConfig();
 	const preferences = useSharedToolPreferences();
@@ -146,8 +192,8 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 	const hasProjectTools = projectUsedTools.length > 0;
 
 	useEffect(() => {
-		if (isOpen && shareUrl) {
-			QRCode.toDataURL(shareUrl, {
+		if (isOpen && projectUrl) {
+			QRCode.toDataURL(projectUrl, {
 				width: 200,
 				margin: 2,
 				color: {
@@ -158,7 +204,7 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 				.then(setQrCodeUrl)
 				.catch(console.error);
 		}
-	}, [isOpen, shareUrl]);
+	}, [isOpen, projectUrl]);
 
 	return (
 		<Modal
@@ -189,11 +235,90 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 					<CopyField
 						id='share-url'
 						label={readOnly ? t('Read-only link') : t('Project Link')}
-						value={shareUrl}
+						value={projectUrl}
 					/>
 				</div>
 
-				{readOnlyLinks && (
+				{serverLinks && (
+					<div className='ui-stack' data-gap='xs'>
+						{accessError && (
+							<div className='ui-message' data-tone='warning'>
+								{accessError}
+							</div>
+						)}
+						{access === null && (
+							<p className='ui-meta'>
+								{t(
+									'Sign in to a server account to manage who can edit this project.',
+								)}
+							</p>
+						)}
+						{access?.owner === 'none' && (
+							<div className='ui-actions' data-align='end'>
+								<span className='ui-meta'>
+									{t(
+										"This project has no owner yet. Its owner can replace the editing link to remove someone's access.",
+									)}
+								</span>
+								<button
+									type='button'
+									className='button secondary'
+									disabled={accessBusy}
+									onClick={() => void changeAccess({ claim: true })}
+								>
+									{t('Become the owner')}
+								</button>
+							</div>
+						)}
+						{access?.owner === 'other' && (
+							<p className='ui-meta'>
+								{t("Only the project's owner can replace the editing link.")}
+							</p>
+						)}
+						{access?.owner === 'you' &&
+							(confirmEditReplace ? (
+								<div className='ui-actions' data-align='end'>
+									<span className='ui-meta'>
+										{t(
+											'Everyone using the current editing link will lose access. Send the new link to those who should keep it.',
+										)}
+									</span>
+									<button
+										type='button'
+										className='button secondary'
+										onClick={() => setConfirmEditReplace(false)}
+									>
+										{t('Cancel')}
+									</button>
+									<button
+										type='button'
+										className='button danger'
+										disabled={accessBusy}
+										onClick={() => {
+											setConfirmEditReplace(false);
+											void changeAccess({ reset: true });
+										}}
+									>
+										{t('Replace')}
+									</button>
+								</div>
+							) : (
+								<div className='ui-actions' data-align='end'>
+									<span className='ui-meta'>{t('You own this project.')}</span>
+									<button
+										type='button'
+										className='button secondary'
+										disabled={accessBusy}
+										onClick={() => setConfirmEditReplace(true)}
+									>
+										{t('Replace the editing link')}
+									</button>
+								</div>
+							))}
+					</div>
+				)}
+
+				{serverLinks && (
 					<div className='ui-stack' data-gap='xs'>
 						{readOnlyError ? (
 							<div className='ui-message' data-tone='warning'>

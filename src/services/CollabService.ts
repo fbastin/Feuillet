@@ -1,6 +1,7 @@
 // src/services/CollabService.ts
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { removeAwarenessStates } from 'y-protocols/awareness';
+import type { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { createNamedLogger } from '@/logging';
@@ -16,6 +17,7 @@ import type {
 import type { YjsDocUrl } from '../types/yjs';
 import { isReadOnlyProjectId, parseUrlFragments } from '../utils/urlUtils';
 import { offlineService } from './OfflineService';
+import { projectLinkService } from './ProjectLinkService';
 
 const moduleLog = createNamedLogger('CollabService');
 
@@ -29,6 +31,10 @@ interface OfflineDocContainer {
 
 interface OnlineDocContainer extends DocContainer {
 	providerType: CollabProviderType;
+	docId: string;
+	collectionName: string;
+	// The room on the server: the project's server id, then the collection.
+	roomName: string;
 }
 
 type AnyDocContainer = OnlineDocContainer | OfflineDocContainer;
@@ -46,6 +52,27 @@ class CollabService {
 				this.handleNetworkChange(status.isOnline);
 			},
 		);
+		projectLinkService.addListener((projectId, serverId) =>
+			this.relink(projectId, serverId),
+		);
+	}
+
+	// The project's editing link was replaced: its open documents reconnect
+	// through the new one.
+	private relink(projectId: string, serverId: string): void {
+		for (const container of this.docContainers.values()) {
+			if (
+				!('providerType' in container) ||
+				container.providerType !== 'websocket' ||
+				container.docId !== projectId
+			) {
+				continue;
+			}
+			const roomName = `${serverId}-${container.collectionName}`;
+			if (roomName === container.roomName) continue;
+			collabWebsocket.moveProvider(container.roomName, roomName);
+			container.roomName = roomName;
+		}
 	}
 
 	public setForceLocalConnections(forceLocalConnections: boolean): void {
@@ -185,15 +212,29 @@ class CollabService {
 		const doc = new Y.Doc();
 		const dbName = `texlyre-project-${docId}`;
 		const persistenceName = `${dbName}-${collectionName}`;
-		const roomName = `${docId}-${collectionName}`;
+		const providerType = options?.providerType ?? 'webrtc';
+		// The collaboration server may open the project under another id.
+		const roomName =
+			providerType === 'websocket'
+				? `${projectLinkService.serverId(docId)}-${collectionName}`
+				: `${docId}-${collectionName}`;
 
 		const persistence = new IndexeddbPersistence(persistenceName, doc);
 
-		const providerType = options?.providerType ?? 'webrtc';
 		let provider: CollabProvider;
 
 		if (providerType === 'websocket') {
 			provider = this.createWebsocketProvider(roomName, doc, options);
+			// The server closes connections through a link that no longer
+			// opens the project, telling the client not to come back.
+			(provider as WebsocketProvider).on('closed', (event) => {
+				if (event.code !== 4403 && event.code !== 4404) return;
+				const room = onlineContainer.roomName;
+				projectLinkService.reportRefused(
+					docId,
+					room.slice(0, room.length - collectionName.length - 1),
+				);
+			});
 		} else {
 			provider = this.createWebrtcProvider(roomName, doc, options);
 		}
@@ -209,7 +250,10 @@ class CollabService {
 							`Connection lost for ${containerId}, attempting reconnect...`,
 						);
 						setTimeout(() => {
-							if (this.docContainers.has(containerId)) {
+							if (
+								this.docContainers.has(containerId) &&
+								!projectLinkService.isCutOff(docId)
+							) {
 								provider.connect();
 							}
 						}, 2000);
@@ -239,6 +283,9 @@ class CollabService {
 			persistence,
 			provider,
 			providerType,
+			docId,
+			collectionName,
+			roomName,
 			refCount: 1,
 		};
 
@@ -318,7 +365,10 @@ class CollabService {
 			moduleLog.info(`Destroying connection for: ${containerId}`);
 
 			if ('provider' in container && container.provider) {
-				const roomName = `${docId}-${collectionName}`;
+				const roomName =
+					'roomName' in container
+						? container.roomName
+						: `${docId}-${collectionName}`;
 				container.provider.disconnect();
 
 				if ('providerType' in container) {

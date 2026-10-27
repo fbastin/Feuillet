@@ -14,6 +14,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useDiskFiles } from '../../hooks/useDiskFiles';
 import { collabService } from '../../services/CollabService';
 import { fileStoreService } from '../../services/FileStoreService';
+import { projectLinkService } from '../../services/ProjectLinkService';
 import {
 	shareTargetService,
 	type PendingShare,
@@ -225,7 +226,7 @@ const AppRouter: React.FC = () => {
 			if (hashUrl?.includes('yjs:')) {
 				const fragments = parseUrlFragments(hashUrl);
 				if (fragments.yjsUrl && isValidYjsUrl(fragments.yjsUrl)) {
-					setDocUrl(fragments.yjsUrl);
+					setDocUrl(projectLinkService.toLocalUrl(fragments.yjsUrl));
 					setTargetDocId(fragments.docId || null);
 					setTargetFilePath(fragments.filePath || null);
 					if (isAuthenticated && !isInitializing) setCurrentView('editor');
@@ -234,7 +235,7 @@ const AppRouter: React.FC = () => {
 			}
 
 			if (isValidYjsUrl(hashUrl)) {
-				setDocUrl(hashUrl);
+				setDocUrl(projectLinkService.toLocalUrl(hashUrl));
 				if (isAuthenticated && !isInitializing) setCurrentView('editor');
 				return;
 			}
@@ -309,6 +310,19 @@ const AppRouter: React.FC = () => {
 		window.addEventListener('popstate', handlePopState);
 		return () => window.removeEventListener('popstate', handlePopState);
 	}, [resolveViewFromHash]);
+
+	// The open project's editing link was replaced: the address bar shows the
+	// new one, which others can open.
+	useEffect(
+		() =>
+			projectLinkService.addListener((projectId, serverId) => {
+				if (docUrl !== `yjs:${projectId}`) return;
+				const hash = window.location.hash.substring(1);
+				const rest = hash.includes('&') ? hash.slice(hash.indexOf('&')) : '';
+				replaceHash(`yjs:${serverId}${rest}`);
+			}),
+		[docUrl],
+	);
 
 	useEffect(() => {
 		const checkAndCreateProject = async () => {
@@ -432,7 +446,8 @@ const AppRouter: React.FC = () => {
 			finalUrl = projectDocUrl;
 		}
 
-		pushHash(finalUrl);
+		// The address bar shows the link others can open the project with.
+		pushHash(projectLinkService.toServerUrl(finalUrl));
 		setCurrentView('editor');
 	};
 

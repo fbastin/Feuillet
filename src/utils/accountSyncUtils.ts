@@ -8,6 +8,7 @@ import { getForcedUserData, getUserData } from './userDataUtils';
 export interface AccountProject {
 	id: string;
 	docUrl?: string;
+	editId?: string;
 	name?: string;
 	description?: string;
 	type?: string;
@@ -28,6 +29,7 @@ export interface AccountSyncPlan {
 
 const ACCOUNT_FIELDS = [
 	'docUrl',
+	'editId',
 	'name',
 	'description',
 	'type',
@@ -50,6 +52,7 @@ export function toAccountProject(project: Project): AccountProject {
 	return {
 		id: project.id,
 		docUrl: project.docUrl,
+		editId: project.editId,
 		name: project.name,
 		description: project.description,
 		type: project.type,
@@ -64,6 +67,7 @@ export function toAccountProject(project: Project): AccountProject {
 
 const describedBy = (entry: AccountProject) => ({
 	docUrl: entry.docUrl || `yjs:${entry.id}`,
+	editId: entry.editId,
 	name: entry.name ?? '',
 	description: entry.description ?? '',
 	type: entry.type ?? 'latex',

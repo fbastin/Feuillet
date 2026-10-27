@@ -196,3 +196,30 @@ describe('server-side dictionary', () => {
 			.toBe(true);
 	});
 });
+
+describe('replaced editing links', () => {
+	it("carries the id a project opens under to the account's other devices", () => {
+		const moved = project({ editId: 'new-link' });
+		expect(toAccountProject(moved).editId).toBe('new-link');
+		expect(accountFieldsChanged(project(), moved)).toBe(true);
+
+		const plan = planAccountSync(
+			[project()],
+			[entry({ editId: 'new-link', updatedAt: 200 })],
+			'me',
+		);
+		expect(plan.update).toEqual([
+			expect.objectContaining({ id: 'p1', editId: 'new-link' }),
+		]);
+	});
+
+	it('keeps only a valid id on the server', () => {
+		expect(cleanProject({ id: 'p1', updatedAt: 1, editId: 'new-link' }).editId).toBe(
+			'new-link',
+		);
+		expect(cleanProject({ id: 'p1', updatedAt: 1, editId: '../x' }).editId).toBe(
+			undefined,
+		);
+	});
+});
+

@@ -18,7 +18,12 @@ no peer-to-peer connection limit:
 - read-only links, as on Overleaf: the Share dialog gives a second link, and
   whoever opens it receives the project and follows it live, but the server
   drops everything they send to change it. The link does not reveal the
-  editing link, and replacing it cuts off everyone who used the old one.
+  editing link, and replacing it cuts off everyone who used the old one;
+- project owners, as on Overleaf: the account that creates a project owns it
+  (on an older project, the first account to choose "Become the owner" in
+  the Share dialog). Its owner can replace the editing link: whoever kept the
+  old one is cut off and told so, those given the new one keep working, and
+  the owner's other devices move to it through the account.
 
 LaTeX projects compile on a full TeX Live ([`server/texlive`](../server/texlive)),
 as on Overleaf. It is the default compiler for new LaTeX projects and for
@@ -55,9 +60,9 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/feuil
 Documents are kept in the `feuillet_collab-data` volume, file contents in
 `feuillet_collab-files`, accounts in `feuillet_collab-accounts` (one JSON
 file per account, with a scrypt hash of its password and the hashes of its
-session tokens) and read-only links in `feuillet_collab-shares`; none is
-touched by an update. The TeX Live server
-keeps nothing: each connection compiles in its own temporary directory.
+session tokens) and project links and owners in `feuillet_collab-shares`;
+none is touched by an update. The TeX Live server keeps nothing: each
+connection compiles in its own temporary directory.
 
 ## Checks
 

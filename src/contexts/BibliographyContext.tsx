@@ -19,6 +19,7 @@ import { fileStoreService } from '../services/FileStoreService';
 import { genericLSPService } from '../services/GenericLSPService';
 import { bibliographyImportService } from '../services/BibliographyImportService';
 import { filePathCacheService } from '../services/FilePathCacheService';
+import { projectLinkService } from '../services/ProjectLinkService';
 import { parseUrlFragments } from '../utils/urlUtils';
 import { isBibFile } from '../utils/fileUtils';
 import type { FileNode } from '../types/files';
@@ -160,7 +161,9 @@ function getScopeOptions(
 
 function getProjectId(): string | undefined {
 	const currentFragment = parseUrlFragments(window.location.hash.substring(1));
-	return currentFragment.yjsUrl ? currentFragment.yjsUrl.slice(4) : undefined;
+	return currentFragment.yjsUrl
+		? projectLinkService.localId(currentFragment.yjsUrl.slice(4))
+		: undefined;
 }
 
 export const BibliographyProvider: React.FC<BibliographyProviderProps> = ({
