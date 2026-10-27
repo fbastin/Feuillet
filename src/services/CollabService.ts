@@ -4,6 +4,7 @@ import { removeAwarenessStates } from 'y-protocols/awareness';
 import type { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { collabWebrtc } from '../extensions/yjs/CollabWebrtc';
 import { collabWebsocket } from '../extensions/yjs/CollabWebsocket';
@@ -583,6 +584,59 @@ class CollabService {
 			moduleLog.error('Error during bulk sync:', error);
 			throw error;
 		}
+	}
+
+	/**
+	 * Opens documents of a project and waits until each has caught up with
+	 * the collaboration server, so that their text is the latest, even for
+	 * documents a collaborator changed while they were closed here. Gives a
+	 * function that closes the documents it opened.
+	 */
+	public async openDocumentsUpToDate(
+		projectId: string,
+		documentIds: string[],
+		timeoutMs = 20000,
+	): Promise<() => void> {
+		const collections = documentIds.map((id) => `yjs_${id}`);
+		const providers = collections.map(
+			(collection) => this.connect(projectId, collection).provider,
+		);
+		const release = () => {
+			for (const collection of collections) {
+				this.disconnect(projectId, collection);
+			}
+		};
+		const caughtUp = (provider: CollabProvider | null) =>
+			new Promise<boolean>((resolve) => {
+				const websocket = provider as WebsocketProvider | null;
+				// Only the WebSocket server holds every change; offline or
+				// between peers, the local copy is what there is.
+				if (!websocket || !('wsconnected' in websocket) || websocket.synced) {
+					resolve(true);
+					return;
+				}
+				const timer = setTimeout(() => {
+					websocket.off('sync', onSync);
+					resolve(false);
+				}, timeoutMs);
+				const onSync = (synced: boolean) => {
+					if (!synced) return;
+					clearTimeout(timer);
+					websocket.off('sync', onSync);
+					resolve(true);
+				};
+				websocket.on('sync', onSync);
+			});
+		const results = await Promise.all(providers.map(caughtUp));
+		if (results.includes(false)) {
+			release();
+			throw new Error(
+				t(
+					'Some documents could not be loaded from the collaboration server. Check your connection and try again.',
+				),
+			);
+		}
+		return release;
 	}
 
 	public stopSyncAllDocuments(syncId: string): void {

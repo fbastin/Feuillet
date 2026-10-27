@@ -37,6 +37,7 @@ import type {
 	GitRemoteProvider,
 	GitRemoteRepository,
 } from '@/types/gitRemote';
+import type { SharedGitRemote } from '@/types/documents';
 import type { PendingGitImport } from '@/utils/gitPendingImport';
 import { ensureGitRemoteBranch } from '@/utils/gitUtils';
 import GitAccountTokenForm from './GitAccountTokenForm';
@@ -58,6 +59,8 @@ interface GitHubSyncModalProps {
 	provider: GitRemoteProvider;
 	icon: React.ComponentType;
 	pendingImport?: PendingGitImport | null;
+	// The repository a collaborator linked the project to.
+	sharedRemote?: SharedGitRemote;
 }
 
 type LinkMode = 'create' | 'existing';
@@ -91,6 +94,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	provider,
 	icon: ProviderIcon,
 	pendingImport,
+	sharedRemote,
 }) => {
 	const { user } = useAuth();
 	const { removeSecret } = useSecrets();
@@ -118,6 +122,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		null,
 	);
 	const [cleanAnnotations, setCleanAnnotations] = useState(true);
+	const [linkAnother, setLinkAnother] = useState(false);
 
 	const [commitMessage, setCommitMessage] = useState('');
 	const [syncStatus, setSyncStatus] = useState<GitRemoteSyncStatus | null>(
@@ -311,6 +316,41 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				);
 				return;
 			}
+			setNotice(
+				pulled.status === 'cancelled'
+					? t(
+							'Linked {repository}. The merge was cancelled; pull again when you are ready.',
+							{ repository: repository.label },
+						)
+					: t('Linked {repository} and pulled its files.', {
+							repository: repository.label,
+						}),
+			);
+		});
+
+	// The project already lives in the repository: this device continues
+	// from the commit it was last synced as, then catches up.
+	const joinSharedRepository = (shared: SharedGitRemote) =>
+		void run('link', async (secrets) => {
+			const repository = {
+				id: shared.repositoryId,
+				label: shared.repositoryLabel,
+			};
+			await connectRepository(
+				secrets,
+				repository,
+				shared.branch,
+				cleanAnnotations,
+			);
+			await gitSyncService.adoptRemoteBase(
+				projectId,
+				secrets,
+				shared.syncedCommit,
+			);
+			const pulled = await gitProjectSyncService.pullWithLocalChanges(
+				projectId,
+				{ secrets, user, commitMessage: defaultCommitMessage() },
+			);
 			setNotice(
 				pulled.status === 'cancelled'
 					? t(
@@ -833,10 +873,61 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		</>
 	);
 
+	// Joining the repository a collaborator linked: this device syncs with
+	// it through the user's own account.
+	const renderSharedForm = (shared: SharedGitRemote) => (
+		<section
+			className='ui-card ui-stack'
+			data-gap='md'
+			data-padding='md'
+			data-surface='secondary'
+		>
+			{renderAccountLine()}
+			<p className='github-sync-shared'>
+				{t(
+					'This project is linked to {repository} ({branch}). Link it here too to sync with your own {provider} account.',
+					{
+						repository: shared.repositoryLabel,
+						branch: shared.branch,
+						provider: provider.displayName,
+					},
+				)}
+			</p>
+			{renderAnnotationOption()}
+			<div className='ui-actions' data-wrap='true'>
+				<button
+					type='button'
+					className='button primary'
+					disabled={isBusy}
+					onClick={() => joinSharedRepository(shared)}
+				>
+					{busyAction === 'link'
+						? t('Linking...')
+						: t('Link repository and pull')}
+				</button>
+				<button
+					type='button'
+					className='git-history-inline-action'
+					disabled={isBusy}
+					onClick={() => setLinkAnother(true)}
+				>
+					{t('Link another repository')}
+				</button>
+			</div>
+		</section>
+	);
+
 	const renderBody = () => {
 		if (remote) return renderLinked(remote);
 		if (pendingImport && !error) return null;
 		if (!gitAccount.hasToken || showTokenForm) return renderTokenForm();
+		if (
+			sharedRemote &&
+			sharedRemote.providerId === provider.id &&
+			!linkAnother
+		) {
+			return renderSharedForm(sharedRemote);
+		}
 		return renderLinkForm();
 	};
 

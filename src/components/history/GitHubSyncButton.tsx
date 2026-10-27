@@ -1,11 +1,15 @@
 // src/components/history/GitHubSyncButton.tsx
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
 import { GitRemoteIcon } from '@/components/common/Icons';
+import { useCollab } from '@/hooks/useCollab';
+import { useSecrets } from '@/hooks/useSecrets';
 import { pluginRegistry } from '@/plugins/PluginRegistry';
+import { collabService } from '@/services/CollabService';
 import { gitSyncService } from '@/services/GitSyncService';
+import type { DocumentList, SharedGitRemote } from '@/types/documents';
 import type { GitRemoteConfig } from '@/types/gitRemote';
 import {
 	type PendingGitImport,
@@ -14,6 +18,23 @@ import {
 import GitHubSyncModal from './GitHubSyncModal';
 
 const GITHUB_PROVIDER_ID = 'github';
+const STATUS_INTERVAL_MS = 3 * 60_000;
+
+const sharedLinkOf = (config: GitRemoteConfig): SharedGitRemote => ({
+	providerId: config.providerId,
+	repositoryId: config.repositoryId,
+	repositoryLabel: config.repositoryLabel,
+	branch: config.branch,
+	...(config.syncBase ? { syncedCommit: config.syncBase.remoteOid } : {}),
+});
+
+const sameRepository = (a?: SharedGitRemote, b?: SharedGitRemote) =>
+	a?.providerId === b?.providerId &&
+	a?.repositoryId === b?.repositoryId &&
+	a?.branch === b?.branch;
+
+const sameLink = (a?: SharedGitRemote, b?: SharedGitRemote) =>
+	sameRepository(a, b) && a?.syncedCommit === b?.syncedCommit;
 
 export const findGitHubPlugin = () =>
 	pluginRegistry
@@ -60,24 +81,93 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 		setIsOpen(true);
 	}, [plugin, projectId]);
 
+	// The repository is the project's, as on Overleaf: linking or unlinking
+	// it here shows on the collaborators' devices too.
+	const { data } = useCollab<DocumentList>();
+	const loaded = data !== undefined && data !== null;
+	const shared =
+		data?.gitRemote?.providerId === plugin?.gitRemote?.id
+			? data?.gitRemote
+			: undefined;
+	const sharedRef = useRef(shared);
+	sharedRef.current = shared;
+	const previousRemote = useRef(remote);
+	useEffect(() => {
+		const before = previousRemote.current;
+		previousRemote.current = remote;
+		if (!projectId || !loaded) return;
+		const map = collabService
+			.getDocContainer(projectId, 'yjs_metadata')
+			?.doc.getMap('data');
+		if (!map) return;
+		if (remote) {
+			const link = sharedLinkOf(remote);
+			if (!sameLink(sharedRef.current, link)) map.set('gitRemote', link);
+		} else if (
+			before &&
+			sameRepository(sharedRef.current, sharedLinkOf(before))
+		) {
+			map.delete('gitRemote');
+		}
+	}, [remote, projectId, loaded]);
+
+	// Whether the repository has commits this project has not pulled yet,
+	// checked now and then without asking for the password.
+	const { getSecret } = useSecrets();
+	const [remoteChanged, setRemoteChanged] = useState(false);
+	const checkStatus = useCallback(async () => {
+		if (!projectId || !gitSyncService.getConfig(projectId)) {
+			setRemoteChanged(false);
+			return;
+		}
+		try {
+			const status = await gitSyncService.getSyncStatus(projectId, {
+				getSecret: (pluginId, secretKey, options) =>
+					getSecret(pluginId, secretKey, { ...options, prompt: false }),
+			});
+			setRemoteChanged(status.remoteChanged);
+		} catch {
+			// No token at hand yet, or offline: nothing to show.
+		}
+	}, [projectId, getSecret]);
+	useEffect(() => {
+		if (!remote || isOpen) return;
+		void checkStatus();
+		const timer = window.setInterval(
+			() => void checkStatus(),
+			STATUS_INTERVAL_MS,
+		);
+		const onFocus = () => void checkStatus();
+		window.addEventListener('focus', onFocus);
+		return () => {
+			window.clearInterval(timer);
+			window.removeEventListener('focus', onFocus);
+		};
+	}, [remote, isOpen, checkStatus]);
+
 	if (!plugin?.gitRemote || !projectId) return null;
 
 	const Icon = plugin.icon ?? GitRemoteIcon;
-	const title = remote
-		? t('Linked to {repository} ({branch})', {
-				repository: remote.repositoryLabel,
-				branch: remote.branch,
+	const linked = remote ?? shared;
+	const provider = plugin.gitRemote.displayName;
+	const title = remoteChanged
+		? t('{provider} has changes that are not in this project yet.', {
+				provider,
 			})
-		: t('Sync this project with {provider}', {
-				provider: plugin.gitRemote.displayName,
-			});
+		: linked
+			? t('Linked to {repository} ({branch})', {
+					repository: linked.repositoryLabel,
+					branch: linked.branch,
+				})
+			: t('Sync this project with {provider}', { provider });
 
 	return (
 		<>
 			<button
 				type='button'
 				className={`button github-sync-button ${className}`}
-				data-linked={remote ? 'true' : 'false'}
+				data-linked={remote ? 'true' : shared ? 'shared' : 'false'}
+				data-remote-changes={remoteChanged || undefined}
 				title={title}
 				onClick={() => setIsOpen(true)}
 			>
@@ -99,6 +189,7 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 					provider={plugin.gitRemote}
 					icon={Icon}
 					pendingImport={pendingImport}
+					sharedRemote={remote ? undefined : shared}
 				/>
 			) : null}
 		</>

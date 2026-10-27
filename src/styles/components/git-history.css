@@ -690,13 +690,26 @@
 	white-space: nowrap;
 }
 
-.github-sync-button[data-linked="true"]::after {
+.github-sync-button[data-linked="true"]::after,
+.github-sync-button[data-linked="shared"]::after {
 	content: "";
 	flex-shrink: 0;
+	box-sizing: border-box;
 	width: 0.45rem;
 	height: 0.45rem;
 	border-radius: 50%;
 	background-color: var(--color-success);
+}
+
+/* Linked by a collaborator, not on this device yet. */
+.github-sync-button[data-linked="shared"]::after {
+	border: 1px solid var(--color-success);
+	background-color: transparent;
+}
+
+/* The repository has commits to pull. */
+.github-sync-button[data-remote-changes="true"]::after {
+	background-color: var(--color-warning, #d97706);
 }
 
 @media (max-width: 760px) {

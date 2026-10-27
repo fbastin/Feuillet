@@ -11,8 +11,20 @@ export interface Document {
 	createdAt?: number;
 }
 
+// The Git repository a project is linked to, shared with its collaborators;
+// each of them syncs with their own account on the provider.
+export interface SharedGitRemote {
+	providerId: string;
+	repositoryId: string;
+	repositoryLabel: string;
+	branch: string;
+	// The remote commit the project was last pushed or pulled as.
+	syncedCommit?: string;
+}
+
 export interface DocumentList {
 	documents: Document[];
+	gitRemote?: SharedGitRemote;
 	currentDocId: string;
 	cursors: unknown[];
 	chatMessages?: ChatMessage[];

@@ -4,6 +4,8 @@ import { createNamedLogger } from '@/logging';
 import type { SecretsContextType } from '../contexts/SecretsContext';
 import type { User } from '../types/auth';
 import { stripAnnotationTagsWithSpans } from '../utils/annotationTagUtils';
+import { collabService } from './CollabService';
+import { gitFileSystemService } from './GitFileSystemService';
 import { type GitMergePlan, gitService } from './GitService';
 import { type GitPushSummary, gitSyncService } from './GitSyncService';
 import {
@@ -68,6 +70,29 @@ const resolutionText = (
 };
 
 class GitProjectSyncService {
+	/**
+	 * Runs a Git operation with the project's documents open and up to date
+	 * with the collaboration server: their latest text is what gets committed,
+	 * not a copy that fell behind while they were closed on this device.
+	 */
+	private async withLatestDocuments<T>(
+		projectId: string,
+		task: () => Promise<T>,
+	): Promise<T> {
+		const documentIds = await gitFileSystemService
+			.get(projectId)
+			.linkedDocumentIds();
+		const release = await collabService.openDocumentsUpToDate(
+			projectId,
+			documentIds,
+		);
+		try {
+			return await task();
+		} finally {
+			release();
+		}
+	}
+
 	async resolveMergeConflicts(
 		plan: GitMergePlan,
 		remoteLabel = plan.theirsBranch,
@@ -119,6 +144,16 @@ class GitProjectSyncService {
 	}
 
 	async commitPendingChanges(
+		projectId: string,
+		message: string,
+		user: User | null,
+	): Promise<string | null> {
+		return this.withLatestDocuments(projectId, () =>
+			this.commitChanges(projectId, message, user),
+		);
+	}
+
+	private async commitChanges(
 		projectId: string,
 		message: string,
 		user: User | null,
@@ -206,12 +241,14 @@ class GitProjectSyncService {
 		projectId: string,
 		{ secrets, user, commitMessage }: GitProjectSyncOptions,
 	): Promise<GitProjectPullResult & { committedOid: string | null }> {
-		const committedOid = await this.commitPendingChanges(
-			projectId,
-			commitMessage,
-			user,
-		);
-		return { ...(await this.pull(projectId, secrets, user)), committedOid };
+		return this.withLatestDocuments(projectId, async () => {
+			const committedOid = await this.commitChanges(
+				projectId,
+				commitMessage,
+				user,
+			);
+			return { ...(await this.pull(projectId, secrets, user)), committedOid };
+		});
 	}
 
 	/**
@@ -223,7 +260,18 @@ class GitProjectSyncService {
 		projectId: string,
 		{ secrets, user, commitMessage }: GitProjectSyncOptions,
 	): Promise<GitProjectPushResult> {
-		const committedOid = await this.commitPendingChanges(
+		return this.withLatestDocuments(projectId, () =>
+			this.commitPullAndPush(projectId, secrets, user, commitMessage),
+		);
+	}
+
+	private async commitPullAndPush(
+		projectId: string,
+		secrets: GitSyncSecrets,
+		user: User | null,
+		commitMessage: string,
+	): Promise<GitProjectPushResult> {
+		const committedOid = await this.commitChanges(
 			projectId,
 			commitMessage,
 			user,

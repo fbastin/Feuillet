@@ -1356,6 +1356,72 @@ class GitSyncService {
 		document.dispatchEvent(new CustomEvent('refresh-file-tree'));
 	}
 
+	/**
+	 * Starts this device's history from a commit already on the remote, the
+	 * last one the project was synced with, keeping the project's files as
+	 * they are: whatever changed since shows as pending changes, to be
+	 * committed on top. A device joining a repository its collaborators
+	 * linked thus continues its history instead of starting another one.
+	 * Gives false when there is nothing to start from.
+	 */
+	async adoptRemoteBase(
+		projectId: string,
+		secrets: GitSecretReader,
+		remoteOid?: string,
+	): Promise<boolean> {
+		if (!(await gitService.isInitialized(projectId))) {
+			await gitService.initialize(projectId);
+		}
+		if (await gitService.getHeadOid(projectId)) return false;
+		const transport = await this.resolveTransport(projectId, secrets);
+		const head = await transport.provider.historyTransport.getHead(
+			transport.token,
+			transport.config.repositoryId,
+			transport.config.branch,
+		);
+		if (!head) return false;
+
+		let base = remoteOid ?? head;
+		let localOid: string;
+		try {
+			localOid = await this.importRemoteCommit(projectId, transport, base);
+		} catch (error) {
+			// The last synced commit is gone (a force push): start from the head.
+			if (base === head) throw error;
+			base = head;
+			localOid = await this.importRemoteCommit(projectId, transport, base);
+		}
+
+		const git = await getGit();
+		const { fileSystem, options } = this.repo(projectId);
+		const branch =
+			(await gitService.getCurrentBranch(projectId)) ||
+			transport.config.branch ||
+			'main';
+		await git.writeRef({
+			...options,
+			ref: `refs/heads/${branch}`,
+			value: localOid,
+			force: true,
+		});
+		await git.writeRef({
+			...options,
+			ref: 'HEAD',
+			value: `refs/heads/${branch}`,
+			force: true,
+			symbolic: true,
+		});
+		await git.writeRef({
+			...options,
+			ref: WORKTREE_BASE_REF,
+			value: localOid,
+			force: true,
+		});
+		await fileSystem.flush();
+		this.setSyncBase(projectId, { localOid, remoteOid: base });
+		return true;
+	}
+
 	markFetchedSynced(projectId: string, fetched: GitFetchedRemote): void {
 		this.setSyncBase(projectId, {
 			localOid: fetched.localOid,

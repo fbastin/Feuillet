@@ -1058,6 +1058,19 @@ class GitFileSystem {
 		},
 	};
 
+	/** The shared documents the project's files are linked to. */
+	async linkedDocumentIds(): Promise<string[]> {
+		await this.ensureProject();
+		const files = await fileStoreService.getAllFiles(false, false, false);
+		return [
+			...new Set(
+				files
+					.filter((file) => file.documentId && this.isVisibleWorktreeNode(file))
+					.map((file) => file.documentId as string),
+			),
+		];
+	}
+
 	async flush(): Promise<void> {
 		try {
 			await this.privateFs.promises.flush();

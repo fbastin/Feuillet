@@ -51,6 +51,8 @@ export interface SecretsContextType {
 		options?: {
 			scope?: 'global' | 'project';
 			projectId?: string | null;
+			// false: give null rather than ask for the password.
+			prompt?: boolean;
 		},
 	) => Promise<SecretValue | null>;
 	removeSecret: (
@@ -472,6 +474,7 @@ export const SecretsProvider: React.FC<SecretsProviderProps> = ({
 			options?: {
 				scope?: 'global' | 'project';
 				projectId?: string | null;
+				prompt?: boolean;
 			},
 		): Promise<SecretValue | null> => {
 			if (!user) return null;
@@ -506,7 +509,10 @@ export const SecretsProvider: React.FC<SecretsProviderProps> = ({
 
 				if (!entry) return null;
 
-				const password = await promptForPassword();
+				const password =
+					options?.prompt === false && !userPassword
+						? null
+						: await promptForPassword();
 				if (!password) return null;
 
 				try {
@@ -535,6 +541,7 @@ export const SecretsProvider: React.FC<SecretsProviderProps> = ({
 		},
 		[
 			user,
+			userPassword,
 			secretsCache,
 			getSecretId,
 			promptForPassword,
