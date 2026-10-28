@@ -32,7 +32,10 @@ no peer-to-peer connection limit:
   server saves a version with who changed what. The Versions tab lists them
   by day, shows each change against the version before or compares any two,
   labels versions (labelled ones are kept for good), and restores a file or
-  the whole project as it was.
+  the whole project as it was;
+- "Sign in with GitHub" for GitHub sync, as on Overleaf (see below): the
+  server runs GitHub's sign-in and hands the token to the browser, which
+  encrypts and keeps it; the server keeps none.
 
 LaTeX projects compile on a full TeX Live ([`server/texlive`](../server/texlive)),
 as on Overleaf. It is the default compiler for new LaTeX projects and for
@@ -55,6 +58,32 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/feuil
    with certbot.
 3. Run `deploy/publish.sh` (no sudo, Node.js 22 or newer) to build and publish
    the application.
+
+## Sign in with GitHub
+
+GitHub sync works with a personal access token pasted in each browser. To
+offer "Sign in with GitHub" instead, register a GitHub OAuth App once:
+
+1. On GitHub: Settings → Developer settings → OAuth Apps → New OAuth App.
+   - Application name: `Feuillet`
+   - Homepage URL: `https://feuillet.slashbin.net`
+   - Authorization callback URL:
+     `https://feuillet.slashbin.net/collab/github/callback`
+2. Register it, then generate a client secret.
+3. Put both in `/etc/feuillet/collab.env` (created by `deploy/install.sh`,
+   readable by root only, kept out of the repository):
+
+   ```
+   GITHUB_CLIENT_ID=...
+   GITHUB_CLIENT_SECRET=...
+   ```
+
+4. Run `sudo deploy/install.sh` again. The collaboration server's start line
+   in `sudo docker logs feuillet-collab` then says "GitHub sign-in on".
+
+The sign-in asks for the `repo` scope, as the personal access token does, so
+that private repositories can be synced. Leaving the file empty turns the
+button off; pasting a token keeps working either way.
 
 ## Updating
 

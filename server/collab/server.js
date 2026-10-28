@@ -14,7 +14,9 @@
 //    shares.js), which cuts off whoever kept the old one, and invite other
 //    accounts, who follow its links as they change (/share/members);
 //  - saves versions of each project a short while after it changes, with who
-//    changed it (/history/..., history.js), as on Overleaf.
+//    changed it (/history/..., history.js), as on Overleaf;
+//  - signs people in with GitHub for GitHub sync (/github/..., github.js),
+//    handing the token to their browser without keeping it.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -28,6 +30,12 @@
 //   HISTORY_DIR         directory for project versions (default ./history)
 //   HISTORY_IDLE_MS     quiet time before a version is saved (default 30 s)
 //   HISTORY_MAX_VERSIONS  unlabelled versions kept per project (default 1000)
+//   PUBLIC_URL          this server's public address, for GitHub to send
+//                       people back to (e.g. https://example.org/collab)
+//   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+//                       the GitHub OAuth App behind "Sign in with GitHub";
+//                       unset turns it off
+//   GITHUB_OAUTH_URL    GitHub's address for signing in (tests only)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -38,6 +46,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
+const { createGitHub } = require('./github');
 const { createHistory } = require('./history');
 const { createShares } = require('./shares');
 
@@ -100,6 +109,15 @@ const shares = createShares({
 			conn.close(4403, 'Link replaced');
 		}
 	},
+});
+
+const github = createGitHub({
+	clientId: process.env.GITHUB_CLIENT_ID,
+	clientSecret: process.env.GITHUB_CLIENT_SECRET,
+	publicUrl: process.env.PUBLIC_URL,
+	oauthUrl: process.env.GITHUB_OAUTH_URL || undefined,
+	isAllowedOrigin,
+	log,
 });
 
 const history = createHistory({
@@ -266,6 +284,17 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
+	if (github.handles(url)) {
+		const origin = req.headers.origin;
+		if (origin && isAllowedOrigin(origin)) {
+			res.setHeader('Access-Control-Allow-Origin', origin);
+			res.setHeader('Vary', 'Origin');
+		}
+		const params = new URL(req.url, 'http://localhost').searchParams;
+		github.handle(req, res, url, params);
+		return;
+	}
+
 	const historyRoute = history.route(url);
 	if (historyRoute) {
 		const origin = req.headers.origin;
@@ -409,7 +438,8 @@ server.listen(port, host, () => {
 		`files in ${filesDir};`,
 		`accounts in ${accountsDir};`,
 		`project links in ${sharesDir};`,
-		`versions in ${historyDir}`,
+		`versions in ${historyDir};`,
+		github.enabled ? 'GitHub sign-in on' : 'GitHub sign-in off',
 	);
 });
 

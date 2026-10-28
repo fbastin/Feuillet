@@ -54,6 +54,20 @@ fi
 apache2ctl configtest
 systemctl reload apache2
 
+echo "== Collaboration server settings (/etc/feuillet/collab.env)"
+install -d -m 755 /etc/feuillet
+if [ ! -e /etc/feuillet/collab.env ]; then
+	install -m 600 /dev/null /etc/feuillet/collab.env
+	cat >/etc/feuillet/collab.env <<'SETTINGS'
+# Feuillet collaboration server settings, kept out of the repository.
+# "Sign in with GitHub": register a GitHub OAuth App (see deploy/README.md),
+# fill in its client id and secret, then run deploy/install.sh again.
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+SETTINGS
+	echo "Created /etc/feuillet/collab.env (GitHub sign-in stays off until it is filled in)."
+fi
+
 echo "== Collaboration and TeX Live servers (the first TeX Live build downloads about 3 GB)"
 docker compose -f "$HERE/docker-compose.yml" up -d --build
 for service in 1234 7045; do
