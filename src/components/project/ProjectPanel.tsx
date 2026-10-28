@@ -7,6 +7,11 @@ import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import type { Project } from '../../types/projects';
 import { formatLastModified } from '../../utils/dateUtils';
+import {
+	PROJECT_VIEWS,
+	type ProjectView,
+	inProjectView,
+} from '../../utils/projectViewUtils';
 import { ImportIcon, NewProjectIcon, StarIcon } from '../common/Icons';
 
 interface ProjectPanelProps {
@@ -17,6 +22,8 @@ interface ProjectPanelProps {
 	onFilterByType: (type: string) => void;
 	onFilterByGroup: (group: string) => void;
 	onOpenProject?: (project: Project) => void;
+	view: ProjectView;
+	onChangeView: (view: ProjectView) => void;
 	projects: Project[];
 	availableTags: string[];
 	availableTypes: string[];
@@ -31,6 +38,8 @@ const ProjectPanel: React.FC<ProjectPanelProps> = ({
 	onFilterByType,
 	onFilterByGroup,
 	onOpenProject,
+	view,
+	onChangeView,
 	projects,
 	availableTags,
 	availableTypes,
@@ -41,12 +50,20 @@ const ProjectPanel: React.FC<ProjectPanelProps> = ({
 	const [selectedTag, setSelectedTag] = useState('');
 	const [selectedType, setSelectedType] = useState('');
 	// const [selectedGroup, setSelectedGroup] = useState('');
-	const favoriteProjects = projects
+	const inUse = projects.filter((project) => inProjectView(project, 'all'));
+	const favoriteProjects = inUse
 		.filter((project) => project.isFavorite)
 		.slice(0, 5);
-	const recentProjects = [...projects]
+	const recentProjects = [...inUse]
 		.sort((a, b) => b.updatedAt - a.updatedAt)
 		.slice(0, 5);
+	const viewLabels: Record<ProjectView, string> = {
+		all: t('All Projects'),
+		mine: t('Your Projects'),
+		shared: t('Shared with You'),
+		archived: t('Archived Projects'),
+		trash: t('Trash'),
+	};
 
 	return (
 		<div className='file-explorer' data-role='project-panel'>
@@ -86,6 +103,38 @@ const ProjectPanel: React.FC<ProjectPanelProps> = ({
 				data-gap='sm'
 				data-padding='sm'
 			>
+				<nav
+					className='ui-list'
+					data-gap='xs'
+					data-role='project-views'
+					aria-label={t('Project lists')}
+				>
+					{PROJECT_VIEWS.map((entry) => (
+						<button
+							key={entry}
+							type='button'
+							className='ui-list-item'
+							data-interactive='true'
+							data-border='none'
+							data-surface='secondary'
+							data-align='center'
+							data-justify='between'
+							data-padding='xs'
+							data-selected={view === entry ? 'true' : undefined}
+							data-view={entry}
+							aria-pressed={view === entry}
+							onClick={() => onChangeView(entry)}
+						>
+							<span>{viewLabels[entry]}</span>
+							<span className='ui-meta'>
+								{
+									projects.filter((project) => inProjectView(project, entry))
+										.length
+								}
+							</span>
+						</button>
+					))}
+				</nav>
 				<div className='ui-search-field'>
 					<input
 						type='text'

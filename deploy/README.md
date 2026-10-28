@@ -34,6 +34,12 @@ no peer-to-peer connection limit:
   and settings. The server checks every change they send to a document: it
   must leave the text, with every tracked change rejected, as it was, or the
   server refuses it, and their browser reloads the document;
+- the project list, as on Overleaf: all projects, yours and those shared
+  with you (the server tells each account who owns what), archived ones and
+  the trash, from which projects are deleted for good, on every device of
+  the account; "Make a copy" has the server copy a project any link opens
+  (documents with their comments, files and settings, not its chat,
+  versions, collaborators or GitHub link) into a new one the account owns;
 - versions, as on Overleaf: a short while after a project changes, the
   server saves a version with who changed what. The Versions tab lists them
   by day, shows each change against the version before or compares any two,

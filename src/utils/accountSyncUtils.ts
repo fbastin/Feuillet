@@ -16,9 +16,14 @@ export interface AccountProject {
 	compilerId?: string;
 	tags?: string[];
 	isFavorite?: boolean;
+	archived?: boolean;
+	trashedAt?: number;
 	createdAt?: number;
 	updatedAt: number;
 	deleted?: boolean;
+	// Told by the server with each list, never sent to it.
+	owner?: Project['owner'];
+	ownerName?: string;
 }
 
 export interface AccountSyncPlan {
@@ -37,6 +42,8 @@ const ACCOUNT_FIELDS = [
 	'compilerId',
 	'tags',
 	'isFavorite',
+	'archived',
+	'trashedAt',
 ] as const;
 
 export const accountUpdatedAt = (project: Project): number =>
@@ -60,6 +67,8 @@ export function toAccountProject(project: Project): AccountProject {
 		compilerId: project.compilerId,
 		tags: project.tags ?? [],
 		isFavorite: project.isFavorite,
+		archived: project.archived ?? false,
+		trashedAt: project.trashedAt,
 		createdAt: project.createdAt,
 		updatedAt: accountUpdatedAt(project),
 	};
@@ -75,7 +84,14 @@ const describedBy = (entry: AccountProject) => ({
 	compilerId: entry.compilerId,
 	tags: entry.tags ?? [],
 	isFavorite: entry.isFavorite ?? false,
+	archived: entry.archived ?? false,
+	trashedAt: entry.trashedAt,
 	accountUpdatedAt: entry.updatedAt,
+});
+
+const ownedBy = (entry: AccountProject) => ({
+	owner: entry.owner,
+	ownerName: entry.ownerName,
 });
 
 // Brings this device in line with the account's list: the most recent
@@ -102,6 +118,7 @@ export function planAccountSync(
 		if (!current) {
 			plan.create.push({
 				...describedBy(entry),
+				...ownedBy(entry),
 				id: entry.id,
 				ownerId,
 				createdAt: entry.createdAt ?? entry.updatedAt,
@@ -111,8 +128,15 @@ export function planAccountSync(
 			plan.update.push({
 				...current,
 				...describedBy(entry),
+				...ownedBy(entry),
 				updatedAt: Math.max(current.updatedAt, entry.updatedAt),
 			});
+		} else if (
+			entry.owner &&
+			(entry.owner !== current.owner || entry.ownerName !== current.ownerName)
+		) {
+			// Who owns it is the server's to say, whichever list is newer.
+			plan.update.push({ ...current, ...ownedBy(entry) });
 		}
 	}
 

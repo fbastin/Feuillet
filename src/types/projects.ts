@@ -25,6 +25,12 @@ export interface Project {
 	// When the fields an account lists (name, tags…) last changed; opening a
 	// file updates updatedAt without changing them.
 	accountUpdatedAt?: number;
+	// Out of the main list, as on Overleaf: archived, or in the trash since.
+	archived?: boolean;
+	trashedAt?: number;
+	// Who owns it on the collaboration server, as its account list says.
+	owner?: 'you' | 'other' | 'none';
+	ownerName?: string;
 }
 
 export type ProjectCreateInput = Omit<

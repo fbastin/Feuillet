@@ -6,12 +6,15 @@ import { useEffect, useState, useRef } from 'react';
 
 import type { Project } from '../../types/projects';
 import { useProperties } from '../../hooks/useProperties';
+import type { ProjectView } from '../../utils/projectViewUtils';
 import {
+	ArchiveIcon,
 	ExportIcon,
 	GridIcon,
 	ImportIcon,
 	ListIcon,
 	TrashIcon,
+	UndoIcon,
 } from '../common/Icons';
 import ProjectCard from './ProjectCard';
 
@@ -23,7 +26,12 @@ interface ProjectListProps {
 	onDeleteProject: (project: Project) => void;
 	onToggleFavorite: (projectId: string) => void;
 	onExportSelected?: (selectedIds: string[]) => void;
+	// Only from the trash, as on Overleaf.
 	onDeleteSelected?: (projectIds: string[]) => Promise<void>;
+	onCopyProject?: (project: Project) => void;
+	onArchiveProjects?: (projectIds: string[], archived: boolean) => void;
+	onTrashProjects?: (projectIds: string[], trashed: boolean) => void;
+	view?: ProjectView;
 	onToggleViewMode?: () => void;
 	viewMode?: 'grid' | 'list';
 	itemsPerPage?: number;
@@ -38,6 +46,10 @@ const ProjectList: React.FC<ProjectListProps> = ({
 	onToggleFavorite,
 	onExportSelected,
 	onDeleteSelected,
+	onCopyProject,
+	onArchiveProjects,
+	onTrashProjects,
+	view = 'all',
 	onToggleViewMode,
 	viewMode: externalViewMode = 'grid',
 	itemsPerPage: maxItemsPerPage = 12,
@@ -206,6 +218,18 @@ const ProjectList: React.FC<ProjectListProps> = ({
 		}
 	};
 
+	// Moves the selection out of the list it is in, and ends selecting.
+	const moveSelected = (
+		move?: (ids: string[], value: boolean) => void,
+		value = true,
+	) => {
+		if (selectedProjects.size === 0 || !move) return;
+		move(Array.from(selectedProjects), value);
+		setIsSelectionMode(false);
+		setSelectedProjects(new Set());
+	};
+	const inTrash = view === 'trash';
+
 	const handleEnterSelectionMode = () => {
 		setIsSelectionMode(true);
 		setSelectedProjects(new Set());
@@ -298,17 +322,57 @@ const ProjectList: React.FC<ProjectListProps> = ({
 								{t('Export (')}
 								{selectedProjects.size})
 							</button>
-							<button
-								type='button'
-								className='button danger '
-								onClick={handleShowDeleteModal}
-								disabled={selectedProjects.size === 0 || !onDeleteSelected}
-								title={`Delete ${selectedProjects.size} selected project${selectedProjects.size === 1 ? '' : 's'}`}
-							>
-								<TrashIcon />
-								{t('Delete (')}
-								{selectedProjects.size})
-							</button>
+							{!inTrash && onArchiveProjects && (
+								<button
+									type='button'
+									className='button secondary '
+									onClick={() =>
+										moveSelected(onArchiveProjects, view !== 'archived')
+									}
+									disabled={selectedProjects.size === 0}
+								>
+									<ArchiveIcon />
+									{view === 'archived'
+										? t('Unarchive ({total})', { total: selectedProjects.size })
+										: t('Archive ({total})', { total: selectedProjects.size })}
+								</button>
+							)}
+							{inTrash && onTrashProjects && (
+								<button
+									type='button'
+									className='button secondary '
+									onClick={() => moveSelected(onTrashProjects, false)}
+									disabled={selectedProjects.size === 0}
+								>
+									<UndoIcon />
+									{t('Restore ({total})', { total: selectedProjects.size })}
+								</button>
+							)}
+							{!inTrash && onTrashProjects ? (
+								<button
+									type='button'
+									className='button danger '
+									onClick={() => moveSelected(onTrashProjects, true)}
+									disabled={selectedProjects.size === 0}
+								>
+									<TrashIcon />
+									{t('Move to trash ({total})', {
+										total: selectedProjects.size,
+									})}
+								</button>
+							) : (
+								<button
+									type='button'
+									className='button danger '
+									onClick={handleShowDeleteModal}
+									disabled={selectedProjects.size === 0 || !onDeleteSelected}
+									title={`Delete ${selectedProjects.size} selected project${selectedProjects.size === 1 ? '' : 's'}`}
+								>
+									<TrashIcon />
+									{t('Delete (')}
+									{selectedProjects.size})
+								</button>
+							)}
 							<button
 								type='button'
 								className='button secondary '
@@ -322,7 +386,17 @@ const ProjectList: React.FC<ProjectListProps> = ({
 			</div>
 
 			<div className='ui-panel-content' data-overflow='y' data-padding='sm'>
-				{displayedProjects.length === 0 ? (
+				{displayedProjects.length === 0 && view !== 'all' && view !== 'mine' ? (
+					<div className='ui-empty-state'>
+						<p>
+							{view === 'trash'
+								? t('The trash is empty.')
+								: view === 'archived'
+									? t('No archived projects.')
+									: t('No project is shared with you yet.')}
+						</p>
+					</div>
+				) : displayedProjects.length === 0 ? (
 					<div className='ui-empty-state'>
 						<p>{t('No projects found matching the current criteria')}</p>
 						{!isSelectionMode && (
@@ -359,6 +433,16 @@ const ProjectList: React.FC<ProjectListProps> = ({
 								onEdit={onEditProject}
 								onDelete={onDeleteProject}
 								onToggleFavorite={onToggleFavorite}
+								onCopy={onCopyProject}
+								onArchive={
+									onArchiveProjects &&
+									((target, archived) =>
+										onArchiveProjects([target.id], archived))
+								}
+								onTrash={
+									onTrashProjects &&
+									((target, trashed) => onTrashProjects([target.id], trashed))
+								}
 								isSelectionMode={isSelectionMode}
 								isSelected={selectedProjects.has(project.id)}
 								onSelectionChange={handleProjectSelection}

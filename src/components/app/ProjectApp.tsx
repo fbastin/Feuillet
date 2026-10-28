@@ -10,10 +10,15 @@ import { useAuth } from '../../hooks/useAuth';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useTheme } from '../../hooks/useTheme';
-import { ACCOUNT_PROJECTS_CHANGED } from '../../services/AccountSyncService';
+import {
+	ACCOUNT_PROJECTS_CHANGED,
+	AccountServerError,
+	accountSyncService,
+} from '../../services/AccountSyncService';
 import { projectSeedService } from '../../services/ProjectSeedService';
 import type { Project, ProjectType, ProjectGroup } from '../../types/projects';
 import { createStarterFile } from '../../utils/projectStarterUtils';
+import { type ProjectView, inProjectView } from '../../utils/projectViewUtils';
 import {
 	isValidYjsUrl,
 	buildUrlWithFragments,
@@ -29,6 +34,7 @@ import ProfileSettingsModal, {
 	type ProfileSettingsTab,
 } from '../profile/ProfileSettingsModal';
 import UserDropdown from '../profile/UserDropdown';
+import CopyProjectModal from '../project/CopyProjectModal';
 import ProjectExportModal from '../project/ProjectExportModal';
 import ProjectDeleteModal from '../project/ProjectDeleteModal';
 import ProjectForm from '../project/ProjectForm';
@@ -95,6 +101,8 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 	const [selectedTag, setSelectedTag] = useState('');
 	const [selectedType, setSelectedType] = useState('');
 	const [selectedGroup, setSelectedGroup] = useState('');
+	const [projectView, setProjectView] = useState<ProjectView>('all');
+	const [copySource, setCopySource] = useState<Project | null>(null);
 	const [sidebarWidth, setSidebarWidth] = useState(
 		currentLayout?.defaultFileExplorerWidth || 250,
 	);
@@ -209,10 +217,19 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 						project.tags.some((tag) => tag.toLowerCase().includes(query))) &&
 					(!selectedTag || project.tags.includes(selectedTag)) &&
 					(!selectedType || project.type === selectedType) &&
-					(!selectedGroup || (project.group ?? project.type) === selectedGroup),
+					(!selectedGroup ||
+						(project.group ?? project.type) === selectedGroup) &&
+					inProjectView(project, projectView),
 			),
 		);
-	}, [projects, searchQuery, selectedTag, selectedType, selectedGroup]);
+	}, [
+		projects,
+		searchQuery,
+		selectedTag,
+		selectedType,
+		selectedGroup,
+		projectView,
+	]);
 
 	const handleSearch = (query: string) => setSearchQuery(query);
 	const handleFilterByTag = (tag: string) => setSelectedTag(tag);
@@ -335,6 +352,64 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 			moduleLog.error('Failed to toggle favorite status:', error);
 		}
 	};
+
+	// Archived or in the trash, here and on the account's other devices.
+	const moveProjects = async (ids: string[], change: Partial<Project>) => {
+		try {
+			for (const project of projects.filter((p) => ids.includes(p.id))) {
+				await updateProject({ ...project, ...change });
+			}
+		} catch (error) {
+			moduleLog.error('Failed to move projects:', error);
+			setError(
+				error instanceof Error ? error.message : t('Failed to update project'),
+			);
+		}
+		await loadProjects();
+	};
+	const handleArchiveProjects = (ids: string[], archived: boolean) =>
+		void moveProjects(ids, { archived });
+	const handleTrashProjects = (ids: string[], trashed: boolean) =>
+		void moveProjects(ids, { trashedAt: trashed ? Date.now() : undefined });
+
+	// The collaboration server copies the project; it then opens here.
+	const handleCopyProject = async (source: Project, name: string) => {
+		const sourceId = source.docUrl.startsWith('yjs:')
+			? source.docUrl.slice(4)
+			: source.id;
+		let copyId: string | null;
+		try {
+			copyId = await accountSyncService.copyProject(sourceId, name);
+		} catch (error) {
+			throw new Error(
+				error instanceof AccountServerError && error.code === 'unreachable'
+					? t('Could not reach the collaboration server.')
+					: t('Could not copy the project.'),
+			);
+		}
+		if (!copyId) throw new Error(t('Could not copy the project.'));
+		const copy = await createProject({
+			name,
+			description: source.description,
+			type: source.type,
+			group: source.group,
+			compilerId: source.compilerId,
+			tags: source.tags ?? [],
+			isFavorite: false,
+			docUrl: `yjs:${copyId}`,
+		});
+		setCopySource(null);
+		await loadProjects();
+		onOpenProject(
+			copy.docUrl,
+			copy.name,
+			copy.description,
+			copy.type,
+			copy.group,
+			copy.id,
+		);
+	};
+	const canCopy = !isGuestUser(user) && accountSyncService.isLinked();
 
 	const handleToggleViewMode = () => {
 		setViewMode((prev) => (prev === 'grid' ? 'list' : 'grid'));
@@ -528,6 +603,8 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 						onFilterByType={handleFilterByType}
 						onFilterByGroup={handleFilterByGroup}
 						onOpenProject={openProject}
+						view={projectView}
+						onChangeView={setProjectView}
 						projects={projects}
 						availableTags={availableTags}
 						availableTypes={availableTypes}
@@ -566,11 +643,23 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 							onToggleFavorite={handleToggleFavorite}
 							onToggleViewMode={handleToggleViewMode}
 							onExportSelected={handleExportSelected}
-							onDeleteSelected={handleDeleteSelected}
+							onDeleteSelected={
+								projectView === 'trash' ? handleDeleteSelected : undefined
+							}
+							onCopyProject={canCopy ? setCopySource : undefined}
+							onArchiveProjects={handleArchiveProjects}
+							onTrashProjects={handleTrashProjects}
+							view={projectView}
 							viewMode={viewMode}
 						/>
 					)}
 				</div>
+				<CopyProjectModal
+					project={copySource}
+					onClose={() => setCopySource(null)}
+					onCopy={handleCopyProject}
+				/>
+
 				<ProjectExportModal
 					isOpen={showExportModal}
 					onClose={() => setShowExportModal(false)}

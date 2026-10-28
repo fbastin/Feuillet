@@ -223,3 +223,72 @@ describe('replaced editing links', () => {
 	});
 });
 
+
+describe('archived and trashed projects, and their owners', () => {
+	it("carries archive and trash to the account's other devices", () => {
+		const archived = project({ archived: true });
+		expect(toAccountProject(archived).archived).toBe(true);
+		expect(accountFieldsChanged(project(), archived)).toBe(true);
+		expect(accountFieldsChanged(project(), project({ trashedAt: 5 }))).toBe(true);
+
+		const plan = planAccountSync(
+			[project()],
+			[entry({ trashedAt: 300, updatedAt: 200 })],
+			'me',
+		);
+		expect(plan.update).toEqual([
+			expect.objectContaining({ id: 'p1', trashedAt: 300, archived: false }),
+		]);
+	});
+
+	it('takes who owns a project from the server, whichever list is newer', () => {
+		const shared = entry({ owner: 'other', ownerName: 'ana', updatedAt: 50 });
+		const plan = planAccountSync([project()], [shared], 'me');
+		expect(plan.update).toEqual([
+			expect.objectContaining({ id: 'p1', owner: 'other', ownerName: 'ana', name: 'Thesis' }),
+		]);
+		expect(
+			planAccountSync([project({ owner: 'other', ownerName: 'ana' })], [shared], 'me')
+				.update,
+		).toEqual([]);
+		expect(planAccountSync([], [shared], 'me').create[0]).toEqual(
+			expect.objectContaining({ owner: 'other', ownerName: 'ana' }),
+		);
+	});
+
+	it('keeps archive and trash on the server, not who owns', () => {
+		const kept = cleanProject({
+			...entry({ archived: true, trashedAt: 9 }),
+			owner: 'you',
+			ownerName: 'mallory',
+		});
+		expect(kept).toEqual(expect.objectContaining({ archived: true, trashedAt: 9 }));
+		expect(kept.owner).toBeUndefined();
+		expect(kept.ownerName).toBeUndefined();
+		expect(cleanProject({ ...entry(), trashedAt: 'soon' }).trashedAt).toBeUndefined();
+		expect(cleanProject({ ...entry(), archived: 'yes' }).archived).toBe(false);
+	});
+});
+
+describe('project lists', () => {
+	const { inProjectView } = require('@src/utils/projectViewUtils');
+	const mine = project({ id: 'mine', owner: 'you' });
+	const unclaimed = project({ id: 'unclaimed' });
+	const shared = project({ id: 'shared', owner: 'other' });
+	const archived = project({ id: 'archived', archived: true });
+	const trashed = project({ id: 'trashed', archived: true, trashedAt: 1 });
+	const all = [mine, unclaimed, shared, archived, trashed];
+	const ids = (view: string) =>
+		all.filter((entry) => inProjectView(entry, view)).map((entry) => entry.id);
+
+	it('lists the projects in use, by who owns them', () => {
+		expect(ids('all')).toEqual(['mine', 'unclaimed', 'shared']);
+		expect(ids('mine')).toEqual(['mine', 'unclaimed']);
+		expect(ids('shared')).toEqual(['shared']);
+	});
+
+	it('keeps archived ones apart, and the trash apart from everything', () => {
+		expect(ids('archived')).toEqual(['archived']);
+		expect(ids('trash')).toEqual(['trashed']);
+	});
+});

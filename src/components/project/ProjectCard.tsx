@@ -8,6 +8,8 @@ import { pluginRegistry } from '../../plugins/PluginRegistry';
 import type { Project } from '../../types/projects.ts';
 import ProjectBackupControls from '../backup/ProjectBackupControls';
 import {
+	ArchiveIcon,
+	CopyIcon,
 	EditIcon,
 	FolderIcon,
 	FolderOpenIcon,
@@ -16,6 +18,7 @@ import {
 	ChevronDownIcon,
 	FileTextIcon,
 	FileIcon,
+	UndoIcon,
 } from '../common/Icons.tsx';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import TypesetterInfo from '../common/TypesetterInfo';
@@ -26,8 +29,12 @@ interface ProjectCardProps {
 	onOpen: (project: Project) => void;
 	onOpenDefault: (project: Project) => void;
 	onEdit: (project: Project) => void;
+	// From the trash: for good.
 	onDelete: (project: Project) => void;
 	onToggleFavorite: (projectId: string) => void;
+	onCopy?: (project: Project) => void;
+	onArchive?: (project: Project, archived: boolean) => void;
+	onTrash?: (project: Project, trashed: boolean) => void;
 	isSelectionMode?: boolean;
 	isSelected?: boolean;
 	onSelectionChange?: (projectId: string, isSelected: boolean) => void;
@@ -40,6 +47,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 	onEdit,
 	onDelete,
 	onToggleFavorite,
+	onCopy,
+	onArchive,
+	onTrash,
 	isSelectionMode = false,
 	isSelected = false,
 	onSelectionChange,
@@ -278,6 +288,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 					})}
 				</span>
 			</div>
+			{project.owner === 'other' && (
+				<div className='ui-meta' data-role='project-owner'>
+					{project.ownerName
+						? t('Owner: {name}', { name: project.ownerName })
+						: t('Shared with you')}
+				</div>
+			)}
 
 			{!isSelectionMode && (
 				<div
@@ -326,28 +343,81 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 							</div>
 						)}
 					</div>
-					<button
-						type='button'
-						className='button'
-						onClick={(e) => {
-							e.stopPropagation();
-							onEdit(project);
-						}}
-						title={t('Edit Project')}
-					>
-						<EditIcon />
-					</button>
-					<button
-						type='button'
-						className='button danger'
-						onClick={(e) => {
-							e.stopPropagation();
-							onDelete(project);
-						}}
-						title={t('Delete Project')}
-					>
-						<TrashIcon />
-					</button>
+					{project.trashedAt ? (
+						<>
+							<button
+								type='button'
+								className='button'
+								onClick={(e) => {
+									e.stopPropagation();
+									onTrash?.(project, false);
+								}}
+								title={t('Restore')}
+							>
+								<UndoIcon />
+							</button>
+							<button
+								type='button'
+								className='button danger'
+								onClick={(e) => {
+									e.stopPropagation();
+									onDelete(project);
+								}}
+								title={t('Delete for good')}
+							>
+								<TrashIcon />
+							</button>
+						</>
+					) : (
+						<>
+							<button
+								type='button'
+								className='button'
+								onClick={(e) => {
+									e.stopPropagation();
+									onEdit(project);
+								}}
+								title={t('Edit Project')}
+							>
+								<EditIcon />
+							</button>
+							{onCopy && (
+								<button
+									type='button'
+									className='button'
+									onClick={(e) => {
+										e.stopPropagation();
+										onCopy(project);
+									}}
+									title={t('Make a copy')}
+								>
+									<CopyIcon />
+								</button>
+							)}
+							<button
+								type='button'
+								className='button'
+								onClick={(e) => {
+									e.stopPropagation();
+									onArchive?.(project, !project.archived);
+								}}
+								title={project.archived ? t('Unarchive') : t('Archive')}
+							>
+								<ArchiveIcon />
+							</button>
+							<button
+								type='button'
+								className='button danger'
+								onClick={(e) => {
+									e.stopPropagation();
+									onTrash ? onTrash(project, true) : onDelete(project);
+								}}
+								title={onTrash ? t('Move to trash') : t('Delete Project')}
+							>
+								<TrashIcon />
+							</button>
+						</>
+					)}
 				</div>
 			)}
 

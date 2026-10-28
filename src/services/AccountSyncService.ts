@@ -303,6 +303,32 @@ class AccountSyncService {
 		return { owner, role, ...links };
 	}
 
+	/** Whether this device can ask the collaboration server for anything. */
+	isLinked(): boolean {
+		return !!this.userId && !!this.getSession(this.userId);
+	}
+
+	/**
+	 * A copy of a project, as Overleaf's "Make a copy", made by the
+	 * collaboration server: the id of the new project, which the account
+	 * owns, or null when no account is signed in.
+	 */
+	async copyProject(projectId: string, name: string): Promise<string | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+
+		const result = await this.request(session.server, 'POST', '/share/copy', {
+			token: session.token,
+			body: { project: projectLinkService.serverId(projectId), name },
+		});
+		return typeof result?.project === 'string' &&
+			projectLinkKind(result.project) === 'edit' &&
+			isValidYjsProjectId(result.project)
+			? result.project
+			: null;
+	}
+
 	/**
 	 * The accounts the owner invited to a project, after adding or removing
 	 * one. Removing someone replaces the link they used.
