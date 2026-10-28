@@ -25,9 +25,15 @@ no peer-to-peer connection limit:
   old one is cut off and told so, those given the new one keep working, and
   the owner's other devices move to it through the account;
 - collaborators, as on Overleaf: the owner invites accounts by name, as
-  editors or readers. The project appears in their list, and they follow its
-  links when they change. Removing an editor replaces the editing link, and
-  removing a reader the read-only link, which cuts them off;
+  editors, reviewers or readers. The project appears in their list, and they
+  follow its links when they change. Removing an editor replaces the editing
+  link, a reviewer the review link, and a reader the read-only link, which
+  cuts them off;
+- reviewers, as on Overleaf: they comment and suggest changes, always
+  tracked, which editors accept or reject; they chat, and only read files
+  and settings. The server checks every change they send to a document: it
+  must leave the text, with every tracked change rejected, as it was, or the
+  server refuses it, and their browser reloads the document;
 - versions, as on Overleaf: a short while after a project changes, the
   server saves a version with who changed what. The Versions tab lists them
   by day, shows each change against the version before or compares any two,

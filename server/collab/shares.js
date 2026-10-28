@@ -9,11 +9,17 @@
 // Read-only: a view id opens the project too, but the server drops whatever
 // is sent through it to change the project.
 //
+// Review: a review id, given to reviewers only, opens the project for
+// comments and tracked changes; the server lets through it only changes to
+// documents that leave their text, tracked changes rejected, as it was
+// (review.js), and to the project's chat.
+//
 // Collaborators: the owner, a Feuillet account, may invite other accounts by
-// name, as editors or readers. The project appears in their list, and they
-// may name it by a link that no longer opens it to learn the current one, so
-// they follow when it changes. Removing an editor replaces the editing link,
-// and removing a reader the read-only link, which cuts them off.
+// name, as editors, reviewers or readers. The project appears in their list,
+// and they may name it by a link that no longer opens it to learn the
+// current one, so they follow when it changes. Removing an editor replaces
+// the editing link, a reviewer the review link, and a reader the read-only
+// link, which cuts them off.
 //
 //   POST /share/view {project}               -> {view}, the same each time
 //   POST /share/view {project, reset: true}  -> {view}, a new one; the old
@@ -30,14 +36,15 @@
 // `project` is an editing id, or for /share/edit any link the account holds.
 // Knowing an editing id is what lets someone edit the project, so it also
 // lets them create or replace its read-only link. `owner` is "you", "other"
-// or "none"; `role` is "owner", "editor", "reader" or null; `edit`, the
-// current editing id, goes to the owner and editors, and `view`, the current
-// read-only link, to readers who ask with one.
+// or "none"; `role` is "owner", "editor", "reviewer", "reader" or null;
+// `edit`, the current editing id, goes to the owner and editors, `review`,
+// the current review link, to reviewers who ask with one, and `view`, the
+// current read-only link, to readers who ask with one.
 //
 // SHARES_DIR keeps one file per project (projects/<project>.json: {view,
-// edit, owner, members}), one per read-only link (views/<view>.json:
-// {project, replaced}) and one per editing id given out (edits/<edit>.json:
-// {project, replaced}).
+// review, edit, owner, members}), one per read-only link (views/<view>.json:
+// {project, replaced}), one per review link (reviews/<review>.json: the
+// same) and one per editing id given out (edits/<edit>.json: the same).
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -46,9 +53,10 @@ const path = require('node:path');
 const MAX_BODY_BYTES = 4096;
 const MAX_MEMBERS = 200;
 const PROJECT_ID = /^[A-Za-z0-9_-]{1,100}$/;
-// Project ids are UUIDs, which never start with "view".
+// Project ids are UUIDs, which never start with "view" or "review".
 const VIEW_ID = /^view[0-9a-f]{32}$/;
-const ROLES = ['editor', 'reader'];
+const REVIEW_ID = /^review[0-9a-f]{32}$/;
+const ROLES = ['editor', 'reviewer', 'reader'];
 const PROJECT_TYPES = ['latex', 'typst'];
 
 class HttpError extends Error {
@@ -60,14 +68,19 @@ class HttpError extends Error {
 }
 
 const isViewId = (id) => VIEW_ID.test(id);
+const isReviewId = (id) => REVIEW_ID.test(id);
 const isProjectId = (id) =>
-	typeof id === 'string' && PROJECT_ID.test(id) && !isViewId(id);
+	typeof id === 'string' &&
+	PROJECT_ID.test(id) &&
+	!isViewId(id) &&
+	!isReviewId(id);
 
 const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 	const projectsDir = path.join(dir, 'projects');
 	const viewsDir = path.join(dir, 'views');
+	const reviewsDir = path.join(dir, 'reviews');
 	const editsDir = path.join(dir, 'edits');
-	for (const folder of [projectsDir, viewsDir, editsDir]) {
+	for (const folder of [projectsDir, viewsDir, reviewsDir, editsDir]) {
 		fs.mkdirSync(folder, { recursive: true });
 	}
 
@@ -88,6 +101,7 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 
 	const projectPath = (project) => path.join(projectsDir, `${project}.json`);
 	const viewPath = (view) => path.join(viewsDir, `${view}.json`);
+	const reviewPath = (review) => path.join(reviewsDir, `${review}.json`);
 	const editPath = (edit) => path.join(editsDir, `${edit}.json`);
 
 	const readProject = (project) => readJson(projectPath(project)) ?? {};
@@ -95,18 +109,20 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 		writeJson(projectPath(project), record);
 
 	// What an id opens: {project, kind, access}, where `project` is the id
-	// the project's documents and files are stored under, `kind` is "edit" or
-	// "view", and `access` is "edit", "view" or "replaced" (the id opened the
-	// project until its link was replaced); null when it opens nothing.
+	// the project's documents and files are stored under, `kind` is "edit",
+	// "review" or "view", and `access` is "edit", "review", "view" or
+	// "replaced" (the id opened the project until its link was replaced);
+	// null when it opens nothing.
 	const lookup = (id) => {
 		if (typeof id !== 'string' || !PROJECT_ID.test(id)) return null;
-		if (isViewId(id)) {
-			const given = readJson(viewPath(id));
+		const kind = isViewId(id) ? 'view' : isReviewId(id) ? 'review' : null;
+		if (kind) {
+			const given = readJson(kind === 'view' ? viewPath(id) : reviewPath(id));
 			return isProjectId(given?.project)
 				? {
 						project: given.project,
-						kind: 'view',
-						access: given.replaced ? 'replaced' : 'view',
+						kind,
+						access: given.replaced ? 'replaced' : kind,
 					}
 				: null;
 		}
@@ -132,29 +148,36 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 			? 'owner'
 			: (record.members?.[account]?.role ?? null);
 
-	// The read-only link, made on first use; `reset` replaces it and cuts off
-	// whoever opened the old one.
-	const viewOf = (project, reset = false) => {
+	// The read-only or review link, made on first use; `reset` replaces it
+	// and cuts off whoever opened the old one.
+	const sideLinkOf = (kind, project, reset) => {
+		const isId = kind === 'view' ? isViewId : isReviewId;
+		const pathOf = kind === 'view' ? viewPath : reviewPath;
+		const name = kind === 'view' ? 'read-only' : 'review';
 		const record = readProject(project);
-		const current = record.view;
-		if (isViewId(current) && !reset) return current;
+		const current = record[kind];
+		if (isId(current) && !reset) return current;
 
-		const view = `view${crypto.randomBytes(16).toString('hex')}`;
-		writeJson(viewPath(view), { project, createdAt: Date.now() });
-		writeProject(project, { ...readProject(project), view });
-		if (isViewId(current)) {
-			writeJson(viewPath(current), {
-				...readJson(viewPath(current)),
+		const link = `${kind}${crypto.randomBytes(16).toString('hex')}`;
+		writeJson(pathOf(link), { project, createdAt: Date.now() });
+		writeProject(project, { ...readProject(project), [kind]: link });
+		if (isId(current)) {
+			writeJson(pathOf(current), {
+				...readJson(pathOf(current)),
 				project,
 				replaced: true,
 			});
 			onRevoke(current);
-			log('read-only link replaced');
+			log(`${name} link replaced`);
 		} else {
-			log('read-only link created');
+			log(`${name} link created`);
 		}
-		return view;
+		return link;
 	};
+	const viewOf = (project, reset = false) =>
+		sideLinkOf('view', project, reset);
+	const reviewOf = (project, reset = false) =>
+		sideLinkOf('review', project, reset);
 
 	// A new editing id; the previous one stops working.
 	const replaceEdit = (project) => {
@@ -201,9 +224,11 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 		}
 		const role = roleOf(record, account);
 		const edits = role === 'owner' || role === 'editor';
-		const views = edits || role === 'reader';
+		const reviews = edits || role === 'reviewer';
+		const views = reviews || role === 'reader';
 		// Collaborators learn the current link from one that was replaced.
-		const follows = found.kind === 'edit' ? edits : views;
+		const follows =
+			found.kind === 'edit' ? edits : found.kind === 'review' ? reviews : views;
 		if (found.access === 'replaced' && !follows) {
 			throw new HttpError(403, 'link_replaced');
 		}
@@ -217,6 +242,9 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 			owner: role === 'owner' ? 'you' : record.owner ? 'other' : 'none',
 			role,
 			...(edits ? { edit: editOf(project) } : {}),
+			...(found.kind === 'review' && reviews
+				? { review: reviewOf(project) }
+				: {}),
 			...(found.kind === 'view' && views ? { view: viewOf(project) } : {}),
 		};
 	};
@@ -257,9 +285,21 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 				addedAt: Date.now(),
 			};
 			writeProject(project, { ...record, members });
-			// A reader must not keep the editing link.
-			if (previous === 'editor' && role === 'reader') replaceEdit(project);
-			const link = role === 'editor' ? editOf(project) : viewOf(project);
+			// Whoever is given less must not keep the link they had.
+			if (previous === 'editor' && role !== 'editor') replaceEdit(project);
+			if (
+				previous === 'reviewer' &&
+				role === 'reader' &&
+				isReviewId(record.review)
+			) {
+				reviewOf(project, true);
+			}
+			const link =
+				role === 'editor'
+					? editOf(project)
+					: role === 'reviewer'
+						? reviewOf(project)
+						: viewOf(project);
 			const now = Date.now();
 			shared = accounts.shareProject(member.username, {
 				id: link,
@@ -282,7 +322,9 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 			delete members[id];
 			writeProject(project, { ...record, members });
 			if (member.role === 'editor') replaceEdit(project);
-			else if (isViewId(record.view)) viewOf(project, true);
+			else if (member.role === 'reviewer') {
+				if (isReviewId(record.review)) reviewOf(project, true);
+			} else if (isViewId(record.view)) viewOf(project, true);
 			log('collaborator removed');
 		}
 
@@ -359,4 +401,4 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 	return { handles, handle, lookup };
 };
 
-module.exports = { createShares, isViewId };
+module.exports = { createShares, isViewId, isReviewId };

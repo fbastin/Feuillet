@@ -13,6 +13,8 @@
 //  - lets a project's owner replace its editing link (/share/edit,
 //    shares.js), which cuts off whoever kept the old one, and invite other
 //    accounts, who follow its links as they change (/share/members);
+//  - lets reviewers, through their own link, change documents only by
+//    comments and tracked changes (review.js), as on Overleaf;
 //  - saves versions of each project a short while after it changes, with who
 //    changed it (/history/..., history.js), as on Overleaf;
 //  - signs people in with GitHub for GitHub sync (/github/..., github.js),
@@ -48,6 +50,7 @@ const { WebSocketServer } = require('ws');
 const { createAccounts } = require('./accounts');
 const { createGitHub } = require('./github');
 const { createHistory } = require('./history');
+const { createReviewGuard } = require('./review');
 const { createShares } = require('./shares');
 
 const host = process.env.HOST || '0.0.0.0';
@@ -88,6 +91,8 @@ const ROOM_PATTERN = /^[A-Za-z0-9_-]{1,200}$/;
 const PROJECT_ROOM =
 	/^([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}|[A-Za-z0-9_]+)-(.+)$/i;
 const FILE_ROUTE = /^\/files\/([A-Za-z0-9_-]{1,100})\/([0-9a-f]{64})$/;
+// A document's room; `yjs_metadata` holds the project's settings instead.
+const DOCUMENT_ROOM = /^yjs_(?!metadata$).+$/;
 
 const log = (...parts) =>
 	console.log(new Date().toISOString(), '[collab]', ...parts);
@@ -128,6 +133,12 @@ const history = createHistory({
 	log,
 	idleMs: Number(process.env.HISTORY_IDLE_MS) || undefined,
 	maxVersions: Number(process.env.HISTORY_MAX_VERSIONS) || undefined,
+});
+
+const reviewGuard = createReviewGuard({
+	docs,
+	persistence: getPersistence(),
+	log,
 });
 
 // A read-only connection may ask for the document (the first step of a
@@ -355,7 +366,8 @@ const server = http.createServer((req, res) => {
 			send(res, 403, 'Link replaced\n');
 			return;
 		}
-		const viewing = found.access === 'view';
+		// Through a read-only or review link, files are only read.
+		const viewing = found.access !== 'edit';
 		const projectDir = path.join(filesDir, found.project);
 		const filePath = path.join(projectDir, hash);
 		if (req.method === 'GET' || req.method === 'HEAD') {
@@ -413,14 +425,20 @@ server.on('upgrade', (req, socket, head) => {
 			else conn.close(4404, 'Unknown link');
 			return;
 		}
+		const docName = `${found.project}-${collection}`;
 		if (found.access === 'view') makeReadOnly(conn);
+		if (found.access === 'review') {
+			// Reviewers chat, and change documents only as review.js allows;
+			// the project's files and settings they only read.
+			if (DOCUMENT_ROOM.test(collection)) reviewGuard.guard(conn, docName);
+			else if (collection !== 'chat') makeReadOnly(conn);
+		}
 		if (!connections.has(id)) connections.set(id, new Set());
 		connections.get(id).add(conn);
 		conn.on('close', () => {
 			connections.get(id)?.delete(conn);
 			if (connections.get(id)?.size === 0) connections.delete(id);
 		});
-		const docName = `${found.project}-${collection}`;
 		setupWSConnection(conn, req, { docName });
 		history.track(found.project, collection, docs.get(docName));
 	});
