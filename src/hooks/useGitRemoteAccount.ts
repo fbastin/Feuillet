@@ -1,6 +1,7 @@
 // src/hooks/useGitRemoteAccount.ts
 import { useCallback, useEffect, useState } from 'react';
 
+import { APP_NAME } from '@/branding';
 import { t } from '@/i18n';
 import type { SecretsContextType } from '../contexts/SecretsContext';
 import type { GitRemoteAccount, GitRemoteProvider } from '../types/gitRemote';
@@ -144,6 +145,10 @@ export const useGitRemoteAccount = (
 				{
 					scope: 'global',
 					metadata: { tokenType: `${provider.id}-personal-access-token` },
+					passwordMessage: t(
+						'Enter your {app} password to encrypt and save your {provider} token in this browser:',
+						{ app: APP_NAME, provider: provider.displayName },
+					),
 				},
 			);
 			const connected = await accountForToken(accountToken);

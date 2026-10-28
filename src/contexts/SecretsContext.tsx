@@ -43,6 +43,8 @@ export interface SecretsContextType {
 			scope?: 'global' | 'project';
 			projectId?: string | null;
 			metadata?: Record<string, any>;
+			// What the password prompt says, when it has to ask.
+			passwordMessage?: string;
 		},
 	) => Promise<void>;
 	getSecret: (
@@ -393,12 +395,13 @@ export const SecretsProvider: React.FC<SecretsProviderProps> = ({
 				scope?: 'global' | 'project';
 				projectId?: string | null;
 				metadata?: Record<string, any>;
+				passwordMessage?: string;
 			},
 		): Promise<void> => {
 			if (!user || !value.trim())
 				throw new Error('Invalid user or empty secret value');
 
-			const password = await promptForPassword();
+			const password = await promptForPassword(options?.passwordMessage);
 			if (!password) throw new Error('Password required to store secrets');
 
 			const scope = options?.scope || 'global';
