@@ -18,6 +18,8 @@ interface ReviewItemProps {
 	addResponse: (reviewId: string, content: string) => void;
 	deleteResponse: (reviewId: string, responseId: string) => void;
 	readOnly?: boolean;
+	/** Whether it may be accepted, rejected or resolved: not by reviewers. */
+	canDecide?: boolean;
 }
 
 const truncateUsername = (username: string, maxLength = 15) =>
@@ -36,6 +38,7 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 			addResponse,
 			deleteResponse,
 			readOnly = false,
+			canDecide = true,
 		},
 		ref,
 	) => {
@@ -78,7 +81,7 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 						</div>
 						<div className='ui-item-time'>{formatDate(review.timestamp)}</div>
 					</div>
-					{!readOnly && (
+					{!readOnly && canDecide && (
 						<div className='ui-actions'>
 							<button
 								type='button'

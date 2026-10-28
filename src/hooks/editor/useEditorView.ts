@@ -181,6 +181,8 @@ export const useEditorView = (
 	enableComments = false,
 	toolbarVisible = true,
 	enableReviews = false,
+	// A reviewer's: documents change, the files they are linked to do not.
+	filesReadOnly = false,
 ) => {
 	const {
 		getAutoSaveEnabled,
@@ -268,7 +270,7 @@ export const useEditorView = (
 
 	const saveDocumentToLinkedFile = useCallback(
 		async (content: string) => {
-			if (!documentId || isEditingFile) return;
+			if (!documentId || isEditingFile || filesReadOnly) return;
 			try {
 				const allFiles = await fileStoreService.getAllFiles(
 					false,
@@ -303,7 +305,7 @@ export const useEditorView = (
 				moduleLog.error('Error saving document to linked file:', error);
 			}
 		},
-		[documentId, isEditingFile],
+		[documentId, isEditingFile, filesReadOnly],
 	);
 
 	const buildSpellCheckExtension = (): Extension => {

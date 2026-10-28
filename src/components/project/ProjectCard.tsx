@@ -19,7 +19,7 @@ import {
 } from '../common/Icons.tsx';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import TypesetterInfo from '../common/TypesetterInfo';
-import { isReadOnlyDocUrl } from '../../utils/urlUtils';
+import { isReadOnlyDocUrl, isReviewDocUrl } from '../../utils/urlUtils';
 
 interface ProjectCardProps {
 	project: Project;
@@ -212,6 +212,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 							)}
 						>
 							{t('Read-only')}
+						</span>
+					)}
+					{isReviewDocUrl(project.docUrl) && (
+						<span
+							className='ui-badge'
+							data-variant='label'
+							title={t(
+								'Opened through a review link: you can comment and suggest changes, which editors accept or reject.',
+							)}
+						>
+							{t('Review')}
 						</span>
 					)}
 					{project.isDiskLinked && (

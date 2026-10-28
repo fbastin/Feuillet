@@ -23,9 +23,13 @@ export interface CollabContextType<T = unknown> {
 	data: T | undefined;
 	changeData: (fn: (data: T) => void) => void;
 	isConnected: boolean;
-	// Opened through a read-only link: changes are not offered, and the
-	// collaboration server would drop them anyway.
+	// Opened through a read-only or review link: changes to the project are
+	// not offered, and the collaboration server would drop them anyway.
 	readOnly: boolean;
+	// Opened through a review link: documents change only by comments and
+	// tracked changes, which the collaboration server checks, and the chat
+	// is open.
+	reviewOnly: boolean;
 	getAwareness: (collectionName: string) => Awareness | null;
 }
 

@@ -10,6 +10,7 @@ import {
 	replaceReviewTags,
 	resolveAllReviews,
 } from '../../extensions/codemirror/ReviewExtension';
+import { skipTagProtection } from '../../extensions/codemirror/annotations/tagProtection';
 import { locateAnnotationTags } from '../../utils/annotationTagUtils';
 
 const moduleLog = createNamedLogger('EditorEvents');
@@ -76,6 +77,9 @@ export const registerEditorEventHandlers = (
 						insert: rawComment.closeTag,
 					},
 				],
+				// A comment's tags change, not the text: neither tracked nor
+				// protected.
+				annotations: skipTagProtection.of(true),
 			});
 		} catch (error) {
 			moduleLog.error('Error processing comment response:', error);
@@ -104,6 +108,7 @@ export const registerEditorEventHandlers = (
 					{ from: tags.openTagStart, to: tags.openTagEnd, insert: '' },
 					{ from: tags.closeTagStart, to: tags.closeTagEnd, insert: '' },
 				],
+				annotations: skipTagProtection.of(true),
 			});
 		} catch (error) {
 			moduleLog.error('Error processing comment deletion:', error);
@@ -141,6 +146,9 @@ export const registerEditorEventHandlers = (
 						insert: rawComment.closeTag,
 					},
 				],
+				// A comment's tags change, not the text: neither tracked nor
+				// protected.
+				annotations: skipTagProtection.of(true),
 			});
 		} catch (error) {
 			moduleLog.error('Error processing comment update:', error);

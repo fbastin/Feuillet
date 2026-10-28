@@ -95,6 +95,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 		isConnected,
 		provider,
 		readOnly,
+		reviewOnly,
 	} = useCollab<DocumentList>();
 	const hasDoc = !!doc;
 
@@ -692,7 +693,17 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 					>
 						<div className='project-title-header'>
 							<h3 className='project-title'>{projectName}</h3>
-							{readOnly ? (
+							{reviewOnly ? (
+								<span
+									className='ui-badge'
+									data-variant='label'
+									title={t(
+										'Opened through a review link: you can comment and suggest changes, which editors accept or reject.',
+									)}
+								>
+									{t('Review')}
+								</span>
+							) : readOnly ? (
 								<span
 									className='ui-badge'
 									data-variant='label'

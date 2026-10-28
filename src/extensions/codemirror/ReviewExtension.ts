@@ -5,7 +5,10 @@ import type { EditorView } from '@codemirror/view';
 import { createNamedLogger } from '@/logging';
 import { reviewService } from '../../services/ReviewService';
 import { containsAnnotationMarker } from '../../utils/annotationTagUtils';
-import { createTagActions } from './annotations/tagProtection';
+import {
+	createTagActions,
+	skipTagProtection,
+} from './annotations/tagProtection';
 import {
 	createAtomicTagRanges,
 	createDerivedTagRangeField,
@@ -121,6 +124,8 @@ export function resolveAllReviews(view: EditorView, accept: boolean): boolean {
 							chunk.originalText,
 						),
 			})),
+			// Deciding on tracked changes is not one.
+			annotations: skipTagProtection.of(true),
 		});
 		return true;
 	} catch (error) {
@@ -143,6 +148,7 @@ export function replaceReviewTags(
 				{ from: chunk.openStart, to: chunk.openEnd, insert: tags.openTag },
 				{ from: chunk.closeStart, to: chunk.closeEnd, insert: tags.closeTag },
 			],
+			annotations: skipTagProtection.of(true),
 		});
 		return true;
 	} catch (error) {

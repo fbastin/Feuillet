@@ -26,6 +26,11 @@ const errorMessage = (error: unknown): string => {
 	return t('Could not manage the collaborators.');
 };
 
+const roleLabel = (role: ProjectMember['role']): string => {
+	if (role === 'editor') return t('Can edit');
+	return role === 'reviewer' ? t('Can review') : t('Read-only');
+};
+
 /**
  * The accounts a project's owner invited, as on Overleaf: they find the
  * project in their list and follow its links when they change. Removing one
@@ -91,9 +96,7 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 						{members.map((member) => (
 							<li key={member.username} className='project-share-member'>
 								<span>{member.username}</span>
-								<span className='ui-meta'>
-									{member.role === 'editor' ? t('Can edit') : t('Read-only')}
-								</span>
+								<span className='ui-meta'>{roleLabel(member.role)}</span>
 								<button
 									type='button'
 									className='button secondary'
@@ -126,8 +129,9 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 						setRole(event.target.value as ProjectMember['role'])
 					}
 				>
-					<option value='editor'>{t('Can edit')}</option>
-					<option value='reader'>{t('Read-only')}</option>
+					<option value='editor'>{roleLabel('editor')}</option>
+					<option value='reviewer'>{roleLabel('reviewer')}</option>
+					<option value='reader'>{roleLabel('reader')}</option>
 				</select>
 				<button
 					type='submit'
@@ -140,6 +144,9 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 			<p className='ui-meta'>
 				{t(
 					'Invited collaborators find the project in their list and keep their access when its links change. Removing one replaces the link they used.',
+				)}{' '}
+				{t(
+					'Reviewers comment and suggest changes, which editors accept or reject.',
 				)}
 			</p>
 		</div>

@@ -46,7 +46,7 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 	docUrl,
 }) => {
 	const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-	const { data: doc, readOnly } = useCollab<DocumentList>();
+	const { data: doc, readOnly, reviewOnly } = useCollab<DocumentList>();
 	const { getSetting } = useSettings();
 	// Projects synced through the collaboration server have links it manages.
 	const serverLinks =
@@ -222,20 +222,30 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 						{projectName}"
 					</h4>
 					<p className='ui-meta'>
-						{readOnly
+						{reviewOnly
 							? t(
-									'Anyone with this link can view and compile this project, but not change it.',
+									'Anyone with this link can comment and suggest changes to this project, which editors accept or reject.',
 								)
-							: t(
-									'Anyone with this link can view and collaborate on this project.',
-								)}
+							: readOnly
+								? t(
+										'Anyone with this link can view and compile this project, but not change it.',
+									)
+								: t(
+										'Anyone with this link can view and collaborate on this project.',
+									)}
 					</p>
 				</div>
 
 				<div>
 					<CopyField
 						id='share-url'
-						label={readOnly ? t('Read-only link') : t('Project Link')}
+						label={
+							reviewOnly
+								? t('Review link')
+								: readOnly
+									? t('Read-only link')
+									: t('Project Link')
+						}
 						value={projectUrl}
 					/>
 				</div>

@@ -65,4 +65,6 @@ export interface ReviewContextType {
 	deleteResponse: (reviewId: string, responseId: string) => void;
 	/** Changes can be read, not accepted, rejected, resolved or answered. */
 	readOnly: boolean;
+	/** A reviewer's: every change is tracked; changes can only be answered. */
+	reviewOnly: boolean;
 }

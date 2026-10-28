@@ -25,9 +25,25 @@ export const TrackChangesButton: React.FC<ReviewButtonProps> = ({
 		canShareTracking,
 		toggleTrackChanges,
 		toggleTrackChangesShared,
+		reviewOnly,
 	} = useReview();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const groupRef = useRef<HTMLDivElement>(null);
+
+	if (reviewOnly) {
+		return (
+			<div className={`ui-control-cluster ${className}`}>
+				<button
+					type='button'
+					className='button tracking-button active'
+					aria-disabled='true'
+					title={t('As a reviewer, all your changes are tracked')}
+				>
+					<TrackChangesIcon />
+				</button>
+			</div>
+		);
+	}
 
 	return (
 		<div className={`ui-control-cluster ${className}`}>

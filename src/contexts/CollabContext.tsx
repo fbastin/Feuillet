@@ -20,7 +20,7 @@ import type {
 	CollabProviderType,
 } from '../types/collab';
 import type { YjsDocUrl } from '../types/yjs';
-import { isReadOnlyDocUrl } from '../utils/urlUtils';
+import { isReadOnlyDocUrl, isReviewDocUrl } from '../utils/urlUtils';
 
 const moduleLog = createNamedLogger('CollabContext');
 
@@ -134,7 +134,8 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 			? docUrl.slice(4)
 			: docUrl.replace(/[^a-zA-Z0-9]/g, '-');
 	}, [docUrl]);
-	const readOnly = isReadOnlyDocUrl(docUrl);
+	const reviewOnly = isReviewDocUrl(docUrl);
+	const readOnly = isReadOnlyDocUrl(docUrl) || reviewOnly;
 
 	useEffect(() => {
 		if (!projectId || !collectionName) return;
@@ -261,6 +262,7 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 		changeData,
 		isConnected,
 		readOnly,
+		reviewOnly,
 		getAwareness,
 	};
 

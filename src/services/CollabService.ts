@@ -16,7 +16,7 @@ import type {
 	DocContainer,
 } from '../types/collab';
 import type { YjsDocUrl } from '../types/yjs';
-import { isReadOnlyProjectId, parseUrlFragments } from '../utils/urlUtils';
+import { parseUrlFragments, projectLinkKind } from '../utils/urlUtils';
 import { offlineService } from './OfflineService';
 import { projectLinkService } from './ProjectLinkService';
 
@@ -68,8 +68,14 @@ export const changedRange = (
 	};
 };
 
+/** Sent on window when the server refused a change made here. */
+export const CHANGE_REFUSED_EVENT = 'feuillet-change-refused';
+
 class CollabService {
 	private docContainers: Map<string, AnyDocContainer> = new Map();
+	// Rooms whose server refused a change made here; they are not joined
+	// again before the page reloads, as they would send it again.
+	private refusedRooms: Set<string> = new Set();
 	private offlineStatusUnsubscribe: (() => void) | null = null;
 
 	private forceLocalConnections = false;
@@ -257,6 +263,11 @@ class CollabService {
 			// The server closes connections through a link that no longer
 			// opens the project, telling the client not to come back.
 			(provider as WebsocketProvider).on('closed', (event) => {
+				// A change a reviewer may not make: not tracked.
+				if (event.code === 4422) {
+					void this.discardRefusedChange(containerId, persistence);
+					return;
+				}
 				if (event.code !== 4403 && event.code !== 4404) return;
 				const room = onlineContainer.roomName;
 				projectLinkService.reportRefused(
@@ -281,7 +292,8 @@ class CollabService {
 						setTimeout(() => {
 							if (
 								this.docContainers.has(containerId) &&
-								!projectLinkService.isCutOff(docId)
+								!projectLinkService.isCutOff(docId) &&
+								!this.refusedRooms.has(containerId)
 							) {
 								provider.connect();
 							}
@@ -320,6 +332,22 @@ class CollabService {
 
 		this.docContainers.set(containerId, onlineContainer);
 		return { doc, provider };
+	}
+
+	// The copy kept in this browser holds the refused change: it goes, so
+	// that the document comes back as the server has it on reloading.
+	private async discardRefusedChange(
+		containerId: string,
+		persistence: IndexeddbPersistence,
+	): Promise<void> {
+		this.refusedRooms.add(containerId);
+		moduleLog.warn(`The server refused a change to ${containerId}`);
+		try {
+			await persistence.clearData();
+		} catch (error) {
+			moduleLog.error('Could not clear the refused copy:', error);
+		}
+		window.dispatchEvent(new CustomEvent(CHANGE_REFUSED_EVENT));
 	}
 
 	private createWebrtcProvider(
@@ -724,8 +752,9 @@ class CollabService {
 		documentId: string,
 		updater: (currentContent: string) => string,
 	): Promise<void> {
-		// The server would drop the change, leaving this copy apart.
-		if (isReadOnlyProjectId(projectId)) return;
+		// The server would drop the change, leaving this copy apart, or refuse
+		// it from a reviewer, as it is not tracked.
+		if (projectLinkKind(projectId) !== 'edit') return;
 		const collectionName = `yjs_${documentId}`;
 		const containerId = `${projectId}-${collectionName}`;
 

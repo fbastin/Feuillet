@@ -18,7 +18,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
 	const { user } = useAuth();
 	const { messages, isConnected, sendMessage } = useChat();
 	const { isCollabOfflineMode } = useOffline();
-	const { readOnly } = useCollab();
+	const { readOnly: readOnlyProject, reviewOnly } = useCollab();
+	// Reviewers chat; readers only read.
+	const readOnly = readOnlyProject && !reviewOnly;
 	const [isCollapsed, setIsCollapsed] = useState(true);
 	const [inputValue, setInputValue] = useState('');
 	const messagesEndRef = useRef<HTMLDivElement>(null);

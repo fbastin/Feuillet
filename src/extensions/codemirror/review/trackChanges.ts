@@ -6,6 +6,7 @@ import {
 	Transaction,
 	type TransactionSpec,
 } from '@codemirror/state';
+import { ySyncFacet } from 'y-codemirror.next';
 
 import {
 	ANNOTATION_KINDS,
@@ -49,6 +50,20 @@ interface TrackChangesDeps {
 
 const visibleText = (text: string) =>
 	stripAnnotationTagTokens(text, ['comment']);
+
+// Changes made in this editor, typed or by its tools (toolbar, formula
+// editor, spelling suggestions...), as opposed to the others' arriving
+// through Yjs, which y-codemirror marks with its configuration. Without
+// Yjs, only typed ones.
+function isLocalEdit(tr: Transaction): boolean {
+	if (isUserEdit(tr)) return true;
+	const sync = tr.startState.facet(ySyncFacet);
+	if (!sync) return false;
+	const { annotations } = tr as unknown as {
+		annotations: readonly { value: unknown }[];
+	};
+	return !annotations.some((annotation) => annotation.value === sync);
+}
 
 function stripReviewSyntax(change: EditChange): EditChange {
 	if (!change.insert.includes('<')) return change;
@@ -248,7 +263,7 @@ function trackChange(
 
 export function createTrackChangesFilter(deps: TrackChangesDeps): Extension {
 	return EditorState.transactionFilter.of((tr) => {
-		if (!tr.docChanged || tr.annotation(skipTagProtection) || !isUserEdit(tr))
+		if (!tr.docChanged || tr.annotation(skipTagProtection) || !isLocalEdit(tr))
 			return tr;
 
 		const config = tr.startState.field(deps.config, false);
@@ -287,7 +302,8 @@ export function createTrackChangesFilter(deps: TrackChangesDeps): Extension {
 				cursorOffset: normalized
 					? normalized.cursorPos - normalized.from
 					: raw.insert.length,
-				userInserted: !!event?.startsWith('input') && raw.insert.length > 0,
+				userInserted:
+					raw.insert.length > 0 && (!event || event.startsWith('input')),
 			};
 			const result = trackChange(
 				tr.startState,

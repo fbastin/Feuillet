@@ -17,6 +17,7 @@ import { BibliographyProvider } from '../../contexts/BibliographyContext';
 import { CommentProvider } from '../../contexts/CommentContext';
 import { ReviewProvider } from '../../contexts/ReviewContext';
 import { hasToolbarSupport } from '../../extensions/codemirror/ToolbarExtension';
+import { skipTagProtection } from '../../extensions/codemirror/annotations/tagProtection';
 import { useEditorView } from '../../hooks/editor/useEditorView';
 import { useCollab } from '../../hooks/useCollab';
 import { useComments } from '../../hooks/useComments';
@@ -32,6 +33,7 @@ import type {
 	ViewerProps,
 } from '../../plugins/PluginInterface';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
+import { CHANGE_REFUSED_EVENT } from '../../services/CollabService';
 import { fileStoreService } from '../../services/FileStoreService';
 import type { DocumentList } from '../../types/documents';
 import {
@@ -225,12 +227,20 @@ const EditorContent: React.FC<{
 	const { cutOff } = useProjectLink(
 		docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl,
 	);
+	// The server refused a change made here, as a reviewer may not make it.
+	const [changeRefused, setChangeRefused] = useState(false);
+	useEffect(() => {
+		const refused = () => setChangeRefused(true);
+		window.addEventListener(CHANGE_REFUSED_EVENT, refused);
+		return () => window.removeEventListener(CHANGE_REFUSED_EVENT, refused);
+	}, []);
 	const fileInfo = usePluginFileInfo(fileId, fileName);
 	const {
 		data: doc,
 		changeData: changeDoc,
 		getAwareness,
 		readOnly: readOnlyProject,
+		reviewOnly,
 	} = useCollab<DocumentList>();
 	const { viewRef, showSaveIndicator, toolbarController } = useEditorView(
 		editorRef,
@@ -247,6 +257,7 @@ const EditorContent: React.FC<{
 		true,
 		toolbarVisible,
 		true,
+		reviewOnly,
 	);
 
 	const toolbarItems = useSyncExternalStore(
@@ -408,6 +419,8 @@ const EditorContent: React.FC<{
 						{ from: selection.from, insert: rawComment.openTag },
 					],
 					selection: { anchor: cursorPos, head: cursorPos },
+					// A comment is not a tracked change.
+					annotations: skipTagProtection.of(true),
 				});
 			} catch (error) {
 				moduleLog.error('Error adding comment:', error);
@@ -565,8 +578,11 @@ const EditorContent: React.FC<{
 	const fileType = detectFileType(filePath || '');
 	const { lsp: availableLSPPlugins, bib: availableBibPlugins } =
 		getPluginToggleButtons([fileType]);
+	// Its bibliography tools change documents without tracking them.
+	const showsBibliography = !isViewOnly && !reviewOnly;
 	const hasPluginToggles =
-		availableLSPPlugins.length > 0 || availableBibPlugins.length > 0;
+		showsBibliography &&
+		(availableLSPPlugins.length > 0 || availableBibPlugins.length > 0);
 	const headerControls =
 		isEditingFile && fileName ? (
 			<>
@@ -756,7 +772,8 @@ const EditorContent: React.FC<{
 								linkedFileExtension ? [linkedFileExtension] : undefined,
 							);
 						const hasLinkedPlugins =
-							linkedLSPPlugins.length > 0 || linkedBibPlugins.length > 0;
+							showsBibliography &&
+							(linkedLSPPlugins.length > 0 || linkedBibPlugins.length > 0);
 
 						return (
 							hasLinkedPlugins && (
@@ -817,7 +834,9 @@ const EditorContent: React.FC<{
 								'bibtex',
 							]);
 						const hasSupportedPlugins =
-							supportedLSPPlugins.length > 0 || supportedBibPlugins.length > 0;
+							showsBibliography &&
+							(supportedLSPPlugins.length > 0 ||
+								supportedBibPlugins.length > 0);
 
 						return (
 							hasSupportedPlugins && (
@@ -873,11 +892,37 @@ const EditorContent: React.FC<{
 			)}
 
 			<div className='editor-toolbar'>
+				{changeRefused && (
+					<div className='linked-file-notice' data-role='change-refused'>
+						<span>
+							{t(
+								'The server refused a change that was not tracked: as a reviewer, only tracked changes and comments go through. Reload to see the document as it is on the server.',
+							)}
+						</span>
+						<div className='linked-file-actions'>
+							<button
+								type='button'
+								className='button primary'
+								onClick={() => window.location.reload()}
+							>
+								{t('Reload')}
+							</button>
+						</div>
+					</div>
+				)}
 				{cutOff ? (
 					<div className='linked-file-notice'>
 						<span>
 							{t(
 								'This link no longer opens the project: it was replaced. Ask whoever shared it for the new link. You see the last version received.',
+							)}
+						</span>
+					</div>
+				) : reviewOnly ? (
+					<div className='linked-file-notice' data-role='review-notice'>
+						<span>
+							{t(
+								'Review: you can comment and suggest changes, which are tracked for the editors to accept or reject. Files and settings are read-only.',
 							)}
 						</span>
 					</div>
@@ -1006,7 +1051,9 @@ const EditorContent: React.FC<{
 
 				<ReviewPanel className='editor-review-panel' />
 				<CommentPanel className='editor-comment-panel' />
-				{!isViewOnly && <BibliographyPanel className='editor-lsp-panel' />}
+				{showsBibliography && (
+					<BibliographyPanel className='editor-lsp-panel' />
+				)}
 			</div>
 		</>
 	);
@@ -1043,7 +1090,7 @@ const Editor: React.FC<EditorComponentProps> = ({
 
 	const editorRef = useRef<HTMLDivElement>(null);
 	const isUpdatingRef = useRef<boolean>(false);
-	const { readOnly: readOnlyProject } = useCollab();
+	const { readOnly: readOnlyProject, reviewOnly } = useCollab();
 
 	useEffect(() => {
 		const handleShowCommentModal = (event: Event) => {
@@ -1345,8 +1392,9 @@ const Editor: React.FC<EditorComponentProps> = ({
 		);
 	}
 
+	// Reviewers change documents, through tracked changes, but not files.
 	const isViewOnly =
-		readOnlyProject ||
+		(readOnlyProject && !(reviewOnly && !isEditingFile)) ||
 		Boolean(isEditingFile && linkedDocumentId && !collaborativeViewerPlugin);
 
 	const handleContentUpdate = (newContent: string) => {
@@ -1366,6 +1414,7 @@ const Editor: React.FC<EditorComponentProps> = ({
 					documentKey={fileId || documentId}
 					sharedKey={filePath || linkedFileInfo?.filePath || documentId}
 					readOnly={isViewOnly}
+					reviewOnly={reviewOnly && !isViewOnly}
 				>
 					<div className='editor-container'>
 						<EditorContent

@@ -8,7 +8,11 @@ import {
 	planAccountSync,
 	toAccountProject,
 } from '../utils/accountSyncUtils';
-import { isReadOnlyProjectId, isValidYjsProjectId } from '../utils/urlUtils';
+import {
+	type ProjectLinkKind,
+	isValidYjsProjectId,
+	projectLinkKind,
+} from '../utils/urlUtils';
 import { projectLinkService } from './ProjectLinkService';
 
 const moduleLog = createNamedLogger('AccountSyncService');
@@ -53,19 +57,23 @@ export class AccountServerError extends Error {
 
 // A project's links as an account sees them: who owns the project, the
 // account's role in it, and the current editing link (for its owner and
-// editors) or read-only link (for its readers).
+// editors), review link (for its reviewers) or read-only link (for its
+// readers).
 export interface ProjectAccess {
 	owner: 'you' | 'other' | 'none';
 	role: ProjectRole | null;
 	edit?: string;
+	review?: string;
 	view?: string;
 }
 
-export type ProjectRole = 'owner' | 'editor' | 'reader';
+export type MemberRole = 'editor' | 'reviewer' | 'reader';
+export type ProjectRole = 'owner' | MemberRole;
+const MEMBER_ROLES: readonly string[] = ['editor', 'reviewer', 'reader'];
 
 export interface ProjectMember {
 	username: string;
-	role: 'editor' | 'reader';
+	role: MemberRole;
 }
 
 export interface MembersChange {
@@ -122,9 +130,7 @@ class AccountSyncService {
 		// collaborators move on to the current one.
 		projectLinkService.setRecovery(async (projectId) => {
 			const access = await this.projectAccess(projectId);
-			return (
-				(isReadOnlyProjectId(projectId) ? access?.view : access?.edit) ?? null
-			);
+			return access?.[projectLinkKind(projectId)] ?? null;
 		});
 	}
 
@@ -281,15 +287,20 @@ class AccountSyncService {
 		const owner = ['you', 'other', 'none'].includes(result?.owner)
 			? (result.owner as ProjectAccess['owner'])
 			: 'none';
-		const role = ['owner', 'editor', 'reader'].includes(result?.role)
-			? (result.role as ProjectRole)
-			: null;
-		const edit = this.validLink(result?.edit, false);
-		const view = this.validLink(result?.view, true);
-		// A project opened through a read-only link moves to the current one.
-		const current = isReadOnlyProjectId(projectId) ? view : edit;
+		const role =
+			result?.role === 'owner' || MEMBER_ROLES.includes(result?.role)
+				? (result.role as ProjectRole)
+				: null;
+		const links = {
+			edit: this.validLink(result?.edit, 'edit'),
+			review: this.validLink(result?.review, 'review'),
+			view: this.validLink(result?.view, 'view'),
+		};
+		// A project opened through a review or read-only link moves to the
+		// current one of its kind.
+		const current = links[projectLinkKind(projectId)];
 		if (current) await this.rememberEditLink(userId, projectId, current);
-		return { owner, role, edit, view };
+		return { owner, role, ...links };
 	}
 
 	/**
@@ -313,21 +324,21 @@ class AccountSyncService {
 				body: { project: projectLinkService.serverId(projectId), ...change },
 			},
 		);
-		const edit = this.validLink(result?.edit, false);
+		const edit = this.validLink(result?.edit, 'edit');
 		if (edit) await this.rememberEditLink(userId, projectId, edit);
 		return Array.isArray(result?.members)
 			? result.members.filter(
 					(member: ProjectMember) =>
 						typeof member?.username === 'string' &&
-						(member.role === 'editor' || member.role === 'reader'),
+						MEMBER_ROLES.includes(member.role),
 				)
 			: [];
 	}
 
-	private validLink(value: unknown, readOnly: boolean): string | undefined {
+	private validLink(value: unknown, kind: ProjectLinkKind): string | undefined {
 		return typeof value === 'string' &&
 			isValidYjsProjectId(value) &&
-			isReadOnlyProjectId(value) === readOnly
+			projectLinkKind(value) === kind
 			? value
 			: undefined;
 	}

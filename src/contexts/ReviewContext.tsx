@@ -28,6 +28,8 @@ interface ReviewProviderProps {
 	documentKey: string;
 	sharedKey?: string;
 	readOnly?: boolean;
+	// A reviewer's: every change is tracked, and only editors decide.
+	reviewOnly?: boolean;
 }
 
 const dispatchReviewEvent = (
@@ -42,6 +44,7 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 	documentKey,
 	sharedKey,
 	readOnly = false,
+	reviewOnly = false,
 }) => {
 	const [reviews, setReviews] = useState<ReviewSnapshot[]>([]);
 	const [showReviews, setShowReviews] = useState<boolean>(false);
@@ -58,8 +61,8 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 
 	const trackChangesShared =
 		!!sharedKey && !!doc?.projectMetadata?.trackedFiles?.includes(sharedKey);
-	const canShareTracking = !!changeDoc && !!sharedKey;
-	const trackChanges = trackChangesLocal || trackChangesShared;
+	const canShareTracking = !!changeDoc && !!sharedKey && !reviewOnly;
+	const trackChanges = reviewOnly || trackChangesLocal || trackChangesShared;
 
 	const reviewsRef = useRef<ReviewSnapshot[]>([]);
 	const userRef = useRef(user);
@@ -192,6 +195,7 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 	);
 
 	const toggleTrackChanges = useCallback(() => {
+		if (reviewOnly) return;
 		const next = !trackChangesLocal;
 		setTrackChangesLocal(next);
 
@@ -211,10 +215,10 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		}
 
 		if (next) setShowReviews(true);
-	}, [documentKey, getProperty, setProperty, trackChangesLocal]);
+	}, [documentKey, getProperty, setProperty, trackChangesLocal, reviewOnly]);
 
 	const toggleTrackChangesShared = useCallback(() => {
-		if (!changeDoc || !sharedKey) return;
+		if (!canShareTracking) return;
 
 		changeDoc((d) => {
 			if (!d.projectMetadata) {
@@ -228,23 +232,30 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		});
 
 		if (!trackChangesShared) setShowReviews(true);
-	}, [changeDoc, sharedKey, trackChangesShared]);
+	}, [canShareTracking, changeDoc, sharedKey, trackChangesShared]);
 
+	// Editors decide; the server refuses a reviewer's acceptance anyway.
+	const decide = useCallback(
+		(name: string, detail: Record<string, unknown> = {}) => {
+			if (!reviewOnly) dispatchReviewEvent(name, detail);
+		},
+		[reviewOnly],
+	);
 	const acceptReview = useCallback(
-		(reviewId: string) => dispatchReviewEvent('review-accept', { reviewId }),
-		[],
+		(reviewId: string) => decide('review-accept', { reviewId }),
+		[decide],
 	);
 	const rejectReview = useCallback(
-		(reviewId: string) => dispatchReviewEvent('review-reject', { reviewId }),
-		[],
+		(reviewId: string) => decide('review-reject', { reviewId }),
+		[decide],
 	);
 	const acceptAllReviews = useCallback(
-		() => dispatchReviewEvent('review-accept-all'),
-		[],
+		() => decide('review-accept-all'),
+		[decide],
 	);
 	const rejectAllReviews = useCallback(
-		() => dispatchReviewEvent('review-reject-all'),
-		[],
+		() => decide('review-reject-all'),
+		[decide],
 	);
 
 	const setReviewResolved = useCallback(
@@ -259,18 +270,19 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 	const resolveReview = useCallback(
 		(reviewId: string) => {
 			const review = reviewsRef.current.find((entry) => entry.id === reviewId);
-			if (!review) return;
+			if (!review || reviewOnly) return;
 
 			setReviewResolved(review, !review.resolved);
 		},
-		[setReviewResolved],
+		[setReviewResolved, reviewOnly],
 	);
 
 	const resolveAllReviews = useCallback(() => {
+		if (reviewOnly) return;
 		for (const review of reviewsRef.current) {
 			if (!review.resolved) setReviewResolved(review, true);
 		}
-	}, [setReviewResolved]);
+	}, [setReviewResolved, reviewOnly]);
 
 	const updateResponses = useCallback(
 		(review: ReviewSnapshot, responses: ReviewSnapshot['responses']) => {
@@ -336,6 +348,7 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 				addResponse,
 				deleteResponse,
 				readOnly,
+				reviewOnly,
 			}}
 		>
 			{children}

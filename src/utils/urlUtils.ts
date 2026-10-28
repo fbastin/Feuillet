@@ -8,6 +8,9 @@ const UUID_PROJECT_ID_RE =
 // A read-only link to a project, given by the collaboration server: whoever
 // opens it receives the project, and the server drops their changes.
 const READ_ONLY_PROJECT_ID_RE = /^view[0-9a-f]{32}$/;
+// A review link, given by the collaboration server to the reviewers it
+// invites: their changes go through only as comments and tracked changes.
+const REVIEW_PROJECT_ID_RE = /^review[0-9a-f]{32}$/;
 
 export function isValidYjsProjectId(projectId: string): boolean {
 	const value = projectId.trim();
@@ -15,7 +18,8 @@ export function isValidYjsProjectId(projectId: string): boolean {
 	return (
 		LEGACY_YJS_PROJECT_ID_RE.test(value) ||
 		UUID_PROJECT_ID_RE.test(value) ||
-		READ_ONLY_PROJECT_ID_RE.test(value)
+		READ_ONLY_PROJECT_ID_RE.test(value) ||
+		REVIEW_PROJECT_ID_RE.test(value)
 	);
 }
 
@@ -23,8 +27,24 @@ export function isReadOnlyProjectId(projectId: string): boolean {
 	return READ_ONLY_PROJECT_ID_RE.test(projectId);
 }
 
+export function isReviewProjectId(projectId: string): boolean {
+	return REVIEW_PROJECT_ID_RE.test(projectId);
+}
+
+export type ProjectLinkKind = 'edit' | 'review' | 'view';
+
+/** What a link to a project lets do: edit it, review it or read it. */
+export function projectLinkKind(projectId: string): ProjectLinkKind {
+	if (isReadOnlyProjectId(projectId)) return 'view';
+	return isReviewProjectId(projectId) ? 'review' : 'edit';
+}
+
 export function isReadOnlyDocUrl(docUrl: string): boolean {
 	return docUrl.startsWith('yjs:') && isReadOnlyProjectId(docUrl.slice(4));
+}
+
+export function isReviewDocUrl(docUrl: string): boolean {
+	return docUrl.startsWith('yjs:') && isReviewProjectId(docUrl.slice(4));
 }
 
 export function isValidYjsUrl(url: string): boolean {

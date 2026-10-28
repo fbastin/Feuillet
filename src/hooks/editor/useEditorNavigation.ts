@@ -21,6 +21,7 @@ import {
 import {
 	buildUrlWithFragments,
 	isReadOnlyDocUrl,
+	isReviewDocUrl,
 	parseUrlFragments,
 } from '../../utils/urlUtils';
 import { useAuth } from '../useAuth';
@@ -308,6 +309,7 @@ export const useEditorNavigation = ({
 			if (
 				getSetting('collab-provider-type')?.value !== 'websocket' ||
 				isReadOnlyDocUrl(docUrl) ||
+				isReviewDocUrl(docUrl) ||
 				file.documentId ||
 				file.isBinary ||
 				isBinaryFileName(file.name) ||

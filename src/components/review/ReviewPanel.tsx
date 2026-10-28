@@ -26,6 +26,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 		rejectAllReviews,
 		resolveAllReviews,
 		readOnly,
+		reviewOnly,
 	} = useReview();
 	const [activeTab, setActiveTab] = useState<'list' | 'resolved'>('list');
 	const contentRef = useRef<HTMLDivElement>(null);
@@ -239,7 +240,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 				</div>
 			</div>
 
-			{activeTab === 'list' && !readOnly && (
+			{activeTab === 'list' && !readOnly && !reviewOnly && (
 				<div className='ui-panel-controls ui-actions' data-fill='true'>
 					<button
 						type='button'
@@ -305,6 +306,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 								addResponse={addResponse}
 								deleteResponse={deleteResponse}
 								readOnly={readOnly}
+								canDecide={!reviewOnly}
 							/>
 						))}
 					</div>

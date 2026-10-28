@@ -34,7 +34,7 @@ import {
 	stringToArrayBuffer,
 } from '../utils/fileUtils';
 import { batchExtractArchive } from '../utils/archiveUtils';
-import { isReadOnlyDocUrl } from '../utils/urlUtils';
+import { isReadOnlyDocUrl, isReviewDocUrl } from '../utils/urlUtils';
 
 const moduleLog = createNamedLogger('FileTreeContext');
 
@@ -809,9 +809,11 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 		setSelectedFileId(null);
 	}, []);
 
-	// Through a read-only link, the project's files are only received.
+	// Through a read-only or review link, the project's files are only
+	// received.
 	const ignore = async () => {};
-	const readOnlyOperations = isReadOnlyDocUrl(docUrl) && {
+	const readOnlyOperations = (isReadOnlyDocUrl(docUrl) ||
+		isReviewDocUrl(docUrl)) && {
 		uploadFiles: ignore,
 		createDirectory: ignore,
 		deleteFileOrDirectory: ignore,
