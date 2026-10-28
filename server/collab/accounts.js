@@ -127,6 +127,12 @@ const cleanProject = (entry) => {
 					.map((tag) => tag.slice(0, 100))
 			: [],
 		isFavorite: entry.isFavorite === true,
+		// Archived or in the trash, as on Overleaf's project list.
+		archived: entry.archived === true,
+		trashedAt:
+			Number.isFinite(Number(entry.trashedAt)) && Number(entry.trashedAt) > 0
+				? Number(entry.trashedAt)
+				: undefined,
 		createdAt: Number.isFinite(Number(entry.createdAt))
 			? Number(entry.createdAt)
 			: updatedAt,
@@ -277,10 +283,21 @@ const createAccounts = ({ dir, log }) => {
 		});
 	};
 
+	// Who owns each project, from the project links (shares.js): told with
+	// every list, never stored with it.
+	let describeProject = () => ({});
+	const setProjectDescriber = (describe) => {
+		describeProject = describe;
+	};
+
 	const listProjects = (account) =>
-		Object.values(account.projects ?? {}).sort(
-			(a, b) => b.updatedAt - a.updatedAt,
-		);
+		Object.values(account.projects ?? {})
+			.sort((a, b) => b.updatedAt - a.updatedAt)
+			.map((entry) =>
+				entry.deleted
+					? entry
+					: { ...entry, ...describeProject(idOf(account), entry) },
+			);
 
 	const register = async (body, ip) => {
 		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
@@ -367,6 +384,16 @@ const createAccounts = ({ dir, log }) => {
 	// Who sent a request.
 	const identify = (req) =>
 		authenticate(req, (account) => ({ body: idOf(account) }));
+
+	// The username of the account with this id, or null.
+	const usernameOf = (id) => {
+		const [key, createdAt] = String(id).split('.');
+		if (!/^[0-9a-f]{64}$/.test(key ?? '')) return null;
+		const account = read(key);
+		return account && String(account.createdAt) === createdAt
+			? account.username
+			: null;
+	};
 
 	// The account with this username, or null.
 	const findAccount = (username) => {
@@ -507,7 +534,15 @@ const createAccounts = ({ dir, log }) => {
 		}
 	};
 
-	return { handles, handle, identify, findAccount, shareProject };
+	return {
+		handles,
+		handle,
+		identify,
+		findAccount,
+		usernameOf,
+		shareProject,
+		setProjectDescriber,
+	};
 };
 
 module.exports = {

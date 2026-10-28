@@ -15,6 +15,8 @@
 //    accounts, who follow its links as they change (/share/members);
 //  - lets reviewers, through their own link, change documents only by
 //    comments and tracked changes (review.js), as on Overleaf;
+//  - copies projects (/share/copy, copy.js) and tells accounts who owns
+//    the projects they list, as Overleaf's project list does;
 //  - saves versions of each project a short while after it changes, with who
 //    changed it (/history/..., history.js), as on Overleaf;
 //  - signs people in with GitHub for GitHub sync (/github/..., github.js),
@@ -48,6 +50,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
+const { createProjectCopier } = require('./copy');
 const { createGitHub } = require('./github');
 const { createHistory } = require('./history');
 const { createReviewGuard } = require('./review');
@@ -81,6 +84,7 @@ if (process.env.YPERSISTENCE) {
 const {
 	docs,
 	getPersistence,
+	getYDoc,
 	setupWSConnection,
 } = require('y-websocket/bin/utils');
 
@@ -114,7 +118,14 @@ const shares = createShares({
 			conn.close(4403, 'Link replaced');
 		}
 	},
+	copyProject: createProjectCopier({
+		docs,
+		persistence: getPersistence(),
+		getYDoc,
+		filesDir,
+	}),
 });
+accounts.setProjectDescriber(shares.describe);
 
 const github = createGitHub({
 	clientId: process.env.GITHUB_CLIENT_ID,

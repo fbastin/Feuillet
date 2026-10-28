@@ -32,6 +32,8 @@
 //   POST /share/members {project}    (token) -> {members}, for the owner
 //   POST /share/members {project, add: {username, role}, name, type}
 //   POST /share/members {project, remove: username}
+//   POST /share/copy {project, name} (token) -> {project}, a copy of the
+//                                               project the account owns
 //
 // `project` is an editing id, or for /share/edit any link the account holds.
 // Knowing an editing id is what lets someone edit the project, so it also
@@ -40,6 +42,10 @@
 // `edit`, the current editing id, goes to the owner and editors, `review`,
 // the current review link, to reviewers who ask with one, and `view`, the
 // current read-only link, to readers who ask with one.
+//
+// Copies, as Overleaf's "Make a copy": any link that opens a project lets an
+// account copy it (copy.js); the copy is a new project the account owns.
+// Account lists tell who owns each project (`describe`).
 //
 // SHARES_DIR keeps one file per project (projects/<project>.json: {view,
 // review, edit, owner, members}), one per read-only link (views/<view>.json:
@@ -75,7 +81,13 @@ const isProjectId = (id) =>
 	!isViewId(id) &&
 	!isReviewId(id);
 
-const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
+const createShares = ({
+	dir,
+	log,
+	accounts,
+	onRevoke = () => {},
+	copyProject = null,
+}) => {
 	const projectsDir = path.join(dir, 'projects');
 	const viewsDir = path.join(dir, 'views');
 	const reviewsDir = path.join(dir, 'reviews');
@@ -335,6 +347,34 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 		};
 	};
 
+	// Who owns a project an account lists: "you", "other" (with their
+	// name) or "none".
+	const describe = (account, entry) => {
+		const found = lookup(entry.editId ?? entry.id);
+		if (!found) return {};
+		const { owner } = readProject(found.project);
+		if (!owner) return { owner: 'none' };
+		if (owner === account) return { owner: 'you' };
+		const ownerName = accounts.usernameOf(owner);
+		return ownerName ? { owner: 'other', ownerName } : { owner: 'other' };
+	};
+
+	const shareCopy = async (req, body) => {
+		const found = lookup(body.project);
+		if (!found) throw new HttpError(400, 'invalid_project');
+		const account = await accounts.identify(req);
+		if (found.access === 'replaced') throw new HttpError(403, 'link_replaced');
+		if (!copyProject) throw new HttpError(501, 'copy_unavailable');
+		const project = crypto.randomUUID();
+		const name = typeof body.name === 'string' ? body.name.slice(0, 300) : '';
+		if (!(await copyProject(found.project, project, { name }))) {
+			throw new HttpError(404, 'unknown_project');
+		}
+		writeProject(project, { owner: account });
+		log('project copied');
+		return { project };
+	};
+
 	const readBody = (req) =>
 		new Promise((done, fail) => {
 			let size = 0;
@@ -363,6 +403,7 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 		'/share/view': (_req, body) => shareView(body),
 		'/share/edit': (req, body) => shareEdit(req, body),
 		'/share/members': (req, body) => shareMembers(req, body),
+		'/share/copy': (req, body) => shareCopy(req, body),
 	};
 
 	const handles = (url) => Object.hasOwn(routes, url);
@@ -398,7 +439,7 @@ const createShares = ({ dir, log, accounts, onRevoke = () => {} }) => {
 		}
 	};
 
-	return { handles, handle, lookup };
+	return { handles, handle, lookup, describe };
 };
 
 module.exports = { createShares, isViewId, isReviewId };
