@@ -75,6 +75,7 @@ import {
 import { PluginControlGroup, PluginHeader } from '../common/PluginHeader';
 import PluginToolbar, { type ToolbarEntry } from '../common/PluginToolbar';
 import UnlinkedDocumentNotice from './UnlinkedDocumentNotice';
+import VisualEditorToggle from './VisualEditorToggle';
 
 const moduleLog = createNamedLogger('Editor');
 
@@ -569,6 +570,7 @@ const EditorContent: React.FC<{
 	const headerControls =
 		isEditingFile && fileName ? (
 			<>
+				{isLatexFile(filePath) && <VisualEditorToggle viewRef={viewRef} />}
 				{hasToolbarSupport(fileType) && !isViewOnly && (
 					<>
 						<PluginControlGroup>
@@ -668,6 +670,9 @@ const EditorContent: React.FC<{
 			</>
 		) : !isEditingFile && linkedFileInfo && !showUnlinkedNotice ? (
 			<>
+				{isLatexFile(linkedFileInfo.filePath) && (
+					<VisualEditorToggle viewRef={viewRef} />
+				)}
 				{hasToolbarSupport(detectFileType(linkedFileInfo.filePath)) &&
 					!isViewOnly && (
 						<>

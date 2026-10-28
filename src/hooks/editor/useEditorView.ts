@@ -72,6 +72,10 @@ import {
 	type ToolbarFileType,
 } from '../../extensions/codemirror/ToolbarExtension';
 import { createMathLiveExtension } from '../../extensions/codemirror/MathLiveExtension';
+import {
+	readVisualPreference,
+	visualLatex,
+} from '../../extensions/codemirror/VisualLatexExtension';
 import { createPasteExtension } from '../../extensions/codemirror/PasteExtension';
 import { createListingsExtension } from '../../extensions/codemirror/ListingsExtension';
 import { createBurstDeferredLanguage } from '../../extensions/codemirror/BurstDeferLanguage';
@@ -491,6 +495,8 @@ export const useEditorView = (
 						interfaceLanguage: editorSettings.language,
 					}),
 				);
+				// The visual editor, on or off as last chosen in this browser.
+				extensions.push(visualLatex(readVisualPreference()));
 			}
 
 			if (info.isLatex || info.isTypst) {
