@@ -72,9 +72,14 @@ export function deleteCommentById(view: EditorView, id: string): boolean {
 	return commentActions.replaceById(view, id, '');
 }
 
-export const commentSystemExtension = [
+/** Comments as they show, for those who may only read them. */
+export const commentDisplayExtension = [
 	commentRanges,
 	commentState,
 	createAtomicTagRanges(commentRanges),
+];
+
+export const commentSystemExtension = [
+	...commentDisplayExtension,
 	...commentBubbleExtension,
 ];

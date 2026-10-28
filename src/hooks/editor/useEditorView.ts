@@ -49,8 +49,12 @@ import { createNamedLogger } from '@/logging';
 import { createLanguageExtension } from '../../extensions/codemirror/LanguageExtension';
 import { resolveHighlightTheme } from '../../extensions/codemirror/HighlightThemeExtension';
 import { annotationSystemExtension } from '../../extensions/codemirror/AnnotationExtension';
-import { commentSystemExtension } from '../../extensions/codemirror/CommentExtension';
 import {
+	commentDisplayExtension,
+	commentSystemExtension,
+} from '../../extensions/codemirror/CommentExtension';
+import {
+	reviewDisplayExtension,
 	reviewSystemExtension,
 	setTrackChanges,
 } from '../../extensions/codemirror/ReviewExtension';
@@ -635,13 +639,13 @@ export const useEditorView = (
 		return [formatBinding, saveBinding, compileBinding];
 	};
 
+	// Readers see comments and tracked changes too, not their tags.
 	const buildAnnotationExtensions = (): Extension[] =>
-		!isViewOnly && (enableComments || enableReviews)
-			? [annotationSystemExtension]
-			: [];
+		enableComments || enableReviews ? [annotationSystemExtension] : [];
 
 	const buildCommentExtensions = (): Extension[] => {
-		if (!enableComments || isViewOnly) return [];
+		if (!enableComments) return [];
+		if (isViewOnly) return [commentDisplayExtension];
 
 		const commentBinding = keymap.of([
 			{
@@ -669,9 +673,9 @@ export const useEditorView = (
 	};
 
 	const buildReviewExtensions = (): Extension[] => {
-		if (!enableReviews || isViewOnly) return [];
+		if (!enableReviews) return [];
 
-		return [reviewSystemExtension];
+		return [isViewOnly ? reviewDisplayExtension : reviewSystemExtension];
 	};
 
 	// --- Yjs / collaboration connection ---

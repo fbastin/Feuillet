@@ -16,6 +16,10 @@ import { fileStoreService } from '../services/FileStoreService';
 import { reviewService } from '../services/ReviewService';
 import type { DocumentList } from '../types/documents';
 import type { ReviewContextType, ReviewSnapshot } from '../types/review';
+import {
+	announceReviewSidePanel,
+	onReviewSidePanel,
+} from '../utils/reviewSidePanel';
 
 export const ReviewContext = createContext<ReviewContextType | null>(null);
 
@@ -23,6 +27,7 @@ interface ReviewProviderProps {
 	children: ReactNode;
 	documentKey: string;
 	sharedKey?: string;
+	readOnly?: boolean;
 }
 
 const dispatchReviewEvent = (
@@ -36,6 +41,7 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 	children,
 	documentKey,
 	sharedKey,
+	readOnly = false,
 }) => {
 	const [reviews, setReviews] = useState<ReviewSnapshot[]>([]);
 	const [showReviews, setShowReviews] = useState<boolean>(false);
@@ -166,6 +172,19 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 				publishTrackChanges,
 			);
 	}, [publishTrackChanges]);
+
+	// One review panel at a time, as on Overleaf, so the editor keeps its room.
+	useEffect(() => {
+		if (showReviews) announceReviewSidePanel('changes');
+	}, [showReviews]);
+
+	useEffect(
+		() =>
+			onReviewSidePanel((panel) => {
+				if (panel !== 'changes') setShowReviews(false);
+			}),
+		[],
+	);
 
 	const toggleReviews = useCallback(
 		() => setShowReviews((visible) => !visible),
@@ -316,6 +335,7 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 				resolveAllReviews,
 				addResponse,
 				deleteResponse,
+				readOnly,
 			}}
 		>
 			{children}

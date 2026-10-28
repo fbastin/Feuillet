@@ -641,12 +641,10 @@ const EditorContent: React.FC<{
 
 				<PluginControlGroup>
 					{!isViewOnly && (
-						<>
-							<TrackChangesButton className='header-review-button' />
-							<ReviewToggleButton className='header-review-button' />
-							<CommentToggleButton className='header-comment-button' />
-						</>
+						<TrackChangesButton className='header-review-button' />
 					)}
+					<ReviewToggleButton className='header-review-button' />
+					<CommentToggleButton className='header-comment-button' />
 				</PluginControlGroup>
 
 				{hasPluginToggles && (
@@ -742,12 +740,10 @@ const EditorContent: React.FC<{
 
 				<PluginControlGroup>
 					{!isViewOnly && (
-						<>
-							<TrackChangesButton className='header-review-button' />
-							<ReviewToggleButton className='header-review-button' />
-							<CommentToggleButton className='header-comment-button' />
-						</>
+						<TrackChangesButton className='header-review-button' />
 					)}
+					<ReviewToggleButton className='header-review-button' />
+					<CommentToggleButton className='header-comment-button' />
 				</PluginControlGroup>
 				{linkedFileInfo?.fileName &&
 					(() => {
@@ -803,12 +799,10 @@ const EditorContent: React.FC<{
 
 				<PluginControlGroup>
 					{!isViewOnly && (
-						<>
-							<TrackChangesButton className='header-review-button' />
-							<ReviewToggleButton className='header-review-button' />
-							<CommentToggleButton className='header-comment-button' />
-						</>
+						<TrackChangesButton className='header-review-button' />
 					)}
+					<ReviewToggleButton className='header-review-button' />
+					<CommentToggleButton className='header-comment-button' />
 				</PluginControlGroup>
 
 				{textContent?.includes('\\') &&
@@ -1010,8 +1004,8 @@ const EditorContent: React.FC<{
 					)}
 				</div>
 
-				{!isViewOnly && <ReviewPanel className='editor-review-panel' />}
-				{!isViewOnly && <CommentPanel className='editor-comment-panel' />}
+				<ReviewPanel className='editor-review-panel' />
+				<CommentPanel className='editor-comment-panel' />
 				{!isViewOnly && <BibliographyPanel className='editor-lsp-panel' />}
 			</div>
 		</>
@@ -1366,10 +1360,12 @@ const Editor: React.FC<EditorComponentProps> = ({
 			<CommentProvider
 				editorContent={textContent}
 				onUpdateContent={handleContentUpdate}
+				readOnly={isViewOnly}
 			>
 				<ReviewProvider
 					documentKey={fileId || documentId}
 					sharedKey={filePath || linkedFileInfo?.filePath || documentId}
+					readOnly={isViewOnly}
 				>
 					<div className='editor-container'>
 						<EditorContent

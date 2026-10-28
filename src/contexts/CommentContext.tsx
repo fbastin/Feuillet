@@ -19,6 +19,10 @@ import type {
 	CommentContextType,
 	CommentRaw,
 } from '../types/comments';
+import {
+	announceReviewSidePanel,
+	onReviewSidePanel,
+} from '../utils/reviewSidePanel';
 
 const moduleLog = createNamedLogger('CommentContext');
 
@@ -28,12 +32,14 @@ interface CommentProviderProps {
 	children: ReactNode;
 	editorContent: string;
 	onUpdateContent: (content: string) => void;
+	readOnly?: boolean;
 }
 
 export const CommentProvider: React.FC<CommentProviderProps> = ({
 	children,
 	editorContent,
 	onUpdateContent,
+	readOnly = false,
 }) => {
 	const [comments, setComments] = useState<Comment[]>([]);
 	const [showComments, setShowComments] = useState<boolean>(false);
@@ -86,6 +92,19 @@ export const CommentProvider: React.FC<CommentProviderProps> = ({
 			projectId,
 		});
 	}, [showComments, propertiesLoaded, setProperty]);
+
+	// One review panel at a time, as on Overleaf, so the editor keeps its room.
+	useEffect(() => {
+		if (showComments) announceReviewSidePanel('comments');
+	}, [showComments]);
+
+	useEffect(
+		() =>
+			onReviewSidePanel((panel) => {
+				if (panel !== 'comments') setShowComments(false);
+			}),
+		[],
+	);
 
 	const getCommentById = useCallback(
 		(commentId: string) => {
@@ -266,6 +285,7 @@ export const CommentProvider: React.FC<CommentProviderProps> = ({
 				toggleComments,
 				parseComments,
 				getCommentAtPosition,
+				readOnly,
 			}}
 		>
 			{children}

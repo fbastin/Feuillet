@@ -158,13 +158,18 @@ export function setTrackChanges(
 	view.dispatch({ effects: setReviewConfig.of(config) });
 }
 
-export const reviewSystemExtension = [
+/** Tracked changes as they show, for those who may only read them. */
+export const reviewDisplayExtension = [
 	reviewChunks,
 	reviewConfig,
 	reviewState,
 	createAtomicTagRanges(reviewChunks),
 	createReviewReporter(reviewChunks),
 	reviewClickHandler,
+];
+
+export const reviewSystemExtension = [
+	...reviewDisplayExtension,
 	createTrackChangesFilter({
 		reviewChunks,
 		config: reviewConfig,

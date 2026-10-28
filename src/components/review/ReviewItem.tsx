@@ -17,6 +17,7 @@ interface ReviewItemProps {
 	resolveReview: (reviewId: string) => void;
 	addResponse: (reviewId: string, content: string) => void;
 	deleteResponse: (reviewId: string, responseId: string) => void;
+	readOnly?: boolean;
 }
 
 const truncateUsername = (username: string, maxLength = 15) =>
@@ -34,6 +35,7 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 			resolveReview,
 			addResponse,
 			deleteResponse,
+			readOnly = false,
 		},
 		ref,
 	) => {
@@ -76,45 +78,47 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 						</div>
 						<div className='ui-item-time'>{formatDate(review.timestamp)}</div>
 					</div>
-					<div className='ui-actions'>
-						<button
-							type='button'
-							className='ui-icon-button'
-							data-variant='ghost'
-							data-tone='success'
-							data-size='sm'
-							onClick={() => resolveReview(review.id)}
-							title={
-								review.resolved
-									? t('Mark as unresolved')
-									: t('Mark as resolved')
-							}
-						>
-							<ResolveIcon />
-						</button>
-						<button
-							type='button'
-							className='ui-icon-button'
-							data-variant='ghost'
-							data-tone='success'
-							data-size='sm'
-							onClick={() => acceptReview(review.id)}
-							title={t('Accept change')}
-						>
-							<CheckIcon />
-						</button>
-						<button
-							type='button'
-							className='ui-icon-button'
-							data-variant='ghost'
-							data-tone='danger'
-							data-size='sm'
-							onClick={() => rejectReview(review.id)}
-							title={t('Reject change')}
-						>
-							<CloseIcon />
-						</button>
-					</div>
+					{!readOnly && (
+						<div className='ui-actions'>
+							<button
+								type='button'
+								className='ui-icon-button'
+								data-variant='ghost'
+								data-tone='success'
+								data-size='sm'
+								onClick={() => resolveReview(review.id)}
+								title={
+									review.resolved
+										? t('Mark as unresolved')
+										: t('Mark as resolved')
+								}
+							>
+								<ResolveIcon />
+							</button>
+							<button
+								type='button'
+								className='ui-icon-button'
+								data-variant='ghost'
+								data-tone='success'
+								data-size='sm'
+								onClick={() => acceptReview(review.id)}
+								title={t('Accept change')}
+							>
+								<CheckIcon />
+							</button>
+							<button
+								type='button'
+								className='ui-icon-button'
+								data-variant='ghost'
+								data-tone='danger'
+								data-size='sm'
+								onClick={() => rejectReview(review.id)}
+								title={t('Reject change')}
+							>
+								<CloseIcon />
+							</button>
+						</div>
+					)}
 				</div>
 
 				<button
@@ -146,17 +150,19 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 											{formatDate(response.timestamp)}
 										</div>
 									</div>
-									<button
-										type='button'
-										className='ui-icon-button'
-										data-variant='ghost'
-										data-tone='danger'
-										data-size='xs'
-										onClick={() => deleteResponse(review.id, response.id)}
-										title={t('Delete response')}
-									>
-										<TrashIcon />
-									</button>
+									{!readOnly && (
+										<button
+											type='button'
+											className='ui-icon-button'
+											data-variant='ghost'
+											data-tone='danger'
+											data-size='xs'
+											onClick={() => deleteResponse(review.id, response.id)}
+											title={t('Delete response')}
+										>
+											<TrashIcon />
+										</button>
+									)}
 								</div>
 								<div className='ui-item-content'>{response.content}</div>
 							</div>
@@ -165,6 +171,7 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 				)}
 
 				{!review.resolved &&
+					!readOnly &&
 					(isAddingResponse ? (
 						<div className='ui-stack' data-gap='sm'>
 							<textarea

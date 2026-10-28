@@ -63,4 +63,6 @@ export interface ReviewContextType {
 	resolveAllReviews: () => void;
 	addResponse: (reviewId: string, content: string) => void;
 	deleteResponse: (reviewId: string, responseId: string) => void;
+	/** Changes can be read, not accepted, rejected, resolved or answered. */
+	readOnly: boolean;
 }

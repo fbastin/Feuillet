@@ -22,8 +22,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
 }) => {
 	const [newResponse, setNewResponse] = useState('');
 	const [isAddingResponse, setIsAddingResponse] = useState(false);
-	const { addResponse, deleteComment, deleteResponse, resolveComment } =
-		useComments();
+	const {
+		addResponse,
+		deleteComment,
+		deleteResponse,
+		resolveComment,
+		readOnly,
+	} = useComments();
 
 	const handleAddResponse = () => {
 		if (newResponse.trim()) {
@@ -74,32 +79,36 @@ const CommentItem: React.FC<CommentItemProps> = ({
 					</div>
 					<div className='ui-item-time'>{formatDate(comment.timestamp)}</div>
 				</div>
-				<div className='ui-actions'>
-					<button
-						type='button'
-						className='ui-icon-button'
-						data-variant='ghost'
-						data-tone='success'
-						data-size='sm'
-						onClick={handleResolveComment}
-						title={
-							comment.resolved ? t('Mark as unresolved') : t('Mark as resolved')
-						}
-					>
-						<ResolveIcon />
-					</button>
-					<button
-						type='button'
-						className='ui-icon-button'
-						data-variant='ghost'
-						data-tone='danger'
-						data-size='sm'
-						onClick={() => deleteComment(comment.id)}
-						title={t('Delete comment')}
-					>
-						<TrashIcon />
-					</button>
-				</div>
+				{!readOnly && (
+					<div className='ui-actions'>
+						<button
+							type='button'
+							className='ui-icon-button'
+							data-variant='ghost'
+							data-tone='success'
+							data-size='sm'
+							onClick={handleResolveComment}
+							title={
+								comment.resolved
+									? t('Mark as unresolved')
+									: t('Mark as resolved')
+							}
+						>
+							<ResolveIcon />
+						</button>
+						<button
+							type='button'
+							className='ui-icon-button'
+							data-variant='ghost'
+							data-tone='danger'
+							data-size='sm'
+							onClick={() => deleteComment(comment.id)}
+							title={t('Delete comment')}
+						>
+							<TrashIcon />
+						</button>
+					</div>
+				)}
 			</div>
 
 			{comment.line && (
@@ -130,17 +139,19 @@ const CommentItem: React.FC<CommentItemProps> = ({
 										{formatDate(response.timestamp)}
 									</div>
 								</div>
-								<button
-									type='button'
-									className='ui-icon-button'
-									data-variant='ghost'
-									data-tone='danger'
-									data-size='xs'
-									onClick={() => handleDeleteResponse(response.id)}
-									title={t('Delete response')}
-								>
-									<TrashIcon />
-								</button>
+								{!readOnly && (
+									<button
+										type='button'
+										className='ui-icon-button'
+										data-variant='ghost'
+										data-tone='danger'
+										data-size='xs'
+										onClick={() => handleDeleteResponse(response.id)}
+										title={t('Delete response')}
+									>
+										<TrashIcon />
+									</button>
+								)}
 							</div>
 							<div className='ui-item-content'>{response.content}</div>
 						</div>
@@ -149,6 +160,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
 			)}
 
 			{!comment.resolved &&
+				!readOnly &&
 				(isAddingResponse ? (
 					<div className='ui-stack' data-gap='sm'>
 						<textarea

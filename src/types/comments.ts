@@ -41,4 +41,6 @@ export interface CommentContextType {
 	toggleComments: () => void;
 	parseComments: (editorContent: string) => Comment[];
 	getCommentAtPosition: (position: number) => Comment | null;
+	/** Comments can be read, not added, answered, resolved or deleted. */
+	readOnly: boolean;
 }
