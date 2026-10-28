@@ -68,7 +68,7 @@
     "canvas-renderer-zoom:global": 1,
     "canvas-renderer-scroll-view:global": true,
     "sidebar-collapsed:global": false,
-    "sidebar-width:global": 502,
+    "sidebar-width:global": 240,
     "sourcemap-show-floating-buttons:global": true,
     "theme-toggle-light:global": "atom_light",
     "theme-toggle-dark:global": "tomorrow_night_blue",
