@@ -25,6 +25,11 @@
 //
 // HISTORY_DIR keeps, per project, index.json (the list), labels.json and one
 // file per version.
+//
+// Comments and tracked changes live in the text as tags; a document whose
+// text changed only in its tags (a comment added, answered or resolved) did
+// not change, as on Overleaf, so its stored text keeps the tags for restoring
+// but is compared without them (textHash).
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -34,6 +39,10 @@ const VERSION_ID = /^[0-9]{13}-[0-9a-f]{8}$/;
 const ROUTE =
 	/^\/history\/([A-Za-z0-9_-]{1,100})(?:\/([0-9]{13}-[0-9a-f]{8})|(\/labels)(?:\/([0-9a-f]{16}))?)?$/;
 const MAX_LABELS = 500;
+// An opening or closing comment or tracked-change tag, as the editor writes
+// them (src/utils/annotationTagUtils.ts).
+const ANNOTATION_TAG =
+	/`?<\/?###(?:\s|%)*(?:comment|review)(?:\s|%)*id:[\s\S]*?###>`?/g;
 const MAX_BODY_BYTES = 4096;
 
 class HttpError extends Error {
@@ -187,19 +196,28 @@ const createHistory = ({
 			fs.writeFileSync(temp, text);
 			fs.renameSync(temp, target);
 		}
-		return { hash, size: Buffer.byteLength(text) };
+		const plain = text.replace(ANNOTATION_TAG, '');
+		return {
+			hash,
+			size: Buffer.byteLength(text),
+			...(plain === text ? {} : { textHash: sha256(plain) }),
+		};
 	};
 
 	const changesBetween = (before, after) => {
 		const key = (entry) => entry.path;
+		const content = (entry) => entry.textHash ?? entry.hash;
 		const previous = new Map(
 			[...(before?.docs ?? []), ...(before?.files ?? [])].map((entry) => [
 				key(entry),
-				entry.hash,
+				content(entry),
 			]),
 		);
 		const current = new Map(
-			[...after.docs, ...after.files].map((entry) => [key(entry), entry.hash]),
+			[...after.docs, ...after.files].map((entry) => [
+				key(entry),
+				content(entry),
+			]),
 		);
 		const changes = [];
 		for (const [file, hash] of current) {
