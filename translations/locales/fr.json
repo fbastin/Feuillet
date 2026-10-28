@@ -2064,6 +2064,8 @@
   "Please type \"{expectedConfirmationText}\" to confirm": "Veuillez taper « {{expectedConfirmationText}} » pour confirmer",
   "PNG Export Options": "Options d'exportation PNG",
   "Preamble ({count} lines) — click to show": "Préambule ({{count}} lignes) — cliquez pour l'afficher",
+  "Preamble ({count} lines) — click to show_one": "Préambule ({{count}} ligne) — cliquez pour l'afficher",
+  "Preamble ({count} lines) — click to show_other": "Préambule ({{count}} lignes) — cliquez pour l'afficher",
   "Prefer Latest (Default)": "Privilégier la plus récente (par défaut)",
   "Prefer Local (Do nothing)": "Privilégier la version locale (ne rien faire)",
   "Prefix a field with - for descending order (e.g. -year). Use key for citation key or type for entry type.": "Préfixez un champ par - pour un ordre décroissant (p. ex. -year). Utilisez key pour la clé de citation ou type pour le type d'entrée.",
