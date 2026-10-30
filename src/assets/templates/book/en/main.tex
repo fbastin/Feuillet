@@ -1,0 +1,35 @@
+\documentclass[11pt]{book}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{csquotes}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{{{TITLE}}}
+\author{{{AUTHOR}}}
+\date{\today}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Preface}
+
+The preface introduces the book, its readers and how to read it. The front
+matter pages are numbered in roman numerals.
+
+\tableofcontents
+
+\mainmatter
+% Each chapter is in its own file of the chapters folder.
+\include{chapters/chapter1}
+\include{chapters/chapter2}
+
+\backmatter
+\chapter*{Afterword}
+
+The back matter is not numbered as chapters are.
+
+\end{document}

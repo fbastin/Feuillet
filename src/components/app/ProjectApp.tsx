@@ -16,8 +16,13 @@ import {
 	accountSyncService,
 } from '../../services/AccountSyncService';
 import { projectSeedService } from '../../services/ProjectSeedService';
+import { projectTemplateService } from '../../services/ProjectTemplateService';
+import type { FileNode } from '../../types/files';
 import type { Project, ProjectType, ProjectGroup } from '../../types/projects';
-import { createStarterFile } from '../../utils/projectStarterUtils';
+import {
+	type ProjectTemplateChoice,
+	createStarterFile,
+} from '../../utils/projectStarterUtils';
 import { type ProjectView, inProjectView } from '../../utils/projectViewUtils';
 import {
 	isValidYjsUrl,
@@ -245,24 +250,43 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 		tags: string[];
 		docUrl?: string;
 		isFavorite: boolean;
+		template?: ProjectTemplateChoice;
 	}) => {
 		try {
 			setIsSubmitting(true);
 			setError(null);
 
-			const newProject = await createProject(projectData);
-			const starter = createStarterFile(
-				projectData.type,
-				projectData.name,
-				user?.name?.trim() || user?.username || '',
-			);
-			if (starter) {
-				await projectSeedService
-					.storeFiles(newProject.id, [starter])
-					.catch((seedError) => {
-						moduleLog.warn('Failed to add the starter file:', seedError);
-					});
+			const { template, ...fields } = projectData;
+			const author = user?.name?.trim() || user?.username || '';
+			// The template's files first: a project is only made if they load.
+			let files: FileNode[] = [];
+			let mainFile: string | undefined;
+			if (template && template.id !== 'blank' && fields.type === 'latex') {
+				files = await projectTemplateService.createFiles(
+					template.id,
+					template.language,
+					{ title: fields.name, author },
+				);
+				mainFile = '/main.tex';
+			} else {
+				const starter = createStarterFile(
+					fields.type,
+					fields.name,
+					author,
+					template?.language,
+				);
+				if (starter) {
+					files = [starter];
+					mainFile = starter.path;
+				}
 			}
+
+			const newProject = await createProject(fields);
+			await projectSeedService
+				.storeFiles(newProject.id, files)
+				.catch((seedError) => {
+					moduleLog.warn('Failed to add the starter files:', seedError);
+				});
 			setShowCreateModal(false);
 			await loadProjects();
 
@@ -278,7 +302,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 					}),
 				);
 				onOpenProject(
-					withFileFragment(newProject.docUrl, starter?.path),
+					withFileFragment(newProject.docUrl, mainFile),
 					newProject.name,
 					newProject.description,
 					newProject.type,

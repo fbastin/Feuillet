@@ -1,0 +1,62 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage[margin=1in, headheight=14pt]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+
+\newcommand{\course}{CODE1234 -- Course name}
+\newcommand{\student}{{{AUTHOR}}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\course}
+\fancyhead[R]{\student}
+\fancyfoot[C]{\thepage}
+
+\theoremstyle{definition}
+\newtheorem{exercise}{Exercise}
+\newenvironment{solution}{\begin{proof}[Solution]}{\end{proof}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries {{TITLE}} \par}
+  \medskip
+  \student \quad -- \quad Due \today
+\end{center}
+
+\begin{exercise}
+Show that for every integer $n \ge 1$,
+\[
+  \sum_{k=1}^{n} k = \frac{n(n+1)}{2}.
+\]
+\end{exercise}
+
+\begin{solution}
+By induction on $n$. For $n = 1$, both sides equal~$1$. Assume the equality
+holds for $n$. Then
+\[
+  \sum_{k=1}^{n+1} k = \frac{n(n+1)}{2} + (n+1) = \frac{(n+1)(n+2)}{2},
+\]
+which is the equality for $n+1$.
+\end{solution}
+
+\begin{exercise}
+Let $f(x) = x^3 - 3x + 1$.
+\begin{enumerate}[label=(\alph*)]
+  \item Compute $f'(x)$.
+  \item Find the local extrema of $f$.
+\end{enumerate}
+\end{exercise}
+
+\begin{solution}
+\begin{enumerate}[label=(\alph*)]
+  \item $f'(x) = 3x^2 - 3 = 3(x - 1)(x + 1)$.
+  \item $f'$ vanishes at $x = -1$ and at $x = 1$. Since $f''(x) = 6x$, $f$
+        has a local maximum $f(-1) = 3$ and a local minimum $f(1) = -1$.
+\end{enumerate}
+\end{solution}
+
+\end{document}

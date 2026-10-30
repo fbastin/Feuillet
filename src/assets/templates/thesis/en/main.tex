@@ -1,0 +1,67 @@
+\documentclass[12pt, openany]{report}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{csquotes}
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{microtype}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[style=authoryear]{biblatex}
+\addbibresource{references.bib}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\onehalfspacing
+
+\begin{document}
+
+\pagenumbering{alph}
+\begin{titlepage}
+  \centering
+  {\large\scshape Institution \par}
+  {\large Department \par}
+  \vspace{3cm}
+  {\huge\bfseries {{TITLE}} \par}
+  \vspace{2cm}
+  {\Large {{AUTHOR}} \par}
+  \vspace{2cm}
+  A thesis submitted in partial fulfillment of the requirements \par
+  for the degree of Master of Science \par
+  \vspace{1cm}
+  Supervised by Supervisor's name \par
+  \vfill
+  {\large \today \par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
+
+The acknowledgments name the people and organizations that supported this
+work.
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+The abstract sets out in one page the problem, the method, the results and
+the conclusions of the thesis.
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\cleardoublepage
+\pagenumbering{arabic}
+% Each chapter is in its own file of the chapters folder.
+\include{chapters/introduction}
+\include{chapters/background}
+\include{chapters/method}
+\include{chapters/conclusion}
+
+\printbibliography[heading=bibintoc]
+
+\appendix
+\include{chapters/appendix}
+
+\end{document}

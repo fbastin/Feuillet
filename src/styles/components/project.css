@@ -301,3 +301,103 @@
 		position: static;
 	}
 }
+
+/* Templates of the new-project form: first pages side by side. */
+.project-template-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-sm);
+}
+
+.project-template-label {
+	font-weight: 600;
+}
+
+.project-template-header > select {
+	width: auto;
+	margin: 0;
+}
+
+.project-template-grid {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: var(--space-sm);
+	min-width: 0;
+	margin: var(--space-sm) 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.project-template-card {
+	position: relative;
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--space-xs);
+	margin: 0;
+	padding: var(--space-xs);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: inherit;
+	font-size: var(--font-size-meta);
+	line-height: 1.2;
+	text-align: center;
+	cursor: pointer;
+}
+
+.project-template-card:hover {
+	border-color: var(--pico-primary);
+}
+
+/* The radio button itself is hidden: the card shows the choice. */
+.project-template-card > input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.project-template-card:has(> input:focus-visible) {
+	outline: 2px solid var(--pico-primary);
+	outline-offset: 2px;
+}
+
+.project-template-card[data-selected="true"] {
+	border-color: var(--pico-primary);
+	box-shadow: 0 0 0 1px var(--pico-primary);
+	background: var(--pico-primary-focus);
+}
+
+.project-template-preview {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 5.5rem;
+	border-radius: 2px;
+	background: white;
+	overflow: hidden;
+}
+
+.project-template-preview > img {
+	width: auto;
+	height: auto;
+	min-width: 0;
+	max-width: 100%;
+	max-height: 100%;
+	box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+
+.project-template-name {
+	overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+	.project-template-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}

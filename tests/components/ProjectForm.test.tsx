@@ -51,7 +51,31 @@ describe('ProjectForm Component', () => {
                 group: 'tex',
                 tags: [],
                 isFavorite: false,
+                template: { id: 'blank', language: 'en' },
             });
+        });
+    });
+
+    it('should submit the chosen template and its language', async () => {
+        const user = userEvent.setup();
+        render(<ProjectForm {...mockHandlers} />);
+
+        await user.type(screen.getByLabelText(/project name/i), 'Ma thèse');
+        await user.click(screen.getByRole('radio', { name: /thesis/i }));
+        await user.selectOptions(
+            screen.getByRole('combobox', { name: /template language/i }),
+            'fr',
+        );
+        expect(screen.getByRole('radio', { name: /thesis/i })).toBeChecked();
+        await user.click(screen.getByRole('button', { name: /create project/i }));
+
+        await waitFor(() => {
+            expect(mockHandlers.onSubmit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'Ma thèse',
+                    template: { id: 'thesis', language: 'fr' },
+                }),
+            );
         });
     });
 

@@ -19,6 +19,8 @@ module.exports = {
 		'\\.(css|less|scss|sass)$': 'identity-obj-proxy',
 		'\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/tests/mocks/fileMock.js',
 		'^nanoid$': '<rootDir>/tests/mocks/nanoid.js',
+		'/services/ProjectTemplateService$':
+			'<rootDir>/tests/mocks/projectTemplateService.js',
 		'^mime$': '<rootDir>/tests/mocks/mime.js',
 		'^codemirror-helix$': '<rootDir>/tests/mocks/codemirror.js',
 		'^codemirror-lang-bib$': '<rootDir>/tests/mocks/codemirror.js',

@@ -1,0 +1,42 @@
+\documentclass[version=last, paper=letter, fromalign=right, fromphone,
+  fromemail, foldmarks=false, parskip=half]{scrlttr2}
+\LoadLetterOption{UScommercial9}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+\setkomavar{fromname}{{{AUTHOR}}}
+\setkomavar{fromaddress}{123, rue Principale\\Ville (Province)\\A1B 2C3}
+\setkomavar{fromphone}{514 555-0123}
+\setkomavar*{fromphone}{Téléphone~:}
+\setkomavar{fromemail}{prenom.nom@exemple.org}
+\setkomavar*{fromemail}{Courriel~:}
+\setkomavar{place}{Ville}
+\setkomavar{date}{\today}
+\setkomavar{subject}{Objet de la lettre}
+\setkomavar{signature}{{{AUTHOR}}}
+
+\begin{document}
+
+\begin{letter}{%
+  Nom du destinataire, fonction\\
+  Organisme\\
+  456, avenue des Érables\\
+  Ville (Province)\\
+  D4E 5F6%
+}
+
+\opening{Madame, Monsieur,}
+
+Le premier paragraphe annonce l'objet de la lettre. Les suivants en
+développent le contenu, un sujet par paragraphe.
+
+Le dernier paragraphe indique la suite attendue: une réponse, une rencontre
+ou un document à fournir.
+
+\closing{Veuillez agréer, Madame, Monsieur, mes salutations distinguées.}
+
+\encl{Curriculum vitæ}
+
+\end{letter}
+
+\end{document}

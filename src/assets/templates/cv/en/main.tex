@@ -1,0 +1,48 @@
+\documentclass[11pt, letterpaper, sans]{moderncv}
+\moderncvstyle{classic}
+\moderncvcolor{blue}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+\usepackage[scale=0.8]{geometry}
+\setlength{\hintscolumnwidth}{3.2cm}
+
+\name{{{FIRST_NAME}}}{{{LAST_NAME}}}
+\title{Résumé}
+\address{123 Main Street}{City, State 12345}{United States}
+\phone[mobile]{+1~555~555~0123}
+\email{first.last@example.org}
+\homepage{www.example.org}
+\social[linkedin]{first-last}
+\social[github]{first-last}
+
+\begin{document}
+
+\makecvtitle
+
+\section{Education}
+\cventry{2022--2024}{Master of Science in Computer Engineering}{University}{City}{}{%
+  Thesis: title of the thesis.}
+\cventry{2018--2022}{Bachelor of Engineering}{University}{City}{}{}
+
+\section{Experience}
+\cventry{2024--}{Software developer}{Company}{City}{}{%
+  \begin{itemize}
+    \item Main achievement, with a measurable result.
+    \item Another achievement.
+  \end{itemize}}
+\cventry{2023}{Research internship}{Laboratory}{City}{}{%
+  Description of the internship in one or two lines.}
+
+\section{Skills}
+\cvitem{Programming}{Python, C++, TypeScript}
+\cvitem{Tools}{Git, \LaTeX{}, Linux}
+
+\section{Languages}
+\cvitemwithcomment{English}{native}{}
+\cvitemwithcomment{French}{fluent}{}
+
+\section{Interests}
+\cvitem{}{Hiking, music, volunteering.}
+
+\end{document}

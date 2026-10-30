@@ -1,0 +1,40 @@
+\documentclass[version=last, paper=letter, fromalign=right, fromphone,
+  fromemail, foldmarks=false, parskip=half]{scrlttr2}
+\LoadLetterOption{UScommercial9}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+\setkomavar{fromname}{{{AUTHOR}}}
+\setkomavar{fromaddress}{123 Main Street\\City, State 12345}
+\setkomavar{fromphone}{555-0123}
+\setkomavar{fromemail}{first.last@example.org}
+\setkomavar{place}{City}
+\setkomavar{date}{\today}
+\setkomavar{subject}{Subject of the letter}
+\setkomavar{signature}{{{AUTHOR}}}
+
+\begin{document}
+
+\begin{letter}{%
+  Recipient's name\\
+  Position\\
+  Organization\\
+  456 Maple Avenue\\
+  City, State 67890%
+}
+
+\opening{Dear Sir or Madam,}
+
+The first paragraph states what the letter is about. The following ones
+set out its content, one topic per paragraph.
+
+The last paragraph says what is expected next: an answer, a meeting or a
+document to provide.
+
+\closing{Yours faithfully,}
+
+\encl{Résumé}
+
+\end{letter}
+
+\end{document}

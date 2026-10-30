@@ -1,0 +1,35 @@
+\documentclass[11pt]{book}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{csquotes}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{{{TITLE}}}
+\author{{{AUTHOR}}}
+\date{\today}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Préface}
+
+La préface présente le livre, ses lecteurs et la manière de le lire. Les
+pages liminaires sont numérotées en chiffres romains.
+
+\tableofcontents
+
+\mainmatter
+% Chaque chapitre est dans son propre fichier du dossier chapitres.
+\include{chapitres/chapitre1}
+\include{chapitres/chapitre2}
+
+\backmatter
+\chapter*{Postface}
+
+Les pages finales ne sont pas numérotées comme des chapitres.
+
+\end{document}

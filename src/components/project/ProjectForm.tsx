@@ -2,14 +2,19 @@
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { t } from '@/i18n';
+import i18next, { t } from '@/i18n';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import type {
 	Project,
 	ProjectGroup,
 	ProjectType,
 } from '../../types/projects.ts';
+import {
+	type ProjectTemplateChoice,
+	templateLanguageFor,
+} from '../../utils/projectStarterUtils';
 import { TagInput } from '../common/TagInput';
+import ProjectTemplatePicker from './ProjectTemplatePicker';
 
 interface ProjectFormProps {
 	project?: Project;
@@ -22,6 +27,7 @@ interface ProjectFormProps {
 		tags: string[];
 		docUrl?: string;
 		isFavorite: boolean;
+		template?: ProjectTemplateChoice;
 	}) => void;
 	onCancel: () => void;
 	isSubmitting?: boolean;
@@ -47,6 +53,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 	const [tags, setTags] = useState<string[]>([]);
 	const [docUrl, setDocUrl] = useState('');
 	const [isFavorite, setIsFavorite] = useState(false);
+	const [template, setTemplate] = useState<ProjectTemplateChoice>(() => ({
+		id: 'blank',
+		language: templateLanguageFor(i18next.language ?? ''),
+	}));
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(
@@ -145,6 +155,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 			tags,
 			docUrl: docUrl || undefined,
 			isFavorite,
+			...(project ? {} : { template }),
 		});
 	};
 
@@ -320,6 +331,14 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 						</select>
 					)}
 				</div>
+			)}
+
+			{!project && type === 'latex' && (
+				<ProjectTemplatePicker
+					value={template}
+					onChange={setTemplate}
+					disabled={isSubmitting}
+				/>
 			)}
 
 			{!simpleMode && (

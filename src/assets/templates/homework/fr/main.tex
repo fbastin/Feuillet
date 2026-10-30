@@ -1,0 +1,62 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=2.5cm, headheight=14pt]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+
+\newcommand{\cours}{SIGLE1234 -- Nom du cours}
+\newcommand{\etudiant}{{{AUTHOR}}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\cours}
+\fancyhead[R]{\etudiant}
+\fancyfoot[C]{\thepage}
+
+\theoremstyle{definition}
+\newtheorem{exercice}{Exercice}
+\newenvironment{solution}{\begin{proof}[Solution]}{\end{proof}}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries {{TITLE}} \par}
+  \medskip
+  \etudiant \quad -- \quad Remis le \today
+\end{center}
+
+\begin{exercice}
+Montrer que pour tout entier $n \ge 1$,
+\[
+  \sum_{k=1}^{n} k = \frac{n(n+1)}{2}.
+\]
+\end{exercice}
+
+\begin{solution}
+Par récurrence sur $n$. Pour $n = 1$, les deux membres valent~$1$.
+Supposons l'égalité vraie au rang $n$. Alors
+\[
+  \sum_{k=1}^{n+1} k = \frac{n(n+1)}{2} + (n+1) = \frac{(n+1)(n+2)}{2},
+\]
+ce qui est l'égalité au rang $n+1$.
+\end{solution}
+
+\begin{exercice}
+Soit $f(x) = x^3 - 3x + 1$.
+\begin{enumerate}[label=(\alph*)]
+  \item Calculer $f'(x)$.
+  \item Trouver les extremums locaux de $f$.
+\end{enumerate}
+\end{exercice}
+
+\begin{solution}
+\begin{enumerate}[label=(\alph*)]
+  \item $f'(x) = 3x^2 - 3 = 3(x - 1)(x + 1)$.
+  \item $f'$ s'annule en $x = -1$ et en $x = 1$. Comme $f''(x) = 6x$, $f$
+        admet un maximum local $f(-1) = 3$ et un minimum local $f(1) = -1$.
+\end{enumerate}
+\end{solution}
+
+\end{document}

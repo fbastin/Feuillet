@@ -1,4 +1,9 @@
-import { createStarterFile } from '@src/utils/projectStarterUtils';
+import {
+	createStarterFile,
+	createTemplateFiles,
+	fillTemplate,
+	templateLanguageFor,
+} from '@src/utils/projectStarterUtils';
 
 describe('createStarterFile', () => {
 	it('creates an Overleaf-style main.tex with escaped title and author', () => {
@@ -32,5 +37,90 @@ describe('createStarterFile', () => {
 
 	it('has no starter for other typesetters', () => {
 		expect(createStarterFile('sile', 'Doc', 'Ada')).toBeNull();
+	});
+});
+
+describe('templates', () => {
+	it('writes the blank project in French when asked', () => {
+		const content = createStarterFile('latex', 'Mémoire', 'Ada', 'fr')
+			?.content as string;
+		expect(content).toContain('\\usepackage[french]{babel}');
+		expect(content).toContain('\\usepackage[T1]{fontenc}');
+		expect(content).toContain('\\title{Mémoire}');
+		expect(
+			createStarterFile('typst', 'Mémoire', 'Ada', 'fr')?.content,
+		).toContain('#set text(lang: "fr")');
+	});
+
+	it('fills in the title and the names, escaped', () => {
+		expect(
+			fillTemplate(
+				'\\title{{{TITLE}}} \\author{{{AUTHOR}}} \\name{{{FIRST_NAME}}}{{{LAST_NAME}}}',
+				{ title: 'R&D 100%', author: '  Marie Curie-Skłodowska ' },
+			),
+		).toBe(
+			'\\title{R\\&D 100\\%} \\author{Marie Curie-Skłodowska} \\name{Marie}{Curie-Skłodowska}',
+		);
+		expect(
+			fillTemplate('\\name{{{FIRST_NAME}}}{{{LAST_NAME}}}', {
+				title: '',
+				author: 'Jean de La Fontaine',
+			}),
+		).toBe('\\name{Jean de La}{Fontaine}');
+		expect(
+			fillTemplate('\\name{{{FIRST_NAME}}}{{{LAST_NAME}}}', {
+				title: '',
+				author: 'ada',
+			}),
+		).toBe('\\name{ada}{}');
+		// Other double braces are LaTeX.
+		expect(
+			fillTemplate('\\newcommand{\\x}{{a}} {{OTHER}}', {
+				title: 'T',
+				author: 'A',
+			}),
+		).toBe('\\newcommand{\\x}{{a}} {{OTHER}}');
+	});
+
+	it('makes the folders, fills only LaTeX files and keeps images as they are', () => {
+		const image = Uint8Array.from([137, 80, 78, 71]).buffer;
+		const files = createTemplateFiles(
+			[
+				{ path: '/main.tex', content: '\\title{{{TITLE}}}' },
+				{ path: '/chapters/one/intro.tex', content: '{{AUTHOR}}' },
+				{ path: '/references.bib', content: '{{TITLE}}' },
+				{ path: '/images/plot.png', content: image },
+			],
+			{ title: 'Thèse', author: 'Ada' },
+		);
+		expect(files.map((file) => `${file.type} ${file.path}`)).toEqual([
+			'directory /chapters',
+			'directory /chapters/one',
+			'directory /images',
+			'file /chapters/one/intro.tex',
+			'file /images/plot.png',
+			'file /main.tex',
+			'file /references.bib',
+		]);
+		const byPath = Object.fromEntries(files.map((file) => [file.path, file]));
+		expect(byPath['/main.tex'].content).toBe('\\title{Thèse}');
+		expect(byPath['/chapters/one/intro.tex'].content).toBe('Ada');
+		expect(byPath['/chapters/one/intro.tex'].name).toBe('intro.tex');
+		expect(byPath['/references.bib'].content).toBe('{{TITLE}}');
+		expect(byPath['/images/plot.png']).toMatchObject({
+			content: image,
+			isBinary: true,
+			size: 4,
+			mimeType: 'image/png',
+		});
+		// In bytes, as stored.
+		expect(byPath['/main.tex'].size).toBe(14);
+	});
+
+	it('picks the language of the interface', () => {
+		expect(templateLanguageFor('fr')).toBe('fr');
+		expect(templateLanguageFor('fr-CA')).toBe('fr');
+		expect(templateLanguageFor('en')).toBe('en');
+		expect(templateLanguageFor('de')).toBe('en');
 	});
 });

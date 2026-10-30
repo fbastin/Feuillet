@@ -1,0 +1,48 @@
+\documentclass[11pt, letterpaper, sans]{moderncv}
+\moderncvstyle{classic}
+\moderncvcolor{blue}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage[scale=0.8]{geometry}
+\setlength{\hintscolumnwidth}{3.2cm}
+
+\name{{{FIRST_NAME}}}{{{LAST_NAME}}}
+\title{Curriculum vitæ}
+\address{123, rue Principale}{Ville (Province) A1B 2C3}{Canada}
+\phone[mobile]{+1~514~555~0123}
+\email{prenom.nom@exemple.org}
+\homepage{www.exemple.org}
+\social[linkedin]{prenom-nom}
+\social[github]{prenom-nom}
+
+\begin{document}
+
+\makecvtitle
+
+\section{Formation}
+\cventry{2022--2024}{Maîtrise en génie informatique}{Université}{Ville}{}{%
+  Mémoire: titre du mémoire.}
+\cventry{2018--2022}{Baccalauréat en génie informatique}{Université}{Ville}{}{}
+
+\section{Expérience}
+\cventry{2024--}{Développeuse ou développeur}{Entreprise}{Ville}{}{%
+  \begin{itemize}
+    \item Réalisation principale, avec un résultat mesurable;
+    \item Autre réalisation.
+  \end{itemize}}
+\cventry{2023}{Stage de recherche}{Laboratoire}{Ville}{}{%
+  Description du stage en une ou deux lignes.}
+
+\section{Compétences}
+\cvitem{Programmation}{Python, C++, TypeScript}
+\cvitem{Outils}{Git, \LaTeX{}, Linux}
+
+\section{Langues}
+\cvitemwithcomment{Français}{langue maternelle}{}
+\cvitemwithcomment{Anglais}{courant}{}
+
+\section{Intérêts}
+\cvitem{}{Plein air, musique, bénévolat.}
+
+\end{document}

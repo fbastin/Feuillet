@@ -1,0 +1,74 @@
+\documentclass[12pt, openany]{report}
+\usepackage[T1]{fontenc}
+\usepackage[english, french]{babel}
+\usepackage{csquotes}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{microtype}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage[style=authoryear]{biblatex}
+\addbibresource{references.bib}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\onehalfspacing
+
+\begin{document}
+
+\pagenumbering{alph}
+\begin{titlepage}
+  \centering
+  {\large\scshape Établissement \par}
+  {\large Département \par}
+  \vspace{3cm}
+  {\huge\bfseries {{TITLE}} \par}
+  \vspace{2cm}
+  {\Large {{AUTHOR}} \par}
+  \vspace{2cm}
+  Mémoire présenté en vue de l'obtention du diplôme de \par
+  maîtrise ès sciences appliquées \par
+  \vspace{1cm}
+  Sous la direction de Nom du directeur ou de la directrice \par
+  \vfill
+  {\large \today \par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+
+Les remerciements nomment les personnes et les organismes qui ont soutenu ce
+travail.
+
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+
+Le résumé présente en une page la problématique, la méthode, les résultats
+et les conclusions du mémoire.
+
+\begin{otherlanguage}{english}
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+The abstract gives the same summary in English.
+\end{otherlanguage}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\cleardoublepage
+\pagenumbering{arabic}
+% Chaque chapitre est dans son propre fichier du dossier chapitres.
+\include{chapitres/introduction}
+\include{chapitres/revue}
+\include{chapitres/methode}
+\include{chapitres/conclusion}
+
+\printbibliography[heading=bibintoc]
+
+\appendix
+\include{chapitres/annexe}
+
+\end{document}
