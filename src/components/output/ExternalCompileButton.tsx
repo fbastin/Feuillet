@@ -3,6 +3,7 @@ import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
+import { createNamedLogger } from '@/logging';
 import PositionedDropdown from '../common/PositionedDropdown';
 import PopoutViewerToggleButton from './PopoutViewerToggleButton';
 import { useExternalTypesetter } from '../../hooks/useExternalTypesetter';
@@ -30,9 +31,12 @@ import { getFilenameFromPath } from '../../utils/fileUtils';
 import {
 	collectValues,
 	fieldDefault,
+	chooseLatexMainFile,
 	findInputFiles,
 	resolveLabel,
 } from '../../utils/compilerUtils';
+
+const moduleLog = createNamedLogger('ExternalCompileButton');
 
 interface ExternalCompileButtonProps {
 	provider: TypesetterProvider;
@@ -135,31 +139,46 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		}
 	}, [registerProperty]);
 
+	// The open file, unless it is a LaTeX part (a chapter, say): as on
+	// Overleaf, the document that includes it is compiled instead.
 	useEffect(() => {
+		let candidate: string | undefined;
 		if (
 			selectedLinkedFilePath &&
 			availableFiles.includes(selectedLinkedFilePath)
 		) {
-			setAutoMainFile(selectedLinkedFilePath);
+			candidate = selectedLinkedFilePath;
+		} else if (selectedFileId) {
+			const file = findFileById(fileTree, selectedFileId);
+			if (file && availableFiles.includes(file.path)) candidate = file.path;
+		}
+
+		if (!provider.inputExtensions.includes('tex')) {
+			if (candidate) setAutoMainFile(candidate);
+			else if (!autoMainFile || !availableFiles.includes(autoMainFile)) {
+				setAutoMainFile(availableFiles[0]);
+			}
 			return;
 		}
 
-		if (selectedFileId) {
-			const file = findFileById(fileTree, selectedFileId);
-			if (file && availableFiles.includes(file.path)) {
-				setAutoMainFile(file.path);
-				return;
-			}
-		}
-
-		if (autoMainFile && availableFiles.includes(autoMainFile)) return;
-		setAutoMainFile(availableFiles[0]);
+		let current = true;
+		chooseLatexMainFile(candidate, autoMainFile, availableFiles, (path) =>
+			fileStoreService.isRootLatexFile(path),
+		)
+			.then((path) => {
+				if (current) setAutoMainFile(path);
+			})
+			.catch((error) => moduleLog.warn('Main file not found:', error));
+		return () => {
+			current = false;
+		};
 	}, [
 		selectedLinkedFilePath,
 		selectedFileId,
 		fileTree,
 		availableFiles,
 		autoMainFile,
+		provider.inputExtensions,
 	]);
 
 	useEffect(() => {

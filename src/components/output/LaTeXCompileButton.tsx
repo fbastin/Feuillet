@@ -15,6 +15,7 @@ import { useProperties } from '../../hooks/useProperties';
 import type { DocumentList } from '../../types/documents';
 import type { FileNode } from '../../types/files';
 import type { LaTeXOutputFormat, LaTeXEngine } from '../../types/latex';
+import { chooseLatexMainFile } from '../../utils/compilerUtils';
 import {
 	getFilenameFromPath,
 	isLatexFile,
@@ -263,25 +264,30 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 		const allTexFiles = findTexFiles(fileTree);
 		setAvailableTexFiles(allTexFiles);
 
+		let candidate: string | undefined;
 		if (
 			selectedDocId &&
 			linkedFileInfo?.filePath &&
 			isLatexMainFile(linkedFileInfo.filePath)
 		) {
-			setAutoMainFile(linkedFileInfo.filePath);
-			return;
-		}
-
-		if (selectedFileId) {
+			candidate = linkedFileInfo.filePath;
+		} else if (selectedFileId) {
 			const file = findFileById(fileTree, selectedFileId);
-			if (file && isLatexMainFile(file.path)) {
-				setAutoMainFile(file.path);
-				return;
-			}
+			if (file && isLatexMainFile(file.path)) candidate = file.path;
 		}
 
-		if (autoMainFile && allTexFiles.includes(autoMainFile)) return;
-		setAutoMainFile(allTexFiles[0]);
+		// A LaTeX part (a chapter, say) compiles the document that includes it.
+		let current = true;
+		chooseLatexMainFile(candidate, autoMainFile, allTexFiles, (path) =>
+			fileStoreService.isRootLatexFile(path),
+		)
+			.then((path) => {
+				if (current) setAutoMainFile(path);
+			})
+			.catch((error) => moduleLog.warn('Main file not found:', error));
+		return () => {
+			current = false;
+		};
 	}, [selectedFileId, fileTree, selectedDocId, linkedFileInfo, autoMainFile]);
 
 	useEffect(() => {

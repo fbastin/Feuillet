@@ -13,6 +13,7 @@ import { useProperties } from '../../hooks/useProperties';
 import type { LaTeXEngine } from '../../types/latex';
 import type { DocumentList } from '../../types/documents';
 import type { FileNode } from '../../types/files';
+import { chooseLatexMainFile } from '../../utils/compilerUtils';
 import {
 	getFilenameFromPath,
 	isLatexMainFile,
@@ -220,26 +221,33 @@ const LaTeXExportButton: React.FC<LaTeXExportButtonProps> = ({
 		const allTexFiles = findTexFiles(fileTree);
 		setAvailableTexFiles(allTexFiles);
 
+		let current = true;
 		const findMainFile = async () => {
+			let candidate: string | undefined;
 			if (
 				selectedDocId &&
 				linkedFileInfo?.filePath &&
 				isLatexMainFile(linkedFileInfo.filePath)
 			) {
-				setAutoMainFile(linkedFileInfo.filePath);
-				return;
-			}
-			if (selectedFileId) {
+				candidate = linkedFileInfo.filePath;
+			} else if (selectedFileId) {
 				const file = await getFile(selectedFileId);
-				if (file && isLatexMainFile(file.path)) {
-					setAutoMainFile(file.path);
-					return;
-				}
+				if (file && isLatexMainFile(file.path)) candidate = file.path;
 			}
-			setAutoMainFile(allTexFiles[0]);
+			// A LaTeX part exports the document that includes it.
+			const path = await chooseLatexMainFile(
+				candidate,
+				undefined,
+				allTexFiles,
+				(file) => fileStoreService.isRootLatexFile(file),
+			);
+			if (current) setAutoMainFile(path);
 		};
 
 		findMainFile();
+		return () => {
+			current = false;
+		};
 	}, [selectedFileId, getFile, fileTree, selectedDocId, linkedFileInfo]);
 
 	useEffect(() => {

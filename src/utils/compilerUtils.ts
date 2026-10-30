@@ -106,3 +106,42 @@ export function outputExtension(
 	}
 	return getFileExtension(mimeType);
 }
+
+/** A LaTeX file with its own \documentclass, not a part of another one. */
+export const isRootLatexDocument = (text: string): boolean =>
+	/^[^%\n]*\\documentclass\b/m.test(text);
+
+/**
+ * The LaTeX file to compile, as Overleaf compiles the main document from any
+ * of its files: the open file when it is a document of its own, otherwise
+ * the one compiled before, otherwise /main.tex or the first other document.
+ * `isRoot` answers true for a file it cannot read.
+ */
+export async function chooseLatexMainFile(
+	candidate: string | undefined,
+	previous: string | undefined,
+	available: string[],
+	isRoot: (path: string) => Promise<boolean>,
+): Promise<string | undefined> {
+	if (candidate && (await isRoot(candidate))) return candidate;
+	if (
+		previous &&
+		previous !== candidate &&
+		available.includes(previous) &&
+		(await isRoot(previous))
+	) {
+		return previous;
+	}
+	const others = available
+		.filter((path) => path !== candidate && path !== previous)
+		.sort(
+			(a, b) =>
+				Number(b === '/main.tex') - Number(a === '/main.tex') ||
+				a.split('/').length - b.split('/').length ||
+				a.localeCompare(b),
+		);
+	for (const path of others) {
+		if (await isRoot(path)) return path;
+	}
+	return candidate ?? available[0];
+}

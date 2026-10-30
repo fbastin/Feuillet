@@ -28,6 +28,7 @@ import ResizablePanel from '../common/ResizablePanel';
 import ExternalCompileButton from './ExternalCompileButton';
 import SourceMapFloatingButton from './SourceMapFloatingButton';
 import {
+	chooseLatexMainFile,
 	findInputFiles,
 	outputExtension,
 	resolveLabel,
@@ -184,14 +185,20 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 		string | undefined
 	> => {
 		const matches = findInputFiles(fileTree, provider.inputExtensions);
+		let candidate: string | undefined;
 		if (linkedFileInfo?.filePath && matches.includes(linkedFileInfo.filePath)) {
-			return linkedFileInfo.filePath;
-		}
-		if (selectedFileId) {
+			candidate = linkedFileInfo.filePath;
+		} else if (selectedFileId) {
 			const file = await getFile(selectedFileId);
-			if (file && matches.includes(file.path)) return file.path;
+			if (file && matches.includes(file.path)) candidate = file.path;
 		}
-		return matches[0];
+		// A LaTeX part compiles the document that includes it.
+		if (!provider.inputExtensions.includes('tex')) {
+			return candidate ?? matches[0];
+		}
+		return chooseLatexMainFile(candidate, undefined, matches, (path) =>
+			fileStoreService.isRootLatexFile(path),
+		);
 	}, [
 		fileTree,
 		provider.inputExtensions,

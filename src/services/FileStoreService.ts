@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import type { FileNode } from '../types/files';
+import { isRootLatexDocument } from '../utils/compilerUtils';
 import { isBinaryFile, toArrayBuffer } from '../utils/fileUtils';
 import {
 	type FileConflict,
@@ -1044,6 +1045,15 @@ class FileStoreService {
 		}
 
 		return undefined;
+	}
+
+	/** Whether a LaTeX file is a document of its own; true when unknown. */
+	async isRootLatexFile(path: string): Promise<boolean> {
+		const content = (await this.getFileByPath(path))?.content;
+		if (content === undefined) return true;
+		return isRootLatexDocument(
+			typeof content === 'string' ? content : new TextDecoder().decode(content),
+		);
 	}
 
 	async getFilesByPath(

@@ -25,6 +25,7 @@ import type { FileNode } from '../../types/files';
 import ResizablePanel from '../common/ResizablePanel';
 import LaTeXCompileButton from './LaTeXCompileButton';
 import SourceMapFloatingButton from './SourceMapFloatingButton';
+import { chooseLatexMainFile } from '../../utils/compilerUtils';
 import {
 	isLatexFile,
 	isLatexMainFile,
@@ -175,32 +176,34 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 
 		const allTexFiles = findTexFiles(fileTree);
 
+		let current = true;
 		const findMainFile = async () => {
+			let candidate: string | undefined;
 			if (
 				selectedDocId &&
 				linkedFileInfo?.filePath &&
 				isLatexMainFile(linkedFileInfo.filePath)
 			) {
-				setAutoMainFile(linkedFileInfo.filePath);
-				return;
-			}
-
-			if (selectedFileId) {
+				candidate = linkedFileInfo.filePath;
+			} else if (selectedFileId) {
 				const file = await getFile(selectedFileId);
-				if (file && isLatexMainFile(file.path)) {
-					setAutoMainFile(file.path);
-					return;
-				}
+				if (file && isLatexMainFile(file.path)) candidate = file.path;
 			}
 
-			if (autoMainFile && allTexFiles.includes(autoMainFile)) {
-				return;
-			}
-
-			setAutoMainFile(allTexFiles[0]);
+			// A LaTeX part compiles the document that includes it.
+			const path = await chooseLatexMainFile(
+				candidate,
+				autoMainFile,
+				allTexFiles,
+				(file) => fileStoreService.isRootLatexFile(file),
+			);
+			if (current) setAutoMainFile(path);
 		};
 
 		findMainFile();
+		return () => {
+			current = false;
+		};
 	}, [
 		fileTree,
 		selectedFileId,

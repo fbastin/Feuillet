@@ -21,6 +21,7 @@ import {
 } from '../common/Icons';
 import { getFilenameFromPath } from '../../utils/fileUtils';
 import {
+	chooseLatexMainFile,
 	collectValues,
 	fieldDefault,
 	findInputFiles,
@@ -81,26 +82,41 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 		}
 	}, [registerProperty]);
 
+	// As for compiling: a LaTeX part exports the document that includes it.
 	useEffect(() => {
+		let current = true;
 		const resolveAuto = async () => {
+			let candidate: string | undefined;
 			if (
 				linkedFileInfo?.filePath &&
 				availableFiles.includes(linkedFileInfo.filePath)
 			) {
-				setAutoMainFile(linkedFileInfo.filePath);
-				return;
-			}
-			if (selectedFileId) {
+				candidate = linkedFileInfo.filePath;
+			} else if (selectedFileId) {
 				const file = await getFile(selectedFileId);
-				if (file && availableFiles.includes(file.path)) {
-					setAutoMainFile(file.path);
-					return;
-				}
+				if (file && availableFiles.includes(file.path)) candidate = file.path;
 			}
-			setAutoMainFile(availableFiles[0]);
+			const path = provider.inputExtensions.includes('tex')
+				? await chooseLatexMainFile(
+						candidate,
+						undefined,
+						availableFiles,
+						(file) => fileStoreService.isRootLatexFile(file),
+					)
+				: (candidate ?? availableFiles[0]);
+			if (current) setAutoMainFile(path);
 		};
 		resolveAuto();
-	}, [selectedFileId, getFile, availableFiles, linkedFileInfo]);
+		return () => {
+			current = false;
+		};
+	}, [
+		selectedFileId,
+		getFile,
+		availableFiles,
+		linkedFileInfo,
+		provider.inputExtensions,
+	]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
