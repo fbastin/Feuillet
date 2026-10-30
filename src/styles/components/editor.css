@@ -273,3 +273,24 @@ mark.search-highlight {
 	.outline-title {
 	font-style: italic;
 }
+
+/* Insert figure dialog. */
+.insert-figure-form fieldset {
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.insert-figure-form label {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+}
+
+.insert-figure-preview {
+	align-self: center;
+	max-width: 100%;
+	max-height: 12em;
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+}

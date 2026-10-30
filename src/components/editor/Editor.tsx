@@ -77,6 +77,7 @@ import {
 import { PluginControlGroup, PluginHeader } from '../common/PluginHeader';
 import PluginToolbar, { type ToolbarEntry } from '../common/PluginToolbar';
 import UnlinkedDocumentNotice from './UnlinkedDocumentNotice';
+import InsertFigureModal from './InsertFigureModal';
 import VisualEditorToggle from './VisualEditorToggle';
 
 const moduleLog = createNamedLogger('Editor');
@@ -1448,6 +1449,12 @@ const Editor: React.FC<EditorComponentProps> = ({
 						onClose={handleCommentModalClose}
 						onCommentSubmit={handleCommentSubmit}
 					/>
+					{!isViewOnly && (
+						<InsertFigureModal
+							editorRef={editorRef}
+							canUpload={!(reviewOnly && !isEditingFile)}
+						/>
+					)}
 				</ReviewProvider>
 			</CommentProvider>
 		</BibliographyProvider>

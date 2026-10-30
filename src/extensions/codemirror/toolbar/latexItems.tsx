@@ -34,6 +34,12 @@ import {
 	ToolbarQuoteIcon,
 	ToolbarHyperlinkIcon,
 } from '../../../components/common/Icons';
+import {
+	figureLabel,
+	figureLatex,
+	insertFigure,
+	requestInsertFigure,
+} from '../../../utils/latexFigureUtils';
 import { getPendingImagePath } from '../PasteExtension';
 import { wrapSelection, insertText } from './helpers';
 import type { ToolbarItem } from './types';
@@ -182,11 +188,21 @@ export const createFigure = (): ToolbarItem => ({
 	label: t('Figure'),
 	icon: renderToString(<ToolbarImageIcon />),
 	command: (view: EditorView) => {
+		// A pasted image goes in at once; otherwise, as on Overleaf, a dialog
+		// asks for the image.
 		const pastedPath = getPendingImagePath();
-		const hasPath = !!pastedPath;
-
-		const text = `\\begin{figure}[h]\n\t\\centering\n\t\\includegraphics[width=0.8\\textwidth]{${pastedPath || ''}}\n\t\\caption{}\n\t\\label{fig:}\n\\end{figure}`;
-		return insertText(view, text, hasPath ? -28 : -40);
+		if (!pastedPath) {
+			requestInsertFigure(view);
+			return true;
+		}
+		const { text, caption } = figureLatex({
+			path: pastedPath,
+			width: 0.5,
+			caption: t('Enter caption'),
+			label: figureLabel(pastedPath),
+		});
+		insertFigure(view, text, caption);
+		return true;
 	},
 });
 
