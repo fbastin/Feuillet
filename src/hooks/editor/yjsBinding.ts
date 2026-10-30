@@ -8,6 +8,8 @@ import { keymap } from '@codemirror/view';
 import { Awareness } from 'y-protocols/awareness';
 import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
 
+import { undoStepFacet } from '../../extensions/codemirror/undoSteps';
+
 interface YjsBindingOptions {
 	onUpdateContent: (content: string) => void;
 	autoSaveRef: RefObject<(() => void) | null>;
@@ -87,6 +89,7 @@ export const createYjsEditorBindingExtensions = (
 		extensions: [
 			yCollab(yText, awareness, { undoManager }),
 			keymap.of(yUndoManagerKeymap),
+			undoStepFacet.of(() => undoManager.stopCapturing()),
 		],
 		cleanup: () => {
 			themeObserver.disconnect();

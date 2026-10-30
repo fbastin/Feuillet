@@ -129,6 +129,38 @@ describe('scanVisualTokens', () => {
 		expect(of(broken, 'math')).toEqual([]);
 	});
 
+	it('shows a figure as what it holds, centred', () => {
+		const figure = [
+			'Texte.',
+			'\\begin{figure}[htbp]',
+			'  \\centering',
+			'  \\includegraphics[width=0.5\\linewidth]{plan.png}',
+			'  \\caption{Le plan}',
+			'\\end{figure}',
+			'\\begin{table}[h] \\centering x \\end{table}',
+		].join('\n');
+		const found = scanVisualTokens(figure);
+		const text = (from: number, to: number) => figure.slice(from, to);
+		expect(of(found, 'hiddenLine').map((token) => text(token.from, token.to).trim())).toEqual([
+			'\\begin{figure}[htbp]',
+			'\\centering',
+			'\\end{figure}',
+		]);
+		const floats = of(found, 'float');
+		expect(floats.map((token) => text(token.from, token.to))).toEqual([
+			figure.slice(figure.indexOf('\\begin{figure}'), figure.indexOf('\\end{figure}') + 12),
+			'\\begin{table}[h] \\centering x \\end{table}',
+		]);
+		expect(of(found, 'image')).toMatchObject([{ path: 'plan.png', width: 0.5 }]);
+		expect(of(scanVisualTokens('\\includegraphics[width=\\textwidth]{a}'), 'image')[0].width).toBe(1);
+		expect(of(scanVisualTokens('\\includegraphics[scale=2]{a}'), 'image')[0].width).toBeUndefined();
+		// Not alone on its line, the LaTeX stays.
+		expect(of(found, 'env').map((token) => text(token.from, token.to))).toEqual([
+			'\\begin{table}[h]',
+			'\\end{table}',
+		]);
+	});
+
 	it('does not let an inline formula cross a paragraph', () => {
 		expect(of(scanVisualTokens('Prix : 5 $\n\nPuis 6 $ encore'), 'math')).toEqual([]);
 	});

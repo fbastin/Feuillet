@@ -23,6 +23,8 @@ export type VisualToken =
 	| (Range & { kind: 'preamble'; lines: number })
 	| (Range & { kind: 'hiddenLine' })
 	| (Range & { kind: 'env' })
+	// A figure or table: its lines show centred, as \centering does.
+	| (Range & { kind: 'float' })
 	| (Range & {
 			kind: 'heading';
 			level: HeadingLevel;
@@ -36,7 +38,8 @@ export type VisualToken =
 	| (Range & { kind: 'chip'; style: ChipStyle; text: string })
 	| (Range & { kind: 'escape'; text: string })
 	| (Range & { kind: 'comment' })
-	| (Range & { kind: 'image'; path: string })
+	// width: the part of the line it takes, when its options say so.
+	| (Range & { kind: 'image'; path: string; width?: number })
 	| (Range & {
 			kind: 'title';
 			title: string;
@@ -78,6 +81,7 @@ const CITES = new Set([
 ]);
 const REFS = new Set(['ref', 'eqref', 'autoref', 'cref', 'Cref', 'pageref']);
 const LISTS = new Set(['itemize', 'enumerate', 'description']);
+const FLOATS = new Set(['figure', 'figure*', 'table', 'table*']);
 const MATH_ENVS = new Set([
 	'equation',
 	'equation*',
@@ -201,6 +205,7 @@ const formulaTex = (tex: string): string =>
 export function scanVisualTokens(text: string): VisualToken[] {
 	const tokens: VisualToken[] = [];
 	const lists: Array<{ kind: string; count: number }> = [];
+	const floats: number[] = [];
 
 	// The preamble folds with the \begin{document} line that ends it.
 	const documentBegin = /\\begin\s*\{document\}/.exec(text);
@@ -358,6 +363,25 @@ export function scanVisualTokens(text: string): VisualToken[] {
 				if (i > preambleEnd) {
 					tokens.push({ kind: 'hiddenLine', ...wholeLine(text, i) });
 				}
+			} else if (FLOATS.has(env)) {
+				// As on Overleaf, a figure shows as what it holds.
+				const end =
+					base === 'begin' ? skipOptional(text, commandEnd) : commandEnd;
+				tokens.push(
+					aloneOnLine(text, i, end)
+						? { kind: 'hiddenLine', ...wholeLine(text, i) }
+						: { kind: 'env', from: i, to: end },
+				);
+				if (base === 'begin') {
+					floats.push(i);
+				} else {
+					const start = floats.pop();
+					if (start !== undefined) {
+						tokens.push({ kind: 'float', from: start, to: end });
+					}
+				}
+				i = end;
+				continue;
 			} else if (LISTS.has(env)) {
 				if (base === 'begin') lists.push({ kind: env, count: 0 });
 				else lists.pop();
@@ -370,6 +394,12 @@ export function scanVisualTokens(text: string): VisualToken[] {
 				tokens.push({ kind: 'env', from: i, to: commandEnd });
 			}
 			i = commandEnd;
+			continue;
+		}
+
+		if (base === 'centering' && aloneOnLine(text, i, afterName)) {
+			tokens.push({ kind: 'hiddenLine', ...wholeLine(text, i) });
+			i = afterName;
 			continue;
 		}
 
@@ -475,16 +505,23 @@ export function scanVisualTokens(text: string): VisualToken[] {
 		}
 
 		if (base === 'includegraphics') {
-			const argument = argumentAt(text, skipOptional(text, afterName));
+			const optionsEnd = skipOptional(text, afterName);
+			const argument = argumentAt(text, optionsEnd);
 			if (!argument) {
 				i = afterName;
 				continue;
 			}
+			const width =
+				/width\s*=\s*([\d.]*)\s*\\(?:linewidth|textwidth|columnwidth)/.exec(
+					text.slice(afterName, optionsEnd),
+				);
+			const fraction = width ? Number(width[1] || '1') : Number.NaN;
 			tokens.push({
 				kind: 'image',
 				from: i,
 				to: argument.close + 1,
 				path: text.slice(argument.open + 1, argument.close).trim(),
+				...(fraction > 0 ? { width: Math.min(1, fraction) } : {}),
 			});
 			i = argument.close + 1;
 			continue;

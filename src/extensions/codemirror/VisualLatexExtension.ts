@@ -19,6 +19,12 @@ import 'katex/dist/katex.min.css';
 
 import { t } from '@/i18n';
 import { fileStoreService } from '../../services/FileStoreService';
+import { type LatexTable, findLatexTables } from './visual/latexTable';
+import {
+	TableWidget,
+	selectTableCell,
+	tableSelectionField,
+} from './visual/tableWidget';
 import { type VisualToken, scanVisualTokens } from './visual/visualTokens';
 
 const PREFERENCE_KEY = 'feuillet-visual-editor';
@@ -76,6 +82,22 @@ const tokensField = StateField.define<VisualToken[]>({
 		return tr.docChanged || turnedOn
 			? scanVisualTokens(tr.state.doc.toString())
 			: tokens;
+	},
+});
+
+// The tables, read the same way.
+const tablesField = StateField.define<LatexTable[]>({
+	create: (state) =>
+		state.field(visualModeField, false)
+			? findLatexTables(state.doc.toString())
+			: [],
+	update(tables, tr) {
+		const visual = tr.state.field(visualModeField);
+		if (!visual) return tables.length ? [] : tables;
+		const turnedOn = !tr.startState.field(visualModeField);
+		return tr.docChanged || turnedOn
+			? findLatexTables(tr.state.doc.toString())
+			: tables;
 	},
 });
 
@@ -216,11 +238,14 @@ const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.pdf'];
 class ImageWidget extends WidgetType {
 	private url: string | null = null;
 
-	constructor(readonly path: string) {
+	constructor(
+		readonly path: string,
+		readonly width?: number,
+	) {
 		super();
 	}
 	eq(other: ImageWidget) {
-		return other.path === this.path;
+		return other.path === this.path && other.width === this.width;
 	}
 	toDOM(view: EditorView) {
 		const dom = document.createElement('div');
@@ -251,6 +276,8 @@ class ImageWidget extends WidgetType {
 			const image = document.createElement('img');
 			image.src = this.url;
 			image.alt = candidate;
+			// As wide as in the PDF, relative to the line.
+			if (this.width) image.style.width = `${this.width * 100}%`;
 			dom.replaceChildren(image);
 			return;
 		}
@@ -314,6 +341,34 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 		decorations.push(decoration.range(from, to));
 	};
 
+	// Tables on lines of their own show as grids, unless the cursor is in
+	// their LaTeX.
+	const tableSelection = state.field(tableSelectionField, false) ?? null;
+	for (const table of state.field(tablesField)) {
+		const first = doc.lineAt(table.from);
+		const last = doc.lineAt(table.to);
+		if (
+			doc.sliceString(first.from, table.from).trim() !== '' ||
+			doc.sliceString(table.to, last.to).trim() !== '' ||
+			active(table.from, table.to)
+		) {
+			continue;
+		}
+		replace(
+			first.from,
+			last.to,
+			Decoration.replace({
+				widget: new TableWidget(
+					doc.sliceString(table.from, table.to),
+					table,
+					tableSelection?.at === table.from ? tableSelection : null,
+					!state.readOnly,
+				),
+				block: true,
+			}),
+		);
+	}
+
 	// Spans that hold others first, so that what they hide is skipped.
 	const order = (token: VisualToken) =>
 		token.kind === 'preamble' ? 0 : token.kind === 'math' ? 1 : 2;
@@ -342,6 +397,8 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 				if (!active(line.from, line.to)) replace(token.from, token.to, hide);
 				break;
 			}
+			case 'float':
+				break;
 			case 'env':
 				decorations.push(
 					Decoration.mark({ class: 'cm-visual-env' }).range(
@@ -464,7 +521,9 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 					replace(
 						token.from,
 						token.to,
-						Decoration.replace({ widget: new ImageWidget(token.path) }),
+						Decoration.replace({
+							widget: new ImageWidget(token.path, token.width),
+						}),
 					);
 				}
 				break;
@@ -481,6 +540,18 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 				break;
 		}
 	}
+	// Figures and tables centred, once all that is hidden is known.
+	for (const token of tokens) {
+		if (token.kind !== 'float') continue;
+		const last = doc.lineAt(token.to).number;
+		for (let number = doc.lineAt(token.from).number; number <= last; number++) {
+			const line = doc.line(number);
+			if (inside(line.from, line.from)) continue;
+			decorations.push(
+				Decoration.line({ class: 'cm-visual-float' }).range(line.from),
+			);
+		}
+	}
 	return Decoration.set(decorations, true);
 };
 
@@ -490,7 +561,9 @@ const decorationsField = StateField.define<DecorationSet>({
 		const changed =
 			tr.docChanged ||
 			tr.selection ||
-			tr.effects.some((effect) => effect.is(setVisualMode));
+			tr.effects.some(
+				(effect) => effect.is(setVisualMode) || effect.is(selectTableCell),
+			);
 		return changed ? buildDecorations(tr.state) : decorations;
 	},
 	provide: (field) => EditorView.decorations.from(field),
@@ -641,7 +714,91 @@ const visualTheme = EditorView.baseTheme({
 		opacity: '0.85',
 		cursor: 'pointer',
 	},
-	'.cm-visual-image img': { maxWidth: '100%', maxHeight: '24em' },
+	'.cm-visual-image img': {
+		maxWidth: '100%',
+		maxHeight: '24em',
+		objectFit: 'contain',
+	},
+	'.cm-line.cm-visual-float': { textAlign: 'center' },
+	'.cm-visual-table': {
+		display: 'flex',
+		flexDirection: 'column',
+		alignItems: 'center',
+		gap: '0.3em',
+		padding: '0.3em 0',
+	},
+	'.cm-visual-table table': {
+		borderCollapse: 'collapse',
+		margin: '0',
+		width: 'auto',
+		outline: 'none',
+	},
+	'.cm-visual-table td.cm-visual-cell': {
+		minWidth: '2.5em',
+		height: '1.7em',
+		padding: '0.15em 0.6em',
+		border: '1px dashed rgba(100, 116, 139, 0.35)',
+		verticalAlign: 'top',
+		cursor: 'cell',
+		background: 'none',
+	},
+	'.cm-visual-table td.cm-visual-rule-top': {
+		borderTop: '1.5px solid currentColor',
+	},
+	'.cm-visual-table td.cm-visual-rule-bottom': {
+		borderBottom: '1.5px solid currentColor',
+	},
+	'.cm-visual-table td.cm-visual-rule-left': {
+		borderLeft: '1.5px solid currentColor',
+	},
+	'.cm-visual-table td.cm-visual-rule-right': {
+		borderRight: '1.5px solid currentColor',
+	},
+	'.cm-visual-table td.cm-visual-cell-selected': {
+		outline: '2px solid #2563eb',
+		outlineOffset: '-2px',
+		backgroundColor: 'rgba(37, 99, 235, 0.08)',
+	},
+	'.cm-visual-table input.cm-visual-cell-input': {
+		width: '100%',
+		minWidth: '8em',
+		height: 'auto',
+		margin: '0',
+		padding: '0',
+		border: 'none',
+		outline: 'none',
+		background: 'none',
+		boxShadow: 'none',
+		color: 'inherit',
+		font: 'inherit',
+	},
+	'.cm-visual-table-toolbar': {
+		display: 'flex',
+		flexWrap: 'wrap',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: '0.3em',
+		fontSize: '0.8em',
+	},
+	'.cm-visual-table-toolbar button, .cm-visual-table-toolbar select': {
+		width: 'auto',
+		height: 'auto',
+		margin: '0',
+		padding: '0.15em 0.5em',
+		border: '1px solid rgba(100, 116, 139, 0.45)',
+		borderRadius: '0.3em',
+		background: 'none',
+		boxShadow: 'none',
+		color: 'inherit',
+		font: 'inherit',
+		lineHeight: '1.4',
+		cursor: 'pointer',
+	},
+	'.cm-visual-table-toolbar select': { paddingRight: '1.4em' },
+	'.cm-visual-table-toolbar button[aria-pressed="true"]': {
+		backgroundColor: 'rgba(37, 99, 235, 0.15)',
+		borderColor: '#2563eb',
+	},
 });
 
 /**
@@ -653,6 +810,8 @@ export function visualLatex(initial: boolean): Extension {
 	return [
 		visualModeField.init(() => initial),
 		tokensField,
+		tablesField,
+		tableSelectionField,
 		decorationsField,
 		keepInsideArgument,
 		endOfArgument,
