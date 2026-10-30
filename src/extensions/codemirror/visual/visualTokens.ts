@@ -24,7 +24,7 @@ export type VisualToken =
 	| (Range & { kind: 'hiddenLine' })
 	| (Range & { kind: 'env' })
 	// A figure or table: its lines show centred, as \centering does.
-	| (Range & { kind: 'float' })
+	| (Range & { kind: 'float'; env: string })
 	| (Range & {
 			kind: 'heading';
 			level: HeadingLevel;
@@ -377,7 +377,7 @@ export function scanVisualTokens(text: string): VisualToken[] {
 				} else {
 					const start = floats.pop();
 					if (start !== undefined) {
-						tokens.push({ kind: 'float', from: start, to: end });
+						tokens.push({ kind: 'float', from: start, to: end, env });
 					}
 				}
 				i = end;

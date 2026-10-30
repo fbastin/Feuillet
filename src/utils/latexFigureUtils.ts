@@ -9,12 +9,22 @@ import type { FileNode } from '../types/files';
 
 export const INSERT_FIGURE_EVENT = 'feuillet-insert-figure';
 
-/** Asks the editor holding `view` to open its "Insert figure" dialog. */
-export const requestInsertFigure = (view: EditorView): void => {
+/** Inserting a figure, or editing or replacing the image of the selected one. */
+export type FigureDialogMode = 'insert' | 'edit' | 'replace';
+
+/** Asks the editor holding `view` to open its figure dialog. */
+export const requestFigureDialog = (
+	view: EditorView,
+	mode: FigureDialogMode,
+): void => {
 	document.dispatchEvent(
-		new CustomEvent(INSERT_FIGURE_EVENT, { detail: { view } }),
+		new CustomEvent(INSERT_FIGURE_EVENT, { detail: { view, mode } }),
 	);
 };
+
+/** Asks the editor holding `view` to open its "Insert figure" dialog. */
+export const requestInsertFigure = (view: EditorView): void =>
+	requestFigureDialog(view, 'insert');
 
 // What \includegraphics reads with pdfLaTeX, LuaLaTeX and XeLaTeX.
 const FIGURE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'pdf', 'eps'];

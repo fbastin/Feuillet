@@ -674,12 +674,11 @@ export class TableWidget extends WidgetType {
 			const found = cellAt(this.table.rows[selection.row], selection.col);
 			const start = found?.start ?? selection.col;
 			const end = found ? found.start + found.cell.span : selection.col + 1;
-			if (mod && /^[zy]$/i.test(event.key)) {
-				// Undo and redo, as in the text.
+			if (mod || event.altKey) {
+				// Undo, compile and the other shortcuts, as in the text.
 				if (runScopeHandlers(view, event, 'editor')) event.preventDefault();
 				return;
 			}
-			if (mod || event.altKey) return;
 			switch (event.key) {
 				case 'ArrowUp':
 					return move(selection.row - 1, selection.col);

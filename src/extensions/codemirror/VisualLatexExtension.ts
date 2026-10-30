@@ -19,6 +19,13 @@ import 'katex/dist/katex.min.css';
 
 import { t } from '@/i18n';
 import { fileStoreService } from '../../services/FileStoreService';
+import {
+	type FigureState,
+	figureFrame,
+	figureSelectionField,
+	selectFigure,
+	setFigureState,
+} from './visual/figureWidget';
 import { type LatexTable, findLatexTables } from './visual/latexTable';
 import {
 	TableWidget,
@@ -235,27 +242,59 @@ class TitleWidget extends WidgetType {
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.pdf'];
 
-class ImageWidget extends WidgetType {
-	private url: string | null = null;
+// An image loaded makes its line taller without the editor knowing, when
+// the document is shorter than the editor: the lines with images are then
+// drawn again, which has the editor measure them, so that clicks below an
+// image land where they should.
+const imageLoaded = StateEffect.define<null>();
+const imageLoadsField = StateField.define<number>({
+	create: () => 0,
+	update: (count, tr) =>
+		tr.effects.some((effect) => effect.is(imageLoaded)) ? count + 1 : count,
+});
 
+class ImageWidget extends WidgetType {
 	constructor(
 		readonly path: string,
 		readonly width?: number,
+		// The image of a figure the toolbar edits.
+		readonly figure: FigureState | null = null,
 	) {
 		super();
 	}
 	eq(other: ImageWidget) {
-		return other.path === this.path && other.width === this.width;
+		return (
+			other.path === this.path &&
+			other.width === this.width &&
+			other.figure?.selected === this.figure?.selected &&
+			other.figure?.toolbar === this.figure?.toolbar
+		);
 	}
 	toDOM(view: EditorView) {
 		const dom = document.createElement('div');
 		dom.className = 'cm-visual-image';
 		dom.textContent = this.path;
-		revealOnClick(view, dom);
-		void this.load(dom);
-		return dom;
+		void this.load(dom, view);
+		if (!this.figure) {
+			revealOnClick(view, dom);
+			return dom;
+		}
+		const frame = figureFrame(view, dom, this.figure);
+		frame.dataset.image = `${this.path}|${this.width ?? ''}`;
+		return frame;
 	}
-	private async load(dom: HTMLElement) {
+	// Selecting a figure keeps its image, rather than load it again.
+	updateDOM(dom: HTMLElement) {
+		if (
+			!this.figure ||
+			dom.dataset.image !== `${this.path}|${this.width ?? ''}`
+		) {
+			return false;
+		}
+		setFigureState(dom, this.figure);
+		return true;
+	}
+	private async load(dom: HTMLElement, view: EditorView) {
 		const base = this.path.replace(/^\.?\//, '');
 		const candidates = /\.[a-z0-9]+$/i.test(base)
 			? [base]
@@ -272,21 +311,29 @@ class ImageWidget extends WidgetType {
 			const type = candidate.toLowerCase().endsWith('.svg')
 				? 'image/svg+xml'
 				: (file.mimeType ?? '');
-			this.url = URL.createObjectURL(new Blob([file.content], { type }));
 			const image = document.createElement('img');
-			image.src = this.url;
+			image.src = URL.createObjectURL(new Blob([file.content], { type }));
 			image.alt = candidate;
 			// As wide as in the PDF, relative to the line.
 			if (this.width) image.style.width = `${this.width * 100}%`;
+			image.addEventListener(
+				'load',
+				() => {
+					if (dom.isConnected) view.dispatch({ effects: imageLoaded.of(null) });
+				},
+				{ once: true },
+			);
 			dom.replaceChildren(image);
 			return;
 		}
 	}
-	destroy() {
-		if (this.url) URL.revokeObjectURL(this.url);
+	destroy(dom: HTMLElement) {
+		// The image may have been loaded by a widget its DOM was kept from.
+		const url = dom.querySelector('img')?.src;
+		if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
 	}
 	ignoreEvent() {
-		return false;
+		return this.figure !== null;
 	}
 }
 
@@ -368,6 +415,34 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 			}),
 		);
 	}
+
+	const loads = state.field(imageLoadsField, false) ?? 0;
+
+	// Figures with one image, which their toolbar edits.
+	const figureSelection = state.field(figureSelectionField, false) ?? null;
+	const images = tokens.filter((token) => token.kind === 'image');
+	const editableFigures = state.readOnly
+		? []
+		: tokens.filter(
+				(token) =>
+					token.kind === 'float' &&
+					token.env.startsWith('figure') &&
+					images.filter(
+						(image) => image.from > token.from && image.to < token.to,
+					).length === 1,
+			);
+	const main = selection.main;
+	const figureState = (image: { from: number; to: number }) => {
+		const figure = editableFigures.find(
+			(float) => float.from < image.from && image.to < float.to,
+		);
+		if (!figure) return null;
+		const selected = figureSelection === figure.from;
+		return {
+			selected,
+			toolbar: selected || (main.from >= figure.from && main.to <= figure.to),
+		};
+	};
 
 	// Spans that hold others first, so that what they hide is skipped.
 	const order = (token: VisualToken) =>
@@ -517,12 +592,23 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 				}
 				break;
 			case 'image':
+				if (loads) {
+					decorations.push(
+						Decoration.line({
+							attributes: { 'data-images-loaded': String(loads) },
+						}).range(doc.lineAt(token.from).from),
+					);
+				}
 				if (!isActive) {
 					replace(
 						token.from,
 						token.to,
 						Decoration.replace({
-							widget: new ImageWidget(token.path, token.width),
+							widget: new ImageWidget(
+								token.path,
+								token.width,
+								figureState(token),
+							),
 						}),
 					);
 				}
@@ -562,7 +648,11 @@ const decorationsField = StateField.define<DecorationSet>({
 			tr.docChanged ||
 			tr.selection ||
 			tr.effects.some(
-				(effect) => effect.is(setVisualMode) || effect.is(selectTableCell),
+				(effect) =>
+					effect.is(setVisualMode) ||
+					effect.is(selectTableCell) ||
+					effect.is(selectFigure) ||
+					effect.is(imageLoaded),
 			);
 		return changed ? buildDecorations(tr.state) : decorations;
 	},
@@ -772,7 +862,39 @@ const visualTheme = EditorView.baseTheme({
 		color: 'inherit',
 		font: 'inherit',
 	},
-	'.cm-visual-table-toolbar': {
+	'.cm-visual-figure': {
+		position: 'relative',
+		display: 'flex',
+		flexDirection: 'column',
+		alignItems: 'center',
+		justifyContent: 'flex-end',
+		minHeight: '2.6em',
+		outline: 'none',
+	},
+	'.cm-visual-figure .cm-visual-figure-toolbar': {
+		position: 'absolute',
+		top: '0.3em',
+		left: '50%',
+		transform: 'translateX(-50%)',
+		zIndex: '2',
+		padding: '0.25em',
+		border: '1px solid var(--accent-border)',
+		borderRadius: 'var(--radius-sm)',
+		backgroundColor: 'var(--pico-background)',
+		boxShadow: 'var(--shadow-md)',
+		flexWrap: 'nowrap',
+		width: 'max-content',
+	},
+	'.cm-visual-figure .cm-visual-figure-toolbar[hidden]': { display: 'none' },
+	// The outline of the image shows the selection, rather than the theme's
+	// focus ring around the whole line.
+	'.cm-visual-figure:focus-visible': { outline: 'none' },
+	'.cm-visual-figure .cm-visual-image': { width: '100%', margin: '0' },
+	'.cm-visual-figure[data-selected="true"] .cm-visual-image img': {
+		outline: '2px solid #2563eb',
+		outlineOffset: '2px',
+	},
+	'.cm-visual-table-toolbar, .cm-visual-figure-toolbar': {
 		display: 'flex',
 		flexWrap: 'wrap',
 		alignItems: 'center',
@@ -780,20 +902,21 @@ const visualTheme = EditorView.baseTheme({
 		gap: '0.3em',
 		fontSize: '0.8em',
 	},
-	'.cm-visual-table-toolbar button, .cm-visual-table-toolbar select': {
-		width: 'auto',
-		height: 'auto',
-		margin: '0',
-		padding: '0.15em 0.5em',
-		border: '1px solid rgba(100, 116, 139, 0.45)',
-		borderRadius: '0.3em',
-		background: 'none',
-		boxShadow: 'none',
-		color: 'inherit',
-		font: 'inherit',
-		lineHeight: '1.4',
-		cursor: 'pointer',
-	},
+	'.cm-visual-table-toolbar button, .cm-visual-table-toolbar select, .cm-visual-figure-toolbar button':
+		{
+			width: 'auto',
+			height: 'auto',
+			margin: '0',
+			padding: '0.15em 0.5em',
+			border: '1px solid rgba(100, 116, 139, 0.45)',
+			borderRadius: '0.3em',
+			background: 'none',
+			boxShadow: 'none',
+			color: 'inherit',
+			font: 'inherit',
+			lineHeight: '1.4',
+			cursor: 'pointer',
+		},
 	'.cm-visual-table-toolbar select': { paddingRight: '1.4em' },
 	'.cm-visual-table-toolbar button[aria-pressed="true"]': {
 		backgroundColor: 'rgba(37, 99, 235, 0.15)',
@@ -812,6 +935,8 @@ export function visualLatex(initial: boolean): Extension {
 		tokensField,
 		tablesField,
 		tableSelectionField,
+		figureSelectionField,
+		imageLoadsField,
 		decorationsField,
 		keepInsideArgument,
 		endOfArgument,

@@ -108,6 +108,10 @@ class LinkNavigationPlugin {
 
 		if (update.docChanged) {
 			this.fileHoverCache.clear();
+			// Where the link under the mouse was no longer holds: pressing Ctrl
+			// would highlight outside the document, and break the next edit.
+			this.currentLink = null;
+			this.hoverValidationToken++;
 		}
 	}
 
