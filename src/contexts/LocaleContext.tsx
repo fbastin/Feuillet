@@ -11,9 +11,25 @@ import {
 	useState,
 } from 'react';
 
-import { getBrowserLanguage } from '@/i18n';
+import { getBrowserLanguage, t } from '@/i18n';
 import { useSettings } from '../hooks/useSettings';
 import languagesConfig from '../../translations/locales.config.json';
+
+// Labels that stylesheets write before text, such as the kind of a
+// diagnostic in the editor (styles/components/codemirror.css).
+const setStyleLabels = () => {
+	const labels: [string, string][] = [
+		['error', t('Error')],
+		['warning', t('Warning')],
+		['info', t('Information')],
+	];
+	for (const [kind, label] of labels) {
+		document.documentElement.style.setProperty(
+			`--diagnostic-${kind}-label`,
+			JSON.stringify(t('{label}: ', { label })),
+		);
+	}
+};
 
 interface Locale {
 	code: string;
@@ -71,6 +87,7 @@ export const LanguageProvider: React.FC<LocaleProviderProps> = ({
 
 			await i18next.changeLanguage(languageCode);
 			document.documentElement.lang = languageCode;
+			setStyleLabels();
 			setCurrentLanguage(language);
 
 			window.dispatchEvent(

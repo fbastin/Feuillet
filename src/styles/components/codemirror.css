@@ -745,7 +745,7 @@
 }
 
 .codemirror-editor-container .cm-diagnostic-error::before {
-	content: "⚠️ Error: ";
+	content: "⚠️ " var(--diagnostic-error-label, "Error: ");
 	color: var(--color-error);
 	font-weight: 600;
 }
@@ -755,7 +755,7 @@
 }
 
 .codemirror-editor-container .cm-diagnostic-warning::before {
-	content: "⚠️ Warning: ";
+	content: "⚠️ " var(--diagnostic-warning-label, "Warning: ");
 	color: var(--color-warning);
 	font-weight: 600;
 }
@@ -765,7 +765,7 @@
 }
 
 .codemirror-editor-container .cm-diagnostic-info::before {
-	content: "ℹ️ Info: ";
+	content: "ℹ️ " var(--diagnostic-info-label, "Info: ");
 	color: var(--color-info);
 	font-weight: 600;
 }

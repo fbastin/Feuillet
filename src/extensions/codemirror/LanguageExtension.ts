@@ -14,6 +14,7 @@ import { bibtex } from 'codemirror-lang-bib';
 import { latex } from 'codemirror-lang-latex';
 
 import { withAnnotationMasking } from './annotations/annotationMasking';
+import { createLatexCodeCheck } from './LatexCodeCheckExtension';
 import { safeTypst as typst } from './languages/safeTypstPatch';
 import { rst } from './languages/rstMode';
 import { createTextMateLanguageForFile } from './languages/textmateMode';
@@ -51,15 +52,14 @@ export const createLanguageExtension = (
 					latex({
 						autoCloseBrackets: false,
 						enableAutocomplete: false,
-						enableLinting,
+						// Feuillet's code check replaces the bundled linter.
+						enableLinting: false,
 						enableTooltips,
 						fileName: options.fileName,
 						nestedEnvironments: latexNestedEnvironments,
-						linter: options.detectedByContent
-							? { checkMissingDocumentEnv: false }
-							: undefined,
 					}),
 				),
+				...(enableLinting ? [createLatexCodeCheck(options.fileName)] : []),
 			];
 		case 'typst':
 			return [withAnnotationMasking(typst({ enableLinting }))];
