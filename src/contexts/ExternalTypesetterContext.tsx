@@ -134,7 +134,9 @@ export const ExternalTypesetterProvider: React.FC<
 					mainFileName,
 				);
 
-				if (result.status === 0 && result.output) {
+				// As on Overleaf, a PDF made despite errors is shown, and the
+				// errors are counted on the log tab.
+				if (result.output) {
 					document.dispatchEvent(
 						new CustomEvent('compiler-active', {
 							detail: { type: 'latex' },
@@ -164,7 +166,7 @@ export const ExternalTypesetterProvider: React.FC<
 					setOutputMimeType(mimeType);
 					setOutputFormat(resolvedFormat);
 					setCurrentView('output');
-					setLogIndicator('success');
+					setLogIndicator(result.status === 0 ? 'success' : 'error');
 
 					const kind: PopoutContentKind =
 						outputFormat?.outputType === 'canvas'
@@ -229,7 +231,8 @@ export const ExternalTypesetterProvider: React.FC<
 
 				setCompileLog(result.log);
 
-				if (result.status !== 0 || !result.output) {
+				// The PDF shown despite errors may be downloaded too.
+				if (!result.output) {
 					setLogIndicator('error');
 					setCurrentView('log');
 					return;
@@ -259,7 +262,7 @@ export const ExternalTypesetterProvider: React.FC<
 				}
 
 				await downloadFiles(downloads, baseName);
-				setLogIndicator('success');
+				setLogIndicator(result.status === 0 ? 'success' : 'error');
 			} catch (error) {
 				setCompileError(error instanceof Error ? error.message : String(error));
 				setLogIndicator('error');

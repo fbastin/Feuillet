@@ -90,6 +90,15 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 
 	// Same error list as the built-in compilers, for logs in their format.
 	const loggerPlugin = pluginRegistry.getLoggerForType(provider.projectType);
+	// Counted on the log tab, as on Overleaf: the errors, or else the
+	// warnings, of the last compile, whose PDF may be shown despite them.
+	const logCounts = useMemo(() => {
+		const entries = loggerPlugin?.parseDiagnostics?.(compileLog) ?? [];
+		return {
+			errors: entries.filter((entry) => entry.type === 'error').length,
+			warnings: entries.filter((entry) => entry.type === 'warning').length,
+		};
+	}, [loggerPlugin, compileLog]);
 	const [visualizerHeight, setVisualizerHeight] = useState(300);
 	const [visualizerCollapsed, setVisualizerCollapsed] = useState(false);
 
@@ -348,6 +357,31 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 							}}
 						/>
 						{t('Log')}
+						{logCounts.errors > 0 ? (
+							<span
+								className='ui-badge'
+								data-variant='count'
+								data-tone='danger'
+								data-role='log-errors'
+								title={t('Errors: {total}', { total: logCounts.errors })}
+							>
+								{logCounts.errors}
+							</span>
+						) : (
+							logCounts.warnings > 0 && (
+								<span
+									className='ui-badge'
+									data-variant='count'
+									data-tone='warning'
+									data-role='log-warnings'
+									title={t('Warnings: {total}', {
+										total: logCounts.warnings,
+									})}
+								>
+									{logCounts.warnings}
+								</span>
+							)
+						)}
 					</button>
 
 					{currentView === 'output' &&

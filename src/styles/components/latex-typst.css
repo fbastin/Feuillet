@@ -25,6 +25,21 @@
 	white-space: nowrap;
 }
 
+/* Errors or warnings of the last compile, on the log tab. */
+.ui-tab > .ui-badge[data-variant="count"] {
+	margin-inline-start: var(--space-xs);
+}
+
+.ui-badge[data-variant="count"][data-tone="danger"] {
+	--ui-count-badge-background: var(--color-error);
+	--ui-count-badge-color: #fff;
+}
+
+.ui-badge[data-variant="count"][data-tone="warning"] {
+	--ui-count-badge-background: var(--color-warning);
+	--ui-count-badge-color: #212529;
+}
+
 .log-viewer {
 	flex: 1;
 	height: 100%;
