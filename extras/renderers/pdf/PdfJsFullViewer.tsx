@@ -47,6 +47,13 @@ type Props = {
 
 export type PdfJsFullViewerHandle = {
 	goToPage: (page: number) => void;
+	/** Shows a place of a page: `top` from its top, in the units of the PDF. */
+	goToLocation: (page: number, top: number) => void;
+	/**
+	 * Shows the next document where this one is now, as after a compile; in
+	 * continuous view only. Whether it will.
+	 */
+	keepPlaceForNextDocument: () => boolean;
 	setScale: (scale: number) => void;
 	applyFitScale: (mode: 'fit-width' | 'fit-height') => number | null;
 	getPageSize: (page: number) => PageSize | null;
@@ -154,6 +161,7 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 		const scaleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 		const pageSizesRef = useRef<Map<number, PageSize>>(new Map());
 		const suppressPageChangeUntilRef = useRef(0);
+		const keptScrollTopRef = useRef<number | null>(null);
 
 		const propsRef = useRef({
 			scale,
@@ -348,6 +356,41 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 			ref,
 			() => ({
 				goToPage: (page: number) => setViewerPage(page),
+				keepPlaceForNextDocument: () => {
+					const container = containerRef.current;
+					if (!scrollView || !isViewerReady() || !container) return false;
+					keptScrollTopRef.current = container.scrollTop;
+					return true;
+				},
+				goToLocation: (page: number, top: number) => {
+					const pdfViewer = pdfViewerRef.current;
+					const container = containerRef.current;
+					const target = toPageNumber(
+						page,
+						getPagesCount(pdfViewer, pdfDocument) || 1,
+					);
+					const viewport = pdfViewer?._pages?.[target - 1]?.viewport;
+					if (!isViewerReady() || !container || !viewport?.scale) {
+						setViewerPage(target);
+						return;
+					}
+					pendingPageRef.current = null;
+					scrollCorrectionPageRef.current = null;
+					// A third of the panel above the place. pdf.js counts from the
+					// bottom of the page.
+					const height = viewport.height / viewport.scale;
+					const above = container.clientHeight / 3 / viewport.scale;
+					pdfViewer.scrollPageIntoView({
+						pageNumber: target,
+						destArray: [
+							null,
+							{ name: 'XYZ' },
+							null,
+							height - top + above,
+							null,
+						],
+					});
+				},
 				setScale: (nextScale: number) => setViewerScale(nextScale),
 				applyFitScale: (mode: 'fit-width' | 'fit-height') => {
 					const pdfViewer = pdfViewerRef.current;
@@ -374,7 +417,14 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 					renderHighlight(pdfViewer, propsRef.current.highlight);
 				},
 			}),
-			[setViewerPage, setViewerScale, isViewerReady, cancelScaleDebounce],
+			[
+				setViewerPage,
+				setViewerScale,
+				isViewerReady,
+				cancelScaleDebounce,
+				pdfDocument,
+				scrollView,
+			],
 		);
 
 		useEffect(() => {
@@ -481,8 +531,17 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 						1,
 					);
 
+					const keptScrollTop = keptScrollTopRef.current;
+					keptScrollTopRef.current = null;
 					requestAnimationFrame(() => {
-						if (!cancelled) setViewerPage(target);
+						if (cancelled) return;
+						// After a compile, the very place shown before, not only
+						// its page.
+						if (keptScrollTop !== null && scrollView) {
+							container.scrollTop = keptScrollTop;
+						} else {
+							setViewerPage(target);
+						}
 					});
 				});
 

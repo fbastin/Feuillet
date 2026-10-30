@@ -2054,6 +2054,8 @@
   "Owner: {name}": "Owner: {{name}}",
   "Packages downloaded for compilation. They are fetched again on the next compile, which needs an internet connection.": "Packages downloaded for compilation. They are fetched again on the next compile, which needs an internet connection.",
   "Page": "Page",
+  "Page height": "Page height",
+  "Page width": "Page width",
   "Page {currentPage} of {totalPages}": "Page {{currentPage}} of {{totalPages}}",
   "Page refresh required": "Page refresh required",
   "Pages: {count}": "Pages: {{count}}",

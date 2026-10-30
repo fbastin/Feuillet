@@ -45,6 +45,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 type PageSize = { width: number; height: number };
+// As on Overleaf, the zoom may follow the panel: the page as wide, or as
+// high, as the panel, whatever its size.
+type ZoomMode = 'page-width' | 'page-height';
 type Highlight = {
 	page: number;
 	rects: Array<{ x: number; y: number; width: number; height: number }>;
@@ -59,11 +62,22 @@ const ZOOM_STEP = 0.25;
 const clamp = (value: number, min: number, max: number) =>
 	Math.max(min, Math.min(max, value));
 
+const isZoomMode = (value: unknown): value is ZoomMode =>
+	value === 'page-width' || value === 'page-height';
+
+// Ctrl+wheel and pinching: about 16% a notch of the wheel.
+const WHEEL_ZOOM_BASE = 1.0015;
+
+// Every byte counts: two compiles often give PDFs of the same length that
+// differ only inside, and the new one must replace the old.
 const getContentHash = (buffer: ArrayBuffer): string => {
 	const view = new Uint8Array(buffer);
-	const start = Array.from(view.slice(0, Math.min(32, view.length))).join(',');
-	const end = Array.from(view.slice(Math.max(0, view.length - 32))).join(',');
-	return `${buffer.byteLength}-${start}-${end}`;
+	// FNV-1a, 32 bits.
+	let hash = 0x811c9dc5;
+	for (let index = 0; index < view.length; index++) {
+		hash = Math.imul(hash ^ view[index], 0x01000193);
+	}
+	return `${buffer.byteLength}-${(hash >>> 0).toString(16)}`;
 };
 
 const toArrayBuffer = (
@@ -119,11 +133,9 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [pdfDocument, setPdfDocument] = useState<any>(null);
-	const [scrollView, setScrollView] = useState(false);
+	const [scrollView, setScrollView] = useState(true);
 	const [isFullscreen, setIsFullscreen] = useState(false);
-	const [fitMode, setFitMode] = useState<'fit-width' | 'fit-height'>(
-		'fit-width',
-	);
+	const [zoomMode, setZoomMode] = useState<ZoomMode | null>('page-width');
 	const [highlight, setHighlight] = useState<Highlight>(null);
 
 	const propertiesRegistered = useRef(false);
@@ -132,9 +144,12 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	const contentHashRef = useRef('');
 	const originalContentRef = useRef<ArrayBuffer | null>(null);
 	const pendingRestorePageRef = useRef<number | null>(null);
-	const pendingRestoreScrollTopRef = useRef<number | null>(null);
+	// Whether the viewer keeps its place for the PDF being loaded.
+	const keepingPlaceRef = useRef(false);
 	const numPagesRef = useRef(0);
 	const scaleRef = useRef(1);
+	const zoomModeRef = useRef<ZoomMode | null>('page-width');
+	const applyZoomModeRef = useRef<(mode: ZoomMode) => void>(() => {});
 	const pointerInsideRef = useRef(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const contentElRef = useRef<HTMLDivElement>(null);
@@ -147,6 +162,10 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	useEffect(() => {
 		scaleRef.current = scale;
 	}, [scale]);
+
+	useEffect(() => {
+		zoomModeRef.current = zoomMode;
+	}, [zoomMode]);
 
 	useEffect(() => {
 		return () => {
@@ -216,8 +235,8 @@ const PdfRenderer: React.FC<RendererProps> = ({
 					? new Uint8Array(buffer)
 					: new Uint8Array(new Uint8Array(buffer));
 				pendingRestorePageRef.current = lastStablePageRef.current;
-				pendingRestoreScrollTopRef.current =
-					fullViewerRef.current?.getScrollTop() ?? null;
+				keepingPlaceRef.current =
+					fullViewerRef.current?.keepPlaceForNextDocument() ?? false;
 				originalContentRef.current = memoryOptimized
 					? buffer
 					: dataCopy.buffer.slice(0);
@@ -266,30 +285,41 @@ const PdfRenderer: React.FC<RendererProps> = ({
 			setHighlight: (nextHighlight: Highlight) => {
 				setHighlight(nextHighlight);
 				if (nextHighlight) {
-					const targetPage = nextHighlight.page;
-					requestAnimationFrame(() => goToPage(targetPage));
+					const { page, rects } = nextHighlight;
+					const top = Math.min(...rects.map((rect) => rect.y));
+					requestAnimationFrame(() => {
+						setPage(page);
+						// The marked line, not only its page.
+						fullViewerRef.current?.goToLocation(
+							page,
+							Number.isFinite(top) ? top : 0,
+						);
+					});
 				}
 			},
 		}),
-		[goToPage, setPdfContent],
+		[setPage, setPdfContent],
 	);
 
 	useEffect(() => {
 		if (propertiesRegistered.current) return;
 		propertiesRegistered.current = true;
 
+		// pdf-renderer-zoom and pdf-renderer-scroll-view, before these, kept
+		// one page at 100% for everyone: these start as on Overleaf, with all
+		// the pages, as wide as the panel.
 		registerProperty({
-			id: 'pdf-renderer-zoom',
+			id: 'pdf-renderer-scale',
 			category: 'UI',
 			subcategory: 'PDF Viewer',
-			defaultValue: 1,
+			defaultValue: 'page-width',
 		});
 
 		registerProperty({
-			id: 'pdf-renderer-scroll-view',
+			id: 'pdf-renderer-continuous',
 			category: 'UI',
 			subcategory: 'PDF Viewer',
-			defaultValue: false,
+			defaultValue: true,
 		});
 
 		registerProperty({
@@ -299,12 +329,15 @@ const PdfRenderer: React.FC<RendererProps> = ({
 			defaultValue: 1,
 		});
 
-		const storedZoom = Number(getProperty('pdf-renderer-zoom'));
-		const storedScrollView = getProperty('pdf-renderer-scroll-view');
+		const storedScale = getProperty('pdf-renderer-scale');
+		const storedScrollView = getProperty('pdf-renderer-continuous');
 		const storedPage = Number(getProperty('pdf-renderer-current-page'));
 
-		if (Number.isFinite(storedZoom)) {
-			setScale(clamp(storedZoom, MIN_SCALE, MAX_SCALE));
+		if (isZoomMode(storedScale)) {
+			setZoomMode(storedScale);
+		} else if (Number.isFinite(Number(storedScale))) {
+			setZoomMode(null);
+			setScale(clamp(Number(storedScale), MIN_SCALE, MAX_SCALE));
 		}
 
 		if (storedScrollView !== undefined) {
@@ -340,16 +373,17 @@ const PdfRenderer: React.FC<RendererProps> = ({
 			setError(null);
 
 			requestAnimationFrame(() => {
-				fullViewerRef.current?.goToPage(restorePage);
-				if (pendingRestoreScrollTopRef.current !== null && scrollView) {
-					fullViewerRef.current?.setScrollTop(
-						pendingRestoreScrollTopRef.current,
-					);
+				// The pages of a new compile may have another size.
+				if (zoomModeRef.current) {
+					applyZoomModeRef.current(zoomModeRef.current);
 				}
-				pendingRestoreScrollTopRef.current = null;
+				if (!keepingPlaceRef.current) {
+					fullViewerRef.current?.goToPage(restorePage);
+				}
+				keepingPlaceRef.current = false;
 			});
 		},
-		[isEditingPageInput, scrollView],
+		[isEditingPageInput],
 	);
 
 	const handlePageSize = useCallback((page: number, size: PageSize) => {
@@ -384,21 +418,53 @@ const PdfRenderer: React.FC<RendererProps> = ({
 				);
 	}, []);
 
+	// A zoom of its own, in percent.
 	const commitZoom = useCallback(
-		(nextScale: number, nextFitMode?: 'fit-width' | 'fit-height') => {
+		(nextScale: number) => {
 			nextScale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
-			if (nextScale === scale && nextFitMode === undefined) return;
+			if (nextScale === scaleRef.current && zoomModeRef.current === null) {
+				return;
+			}
 
+			zoomModeRef.current = null;
+			scaleRef.current = nextScale;
 			flushSync(() => {
-				if (nextFitMode) setFitMode(nextFitMode);
+				setZoomMode(null);
 				setScale(nextScale);
 			});
 
 			fullViewerRef.current?.setScale(nextScale);
-			setProperty('pdf-renderer-zoom', nextScale);
+			setProperty('pdf-renderer-scale', nextScale);
 		},
-		[scale, setProperty],
+		[setProperty],
 	);
+
+	// The scale that makes the page as wide, or as high, as the panel now.
+	const applyZoomMode = useCallback(
+		(mode: ZoomMode) => {
+			const nextScale = computeFitScale(
+				mode === 'page-width' ? 'fit-width' : 'fit-height',
+			);
+			scaleRef.current = nextScale;
+			setScale(nextScale);
+		},
+		[computeFitScale],
+	);
+
+	applyZoomModeRef.current = applyZoomMode;
+
+	const chooseZoomMode = useCallback(
+		(mode: ZoomMode) => {
+			zoomModeRef.current = mode;
+			setZoomMode(mode);
+			applyZoomMode(mode);
+			setProperty('pdf-renderer-scale', mode);
+		},
+		[applyZoomMode, setProperty],
+	);
+
+	const commitZoomRef = useRef(commitZoom);
+	commitZoomRef.current = commitZoom;
 
 	const handlePreviousPage = useCallback(() => {
 		goToPage(lastStablePageRef.current - 1);
@@ -423,25 +489,72 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	);
 
 	const handleFitToggle = useCallback(() => {
-		const nextMode = fitMode === 'fit-width' ? 'fit-height' : 'fit-width';
-		commitZoom(computeFitScale(nextMode), nextMode);
-	}, [fitMode, computeFitScale, commitZoom]);
+		chooseZoomMode(zoomMode === 'page-width' ? 'page-height' : 'page-width');
+	}, [zoomMode, chooseZoomMode]);
 
 	const handleZoomChange = useCallback(
 		(event: React.ChangeEvent<HTMLSelectElement>) => {
-			if (event.target.value === 'custom') return;
-			commitZoom(Number.parseFloat(event.target.value) / 100);
+			const { value } = event.target;
+			if (value === 'custom') return;
+			if (isZoomMode(value)) chooseZoomMode(value);
+			else commitZoom(Number.parseFloat(value) / 100);
 		},
-		[commitZoom],
+		[chooseZoomMode, commitZoom],
 	);
+
+	// A zoom that follows the panel follows it as it is resized.
+	/* biome-ignore lint/correctness/useExhaustiveDependencies: pdfRendererEnable decides whether the content element exists. */
+	useEffect(() => {
+		const element = contentElRef.current;
+		if (!element) return;
+		let width = element.clientWidth;
+		let height = element.clientHeight;
+		let frame = 0;
+		const observer = new ResizeObserver(() => {
+			if (element.clientWidth === width && element.clientHeight === height) {
+				return;
+			}
+			width = element.clientWidth;
+			height = element.clientHeight;
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(() => {
+				const mode = zoomModeRef.current;
+				if (mode && width > 0 && height > 0) applyZoomMode(mode);
+			});
+		});
+		observer.observe(element);
+		return () => {
+			observer.disconnect();
+			cancelAnimationFrame(frame);
+		};
+	}, [applyZoomMode, pdfRendererEnable]);
+
+	// Ctrl+wheel, and pinching on a touchpad, zoom the PDF, not the page.
+	/* biome-ignore lint/correctness/useExhaustiveDependencies: pdfRendererEnable decides whether the content element exists. */
+	useEffect(() => {
+		const element = contentElRef.current;
+		if (!element) return;
+		const handleWheel = (event: WheelEvent) => {
+			if (!event.ctrlKey && !event.metaKey) return;
+			event.preventDefault();
+			const delta = clamp(
+				event.deltaMode === WheelEvent.DOM_DELTA_LINE
+					? event.deltaY * 33
+					: event.deltaY,
+				-100,
+				100,
+			);
+			commitZoomRef.current(scaleRef.current * WHEEL_ZOOM_BASE ** -delta);
+		};
+		element.addEventListener('wheel', handleWheel, { passive: false });
+		return () => element.removeEventListener('wheel', handleWheel);
+	}, [pdfRendererEnable]);
 
 	const handleToggleView = useCallback(() => {
 		const nextScrollView = !scrollView;
 		pendingRestorePageRef.current = lastStablePageRef.current;
-		pendingRestoreScrollTopRef.current =
-			fullViewerRef.current?.getScrollTop() ?? null;
 		setScrollView(nextScrollView);
-		setProperty('pdf-renderer-scroll-view', nextScrollView);
+		setProperty('pdf-renderer-continuous', nextScrollView);
 	}, [scrollView, setProperty]);
 
 	const handleToggleFullscreen = useCallback(() => {
@@ -458,21 +571,15 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	}, []);
 
 	useEffect(() => {
+		// A zoom following the panel follows it to full screen and back.
 		const handleFullscreenChange = () => {
-			const active = document.fullscreenElement === containerRef.current;
-			setIsFullscreen(active);
-
-			if (active) {
-				requestAnimationFrame(() =>
-					commitZoom(computeFitScale(fitMode), fitMode),
-				);
-			}
+			setIsFullscreen(document.fullscreenElement === containerRef.current);
 		};
 
 		document.addEventListener('fullscreenchange', handleFullscreenChange);
 		return () =>
 			document.removeEventListener('fullscreenchange', handleFullscreenChange);
-	}, [commitZoom, computeFitScale, fitMode]);
+	}, []);
 
 	const handleExport = useCallback(() => {
 		if (onDownload && fileName) {
@@ -651,12 +758,14 @@ const PdfRenderer: React.FC<RendererProps> = ({
 							</button>
 
 							<select
-								value={hasCustomZoom ? 'custom' : currentZoom}
+								value={zoomMode ?? (hasCustomZoom ? 'custom' : currentZoom)}
 								onChange={handleZoomChange}
 								disabled={isLoading}
 								className='renderer-toolbar-select ui-field-control'
 								title={t('Zoom Level')}
 							>
+								<option value='page-width'>{t('Page width')}</option>
+								<option value='page-height'>{t('Page height')}</option>
 								{zoomOptions.map((option) => (
 									<option
 										key={String(option.value)}
@@ -665,7 +774,7 @@ const PdfRenderer: React.FC<RendererProps> = ({
 										{option.label}
 									</option>
 								))}
-								{hasCustomZoom && (
+								{hasCustomZoom && !zoomMode && (
 									<option value='custom'>{Math.round(scale * 100)}%</option>
 								)}
 							</select>
@@ -689,16 +798,16 @@ const PdfRenderer: React.FC<RendererProps> = ({
 								className='ui-icon-button'
 								data-variant='control'
 								title={
-									fitMode === 'fit-width'
+									zoomMode === 'page-width'
 										? t('Fit to Height')
 										: t('Fit to Width')
 								}
 								disabled={isLoading}
 							>
-								{fitMode === 'fit-width' ? (
-									<FitToWidthIcon />
-								) : (
+								{zoomMode === 'page-width' ? (
 									<FitToHeightIcon />
+								) : (
+									<FitToWidthIcon />
 								)}
 							</button>
 
