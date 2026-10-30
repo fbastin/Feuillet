@@ -50,6 +50,8 @@ interface ExternalTypesetterContextType {
 		exportOptions?: ExternalExportOptions,
 	) => Promise<void>;
 	clearCache: (providerId: string) => Promise<void>;
+	/** Stops the compile running, which then ends with its log. */
+	stopCompilation: (providerId: string) => void;
 }
 
 export const ExternalTypesetterContext =
@@ -288,6 +290,10 @@ export const ExternalTypesetterProvider: React.FC<
 		}
 	}, []);
 
+	const stopCompilation = useCallback((providerId: string) => {
+		genericTypesetterService.stop(providerId);
+	}, []);
+
 	return (
 		<ExternalTypesetterContext.Provider
 			value={{
@@ -304,6 +310,7 @@ export const ExternalTypesetterProvider: React.FC<
 				compileDocument,
 				exportDocument,
 				clearCache,
+				stopCompilation,
 			}}
 		>
 			{children}

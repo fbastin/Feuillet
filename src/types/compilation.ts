@@ -41,6 +41,8 @@ export interface TypesetterOutputFormat {
 export interface TypesetterCapabilities {
 	outline?: boolean;
 	formatter?: string;
+	/** Whether a running compile can be stopped. */
+	stop?: boolean;
 	toolbarId?: string;
 	shortcutsId?: string;
 }

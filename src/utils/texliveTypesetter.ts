@@ -22,6 +22,31 @@ const ENGINE_FIELD: TypesetterUIField = {
 	],
 };
 
+// Overleaf's compile options. The server forces a new run when they change.
+const COMPILE_MODE_FIELD: TypesetterUIField = {
+	key: 'mode',
+	label: 'Compile mode:',
+	kind: 'select',
+	sendAs: 'option',
+	defaultValue: 'normal',
+	options: [
+		{ label: 'Normal', value: 'normal' },
+		{ label: 'Fast [draft]', value: 'draft' },
+	],
+};
+
+const ERROR_HANDLING_FIELD: TypesetterUIField = {
+	key: 'errors',
+	label: 'Compile error handling:',
+	kind: 'select',
+	sendAs: 'option',
+	defaultValue: 'continue',
+	options: [
+		{ label: 'Try to compile despite errors', value: 'continue' },
+		{ label: 'Stop on first error', value: 'stop' },
+	],
+};
+
 export function createTexliveTypesetterConfig(
 	url: string,
 ): TypesetterServerConfig {
@@ -55,7 +80,7 @@ export function createTexliveTypesetterConfig(
 			},
 		],
 		transportConfig: { type: 'websocket', url },
-		capabilities: { outline: false },
+		capabilities: { outline: false, stop: true },
 		ui: {
 			compile: {
 				fields: [
@@ -71,6 +96,8 @@ export function createTexliveTypesetterConfig(
 						],
 					},
 					ENGINE_FIELD,
+					COMPILE_MODE_FIELD,
+					ERROR_HANDLING_FIELD,
 				],
 			},
 			export: {

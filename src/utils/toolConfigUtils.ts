@@ -336,11 +336,12 @@ function normalizeCapabilities(
 	config: StoredTypesetterConfig,
 ): TypesetterServerConfig['capabilities'] {
 	if (isRecord(config.capabilities)) {
-		const { outline, formatter } = config.capabilities;
+		const { outline, formatter, stop } = config.capabilities;
 
 		return {
 			...(typeof outline === 'boolean' ? { outline } : {}),
 			...(typeof formatter === 'string' ? { formatter } : {}),
+			...(typeof stop === 'boolean' ? { stop } : {}),
 		};
 	}
 

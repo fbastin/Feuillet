@@ -50,7 +50,10 @@ describe('Feuillet TeX Live typesetter', () => {
 		expect(normalized?.ui?.compile?.fields.map((field) => field.key)).toEqual([
 			'format',
 			'engine',
+			'mode',
+			'errors',
 		]);
+		expect(normalized?.capabilities.stop).toBe(true);
 		expect(
 			normalized?.ui?.compile?.fields.some((field) => field.key === 'shellEscape'),
 		).toBe(false);

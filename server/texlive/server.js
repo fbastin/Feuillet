@@ -10,7 +10,10 @@
 //
 // Compiles run latexmk without rc files and without -shell-escape (TeX Live's
 // restricted shell escape stays in force), one at a time per connection and
-// at most MAX_CONCURRENT at once, each bounded by COMPILE_TIMEOUT_MS.
+// at most MAX_CONCURRENT at once, each bounded by COMPILE_TIMEOUT_MS. As on
+// Overleaf, a compile may run in draft mode (images drawn as boxes) or stop
+// at the first error, and a message {"action": "stop"} stops the compiles a
+// connection asked for before it.
 //
 // The log has the layout of the busytex harness that Feuillet's LaTeX log
 // viewer reads (extras/loggers/latex_visualizer/parser.ts): the viewer lists
@@ -81,12 +84,18 @@ const MISSING_FILES_STATUS = -2;
 const MAX_LOG_CHARS = 1024 * 1024;
 
 // latexmk reads latexmkrc files (Perl) from the project directory, so rc
-// files are never read (-norc) and every option is given here.
+// files are never read (-norc) and every option is given here. %P is the
+// source, after the code of draft mode when there is some.
 const ENGINE_ARGS = {
 	pdflatex: ['-pdf'],
-	lualatex: ['-pdflua', '-lualatex=lualatex --nosocket %O %S'],
+	lualatex: ['-pdflua', '-lualatex=lualatex --nosocket %O %P'],
 	xelatex: ['-pdfxe'],
 };
+
+// Overleaf's draft mode: images become boxes with their names. The code is
+// read before the source, which keeps its line numbers.
+const DRAFT_CODE =
+	'\\PassOptionsToPackage{draft}{graphicx}\\PassOptionsToPackage{draft}{graphics}';
 
 const log = (...parts) =>
 	console.log(new Date().toISOString(), '[texlive]', ...parts);
@@ -195,6 +204,13 @@ class Session {
 		this.tracked = new Set();
 		this.child = null;
 		this.closed = false;
+		// Requests are numbered as they arrive: a stop stops those before it.
+		this.received = 0;
+		this.stoppedBefore = 0;
+		this.current = 0;
+		// The options of each main file's last compile, which latexmk does
+		// not compare.
+		this.settings = new Map();
 	}
 
 	resolve(filePath) {
@@ -255,6 +271,17 @@ class Session {
 	async reset() {
 		await fs.rm(this.dir, { recursive: true, force: true });
 		this.tracked.clear();
+		this.settings.clear();
+	}
+
+	get stopped() {
+		return this.current < this.stoppedBefore;
+	}
+
+	// Stops the compile running, and those waiting, asked for before `seq`.
+	stop(seq) {
+		this.stoppedBefore = seq;
+		if (this.stopped) this.kill();
 	}
 
 	// Without a manifest the request holds the whole project; with one, it
@@ -312,6 +339,10 @@ class Session {
 			env.PAR_GLOBAL_TEMP = this.uid === null ? biberDir : this.biber;
 		}
 		return new Promise((resolve) => {
+			if (this.stopped) {
+				resolve({ status: 1, output: '', timedOut: false, stopped: true });
+				return;
+			}
 			const child = spawn('latexmk', args, {
 				cwd,
 				detached: true,
@@ -333,10 +364,12 @@ class Session {
 			child.on('close', (code) => {
 				clearTimeout(timer);
 				this.child = null;
+				const stopped = !timedOut && this.stopped;
 				resolve({
-					status: timedOut ? 1 : (code ?? 1),
+					status: timedOut || stopped ? 1 : (code ?? 1),
 					output: lastChars(Buffer.concat(chunks).toString('utf8')),
 					timedOut,
+					stopped,
 				});
 			});
 		});
@@ -361,11 +394,20 @@ class Session {
 		const engine = Object.hasOwn(ENGINE_ARGS, options.engine)
 			? options.engine
 			: 'pdflatex';
+		const draft = options.mode === 'draft';
+		const stopOnFirstError = options.errors === 'stop';
+		// latexmk runs LaTeX again when the sources change, not its options.
+		const settings = `${engine} ${draft} ${stopOnFirstError}`;
+		const changed = (this.settings.get(mainFile) ?? settings) !== settings;
+		this.settings.set(mainFile, settings);
 		// As on Overleaf, latexmk goes on despite errors (-f): the PDF then has
 		// whatever LaTeX could make of the document, references included.
+		// Stopping at the first error, LaTeX makes no PDF.
 		const args = [
 			'-norc',
-			'-f',
+			stopOnFirstError ? '-halt-on-error' : '-f',
+			...(changed ? ['-g'] : []),
+			...(draft ? [`-usepretex=${DRAFT_CODE}`] : []),
 			...ENGINE_ARGS[engine],
 			'-interaction=nonstopmode',
 			'-synctex=1',
@@ -381,9 +423,12 @@ class Session {
 			[transcriptPath, ...outputs].map(writtenAt),
 		);
 		const started = Date.now();
-		const { status, output, timedOut } = await this.run(args, directory);
+		const { status, output, timedOut, stopped } = await this.run(
+			args,
+			directory,
+		);
 		log(
-			`compiled with ${engine}: status ${status} in ${Date.now() - started} ms`,
+			`compiled with ${engine}${draft ? ' (draft)' : ''}: status ${status} in ${Date.now() - started} ms`,
 		);
 
 		// The PDF is sent despite errors, so it must be this document's: once
@@ -395,7 +440,11 @@ class Session {
 		);
 		const latexRan = after[0] !== before[0];
 		for (const [index, filePath] of outputs.entries()) {
-			if (timedOut || (latexRan && after[index + 1] === before[index + 1])) {
+			if (
+				timedOut ||
+				stopped ||
+				(latexRan && after[index + 1] === before[index + 1])
+			) {
 				await fs.rm(filePath, { force: true });
 			}
 		}
@@ -410,9 +459,12 @@ class Session {
 				`Compilation stopped after ${Math.round(compileTimeoutMs / 1000)} seconds.`,
 			);
 		}
-		const transcript = await fs
-			.readFile(transcriptPath, 'utf8')
-			.catch(() => '');
+		if (stopped) errors.push('Compilation stopped.');
+		// A compile stopped before LaTeX ran has no transcript of its own.
+		const transcript =
+			stopped && !latexRan
+				? ''
+				: await fs.readFile(transcriptPath, 'utf8').catch(() => '');
 		const report = formatLog({
 			engine,
 			source: path.basename(source),
@@ -447,7 +499,7 @@ class Session {
 		};
 	}
 
-	async handle(request) {
+	async handle(request, seq) {
 		const format = typeof request.format === 'string' ? request.format : 'pdf';
 		const options =
 			request.options && typeof request.options === 'object'
@@ -468,9 +520,24 @@ class Session {
 			return { status: MISSING_FILES_STATUS, log: '', format, missing };
 		}
 
+		this.current = seq;
+		const stoppedReply = () => ({
+			status: 1,
+			log: formatLog({
+				engine: String(options.engine ?? 'pdflatex'),
+				source: path.posix.basename(request.mainFile),
+				status: 1,
+				transcript: '',
+				output: '',
+				errors: ['Compilation stopped.'],
+			}),
+			format,
+		});
+		if (this.stopped) return stoppedReply();
 		await acquireSlot();
 		try {
 			if (this.closed) return { status: 1, log: 'Connection closed.', format };
+			if (this.stopped) return stoppedReply();
 			return await this.compile(request.mainFile, format, options);
 		} finally {
 			releaseSlot();
@@ -544,19 +611,25 @@ wss.on('connection', (conn) => {
 
 	conn.on('message', (data) => {
 		resetIdleTimer();
-		queue = queue.then(async () => {
-			let request;
-			try {
-				request = JSON.parse(data.toString('utf8'));
-			} catch {
-				return;
-			}
-			const requestId = request?.requestId;
-			if (typeof requestId !== 'string') return;
+		let request;
+		try {
+			request = JSON.parse(data.toString('utf8'));
+		} catch {
+			return;
+		}
+		const seq = ++session.received;
+		// Not queued: it stops what is running.
+		if (request?.action === 'stop') {
+			session.stop(seq);
+			return;
+		}
+		const requestId = request?.requestId;
+		if (typeof requestId !== 'string') return;
 
+		queue = queue.then(async () => {
 			let response;
 			try {
-				response = await session.handle(request);
+				response = await session.handle(request, seq);
 			} catch (error) {
 				response = {
 					status: 1,

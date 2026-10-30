@@ -76,7 +76,12 @@ export function clickWhenReady(
 			const element = document.querySelector(
 				selector,
 			) as HTMLButtonElement | null;
-			if (element && !element.disabled) {
+			// A compile button stops the compile running when clicked.
+			if (
+				element &&
+				!element.disabled &&
+				!element.classList.contains('compiling')
+			) {
 				element.click();
 				return true;
 			}

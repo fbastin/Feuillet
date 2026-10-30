@@ -23,7 +23,7 @@ export interface TypesetterServerConfig extends ExternalServiceConfig {
 	inputFiles?: TypesetterInputFile[];
 	outputFormats: TypesetterOutputFormat[];
 	transportConfig: TransportConfig;
-	capabilities: { outline?: boolean; formatter?: string };
+	capabilities: { outline?: boolean; formatter?: string; stop?: boolean };
 	ui?: TypesetterUISchema;
 }
 
@@ -124,6 +124,16 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 
 	resetSyncState(configId: string): void {
 		this.sentHashes.delete(configId);
+	}
+
+	/**
+	 * Asks the server to stop the compiles it was sent: the compile running
+	 * then ends with its log. Only for servers that can (capabilities.stop).
+	 */
+	stop(configId: string): void {
+		const connection = this.connections.get(configId);
+		if (!connection?.transport.isOpen || connection.pending.size === 0) return;
+		connection.transport.send(JSON.stringify({ action: 'stop' }));
 	}
 
 	async compile(

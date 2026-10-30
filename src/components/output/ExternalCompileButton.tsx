@@ -72,8 +72,13 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 	shouldNavigateOnCompile = false,
 	useSharedSettings = false,
 }) => {
-	const { isCompiling, isExporting, compileDocument, clearCache } =
-		useExternalTypesetter();
+	const {
+		isCompiling,
+		isExporting,
+		compileDocument,
+		clearCache,
+		stopCompilation,
+	} = useExternalTypesetter();
 	const { selectedFileId, fileTree } = useFileTree();
 	const { getSetting } = useSettings();
 	const { getProperty, setProperty, registerProperty } = useProperties();
@@ -284,21 +289,55 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		await runCompile(true);
 	}, [runCompile]);
 
+	const canStop = provider.capabilities.stop === true;
 	const compileStateRef = useRef({ isCompiling, runCompile });
 	compileStateRef.current = { isCompiling, runCompile };
+	// A save during a compile, compiled once that one ends.
+	const autoCompilePendingRef = useRef(false);
+
+	const handleStop = useCallback(() => {
+		autoCompilePendingRef.current = false;
+		stopCompilation(provider.id);
+	}, [stopCompilation, provider.id]);
 
 	useEffect(() => {
 		if (!useSharedSettings || !effectiveAutoCompileOnSave) return;
 
 		const handleFileSaved = async () => {
 			const state = compileStateRef.current;
-			if (state.isCompiling) return;
+			if (state.isCompiling) {
+				autoCompilePendingRef.current = true;
+				return;
+			}
 			await state.runCompile(false);
 		};
 
 		document.addEventListener('file-saved', handleFileSaved);
-		return () => document.removeEventListener('file-saved', handleFileSaved);
+		return () => {
+			document.removeEventListener('file-saved', handleFileSaved);
+			autoCompilePendingRef.current = false;
+		};
 	}, [useSharedSettings, effectiveAutoCompileOnSave]);
+
+	useEffect(() => {
+		if (isCompiling || !autoCompilePendingRef.current) return;
+		autoCompilePendingRef.current = false;
+		void compileStateRef.current.runCompile(false);
+	}, [isCompiling]);
+
+	// F8, as with the built-in compiler.
+	useEffect(() => {
+		if (!useSharedSettings || !canStop) return;
+		const handleStopShortcut = () => {
+			if (compileStateRef.current.isCompiling) handleStop();
+		};
+		document.addEventListener('trigger-stop-compilation', handleStopShortcut);
+		return () =>
+			document.removeEventListener(
+				'trigger-stop-compilation',
+				handleStopShortcut,
+			);
+	}, [useSharedSettings, canStop, handleStop]);
 
 	const handleAutoCompileOnSaveChange = (checked: boolean) => {
 		setProperty(autoCompilePropertyId, checked, {
@@ -316,13 +355,20 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		await handleCompile();
 	}, [clearCache, provider.id, handleCompile]);
 
+	// Shift+F9 (EditorApp calls the header button's clearAndCompile).
+	useEffect(() => {
+		const container = dropdownRef.current;
+		if (!useSharedSettings || !container) return;
+		Object.assign(container, { clearAndCompile: handleClearAndCompile });
+	}, [useSharedSettings, handleClearAndCompile]);
+
 	const toggleDropdown = (e: React.MouseEvent) => {
 		e.stopPropagation();
 		setIsDropdownOpen(!isDropdownOpen);
 	};
 
 	const status = genericTypesetterService.getConnectionStatus(provider.id);
-	const isDisabled = isCompiling || isExporting || !effectiveMainFile;
+	const isDisabled = isCompiling ? !canStop : isExporting || !effectiveMainFile;
 
 	const isFieldVisible = useCallback(
 		(field: TypesetterUIField): boolean => {
@@ -422,12 +468,14 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 				<button
 					type='button'
 					className={`ui-split-main compile-button ${isCompiling ? 'compiling' : ''}`}
-					onClick={handleCompile}
+					onClick={isCompiling ? handleStop : handleCompile}
 					disabled={isDisabled}
 					title={
-						status === 'error'
-							? t('Compiler connection error')
-							: t('Compile {typesetter}', { typesetter: provider.label })
+						isCompiling && canStop
+							? `${t('Stop Compilation')} ${useSharedSettings ? t('(F8)') : ''}`
+							: status === 'error'
+								? t('Compiler connection error')
+								: t('Compile {typesetter}', { typesetter: provider.label })
 					}
 				>
 					{isCompiling ? <StopIcon /> : <PlayIcon />}
