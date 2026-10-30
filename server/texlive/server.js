@@ -3,8 +3,10 @@
 // Feuillet TeX Live compile server. Speaks the TeXlyre typesetter protocol
 // over WebSocket: each request carries the project files (or only the changed
 // ones plus a manifest), the reply carries the PDF and its SyncTeX data.
-// Every connection gets its own working tree, so auxiliary files survive
-// between compiles and only edited files travel.
+// As on Overleaf, a PDF made despite LaTeX errors comes with them: the reply
+// then has both a PDF and a status other than 0. Every connection gets its
+// own working tree, so auxiliary files survive between compiles and only
+// edited files travel.
 //
 // Compiles run latexmk without rc files and without -shell-escape (TeX Live's
 // restricted shell escape stays in force), one at a time per connection and
@@ -121,6 +123,13 @@ const exists = (filePath) =>
 	fs.access(filePath).then(
 		() => true,
 		() => false,
+	);
+
+// When a file was last written, or null if there is none.
+const writtenAt = (filePath) =>
+	fs.stat(filePath).then(
+		(stats) => stats.mtimeMs,
+		() => null,
 	);
 
 // Compile slots shared by all connections.
@@ -352,8 +361,11 @@ class Session {
 		const engine = Object.hasOwn(ENGINE_ARGS, options.engine)
 			? options.engine
 			: 'pdflatex';
+		// As on Overleaf, latexmk goes on despite errors (-f): the PDF then has
+		// whatever LaTeX could make of the document, references included.
 		const args = [
 			'-norc',
+			'-f',
 			...ENGINE_ARGS[engine],
 			'-interaction=nonstopmode',
 			'-synctex=1',
@@ -361,11 +373,32 @@ class Session {
 		];
 		const directory = path.dirname(source);
 		const jobName = path.basename(source, path.extname(source));
+		const pdfPath = path.join(directory, `${jobName}.pdf`);
+		const synctexPath = path.join(directory, `${jobName}.synctex.gz`);
+		const transcriptPath = path.join(directory, `${jobName}.log`);
+		const outputs = [pdfPath, synctexPath];
+		const before = await Promise.all(
+			[transcriptPath, ...outputs].map(writtenAt),
+		);
 		const started = Date.now();
 		const { status, output, timedOut } = await this.run(args, directory);
 		log(
 			`compiled with ${engine}: status ${status} in ${Date.now() - started} ms`,
 		);
+
+		// The PDF is sent despite errors, so it must be this document's: once
+		// LaTeX has run, a PDF or SyncTeX file it did not write again was made
+		// from earlier sources, and a stopped run may leave them half written.
+		// latexmk leaves them alone when nothing changed, and they stay right.
+		const after = await Promise.all(
+			[transcriptPath, ...outputs].map(writtenAt),
+		);
+		const latexRan = after[0] !== before[0];
+		for (const [index, filePath] of outputs.entries()) {
+			if (timedOut || (latexRan && after[index + 1] === before[index + 1])) {
+				await fs.rm(filePath, { force: true });
+			}
+		}
 
 		// Biber names the UTF-8 copy it makes of the .bib file.
 		const errors = [...output.matchAll(/^ERROR - (.+)$/gm)].map(
@@ -378,7 +411,7 @@ class Session {
 			);
 		}
 		const transcript = await fs
-			.readFile(path.join(directory, `${jobName}.log`), 'utf8')
+			.readFile(transcriptPath, 'utf8')
 			.catch(() => '');
 		const report = formatLog({
 			engine,
@@ -389,13 +422,11 @@ class Session {
 			errors,
 		});
 
-		const pdfPath = path.join(directory, `${jobName}.pdf`);
-		if (status !== 0 || !(await exists(pdfPath))) {
+		if (!(await exists(pdfPath))) {
 			return { status: status || 1, log: report, format };
 		}
 
 		const artifacts = [];
-		const synctexPath = path.join(directory, `${jobName}.synctex.gz`);
 		if (await exists(synctexPath)) {
 			artifacts.push({
 				id: 'synctex',
@@ -405,8 +436,9 @@ class Session {
 			});
 		}
 
+		// A status other than 0 with a PDF: LaTeX reported errors.
 		return {
-			status: 0,
+			status,
 			log: report,
 			format,
 			mimeType: 'application/pdf',
