@@ -1,9 +1,12 @@
 // src/components/review/ReviewToggleButton.tsx
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
+import { useAuth } from '../../hooks/useAuth';
 import { useReview } from '../../hooks/useReview';
+import { accountSyncService } from '../../services/AccountSyncService';
+import { fileStoreService } from '../../services/FileStoreService';
 import PositionedDropdown from '../common/PositionedDropdown';
 import {
 	ChevronDownIcon,
@@ -25,10 +28,45 @@ export const TrackChangesButton: React.FC<ReviewButtonProps> = ({
 		canShareTracking,
 		toggleTrackChanges,
 		toggleTrackChangesShared,
+		trackedUsers,
+		setUserTracked,
 		reviewOnly,
 	} = useReview();
+	const { user } = useAuth();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	// The project's other editors, to choose whose changes are tracked.
+	const [collaborators, setCollaborators] = useState<string[]>([]);
 	const groupRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!isDropdownOpen) return;
+		const projectId = fileStoreService.getCurrentProjectId();
+		if (!projectId) return;
+		let current = true;
+		void accountSyncService.projectPeople(projectId).then((people) => {
+			if (!current || !people) return;
+			const editors = [
+				...(people.owner ? [people.owner] : []),
+				...people.members
+					.filter((member) => member.role === 'editor')
+					.map((member) => member.username),
+			];
+			setCollaborators(editors);
+		});
+		return () => {
+			current = false;
+		};
+	}, [isDropdownOpen]);
+
+	const me = user?.username;
+	const same = (a: string, b?: string) =>
+		!!b && a.toLowerCase() === b.toLowerCase();
+	// Editors of the project, and whoever is tracked though no longer one.
+	const others = [...collaborators, ...trackedUsers].filter(
+		(name, index, names) =>
+			!same(name, me) &&
+			names.findIndex((other) => same(other, name)) === index,
+	);
 
 	if (reviewOnly) {
 		return (
@@ -84,29 +122,55 @@ export const TrackChangesButton: React.FC<ReviewButtonProps> = ({
 				className='tracking-dropdown'
 				onClose={() => setIsDropdownOpen(false)}
 			>
-				<div className='ui-menu-section' data-variant='control'>
+				<div
+					className='ui-menu-section'
+					data-variant='control'
+					data-role='tracking-options'
+				>
 					<div className='ui-menu-title' data-variant='control'>
 						{t('Track Changes:')}
 					</div>
+					<div className='ui-meta'>{t('In every file of the project')}</div>
 
 					<label className='ui-menu-item checkbox-control'>
 						<input
 							type='checkbox'
-							checked={trackChangesLocal}
-							onChange={toggleTrackChanges}
-						/>
-						{t('Track my changes in this file')}
-					</label>
-
-					<label className='ui-menu-item checkbox-control'>
-						<input
-							type='checkbox'
+							data-tracked='everyone'
 							checked={trackChangesShared}
 							onChange={toggleTrackChangesShared}
 							disabled={!canShareTracking}
 						/>
-						{t('Track changes for all collaborators')}
+						{t('Everyone')}
 					</label>
+
+					{me && (
+						<label className='ui-menu-item checkbox-control'>
+							<input
+								type='checkbox'
+								data-tracked={me}
+								checked={trackChangesShared || trackChangesLocal}
+								onChange={toggleTrackChanges}
+								disabled={trackChangesShared || !canShareTracking}
+							/>
+							{t('You ({name})', { name: me })}
+						</label>
+					)}
+
+					{others.map((name) => {
+						const tracked = trackedUsers.some((entry) => same(entry, name));
+						return (
+							<label key={name} className='ui-menu-item checkbox-control'>
+								<input
+									type='checkbox'
+									data-tracked={name}
+									checked={trackChangesShared || tracked}
+									onChange={() => setUserTracked(name, !tracked)}
+									disabled={trackChangesShared || !canShareTracking}
+								/>
+								{name}
+							</label>
+						);
+					})}
 				</div>
 			</PositionedDropdown>
 		</div>

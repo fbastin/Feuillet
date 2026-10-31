@@ -55,6 +55,9 @@ export interface ReviewContextType {
 	canShareTracking: boolean;
 	toggleTrackChanges: () => void;
 	toggleTrackChangesShared: () => void;
+	/** The accounts whose changes are tracked, everyone's being apart. */
+	trackedUsers: string[];
+	setUserTracked: (username: string, tracked: boolean) => void;
 	acceptReview: (reviewId: string) => void;
 	rejectReview: (reviewId: string) => void;
 	resolveReview: (reviewId: string) => void;

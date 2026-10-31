@@ -383,6 +383,41 @@ class AccountSyncService {
 			: [];
 	}
 
+	/**
+	 * Who works on a project, for any of its members: its owner and the
+	 * accounts invited. Null without an account, or from a server that shows
+	 * them to the owner only.
+	 */
+	async projectPeople(
+		projectId: string,
+	): Promise<{ owner?: string; members: ProjectMember[] } | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		try {
+			const result = await this.request(
+				session.server,
+				'POST',
+				'/share/members',
+				{
+					token: session.token,
+					body: { project: projectLinkService.serverId(projectId) },
+				},
+			);
+			if (!Array.isArray(result?.members)) return null;
+			return {
+				...(typeof result.owner === 'string' ? { owner: result.owner } : {}),
+				members: result.members.filter(
+					(member: ProjectMember) =>
+						typeof member?.username === 'string' &&
+						MEMBER_ROLES.includes(member.role),
+				),
+			};
+		} catch {
+			return null;
+		}
+	}
+
 	private validLink(value: unknown, kind: ProjectLinkKind): string | undefined {
 		return typeof value === 'string' &&
 			isValidYjsProjectId(value) &&

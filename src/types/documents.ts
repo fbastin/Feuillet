@@ -39,6 +39,11 @@ export interface ImportedFile {
 	importedBy?: string;
 }
 
+export interface TrackChangesSetting {
+	everyone?: boolean;
+	users?: string[];
+}
+
 export interface DocumentList {
 	documents: Document[];
 	gitRemote?: SharedGitRemote;
@@ -61,7 +66,12 @@ export interface DocumentList {
 		latexAutoCompileOnSave?: boolean;
 		typstAutoCompileOnSave?: boolean;
 		typstPdfOptions?: TypstPdfOptions;
+		// Formerly, files whose changes were tracked for everyone; now
+		// `trackChanges`, which a project's editors read once.
 		trackedFiles?: string[];
+		// Whose changes are tracked, in every file of the project, as on
+		// Overleaf: everyone's, or those of the accounts named.
+		trackChanges?: TrackChangesSetting;
 		// Options of external compilers kept with the project, by compiler
 		// id, as Overleaf keeps the compiler: the same for every collaborator.
 		typesetterOptions?: Record<

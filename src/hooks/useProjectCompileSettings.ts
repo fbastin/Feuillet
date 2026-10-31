@@ -2,8 +2,7 @@
 // The main document and the compiler of the open project, kept with the
 // project as on Overleaf: the same for every collaborator on every device,
 // and kept by a copy of the project. Only editors change them.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { WebsocketProvider } from 'y-websocket';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { fileStoreService } from '../services/FileStoreService';
 import type {
@@ -21,6 +20,7 @@ import {
 	withMainFile,
 	withSharedFieldValue,
 } from '../utils/projectCompileSettings';
+import { useCaughtUp } from './useCaughtUp';
 import { useCollab } from './useCollab';
 import { useProperties } from './useProperties';
 
@@ -133,20 +133,7 @@ export function useProjectCompileSettings(
 
 	// Only once the project has caught up with the collaboration server, so
 	// that a newer project setting is not taken for a missing one.
-	const [caughtUp, setCaughtUp] = useState(false);
-	useEffect(() => {
-		const websocket = connection as WebsocketProvider | undefined;
-		if (!websocket || !('wsconnected' in websocket) || websocket.synced) {
-			setCaughtUp(true);
-			return;
-		}
-		setCaughtUp(false);
-		const onSync = (synced: boolean) => {
-			if (synced) setCaughtUp(true);
-		};
-		websocket.on('sync', onSync);
-		return () => websocket.off('sync', onSync);
-	}, [connection]);
+	const caughtUp = useCaughtUp(connection);
 
 	// What this browser chose before becomes the project's, where the project
 	// has nothing yet; then this browser forgets it.

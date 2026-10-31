@@ -29,7 +29,8 @@
 //                                               if the project has none
 //   POST /share/edit {project, reset: true}     (owner) a new editing id; the
 //                                               old one stops working
-//   POST /share/members {project}    (token) -> {members}, for the owner
+//   POST /share/members {project}    (token) -> {members, owner}, for any
+//                                    member, as Overleaf shows collaborators
 //   POST /share/members {project, add: {username, role}, name, type}
 //   POST /share/members {project, remove: username}
 //   POST /share/copy {project, name} (token) -> {project}, a copy of the
@@ -267,11 +268,16 @@ const createShares = ({
 			.sort((a, b) => a.username.localeCompare(b.username));
 
 	const shareMembers = async (req, body) => {
-		const found = isProjectId(body.project) ? lookup(body.project) : null;
+		// Readers and reviewers come by their own link.
+		const found = lookup(body.project);
 		if (!found) throw new HttpError(400, 'invalid_project');
 		const account = await accounts.identify(req);
 		const { project } = found;
-		if (roleOf(readProject(project), account) !== 'owner') {
+		const role = roleOf(readProject(project), account);
+		// Every member sees who works on the project, to choose whose changes
+		// are tracked, as on Overleaf; only the owner changes who does.
+		const changes = Boolean(body.add) || typeof body.remove === 'string';
+		if (role !== 'owner' && (changes || !role)) {
 			throw new HttpError(403, 'not_owner');
 		}
 
@@ -341,9 +347,13 @@ const createShares = ({
 		}
 
 		await shared;
+		const record = readProject(project);
+		const owner = accounts.usernameOf(record.owner);
 		return {
-			members: listMembers(readProject(project)),
-			edit: editOf(project),
+			members: listMembers(record),
+			...(owner ? { owner } : {}),
+			// The editing link is the owner's to hand out.
+			...(role === 'owner' ? { edit: editOf(project) } : {}),
 		};
 	};
 

@@ -10,16 +10,24 @@ import {
 } from 'react';
 
 import { useAuth } from '../hooks/useAuth';
+import { useCaughtUp } from '../hooks/useCaughtUp';
 import { useCollab } from '../hooks/useCollab';
 import { useProperties } from '../hooks/useProperties';
 import { fileStoreService } from '../services/FileStoreService';
 import { reviewService } from '../services/ReviewService';
-import type { DocumentList } from '../types/documents';
+import type { DocumentList, ProjectMetadata } from '../types/documents';
 import type { ReviewContextType, ReviewSnapshot } from '../types/review';
 import {
 	announceReviewSidePanel,
 	onReviewSidePanel,
 } from '../utils/reviewSidePanel';
+import {
+	isTracked,
+	isUserTracked,
+	withEveryoneTracked,
+	withLegacyTracking,
+	withUserTracked,
+} from '../utils/trackChangesUtils';
 
 export const ReviewContext = createContext<ReviewContextType | null>(null);
 
@@ -48,10 +56,16 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 }) => {
 	const [reviews, setReviews] = useState<ReviewSnapshot[]>([]);
 	const [showReviews, setShowReviews] = useState<boolean>(false);
-	const [trackChangesLocal, setTrackChangesLocal] = useState(false);
+	// Tracked in this file by the per-file tracking of before, until it is
+	// the project's.
+	const [legacyTrackedHere, setLegacyTrackedHere] = useState(false);
 	const [propertiesLoaded, setPropertiesLoaded] = useState(false);
 	const { user } = useAuth();
-	const { data: doc, changeData: changeDoc } = useCollab<DocumentList>();
+	const {
+		data: doc,
+		doc: metadataDoc,
+		provider: metadataProvider,
+	} = useCollab<DocumentList>();
 	const {
 		isReady: arePropertiesReady,
 		getProperty,
@@ -59,10 +73,22 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		registerProperty,
 	} = useProperties();
 
-	const trackChangesShared =
+	// Whose changes are tracked is the project's, for all its files, as on
+	// Overleaf: everyone's, or those of chosen accounts.
+	const username = user?.username;
+	const trackingSetting = doc?.projectMetadata?.trackChanges;
+	const trackChangesShared = !!trackingSetting?.everyone;
+	const trackChangesLocal =
+		!!username && isUserTracked(trackingSetting, username);
+	const trackedUsers = trackingSetting?.users ?? [];
+	const canShareTracking = !!metadataDoc && !readOnly && !reviewOnly;
+	const legacySharedHere =
 		!!sharedKey && !!doc?.projectMetadata?.trackedFiles?.includes(sharedKey);
-	const canShareTracking = !!changeDoc && !!sharedKey && !reviewOnly;
-	const trackChanges = reviewOnly || trackChangesLocal || trackChangesShared;
+	const trackChanges =
+		reviewOnly ||
+		isTracked(trackingSetting, username) ||
+		legacySharedHere ||
+		legacyTrackedHere;
 
 	const reviewsRef = useRef<ReviewSnapshot[]>([]);
 	const userRef = useRef(user);
@@ -79,12 +105,6 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 			category: 'UI',
 			subcategory: 'Editor',
 			defaultValue: false,
-		});
-		registerProperty({
-			id: 'review-tracking-local',
-			category: 'UI',
-			subcategory: 'Editor',
-			defaultValue: {},
 		});
 	}, [registerProperty]);
 
@@ -116,8 +136,60 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 				projectId,
 			}) as Record<string, boolean> | undefined) ?? {};
 
-		setTrackChangesLocal(tracked[documentKey] === true);
+		setLegacyTrackedHere(tracked[documentKey] === true);
 	}, [arePropertiesReady, documentKey, getProperty]);
+
+	const updateTracking = useCallback(
+		(change: (current: ProjectMetadata) => ProjectMetadata) => {
+			if (!metadataDoc || readOnly || reviewOnly) return;
+			const map = metadataDoc.getMap('data');
+			metadataDoc.transact(() => {
+				const stored = map.get('projectMetadata') as
+					| ProjectMetadata
+					| undefined;
+				const current: ProjectMetadata = stored
+					? JSON.parse(JSON.stringify(stored))
+					: { name: '', description: '' };
+				const next = change(current);
+				if (JSON.stringify(next) !== JSON.stringify(current)) {
+					map.set('projectMetadata', next);
+				}
+			});
+		},
+		[metadataDoc, readOnly, reviewOnly],
+	);
+
+	// The tracking chosen per file before becomes the project's, once the
+	// project has caught up with the server; then this browser forgets it.
+	const caughtUp = useCaughtUp(metadataProvider);
+	const broughtIn = useRef<string | null>(null);
+	useEffect(() => {
+		if (!caughtUp || !canShareTracking || !arePropertiesReady || !doc) return;
+		const projectId = fileStoreService.getCurrentProjectId();
+		if (!projectId || broughtIn.current === projectId) return;
+		broughtIn.current = projectId;
+		const scope = { scope: 'project' as const, projectId };
+		const local = getProperty('review-tracking-local', scope) as
+			| Record<string, boolean>
+			| undefined;
+		const ownChanges = Object.values(local ?? {}).some(Boolean);
+		const sharedFiles = doc.projectMetadata?.trackedFiles?.length ?? 0;
+		if (!ownChanges && sharedFiles === 0) return;
+		updateTracking((current) =>
+			withLegacyTracking(current, { username, ownChanges }),
+		);
+		if (local) setProperty('review-tracking-local', undefined, scope);
+		setLegacyTrackedHere(false);
+	}, [
+		caughtUp,
+		canShareTracking,
+		arePropertiesReady,
+		doc,
+		getProperty,
+		setProperty,
+		updateTracking,
+		username,
+	]);
 
 	useEffect(() => {
 		if (!propertiesLoaded) return;
@@ -194,45 +266,26 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		[],
 	);
 
+	const setUserTracked = useCallback(
+		(name: string, tracked: boolean) => {
+			updateTracking((current) => withUserTracked(current, name, tracked));
+			if (tracked) setShowReviews(true);
+		},
+		[updateTracking],
+	);
+
 	const toggleTrackChanges = useCallback(() => {
-		if (reviewOnly) return;
-		const next = !trackChangesLocal;
-		setTrackChangesLocal(next);
-
-		const projectId = fileStoreService.getCurrentProjectId();
-		if (projectId) {
-			const tracked =
-				(getProperty('review-tracking-local', {
-					scope: 'project',
-					projectId,
-				}) as Record<string, boolean> | undefined) ?? {};
-
-			setProperty(
-				'review-tracking-local',
-				{ ...tracked, [documentKey]: next },
-				{ scope: 'project', projectId },
-			);
-		}
-
-		if (next) setShowReviews(true);
-	}, [documentKey, getProperty, setProperty, trackChangesLocal, reviewOnly]);
+		if (reviewOnly || !username) return;
+		setUserTracked(username, !trackChangesLocal);
+	}, [reviewOnly, username, trackChangesLocal, setUserTracked]);
 
 	const toggleTrackChangesShared = useCallback(() => {
 		if (!canShareTracking) return;
-
-		changeDoc((d) => {
-			if (!d.projectMetadata) {
-				d.projectMetadata = { name: '', description: '' };
-			}
-
-			const tracked = d.projectMetadata.trackedFiles ?? [];
-			d.projectMetadata.trackedFiles = tracked.includes(sharedKey)
-				? tracked.filter((entry: string) => entry !== sharedKey)
-				: [...tracked, sharedKey];
-		});
-
+		updateTracking((current) =>
+			withEveryoneTracked(current, !trackChangesShared),
+		);
 		if (!trackChangesShared) setShowReviews(true);
-	}, [canShareTracking, changeDoc, sharedKey, trackChangesShared]);
+	}, [canShareTracking, updateTracking, trackChangesShared]);
 
 	// Editors decide; the server refuses a reviewer's acceptance anyway.
 	const decide = useCallback(
@@ -339,6 +392,8 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 				canShareTracking,
 				toggleTrackChanges,
 				toggleTrackChangesShared,
+				trackedUsers,
+				setUserTracked,
 				acceptReview,
 				rejectReview,
 				resolveReview,
