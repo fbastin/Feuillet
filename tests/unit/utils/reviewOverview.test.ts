@@ -4,7 +4,9 @@ import { stripAnnotations } from '@src/utils/fileCommentUtils';
 import {
 	type ReviewOverviewFile,
 	decideAllChanges,
+	addReply,
 	decideChange,
+	deleteReply,
 	filterOverview,
 	reviewItemsOf,
 	setCommentResolved,
@@ -40,7 +42,7 @@ describe('the review overview', () => {
 			content: 'Vérifier ce passage.',
 			quoted: 'passage à revoir',
 			resolved: false,
-			replies: 0,
+			replies: [],
 		});
 		expect(items.slice(1).map((item) => [item.change, item.removed, item.added])).toEqual(
 			expect.arrayContaining([
@@ -58,14 +60,14 @@ describe('the review overview', () => {
 				path: '/a.tex',
 				fileId: 'a',
 				items: [
-					{ kind: 'comment', id: '1', line: 1, user: 'u', timestamp: 1, resolved: true, replies: 0 },
+					{ kind: 'comment', id: '1', line: 1, user: 'u', timestamp: 1, resolved: true, replies: [] },
 				],
 			},
 			{
 				path: '/b.tex',
 				fileId: 'b',
 				items: [
-					{ kind: 'change', id: '2', line: 4, user: 'u', timestamp: 1, resolved: false, replies: 1 },
+					{ kind: 'change', id: '2', line: 4, user: 'u', timestamp: 1, resolved: false, replies: [] },
 				],
 			},
 		];
@@ -94,6 +96,23 @@ describe('the review overview', () => {
 			expect(plain(accepted)).toBe('Le nouveau texte,  et bleu; ici.');
 			expect(plain(decideAllChanges(text, false))).toBe('Le texte, ancien et rouge; ici.');
 			expect(reviewItemsOf(decideAllChanges(text, false)).map((item) => item.kind)).toEqual(['comment']);
+		});
+
+		it('answers a comment or a change, and takes an answer back', () => {
+			const answered = addReply(text, 'comment', commentId, 'Fait, merci.', 'bob');
+			const item = reviewItemsOf(answered).find((entry) => entry.id === commentId);
+			expect(item?.replies).toEqual([
+				expect.objectContaining({ user: 'bob', content: 'Fait, merci.' }),
+			]);
+			expect(plain(answered)).toBe(plain(text));
+			const reply = item?.replies[0].id ?? '';
+			expect(deleteReply(answered, 'comment', commentId, reply)).toBe(text);
+
+			const onChange = addReply(text, 'change', ids[0], "D'accord.", 'alice');
+			expect(
+				reviewItemsOf(onChange).find((entry) => entry.id === ids[0])?.replies,
+			).toEqual([expect.objectContaining({ user: 'alice', content: "D'accord." })]);
+			expect(addReply(text, 'comment', 'gone', 'x', 'bob')).toBe(text);
 		});
 
 		it('resolves a comment and opens it again', () => {

@@ -85,6 +85,7 @@
 
 .review-overview .review-overview-item {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: flex-start;
 	gap: 2px;
 	margin: 2px 0;
@@ -174,4 +175,51 @@
 
 .review-overview-text del {
 	background-color: color-mix(in srgb, var(--color-error) 15%, transparent);
+}
+
+/* A comment's or a change's replies, under it, with a field to answer. */
+.review-overview .review-overview-thread {
+	display: flex;
+	flex-basis: 100%;
+	flex-direction: column;
+	gap: var(--space-xs);
+	padding: 0 var(--space-sm) var(--space-xs) var(--space-md);
+	font-size: 0.9em;
+}
+
+.review-overview .review-overview-reply {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-left: var(--space-sm);
+	border-left: 2px solid var(--accent-border);
+}
+
+.review-overview .review-overview-delete-reply {
+	margin-left: auto;
+	--ui-icon-button-size: 20px;
+}
+
+.review-overview button.review-overview-reply-button {
+	align-self: flex-start;
+	width: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--pico-primary);
+	font-size: 0.95em;
+	cursor: pointer;
+}
+
+.review-overview .review-overview-reply-form textarea {
+	margin: 0;
+	resize: vertical;
+}
+
+.review-overview .review-overview-reply-form .button {
+	width: auto;
+	margin: 0;
+	padding: 2px var(--space-sm);
+	font-size: 0.9em;
 }

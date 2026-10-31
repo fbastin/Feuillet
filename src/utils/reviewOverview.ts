@@ -4,6 +4,7 @@
 import { restoreReviewBody } from '../extensions/codemirror/review/reviewSegments';
 import { commentService } from '../services/CommentService';
 import { reviewService } from '../services/ReviewService';
+import type { Comment, CommentResponse } from '../types/comments';
 import type { Review } from '../types/review';
 import { cleanText } from './fileCommentUtils';
 
@@ -16,7 +17,7 @@ export interface ReviewOverviewItem {
 	user: string;
 	timestamp: number;
 	resolved: boolean;
-	replies: number;
+	replies: CommentResponse[];
 	/** A comment's text. */
 	content?: string;
 	/** The text a comment is about. */
@@ -44,7 +45,7 @@ export function reviewItemsOf(text: string): ReviewOverviewItem[] {
 			user: comment.user,
 			timestamp: comment.timestamp,
 			resolved: comment.resolved,
-			replies: comment.responses.length,
+			replies: comment.responses,
 			content: comment.content,
 			quoted: cleanText(comment.commentedText ?? ''),
 		}),
@@ -61,7 +62,7 @@ export function reviewItemsOf(text: string): ReviewOverviewItem[] {
 				user: review.user,
 				timestamp: review.timestamp,
 				resolved: review.resolved,
-				replies: review.responses.length,
+				replies: review.responses,
 				change:
 					removed && added ? 'replaced' : removed ? 'deleted' : 'inserted',
 				removed,
@@ -120,6 +121,39 @@ export function decideAllChanges(text: string, accept: boolean): string {
 		.reduce((current, review) => decided(current, review, accept), text);
 }
 
+// A comment's or a change's tags rewritten, the text between them kept.
+const withTags = (
+	text: string,
+	at: Pick<
+		Review,
+		'openTagStart' | 'openTagEnd' | 'closeTagStart' | 'closeTagEnd'
+	>,
+	tags: { openTag: string; closeTag: string },
+): string =>
+	text.slice(0, at.openTagStart) +
+	tags.openTag +
+	text.slice(at.openTagEnd, at.closeTagStart) +
+	tags.closeTag +
+	text.slice(at.closeTagEnd);
+
+const tagged = (
+	comment: Comment,
+): Pick<
+	Review,
+	'openTagStart' | 'openTagEnd' | 'closeTagStart' | 'closeTagEnd'
+> | null =>
+	comment.openTagStart === undefined ||
+	comment.openTagEnd === undefined ||
+	comment.closeTagStart === undefined ||
+	comment.closeTagEnd === undefined
+		? null
+		: {
+				openTagStart: comment.openTagStart,
+				openTagEnd: comment.openTagEnd,
+				closeTagStart: comment.closeTagStart,
+				closeTagEnd: comment.closeTagEnd,
+			};
+
 /** The text with a comment resolved, or open again. */
 export function setCommentResolved(
 	text: string,
@@ -129,21 +163,72 @@ export function setCommentResolved(
 	const comment = commentService
 		.parseComments(text)
 		.find((entry) => entry.id === id);
-	if (
-		!comment ||
-		comment.resolved === resolved ||
-		comment.openTagEnd === undefined ||
-		comment.closeTagStart === undefined ||
-		comment.closeTagEnd === undefined
-	) {
-		return text;
+	const at = comment && tagged(comment);
+	if (!comment || !at || comment.resolved === resolved) return text;
+	return withTags(
+		text,
+		at,
+		commentService.resolveComment({ ...comment, resolved }),
+	);
+}
+
+/** The text with a comment's or a change's replies changed. */
+function withReplies(
+	text: string,
+	kind: ReviewOverviewItem['kind'],
+	id: string,
+	change: (replies: CommentResponse[]) => CommentResponse[],
+): string {
+	if (kind === 'comment') {
+		const comment = commentService
+			.parseComments(text)
+			.find((entry) => entry.id === id);
+		const at = comment && tagged(comment);
+		if (!comment || !at) return text;
+		return withTags(
+			text,
+			at,
+			commentService.updateCommentResponses({
+				...comment,
+				responses: change([...comment.responses]),
+			}),
+		);
 	}
-	const tags = commentService.resolveComment({ ...comment, resolved });
-	return (
-		text.slice(0, comment.startPosition) +
-		tags.openTag +
-		text.slice(comment.openTagEnd, comment.closeTagStart) +
-		tags.closeTag +
-		text.slice(comment.closeTagEnd)
+	const review = reviewService
+		.parseReviews(text)
+		.find((entry) => entry.id === id);
+	if (!review) return text;
+	return withTags(
+		text,
+		review,
+		reviewService.updateReview({
+			...review,
+			responses: change([...review.responses]),
+		}),
+	);
+}
+
+/** The text with a reply added to a comment or a change. */
+export function addReply(
+	text: string,
+	kind: ReviewOverviewItem['kind'],
+	id: string,
+	content: string,
+	user: string,
+): string {
+	return withReplies(text, kind, id, (replies) =>
+		commentService.addResponse(replies, content, user),
+	);
+}
+
+/** The text without one of a comment's or a change's replies. */
+export function deleteReply(
+	text: string,
+	kind: ReviewOverviewItem['kind'],
+	id: string,
+	replyId: string,
+): string {
+	return withReplies(text, kind, id, (replies) =>
+		replies.filter((reply) => reply.id !== replyId),
 	);
 }

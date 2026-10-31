@@ -6,6 +6,7 @@ import type React from 'react';
 import { useMemo, useState } from 'react';
 
 import { t } from '@/i18n';
+import { useAuth } from '../../hooks/useAuth';
 import { useCollab } from '../../hooks/useCollab';
 import { useReviewOverview } from '../../hooks/useReviewOverview';
 import { notificationService } from '../../services/NotificationService';
@@ -13,8 +14,10 @@ import { gotoEditor } from '../../utils/editorNavigator';
 import {
 	type ReviewOverviewFile,
 	type ReviewOverviewItem,
+	addReply,
 	decideAllChanges,
 	decideChange,
+	deleteReply,
 	filterOverview,
 	setCommentResolved,
 } from '../../utils/reviewOverview';
@@ -60,7 +63,11 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 	const { files, refresh, apply } = useReviewOverview(projectId);
 	// Readers and reviewers see the overview; editors decide from it too.
 	const { readOnly } = useCollab();
+	const { user } = useAuth();
 	const [busy, setBusy] = useState<string | null>(null);
+	// The comment or change being answered, and the answer so far.
+	const [replyingTo, setReplyingTo] = useState<string | null>(null);
+	const [draft, setDraft] = useState('');
 	const [resolved, setResolved] = useState(false);
 	const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -92,6 +99,7 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 		setBusy(key);
 		try {
 			await apply(file, transform);
+			return true;
 		} catch (error) {
 			notificationService.showError(
 				t('The decision could not be applied: {error}', {
@@ -101,6 +109,136 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 		} finally {
 			setBusy(null);
 		}
+		return false;
+	};
+
+	const sendReply = async (
+		file: ReviewOverviewFile,
+		item: ReviewOverviewItem,
+		key: string,
+	) => {
+		const content = draft.trim();
+		if (!content || !user) return;
+		const sent = await act(`${key}:reply`, file, (text) =>
+			addReply(text, item.kind, item.id, content, user.username),
+		);
+		if (sent) {
+			setReplyingTo(null);
+			setDraft('');
+		}
+	};
+
+	// The thread under a comment or a change: its replies, and for editors
+	// a field to answer, as in the review panel.
+	const thread = (file: ReviewOverviewFile, item: ReviewOverviewItem) => {
+		const key = `${file.path}:${item.kind}:${item.id}`;
+		const replying = replyingTo === key;
+		if (item.replies.length === 0 && (readOnly || !user)) return null;
+		return (
+			<div className='review-overview-thread' data-role='thread'>
+				{item.replies.map((reply) => (
+					<div
+						key={reply.id}
+						className='review-overview-reply'
+						data-role='reply'
+					>
+						<span className='review-overview-meta ui-meta'>
+							<strong>{reply.user}</strong>
+							<span>
+								{new Date(reply.timestamp).toLocaleString(undefined, {
+									dateStyle: 'short',
+									timeStyle: 'short',
+								})}
+							</span>
+							{!readOnly && reply.user === user?.username && (
+								<button
+									type='button'
+									className='ui-icon-button review-overview-delete-reply'
+									data-variant='subtle'
+									data-action='delete-reply'
+									disabled={busy !== null}
+									title={t('Delete reply')}
+									onClick={() =>
+										act(`${key}:delete`, file, (text) =>
+											deleteReply(text, item.kind, item.id, reply.id),
+										)
+									}
+								>
+									<CloseIcon />
+								</button>
+							)}
+						</span>
+						<span className='review-overview-text'>{reply.content}</span>
+					</div>
+				))}
+				{!readOnly &&
+					user &&
+					(replying ? (
+						<form
+							className='review-overview-reply-form ui-stack'
+							data-gap='xs'
+							onSubmit={(event) => {
+								event.preventDefault();
+								void sendReply(file, item, key);
+							}}
+						>
+							<textarea
+								className='ui-field-control'
+								rows={2}
+								value={draft}
+								onChange={(event) => setDraft(event.target.value)}
+								onKeyDown={(event) => {
+									if (event.key === 'Escape') setReplyingTo(null);
+									if (
+										event.key === 'Enter' &&
+										(event.ctrlKey || event.metaKey)
+									) {
+										event.preventDefault();
+										void sendReply(file, item, key);
+									}
+								}}
+								placeholder={t('Write a reply...')}
+								aria-label={t('Write a reply...')}
+								disabled={busy !== null}
+								// biome-ignore lint/a11y/noAutofocus: opened to type the reply.
+								autoFocus
+							/>
+							<div className='ui-actions' data-align='end'>
+								<button
+									type='button'
+									className='button secondary'
+									onClick={() => setReplyingTo(null)}
+									disabled={busy !== null}
+								>
+									{t('Cancel')}
+								</button>
+								<button
+									type='submit'
+									className='button primary'
+									data-action='send-reply'
+									disabled={busy !== null || !draft.trim()}
+									aria-busy={busy === `${key}:reply`}
+								>
+									{t('Reply')}
+								</button>
+							</div>
+						</form>
+					) : (
+						<button
+							type='button'
+							className='review-overview-reply-button'
+							data-action='reply'
+							disabled={busy !== null}
+							onClick={() => {
+								setReplyingTo(key);
+								setDraft('');
+							}}
+						>
+							{t('Reply')}
+						</button>
+					))}
+			</div>
+		);
 	};
 
 	const itemActions = (file: ReviewOverviewFile, item: ReviewOverviewItem) => {
@@ -339,17 +477,13 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 													{item.added && <ins>{excerpt(item.added)}</ins>}
 												</span>
 											)}
-											{item.replies > 0 && (
-												<span className='review-overview-replies ui-meta'>
-													{t('{count} replies', { count: item.replies })}
-												</span>
-											)}
 										</button>
 										{!readOnly && (
 											<div className='review-overview-actions'>
 												{itemActions(file, item)}
 											</div>
 										)}
+										{thread(file, item)}
 									</div>
 								))}
 						</section>
