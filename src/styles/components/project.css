@@ -219,7 +219,32 @@
 	background: white;
 }
 
-/* Collaborators in the Share dialog: one per row, then the invite form. */
+/* The header's Share button, with its name as on Overleaf. */
+.button.share-button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	white-space: nowrap;
+}
+
+/* What is used less in the Share dialog, folded away. */
+.share-project details.share-more {
+	margin: 0;
+	padding: var(--space-sm) var(--space-md);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+}
+
+.share-project details.share-more > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.share-project details.share-more[open] > summary {
+	margin-bottom: var(--space-sm);
+}
+
+/* The invite form, then the collaborators, one per row. */
 .project-share-members {
 	display: flex;
 	flex-direction: column;

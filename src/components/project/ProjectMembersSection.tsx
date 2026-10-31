@@ -81,34 +81,8 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 	};
 
 	return (
-		<div className='ui-stack' data-gap='xs'>
-			<strong>{t('Collaborators')}</strong>
-			{error && (
-				<div className='ui-message' data-tone='warning'>
-					{error}
-				</div>
-			)}
-			{members &&
-				(members.length === 0 ? (
-					<p className='ui-meta'>{t('No one is invited yet.')}</p>
-				) : (
-					<ul className='project-share-members' id='share-members'>
-						{members.map((member) => (
-							<li key={member.username} className='project-share-member'>
-								<span>{member.username}</span>
-								<span className='ui-meta'>{roleLabel(member.role)}</span>
-								<button
-									type='button'
-									className='button secondary'
-									disabled={busy}
-									onClick={() => void change({ remove: member.username })}
-								>
-									{t('Remove')}
-								</button>
-							</li>
-						))}
-					</ul>
-				))}
+		<section className='ui-stack' data-gap='xs' data-role='share-invite'>
+			<strong>{t('Invite collaborators')}</strong>
 			<form className='project-share-invite' onSubmit={invite}>
 				<input
 					id='share-invite-username'
@@ -143,13 +117,39 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 			</form>
 			<p className='ui-meta'>
 				{t(
-					'Invited collaborators find the project in their list and keep their access when its links change. Removing one replaces the link they used.',
+					'Enter the name of their account on this server: they find the project in their list. Someone without an account can be sent a link below.',
 				)}{' '}
 				{t(
 					'Reviewers comment and suggest changes, which editors accept or reject.',
 				)}
 			</p>
-		</div>
+			{error && (
+				<div className='ui-message' data-tone='warning'>
+					{error}
+				</div>
+			)}
+			{members &&
+				(members.length === 0 ? (
+					<p className='ui-meta'>{t('No one is invited yet.')}</p>
+				) : (
+					<ul className='project-share-members' id='share-members'>
+						{members.map((member) => (
+							<li key={member.username} className='project-share-member'>
+								<span>{member.username}</span>
+								<span className='ui-meta'>{roleLabel(member.role)}</span>
+								<button
+									type='button'
+									className='button secondary'
+									disabled={busy}
+									onClick={() => void change({ remove: member.username })}
+								>
+									{t('Remove')}
+								</button>
+							</li>
+						))}
+					</ul>
+				))}
+		</section>
 	);
 };
 
