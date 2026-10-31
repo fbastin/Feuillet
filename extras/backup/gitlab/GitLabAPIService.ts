@@ -1,4 +1,6 @@
 // extras/backup/gitlab/GitLabAPIService.ts
+import { gitRemoteRequestError } from '@/utils/gitUtils';
+
 interface GitLabFile {
 	name: string;
 	path: string;
@@ -74,11 +76,12 @@ export class GitLabAPIService {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-
-				throw new Error(
-					`GitLab API request to '${endpoint}' failed: ${response.statusText}. ${
-						errorData.message || ''
-					}`,
+				throw gitRemoteRequestError(
+					'GitLab',
+					endpoint,
+					response.status,
+					(typeof errorData.message === 'string' ? errorData.message : '') ||
+						response.statusText,
 				);
 			}
 

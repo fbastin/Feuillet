@@ -113,6 +113,7 @@
   "{provider} has changes that are not in this project yet.": "{{provider}} contient des modifications qui ne sont pas encore dans ce projet.",
   "{provider} import completed successfully": "Importation depuis {{provider}} terminée avec succès",
   "{provider} import failed": "Échec de l'importation depuis {{provider}}",
+  "{provider} refused the saved token: it has expired or was revoked. Connect to {provider} again.": "{{provider}} a refusé le jeton enregistré : il a expiré ou a été révoqué. Reconnectez-vous à {{provider}}.",
   "{provider} sync completed successfully": "Synchronisation avec {{provider}} terminée avec succès",
   "{provider} sync failed": "Échec de la synchronisation avec {{provider}}",
   "{provider} token is invalid or expired. Please reconnect.": "Le jeton {{provider}} est invalide ou expiré. Veuillez vous reconnecter.",

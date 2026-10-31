@@ -1,4 +1,30 @@
+import { t } from '@/i18n';
 import type { GitRemoteBranch, GitRemoteProvider } from '../types/gitRemote';
+
+/**
+ * A request to a Git host's API that failed, with its HTTP status. A token
+ * the host refuses (401) says so plainly, so that one connects again rather
+ * than reading "Bad credentials".
+ */
+export function gitRemoteRequestError(
+	providerName: string,
+	endpoint: string,
+	status: number,
+	detail?: string,
+): Error & { status: number } {
+	const message =
+		status === 401
+			? t(
+					'{provider} refused the saved token: it has expired or was revoked. Connect to {provider} again.',
+					{ provider: providerName },
+				)
+			: `${providerName} API request to '${endpoint.split('?')[0]}' failed (${status})${detail ? `: ${detail}` : ''}`;
+	return Object.assign(new Error(message), { status });
+}
+
+/** Whether a Git host refused the saved token. */
+export const isRejectedToken = (error: unknown): boolean =>
+	(error as { status?: number } | null)?.status === 401;
 
 interface GitRemoteApiRequestOptions {
 	providerName: string;
@@ -41,11 +67,12 @@ export async function gitRemoteApiRequest<T>({
 				typeof body.message === 'string'
 					? body.message
 					: body.error || response.statusText;
-			const error = new Error(
-				`${providerName} API request failed: ${detail || response.statusText}`,
-			) as Error & { status?: number };
-			error.status = response.status;
-			throw error;
+			throw gitRemoteRequestError(
+				providerName,
+				endpoint,
+				response.status,
+				detail || response.statusText,
+			);
 		}
 		return response.status === 204 ? (undefined as T) : response.json();
 	} catch (error) {

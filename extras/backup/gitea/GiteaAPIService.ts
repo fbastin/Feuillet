@@ -1,4 +1,6 @@
 // extras/backup/gitea/GiteaAPIService.ts
+import { gitRemoteRequestError } from '@/utils/gitUtils';
+
 interface GiteaFile {
 	name: string;
 	path: string;
@@ -71,11 +73,13 @@ export class GiteaAPIService {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				const error = new Error(
-					`Gitea API request to '${endpoint}' failed: ${response.statusText}. ${errorData.message || ''}`,
-				) as Error & { status?: number };
-				error.status = response.status;
-				throw error;
+				throw gitRemoteRequestError(
+					'Gitea',
+					endpoint,
+					response.status,
+					(typeof errorData.message === 'string' ? errorData.message : '') ||
+						response.statusText,
+				);
 			}
 
 			return response.status === 204 ? (null as T) : response.json();

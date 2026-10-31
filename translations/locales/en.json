@@ -113,6 +113,7 @@
   "{provider} has changes that are not in this project yet.": "{{provider}} has changes that are not in this project yet.",
   "{provider} import completed successfully": "{{provider}} import completed successfully",
   "{provider} import failed": "{{provider}} import failed",
+  "{provider} refused the saved token: it has expired or was revoked. Connect to {provider} again.": "{{provider}} refused the saved token: it has expired or was revoked. Connect to {{provider}} again.",
   "{provider} sync completed successfully": "{{provider}} sync completed successfully",
   "{provider} sync failed": "{{provider}} sync failed",
   "{provider} token is invalid or expired. Please reconnect.": "{{provider}} token is invalid or expired. Please reconnect.",

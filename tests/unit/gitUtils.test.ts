@@ -1,5 +1,7 @@
 import {
 	gitRemoteApiRequest,
+	gitRemoteRequestError,
+	isRejectedToken,
 	normalizeGitRepositoryInput,
 } from '../../src/utils/gitUtils';
 
@@ -71,9 +73,41 @@ describe('gitUtils', () => {
 				}),
 			).rejects.toEqual(
 				expect.objectContaining({
-					message: 'Example API request failed: missing',
+					message: "Example API request to 'missing' failed (404): missing",
 					status: 404,
 				}),
+			);
+		});
+
+		it('says plainly when the host refuses the saved token', async () => {
+			global.fetch = jest.fn(async () =>
+				({
+					ok: false,
+					status: 401,
+					statusText: '',
+					json: async () => ({ message: 'Bad credentials' }),
+				}) as Response,
+			) as typeof fetch;
+
+			const refused = gitRemoteApiRequest({
+				providerName: 'GitHub',
+				baseUrl: 'https://api.github.com',
+				token: 'expired',
+				endpoint: 'repos/a/b/branches/main?_=1',
+				requestTimeout: 30,
+				authHeaders: () => ({}),
+			});
+			await expect(refused).rejects.toEqual(
+				expect.objectContaining({
+					message:
+						'GitHub refused the saved token: it has expired or was revoked. Connect to GitHub again.',
+					status: 401,
+				}),
+			);
+			expect(isRejectedToken(await refused.catch((error) => error))).toBe(true);
+			expect(isRejectedToken(new Error('other'))).toBe(false);
+			expect(gitRemoteRequestError('GitHub', 'repos/a/b?_=1', 500, 'boom').message).toBe(
+				"GitHub API request to 'repos/a/b' failed (500): boom",
 			);
 		});
 	});

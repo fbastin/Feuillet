@@ -1,4 +1,5 @@
 import { createNamedLogger } from '@/logging';
+import { gitRemoteRequestError } from '@/utils/gitUtils';
 const moduleLog = createNamedLogger('GitHubAPIService');
 
 // extras/backup/github/GitHubAPIService.ts
@@ -77,8 +78,11 @@ export class GitHubAPIService {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(
-					`GitHub API request to '${endpoint}' failed: ${response.statusText}. ${errorData.message || ''}`,
+				throw gitRemoteRequestError(
+					'GitHub',
+					endpoint,
+					response.status,
+					errorData.message || response.statusText,
 				);
 			}
 

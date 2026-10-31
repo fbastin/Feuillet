@@ -5,6 +5,7 @@ import { APP_NAME } from '@/branding';
 import { t } from '@/i18n';
 import type { SecretsContextType } from '../contexts/SecretsContext';
 import type { GitRemoteAccount, GitRemoteProvider } from '../types/gitRemote';
+import { isRejectedToken } from '../utils/gitUtils';
 import { useSecrets } from './useSecrets';
 
 export type GitActionSecrets = Pick<
@@ -25,6 +26,8 @@ export const useGitRemoteAccount = (
 	const [account, setAccount] = useState<GitRemoteAccount | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	// The host refused the saved token: expired or revoked.
+	const [tokenRejected, setTokenRejected] = useState(false);
 
 	/* biome-ignore lint/correctness/useExhaustiveDependencies(active): Becoming active re-reads the stored account credential. */
 	useEffect(() => {
@@ -105,6 +108,7 @@ export const useGitRemoteAccount = (
 			})
 			.catch((accountError) => {
 				if (current) {
+					setTokenRejected(isRejectedToken(accountError));
 					setError(
 						accountError instanceof Error
 							? accountError.message
@@ -153,6 +157,7 @@ export const useGitRemoteAccount = (
 			);
 			const connected = await accountForToken(accountToken);
 			setError(null);
+			setTokenRejected(false);
 			setAccount(connected);
 			setHasToken(true);
 		},
@@ -164,6 +169,7 @@ export const useGitRemoteAccount = (
 		account,
 		isLoading,
 		error,
+		tokenRejected,
 		createActionSecrets,
 		readToken,
 		connectToken,

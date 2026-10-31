@@ -39,7 +39,7 @@ import type {
 } from '@/types/gitRemote';
 import type { SharedGitRemote } from '@/types/documents';
 import type { PendingGitImport } from '@/utils/gitPendingImport';
-import { ensureGitRemoteBranch } from '@/utils/gitUtils';
+import { ensureGitRemoteBranch, isRejectedToken } from '@/utils/gitUtils';
 import GitAccountTokenForm from './GitAccountTokenForm';
 import GitRepositoryPicker, {
 	type GitRepositorySelection,
@@ -148,6 +148,11 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		return gitSyncService.addListener(projectId, setRemote);
 	}, [projectId]);
 
+	// The saved token was refused when checking the account: ask for another.
+	useEffect(() => {
+		if (gitAccount.tokenRejected) setShowTokenForm(true);
+	}, [gitAccount.tokenRejected]);
+
 	const run = async (
 		label: string,
 		action: (secrets: GitActionSecrets) => Promise<void>,
@@ -161,6 +166,8 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		} catch (actionError) {
 			moduleLog.error(`GitHub action "${label}" failed:`, actionError);
 			setError(errorMessage(actionError, t('Git action failed')));
+			// An expired or revoked token: connect again right here.
+			if (isRejectedToken(actionError)) setShowTokenForm(true);
 			return false;
 		} finally {
 			setBusyAction(null);
@@ -191,6 +198,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			setError(
 				errorMessage(statusError, t('Failed to load Git remote status')),
 			);
+			if (isRejectedToken(statusError)) setShowTokenForm(true);
 		});
 	}, [createActionSecrets, isOpen, refreshStatus, linkedTarget]);
 
@@ -542,7 +550,10 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				const connected = await run('token', () =>
 					gitAccount.connectToken(value),
 				);
-				if (connected) setShowTokenForm(false);
+				if (connected) {
+					setShowTokenForm(false);
+					if (remote) void refreshStatus().catch(() => {});
+				}
 				return connected;
 			}}
 		/>
@@ -560,9 +571,13 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 						? t('Checking your {provider} account...', {
 								provider: provider.displayName,
 							})
-						: t('{provider} account connected', {
-								provider: provider.displayName,
-							})}
+						: gitAccount.error
+							? t('{provider} did not accept the saved token.', {
+									provider: provider.displayName,
+								})
+							: t('{provider} account connected', {
+									provider: provider.displayName,
+								})}
 			</span>
 			<button
 				type='button'
@@ -770,6 +785,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				data-padding='md'
 				data-surface='secondary'
 			>
+				{renderAccountLine()}
 				<div className='github-sync-repository'>
 					<ProviderIcon />
 					{repositoryUrl ? (
@@ -923,6 +939,8 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	);
 
 	const renderBody = () => {
+		// Changing the token, also for a linked repository.
+		if (showTokenForm) return renderTokenForm();
 		if (remote) return renderLinked(remote);
 		if (pendingImport && !error) return null;
 		if (!gitAccount.hasToken || showTokenForm) return renderTokenForm();

@@ -1,4 +1,6 @@
 // extras/backup/forgejo/ForgejoAPIService.ts
+import { gitRemoteRequestError } from '@/utils/gitUtils';
+
 interface ForgejoFile {
 	name: string;
 	path: string;
@@ -71,11 +73,13 @@ export class ForgejoAPIService {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				const error = new Error(
-					`Forgejo API request to '${endpoint}' failed: ${response.statusText}. ${errorData.message || ''}`,
-				) as Error & { status?: number };
-				error.status = response.status;
-				throw error;
+				throw gitRemoteRequestError(
+					'Forgejo',
+					endpoint,
+					response.status,
+					(typeof errorData.message === 'string' ? errorData.message : '') ||
+						response.statusText,
+				);
 			}
 
 			return response.status === 204 ? (null as T) : response.json();
