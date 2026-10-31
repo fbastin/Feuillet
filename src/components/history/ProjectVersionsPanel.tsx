@@ -19,10 +19,19 @@ import {
 	projectHistoryService,
 } from '../../services/ProjectHistoryService';
 import type { DocumentList } from '../../types/documents';
+import {
+	createArchiveBlob,
+	downloadArchiveFile,
+} from '../../utils/archiveUtils';
 import { getMimeType, isBinaryFile } from '../../utils/fileUtils';
 import { collabHttpBaseUrl } from '../../utils/serverFileSyncUtils';
 import {
+	versionArchiveEntries,
+	versionArchiveName,
+} from '../../utils/versionArchive';
+import {
 	CloseIcon,
+	DownloadIcon,
 	RefreshIcon,
 	ToolbarLabelIcon,
 	UndoIcon,
@@ -385,6 +394,27 @@ const ProjectVersionsPanel: React.FC<ProjectVersionsPanelProps> = ({
 		}
 	};
 
+	// The project as it was in a version, as a ZIP, as on Overleaf.
+	const downloadVersion = (version: VersionSummary) =>
+		run(async () => {
+			const full = await projectHistoryService.getVersion(
+				baseUrl,
+				projectId,
+				version.id,
+			);
+			const entries = await versionArchiveEntries(full, (hash) =>
+				projectHistoryService.getContent(baseUrl, projectId, hash),
+			);
+			downloadArchiveFile(
+				await createArchiveBlob(entries),
+				versionArchiveName(
+					data?.projectMetadata?.name ?? '',
+					version.time,
+					labelsOf.get(version.id)?.[0]?.name,
+				),
+			);
+		}, t('The version was downloaded.'));
+
 	// A deleted file comes back as it was just before.
 	const restoreFile = (version: VersionSummary, change: VersionChange) =>
 		run(
@@ -627,6 +657,17 @@ const ProjectVersionsPanel: React.FC<ProjectVersionsPanelProps> = ({
 										aria-label={t('Compare')}
 									/>
 									<span className='versions-time'>{timeOf(version.time)}</span>
+									<button
+										type='button'
+										className='button secondary icon-only'
+										data-action='download-version'
+										disabled={busy}
+										title={t('Download this version (.zip)')}
+										aria-label={t('Download this version (.zip)')}
+										onClick={() => void downloadVersion(version)}
+									>
+										<DownloadIcon />
+									</button>
 									{!readOnly && (
 										<>
 											<button
