@@ -1,6 +1,7 @@
 import {
 	fileNameFromUrl,
 	isWebAddress,
+	outputFileName,
 	urlFetchErrorMessage,
 } from '@src/utils/fileImportUtils';
 
@@ -24,6 +25,12 @@ describe('files from a URL', () => {
 		);
 		expect(fileNameFromUrl('https://example.org')).toBe('');
 		expect(fileNameFromUrl('not a url')).toBe('');
+	});
+
+	it("names another project's PDF after the project, plainly", () => {
+		expect(outputFileName('Thèse de doctorat')).toBe('These-de-doctorat.pdf');
+		expect(outputFileName('Rapport 2026/v2')).toBe('Rapport-2026-v2.pdf');
+		expect(outputFileName('« »')).toBe('output.pdf');
 	});
 
 	it('accepts only web addresses', () => {

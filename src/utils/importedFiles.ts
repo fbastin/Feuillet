@@ -1,6 +1,7 @@
 // src/utils/importedFiles.ts
 // Files added from another project or from a URL keep their source, by path,
 // to be refreshed later, as Overleaf's linked files.
+import { t } from '@/i18n';
 import type { ImportedFile, ImportedFileSource } from '../types/documents';
 import { isAtOrUnder, movedPath } from './fileEvents';
 
@@ -35,6 +36,9 @@ export function withoutImportedFiles(
 export function describeImportedSource(source: ImportedFileSource): string {
 	if (source.kind === 'project') {
 		return `${source.projectName} (${source.path.replace(/^\//, '')})`;
+	}
+	if (source.kind === 'output') {
+		return t('{name} (compiled PDF)', { name: source.projectName });
 	}
 	try {
 		const url = new URL(source.url);

@@ -2,17 +2,22 @@ import { accountSyncService } from '@src/services/AccountSyncService';
 import { authService } from '@src/services/AuthService';
 import { fileImportService } from '@src/services/FileImportService';
 import { fileStoreService } from '@src/services/FileStoreService';
+import { genericTypesetterService } from '@src/services/GenericTypesetterService';
+import { typesetterRegistryService } from '@src/services/TypesetterRegistryService';
 import type { FileNode } from '@src/types/files';
 import type { Project } from '@src/types/projects';
+import { createTexliveTypesetterConfig } from '@src/utils/texliveTypesetter';
 
-// Documents stored on this device, by IndexedDB name.
-const documents = new Map<string, string>();
+// Documents stored on this device, by IndexedDB name: a document's text, or
+// a project's settings.
+const documents = new Map<string, unknown>();
 jest.mock('y-indexeddb', () => ({
 	IndexeddbPersistence: class {
 		whenSynced: Promise<void>;
 		constructor(name: string, doc: import('yjs').Doc) {
 			const stored = documents.get(name);
-			if (stored) doc.getText('codemirror').insert(0, stored);
+			if (typeof stored === 'string') doc.getText('codemirror').insert(0, stored);
+			else if (stored) doc.getMap('data').set('projectMetadata', stored);
 			this.whenSynced = Promise.resolve();
 		}
 		async destroy() {}
@@ -145,6 +150,59 @@ describe('files from another project', () => {
 		await expect(
 			fileImportService.fetchSource({ ...source, projectId: 'empty' }),
 		).rejects.toThrow('The project empty has no files on this device.');
+	});
+
+	it("compiles another project to take its PDF, with that project's settings", async () => {
+		const config = createTexliveTypesetterConfig('wss://example.org/texlive/');
+		jest.spyOn(typesetterRegistryService, 'get').mockReturnValue({
+			id: config.id,
+			ui: config.ui,
+		} as never);
+		const compile = jest
+			.spyOn(genericTypesetterService, 'compileSeparately')
+			.mockResolvedValue({
+				status: 0,
+				log: '',
+				format: 'pdf',
+				output: new TextEncoder().encode('%PDF'),
+			});
+		documents.set('texlyre-project-source-yjs_metadata', {
+			name: 'source',
+			description: '',
+			mainFile: '/main.tex',
+			typesetterOptions: { texlive: { engine: 'lualatex' } },
+		});
+
+		expect(text(await fileImportService.compileOutput(project('source')))).toBe(
+			'%PDF',
+		);
+		const [providerId, request] = compile.mock.calls[0];
+		expect(providerId).toBe('texlive');
+		expect(request).toMatchObject({
+			mainFile: '/main.tex',
+			format: 'pdf',
+			options: { engine: 'lualatex', mode: 'normal', errors: 'continue' },
+		});
+		expect(request.files.map((file) => file.path).sort()).toEqual([
+			'/figures/plot.png',
+			'/main.tex',
+			'/refs.bib',
+		]);
+		expect(
+			new TextDecoder().decode(
+				request.files.find((file) => file.path === '/main.tex')?.content,
+			),
+		).toBe('text from the document');
+		expect(fileImportService.outputSource(project('source'))).toEqual({
+			kind: 'output',
+			projectId: 'source',
+			projectName: 'source',
+		});
+
+		compile.mockResolvedValue({ status: 1, log: 'error', format: 'pdf' });
+		await expect(
+			fileImportService.compileOutput(project('source')),
+		).rejects.toThrow('The project source did not compile.');
 	});
 
 	it('lists the other projects of the account, by name', async () => {

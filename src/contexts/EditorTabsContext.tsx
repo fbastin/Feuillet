@@ -12,6 +12,8 @@ import {
 import { useProperties } from '../hooks/useProperties';
 import type { EditorTab, EditorTabsContextType } from '../types/editorTabs';
 import { type EditorTarget, gotoEditor } from '../utils/editorNavigator';
+import { withMovedTabs } from '../utils/editorTabUtils';
+import { FILE_MOVED_EVENT, type FileMovedDetail } from '../utils/fileEvents';
 
 export const EditorTabsContext = createContext<EditorTabsContextType | null>(
 	null,
@@ -336,6 +338,16 @@ export const EditorTabsProvider: React.FC<EditorTabsProviderProps> = ({
 			position: activeTab.editorState.cursorPosition,
 		};
 	}, [propertiesLoaded, activeTabId, tabs]);
+
+	// A renamed or moved file keeps its tab, under its new name.
+	useEffect(() => {
+		const onMoved = (event: Event) => {
+			const detail = (event as CustomEvent<FileMovedDetail>).detail;
+			setTabs((prevTabs) => withMovedTabs(prevTabs, detail));
+		};
+		document.addEventListener(FILE_MOVED_EVENT, onMoved);
+		return () => document.removeEventListener(FILE_MOVED_EVENT, onMoved);
+	}, []);
 
 	const updateTabState = useCallback(
 		(tabId: string, editorState: EditorTab['editorState']) => {

@@ -18,6 +18,7 @@ import {
 	fileNameFromUrl,
 	fileNameOf,
 	isWebAddress,
+	outputFileName,
 } from '../../utils/fileImportUtils';
 import { validateFileName } from '../../utils/fileUtils';
 import { FilePlusIcon } from '../common/Icons';
@@ -52,6 +53,9 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 	const [projectId, setProjectId] = useState('');
 	const [files, setFiles] = useState<FileNode[] | null>(null);
 	const [fileId, setFileId] = useState('');
+	// The project's compiled PDF rather than one of its files, as Overleaf's
+	// output files.
+	const [fromOutput, setFromOutput] = useState(false);
 	const [url, setUrl] = useState('');
 	const [name, setName] = useState('');
 	const [nameEdited, setNameEdited] = useState(false);
@@ -59,6 +63,7 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 	const [error, setError] = useState<string | null>(null);
 
 	const isOpen = source !== null;
+	const canCompileOutputs = fileImportService.canCompileOutputs();
 	const project = projects.find((entry) => entry.id === projectId);
 	const file = files?.find((entry) => entry.id === fileId);
 
@@ -67,6 +72,7 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 		setProjectId('');
 		setFiles(null);
 		setFileId('');
+		setFromOutput(false);
 		setUrl('');
 		setName('');
 		setNameEdited(false);
@@ -105,7 +111,13 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 	}, [project]);
 
 	const suggestedName =
-		source === 'url' ? fileNameFromUrl(url) : file ? fileNameOf(file.path) : '';
+		source === 'url'
+			? fileNameFromUrl(url)
+			: project && fromOutput
+				? outputFileName(project.name)
+				: file
+					? fileNameOf(file.path)
+					: '';
 	useEffect(() => {
 		if (!nameEdited) setName(suggestedName);
 	}, [suggestedName, nameEdited]);
@@ -117,14 +129,23 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 		onSourceChange(next);
 	};
 
+	const chooseKind = (output: boolean) => {
+		setFromOutput(output);
+		setNameEdited(false);
+		setError(null);
+	};
+
 	const ready =
 		!busy &&
 		name.trim() !== '' &&
-		(source === 'url' ? url.trim() !== '' : Boolean(project && file));
+		(source === 'url'
+			? url.trim() !== ''
+			: Boolean(project && (fromOutput || file)));
 
 	const submit = async (event: React.FormEvent) => {
 		event.preventDefault();
-		if (!ready || (source === 'project' && !(project && file))) return;
+		if (!ready || (source === 'project' && !(project && (fromOutput || file))))
+			return;
 		const validation = validateFileName(name);
 		if (!validation.valid) {
 			setError(validation.error ?? null);
@@ -138,15 +159,20 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 		setError(null);
 		try {
 			const [content, from]: [ArrayBuffer, ImportedFileSource] =
-				source === 'project' && project && file
+				source === 'project' && project && fromOutput
 					? [
-							await fileImportService.readFile(project, file),
-							fileImportService.projectSource(project, file),
+							await fileImportService.compileOutput(project),
+							fileImportService.outputSource(project),
 						]
-					: [
-							await fileImportService.fetchUrl(url.trim()),
-							{ kind: 'url', url: url.trim() },
-						];
+					: source === 'project' && project && file
+						? [
+								await fileImportService.readFile(project, file),
+								fileImportService.projectSource(project, file),
+							]
+						: [
+								await fileImportService.fetchUrl(url.trim()),
+								{ kind: 'url', url: url.trim() },
+							];
 			await onAdd(new File([content], name.trim()), folderPath, from);
 			onClose();
 		} catch (caught) {
@@ -221,6 +247,52 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 						</select>
 
 						{project && (
+							<fieldset
+								className='add-files-kind'
+								data-role='add-file-kind'
+								disabled={busy}
+							>
+								<label>
+									<input
+										type='radio'
+										name='add-file-kind'
+										value='source'
+										checked={!fromOutput}
+										onChange={() => chooseKind(false)}
+									/>
+									{t('Source files')}
+								</label>
+								<label
+									title={
+										canCompileOutputs
+											? undefined
+											: t(
+													'Taking the PDF of another project needs the TeX Live compile server.',
+												)
+									}
+								>
+									<input
+										type='radio'
+										name='add-file-kind'
+										value='output'
+										checked={fromOutput}
+										disabled={!canCompileOutputs}
+										onChange={() => chooseKind(true)}
+									/>
+									{t('Compiled PDF')}
+								</label>
+							</fieldset>
+						)}
+
+						{project && fromOutput && (
+							<p className='ui-meta'>
+								{t(
+									'The project is compiled now with TeX Live, with its main document and its compiler.',
+								)}
+							</p>
+						)}
+
+						{project && !fromOutput && (
 							<>
 								<label htmlFor='add-file-source'>{t('Select a file')}</label>
 								<select
@@ -325,7 +397,11 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 						disabled={!ready}
 						aria-busy={busy}
 					>
-						{busy ? t('Adding...') : t('Create')}
+						{busy
+							? fromOutput && source === 'project'
+								? t('Compiling...')
+								: t('Adding...')
+							: t('Create')}
 					</button>
 				</div>
 			</form>

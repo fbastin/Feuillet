@@ -16,7 +16,10 @@ import { useCollab } from '../hooks/useCollab';
 import { useSettings } from '../hooks/useSettings';
 import { autoSaveService } from '../services/AutoSaveService';
 import { collabService } from '../services/CollabService';
-import { fileConflictPromptService } from '../services/FileConflictPromptService';
+import {
+	FileOperationCancelledError,
+	fileConflictPromptService,
+} from '../services/FileConflictPromptService';
 import { fileOperationNotificationService } from '../services/FileOperationNotificationService';
 import { fileStoreService } from '../services/FileStoreService';
 import type { DocumentList } from '../types/documents';
@@ -36,7 +39,10 @@ import {
 import { batchExtractArchive } from '../utils/archiveUtils';
 import {
 	FILE_DELETED_EVENT,
+	FILE_MOVED_EVENT,
 	type FileDeletedDetail,
+	type FileMovedDetail,
+	movedPath,
 } from '../utils/fileEvents';
 import { isReadOnlyDocUrl, isReviewDocUrl } from '../utils/urlUtils';
 
@@ -75,6 +81,27 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 			duplicateKeyDetectionService.stop();
 		};
 	}, [isLoading, fileTree]);
+
+	// A document linked to a file is named after the file's path: it follows
+	// the file when the file is renamed or moved, for its tab, the document
+	// list and the links found by path.
+	const documentsRef = useRef(doc?.documents);
+	documentsRef.current = doc?.documents;
+	useEffect(() => {
+		const onMoved = (event: Event) => {
+			const { from, to } = (event as CustomEvent<FileMovedDetail>).detail;
+			const moves = (entries?: DocumentList['documents']) =>
+				entries?.some((entry) => movedPath(entry.name, from, to));
+			if (!moves(documentsRef.current)) return;
+			changeDoc((d) => {
+				for (const entry of d.documents ?? []) {
+					entry.name = movedPath(entry.name, from, to) ?? entry.name;
+				}
+			});
+		};
+		document.addEventListener(FILE_MOVED_EVENT, onMoved);
+		return () => document.removeEventListener(FILE_MOVED_EVENT, onMoved);
+	}, [changeDoc]);
 
 	useEffect(() => {
 		if (!storageInitialized.current && docUrl) {
@@ -554,6 +581,14 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 
 				await refreshFileTree();
 			} catch (error) {
+				// Cancelled in the dialog: nothing went wrong.
+				if (
+					error instanceof FileOperationCancelledError ||
+					(error instanceof Error &&
+						error.message === t('Delete operation cancelled by user'))
+				) {
+					return;
+				}
 				moduleLog.error('Error in batch delete:', error);
 				if (error instanceof Error) {
 					const operationId = `batch-delete-${Date.now()}`;

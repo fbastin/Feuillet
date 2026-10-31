@@ -154,6 +154,29 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 		}
 	}
 
+	/**
+	 * Compiles a whole project, not the open one, over a connection of its
+	 * own: the open project's working tree on the server stays as it is.
+	 */
+	async compileSeparately(
+		configId: string,
+		request: TypesetterCompileRequest,
+	): Promise<TypesetterCompileResult> {
+		const config = this.configs.get(configId);
+		if (!config) throw new Error(`Typesetter config not found: ${configId}`);
+		const separate: TypesetterServerConfig = {
+			...config,
+			id: `${configId}#separate-${nanoid(8)}`,
+			incrementalSync: false,
+		};
+		this.registerConfig(separate);
+		try {
+			return await this.compile(separate.id, request);
+		} finally {
+			this.unregisterConfig(separate.id);
+		}
+	}
+
 	private async performCompile(
 		configId: string,
 		request: TypesetterCompileRequest,

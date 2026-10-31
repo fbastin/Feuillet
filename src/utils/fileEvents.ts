@@ -8,6 +8,8 @@ export const FILE_MOVED_EVENT = 'file-moved';
 export interface FileMovedDetail {
 	from: string;
 	to: string;
+	/** A moved file gets a new id: the new id of each, by former id. */
+	ids?: Record<string, string>;
 }
 
 /** Files or folders of the project were deleted. */
@@ -30,3 +32,7 @@ export function movedPath(
 	if (!path || !isAtOrUnder(path, from)) return undefined;
 	return `${to}${path.slice(from.length)}`;
 }
+
+/** The last segment of a path, the name of the file or folder. */
+export const nameOf = (path: string): string =>
+	path.slice(path.lastIndexOf('/') + 1);

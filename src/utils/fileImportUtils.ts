@@ -61,3 +61,16 @@ export function urlFetchErrorMessage(code: string, status?: number): string {
 			return t('The file could not be downloaded.');
 	}
 }
+
+/**
+ * A name for another project's PDF, after the project, without accents or
+ * spaces, which \includegraphics does not always take.
+ */
+export function outputFileName(projectName: string): string {
+	const base = projectName
+		.normalize('NFD')
+		.replace(/[̀-ͯ]/g, '')
+		.replace(/[^A-Za-z0-9._-]+/g, '-')
+		.replace(/^[-.]+|-+$/g, '');
+	return `${base || 'output'}.pdf`;
+}

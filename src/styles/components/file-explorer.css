@@ -322,6 +322,23 @@
 	font-size: 0.8em;
 }
 
+/* "Add files": another project's files or its compiled PDF. */
+.add-files-kind {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-md);
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.add-files-kind label {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	margin: 0;
+}
+
 /* Added from another project or a URL, and refreshable from there. */
 .file-imported-indicator {
 	display: inline-flex;

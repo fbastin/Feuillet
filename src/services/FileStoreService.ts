@@ -992,7 +992,14 @@ class FileStoreService {
 			);
 			document.dispatchEvent(
 				new CustomEvent<FileMovedDetail>(FILE_MOVED_EVENT, {
-					detail: { from: sourceFile.path, to: newFullPath },
+					detail: {
+						from: sourceFile.path,
+						to: newFullPath,
+						ids: Object.fromEntries([
+							[sourceFile.id, newFileId],
+							...childrenToMove.map((move) => [move.oldId, move.newFile.id]),
+						]),
+					},
 				}),
 			);
 

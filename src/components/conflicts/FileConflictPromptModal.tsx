@@ -868,39 +868,51 @@ const FileConflictPromptModal: React.FC = () => {
 	}
 
 	if (conflictType === 'linked-file-action' && existingFile && action) {
-		const actionText =
-			action === 'rename'
-				? 'rename'
-				: action === 'delete'
-					? 'delete'
-					: 'overwrite';
-		const actionCapitalized =
-			actionText.charAt(0).toUpperCase() + actionText.slice(1);
-		const actionVerb =
-			actionText === 'delete'
-				? 'delete'
-				: actionText === 'overwrite'
-					? 'overwrite'
-					: 'rename';
-		const actionMessage =
-			actionText === 'delete'
-				? t('Cannot delete')
-				: actionText === 'overwrite'
-					? t('Cannot overwrite')
-					: t('Cannot rename');
+		// Whole sentences per action, so that each language can word them.
+		const name = existingFile.name;
+		const texts =
+			action === 'delete'
+				? {
+						title: t('Delete Linked File'),
+						message: t(
+							'{name} cannot be deleted because it is linked to a collaborative document.',
+							{ name },
+						),
+						advice: t(
+							'To delete this file, first unlink it from its document, then delete it again.',
+						),
+					}
+				: action === 'rename'
+					? {
+							title: t('Rename Linked File'),
+							message: t(
+								'{name} cannot be renamed because it is linked to a collaborative document.',
+								{ name },
+							),
+							advice: t(
+								'To rename this file, first unlink it from its document, then rename it again.',
+							),
+						}
+					: {
+							title: t('Overwrite Linked File'),
+							message: t(
+								'{name} cannot be overwritten because it is linked to a collaborative document.',
+								{ name },
+							),
+							advice: t(
+								'To overwrite this file, first unlink it from its document, then overwrite it again.',
+							),
+						};
 
 		return (
 			<Modal
 				isOpen={isOpen}
 				onClose={handleClose}
-				title={t('{action} Linked File', { action: actionCapitalized })}
+				title={texts.title}
 				size='medium'
 			>
 				<div className='ui-stack' data-gap='md'>
-					<p>
-						{actionMessage} "{existingFile.name}"{' '}
-						{t('because it is linked to a collaborative document.')}
-					</p>
+					<p>{texts.message}</p>
 
 					<div
 						className='ui-card ui-stack'
@@ -943,10 +955,7 @@ const FileConflictPromptModal: React.FC = () => {
 					)}
 
 					<div className='ui-message' data-tone='warning'>
-						{t(
-							'To {action} this file, you must first unlink it from its document. After unlinking, you can try the {action} operation again.',
-							{ action: actionVerb },
-						)}
+						{texts.advice}
 					</div>
 
 					<div

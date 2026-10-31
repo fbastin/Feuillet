@@ -26,7 +26,9 @@ export interface SharedGitRemote {
 // it can be refreshed, as Overleaf's linked files.
 export type ImportedFileSource =
 	| { kind: 'url'; url: string }
-	| { kind: 'project'; projectId: string; projectName: string; path: string };
+	| { kind: 'project'; projectId: string; projectName: string; path: string }
+	// The PDF another project compiles to, compiled again to refresh it.
+	| { kind: 'output'; projectId: string; projectName: string };
 
 export interface ImportedFile {
 	source: ImportedFileSource;
