@@ -28,6 +28,7 @@ import {
 import { ShareIcon } from '../common/Icons';
 import CopyField from '../common/CopyField';
 import Modal from '../common/Modal';
+import ServerAccountLinkForm from '../profile/ServerAccountLinkForm';
 import ProjectMembersSection from './ProjectMembersSection';
 
 interface ShareProjectModalProps {
@@ -244,11 +245,10 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 							{access === undefined ? (
 								<p className='ui-meta'>{t('Loading...')}</p>
 							) : access === null ? (
-								<p className='ui-meta'>
-									{t(
-										'Sign in to an account on the server to invite collaborators.',
-									)}
-								</p>
+								<ServerAccountLinkForm
+									reason={t('Invitations need it.')}
+									onLinked={() => void changeAccess({})}
+								/>
 							) : access.owner === 'none' ? (
 								<div className='ui-actions' data-align='between'>
 									<span className='ui-meta'>

@@ -8,7 +8,7 @@ import {
 	type AccountSyncStatus,
 	accountSyncService,
 } from '../../services/AccountSyncService';
-import { authService } from '../../services/AuthService';
+import { linkServerAccount } from './serverAccountLink';
 
 interface ProfileServerAccountSectionProps {
 	isSubmitting: boolean;
@@ -64,23 +64,12 @@ const ProfileServerAccountSection: React.FC<
 		onSuccess(null);
 		setIsSubmitting(true);
 		try {
-			if (!(await verifyPassword(user.id, password))) {
-				onError(t('Current password is incorrect'));
-				return;
-			}
-			const result = await authService.linkAccount(user, password);
-			if (result === 'linked') {
+			const result = await linkServerAccount(user, password, verifyPassword);
+			if (result.linked) {
 				setPassword('');
-				onSuccess(t('Your projects are now kept on the server.'));
-			} else if (result === 'taken') {
-				onError(
-					t(
-						'The server already has an account named "{username}" with another password. If you changed it on another device, log out and log in again with the new password.',
-						{ username: user.username },
-					),
-				);
+				onSuccess(result.message);
 			} else {
-				onError(t('The server could not be reached. Please try again later.'));
+				onError(result.message);
 			}
 		} finally {
 			setIsSubmitting(false);
