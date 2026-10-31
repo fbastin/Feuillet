@@ -48,10 +48,13 @@ describe('Feuillet TeX Live typesetter', () => {
 			transportConfig: { type: 'websocket', url: URL },
 		});
 		expect(normalized?.ui?.compile?.fields.map((field) => field.key)).toEqual([
-			'format',
 			'engine',
 			'mode',
 			'errors',
+		]);
+		// One PDF viewer, as on Overleaf.
+		expect(normalized?.outputFormats.map((format) => format.id)).toEqual([
+			'pdf',
 		]);
 		expect(normalized?.capabilities.stop).toBe(true);
 		expect(

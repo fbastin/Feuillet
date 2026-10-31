@@ -69,16 +69,12 @@ export function createTexliveTypesetterConfig(
 			},
 		],
 		outputFormats: [
+			// One PDF viewer, as on Overleaf: TeXlyre's Canvas one showed the
+			// same PDF a page at a time, and switching compiled again.
 			{
 				id: 'pdf',
 				mimeType: 'application/pdf',
 				rendererPluginId: 'pdf-renderer',
-			},
-			{
-				id: 'canvas-pdf',
-				mimeType: 'application/pdf',
-				rendererPluginId: 'canvas-renderer',
-				outputType: 'canvas',
 			},
 		],
 		transportConfig: { type: 'websocket', url },
@@ -86,17 +82,6 @@ export function createTexliveTypesetterConfig(
 		ui: {
 			compile: {
 				fields: [
-					{
-						key: 'format',
-						label: 'Output Format:',
-						kind: 'select',
-						sendAs: 'format',
-						defaultValue: 'pdf',
-						options: [
-							{ label: 'PDF', value: 'pdf' },
-							{ label: 'Canvas (PDF)', value: 'canvas-pdf' },
-						],
-					},
 					ENGINE_FIELD,
 					COMPILE_MODE_FIELD,
 					ERROR_HANDLING_FIELD,
@@ -116,10 +101,7 @@ export function createTexliveTypesetterConfig(
 					ENGINE_FIELD,
 				],
 			},
-			renderers: [
-				{ format: 'pdf', label: 'PDF' },
-				{ format: 'canvas-pdf', label: 'Canvas (PDF)' },
-			],
+			renderers: [{ format: 'pdf', label: 'PDF' }],
 			info: {
 				title: 'TeX Live',
 				rows: [
@@ -137,7 +119,7 @@ export function createTexliveTypesetterConfig(
 						},
 						value: 'pdfLaTeX, LuaLaTeX, XeLaTeX (latexmk)',
 					},
-					{ label: 'Output Formats:', value: 'PDF, Canvas (PDF)' },
+					{ label: 'Output Formats:', value: 'PDF' },
 				],
 			},
 		},
