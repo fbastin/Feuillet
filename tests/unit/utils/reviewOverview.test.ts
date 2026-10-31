@@ -1,9 +1,13 @@
 import { commentService } from '@src/services/CommentService';
 import { reviewService } from '@src/services/ReviewService';
+import { stripAnnotations } from '@src/utils/fileCommentUtils';
 import {
 	type ReviewOverviewFile,
+	decideAllChanges,
+	decideChange,
 	filterOverview,
 	reviewItemsOf,
+	setCommentResolved,
 } from '@src/utils/reviewOverview';
 
 const comment = (text: string, content: string, user = 'alice') => {
@@ -68,5 +72,37 @@ describe('the review overview', () => {
 
 		expect(filterOverview(files, false).map((file) => file.path)).toEqual(['/b.tex']);
 		expect(filterOverview(files, true).map((file) => file.path)).toEqual(['/a.tex']);
+	});
+
+	describe('decides from the overview, on the whole text', () => {
+		const text = `Le ${change('', 'nouveau ')}texte, ${change('ancien', '')} et ${change('rouge', 'bleu')}; ${comment('ici', 'À voir.')}.`;
+		const ids = reviewItemsOf(text).filter((item) => item.kind === 'change').map((item) => item.id);
+		const commentId = reviewItemsOf(text).find((item) => item.kind === 'comment')?.id ?? '';
+		const plain = (value: string) => stripAnnotations(value) as string;
+
+		it('accepts or rejects one change', () => {
+			const accepted = decideChange(text, ids[2], true);
+			expect(plain(accepted)).toBe('Le nouveau texte,  et bleu; ici.');
+			expect(reviewItemsOf(accepted).filter((item) => item.kind === 'change')).toHaveLength(2);
+			expect(plain(decideChange(text, ids[2], false))).toBe('Le nouveau texte,  et rouge; ici.');
+			expect(decideChange(text, 'gone', true)).toBe(text);
+		});
+
+		it('accepts or rejects them all, leaving the comments', () => {
+			const accepted = decideAllChanges(text, true);
+			expect(accepted).not.toContain('review id:');
+			expect(plain(accepted)).toBe('Le nouveau texte,  et bleu; ici.');
+			expect(plain(decideAllChanges(text, false))).toBe('Le texte, ancien et rouge; ici.');
+			expect(reviewItemsOf(decideAllChanges(text, false)).map((item) => item.kind)).toEqual(['comment']);
+		});
+
+		it('resolves a comment and opens it again', () => {
+			const resolved = setCommentResolved(text, commentId, true);
+			const item = reviewItemsOf(resolved).find((entry) => entry.id === commentId);
+			expect(item).toMatchObject({ resolved: true, content: 'À voir.', quoted: 'ici' });
+			expect(plain(resolved)).toBe(plain(text));
+			expect(setCommentResolved(resolved, commentId, false)).toBe(text);
+			expect(setCommentResolved(text, commentId, false)).toBe(text);
+		});
 	});
 });

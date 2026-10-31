@@ -6,14 +6,25 @@ import type React from 'react';
 import { useMemo, useState } from 'react';
 
 import { t } from '@/i18n';
+import { useCollab } from '../../hooks/useCollab';
 import { useReviewOverview } from '../../hooks/useReviewOverview';
+import { notificationService } from '../../services/NotificationService';
 import { gotoEditor } from '../../utils/editorNavigator';
 import {
 	type ReviewOverviewFile,
 	type ReviewOverviewItem,
+	decideAllChanges,
+	decideChange,
 	filterOverview,
+	setCommentResolved,
 } from '../../utils/reviewOverview';
-import { CommentIcon, RefreshIcon, TrackChangesIcon } from '../common/Icons';
+import {
+	CheckIcon,
+	CloseIcon,
+	CommentIcon,
+	RefreshIcon,
+	TrackChangesIcon,
+} from '../common/Icons';
 
 interface ReviewOverviewPanelProps {
 	projectId: string;
@@ -46,7 +57,10 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 	projectId,
 	onNavigate,
 }) => {
-	const { files, refresh } = useReviewOverview(projectId);
+	const { files, refresh, apply } = useReviewOverview(projectId);
+	// Readers and reviewers see the overview; editors decide from it too.
+	const { readOnly } = useCollab();
+	const [busy, setBusy] = useState<string | null>(null);
 	const [resolved, setResolved] = useState(false);
 	const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -69,6 +83,82 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 			else next.add(path);
 			return next;
 		});
+
+	const act = async (
+		key: string,
+		file: ReviewOverviewFile,
+		transform: (text: string) => string,
+	) => {
+		setBusy(key);
+		try {
+			await apply(file, transform);
+		} catch (error) {
+			notificationService.showError(
+				t('The decision could not be applied: {error}', {
+					error: error instanceof Error ? error.message : String(error),
+				}),
+			);
+		} finally {
+			setBusy(null);
+		}
+	};
+
+	const itemActions = (file: ReviewOverviewFile, item: ReviewOverviewItem) => {
+		const key = `${file.path}:${item.id}`;
+		const disabled = busy !== null;
+		if (item.kind === 'comment') {
+			return (
+				<button
+					type='button'
+					className='ui-icon-button'
+					data-variant='subtle'
+					data-action={item.resolved ? 'reopen' : 'resolve'}
+					disabled={disabled}
+					aria-busy={busy === key}
+					title={item.resolved ? t('Reopen comment') : t('Mark as resolved')}
+					onClick={() =>
+						act(key, file, (text) =>
+							setCommentResolved(text, item.id, !item.resolved),
+						)
+					}
+				>
+					{item.resolved ? <RefreshIcon /> : <CheckIcon />}
+				</button>
+			);
+		}
+		if (item.resolved) return null;
+		return (
+			<>
+				<button
+					type='button'
+					className='ui-icon-button'
+					data-variant='subtle'
+					data-action='accept'
+					disabled={disabled}
+					aria-busy={busy === key}
+					title={t('Accept change')}
+					onClick={() =>
+						act(key, file, (text) => decideChange(text, item.id, true))
+					}
+				>
+					<CheckIcon />
+				</button>
+				<button
+					type='button'
+					className='ui-icon-button'
+					data-variant='subtle'
+					data-action='reject'
+					disabled={disabled}
+					title={t('Reject change')}
+					onClick={() =>
+						act(key, file, (text) => decideChange(text, item.id, false))
+					}
+				>
+					<CloseIcon />
+				</button>
+			</>
+		);
+	};
 
 	// Goes to the line at once in an open file, or once the file has opened.
 	const open = (file: ReviewOverviewFile, item: ReviewOverviewItem) => {
@@ -162,61 +252,105 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 									{file.items.length}
 								</span>
 							</button>
+							{!readOnly &&
+								!resolved &&
+								file.items.some((item) => item.kind === 'change') && (
+									<div
+										className='review-overview-file-actions ui-actions'
+										data-role='file-changes'
+									>
+										<button
+											type='button'
+											className='button secondary'
+											data-action='accept-all'
+											disabled={busy !== null}
+											onClick={() =>
+												act(`${file.path}:all`, file, (text) =>
+													decideAllChanges(text, true),
+												)
+											}
+										>
+											{t('Accept all')}
+										</button>
+										<button
+											type='button'
+											className='button secondary'
+											data-action='reject-all'
+											disabled={busy !== null}
+											onClick={() =>
+												act(`${file.path}:all`, file, (text) =>
+													decideAllChanges(text, false),
+												)
+											}
+										>
+											{t('Reject all')}
+										</button>
+									</div>
+								)}
 							{!collapsed.has(file.path) &&
 								file.items.map((item) => (
-									<button
-										type='button'
+									<div
 										key={`${item.kind}-${item.id}`}
 										className='review-overview-item'
 										data-kind={item.kind}
 										data-change={item.change}
-										onClick={() => open(file, item)}
-										title={t('Go to line {line}', { line: item.line })}
 									>
-										<span className='review-overview-meta ui-meta'>
-											{item.kind === 'comment' ? (
-												<CommentIcon />
-											) : (
-												<TrackChangesIcon />
-											)}
-											<strong>{item.user}</strong>
-											<span>
-												{new Date(item.timestamp).toLocaleString(undefined, {
-													dateStyle: 'short',
-													timeStyle: 'short',
-												})}
-											</span>
-											<span className='review-overview-line'>
-												{t('Line {line}', { line: item.line })}
-											</span>
-										</span>
-										{item.kind === 'comment' ? (
-											<>
-												<span className='review-overview-text'>
-													{excerpt(item.content)}
-												</span>
-												{item.quoted && (
-													<span className='review-overview-quote ui-meta'>
-														« {excerpt(item.quoted)} »
-													</span>
+										<button
+											type='button'
+											className='review-overview-open'
+											onClick={() => open(file, item)}
+											title={t('Go to line {line}', { line: item.line })}
+										>
+											<span className='review-overview-meta ui-meta'>
+												{item.kind === 'comment' ? (
+													<CommentIcon />
+												) : (
+													<TrackChangesIcon />
 												)}
-											</>
-										) : (
-											<span className='review-overview-text'>
-												<span className='review-overview-change'>
-													{changeLabel(item)}
-												</span>{' '}
-												{item.removed && <del>{excerpt(item.removed)}</del>}
-												{item.removed && item.added && ' → '}
-												{item.added && <ins>{excerpt(item.added)}</ins>}
+												<strong>{item.user}</strong>
+												<span>
+													{new Date(item.timestamp).toLocaleString(undefined, {
+														dateStyle: 'short',
+														timeStyle: 'short',
+													})}
+												</span>
+												<span className='review-overview-line'>
+													{t('Line {line}', { line: item.line })}
+												</span>
 											</span>
+											{item.kind === 'comment' ? (
+												<>
+													<span className='review-overview-text'>
+														{excerpt(item.content)}
+													</span>
+													{item.quoted && (
+														<span className='review-overview-quote ui-meta'>
+															« {excerpt(item.quoted)} »
+														</span>
+													)}
+												</>
+											) : (
+												<span className='review-overview-text'>
+													<span className='review-overview-change'>
+														{changeLabel(item)}
+													</span>{' '}
+													{item.removed && <del>{excerpt(item.removed)}</del>}
+													{item.removed && item.added && ' → '}
+													{item.added && <ins>{excerpt(item.added)}</ins>}
+												</span>
+											)}
+											{item.replies > 0 && (
+												<span className='review-overview-replies ui-meta'>
+													{t('{count} replies', { count: item.replies })}
+												</span>
+											)}
+										</button>
+										{!readOnly && (
+											<div className='review-overview-actions'>
+												{itemActions(file, item)}
+											</div>
 										)}
-										{item.replies > 0 && (
-											<span className='review-overview-replies ui-meta'>
-												{t('{count} replies', { count: item.replies })}
-											</span>
-										)}
-									</button>
+									</div>
 								))}
 						</section>
 					))

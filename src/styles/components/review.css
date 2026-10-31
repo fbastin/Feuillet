@@ -83,38 +83,64 @@
 	white-space: nowrap;
 }
 
-.review-overview button.review-overview-item {
+.review-overview .review-overview-item {
 	display: flex;
-	flex-direction: column;
+	align-items: flex-start;
 	gap: 2px;
-	width: 100%;
 	margin: 2px 0;
-	padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-md);
-	border: 0;
 	border-left: 3px solid var(--accent-border);
+}
+
+.review-overview .review-overview-item[data-kind="comment"] {
+	border-left-color: var(--pico-primary);
+}
+
+.review-overview .review-overview-item[data-kind="change"] {
+	border-left-color: var(--color-success);
+}
+
+.review-overview button.review-overview-open {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 2px;
+	min-width: 0;
+	margin: 0;
+	padding: var(--space-xs) var(--space-sm);
+	border: 0;
 	border-radius: 0;
 	background: transparent;
 	color: inherit;
 	font-size: 0.9em;
 	text-align: left;
-	align-items: stretch;
-	justify-content: flex-start;
 	cursor: pointer;
 }
 
-.review-overview button.review-overview-item[data-kind="comment"] {
-	border-left-color: var(--pico-primary);
-}
-
-.review-overview button.review-overview-item[data-kind="change"] {
-	border-left-color: var(--color-success);
-}
-
-.review-overview button.review-overview-item:hover {
+.review-overview button.review-overview-open:hover {
 	background: var(
 		--accent-bg-hover,
 		color-mix(in srgb, currentColor 8%, transparent)
 	);
+}
+
+.review-overview .review-overview-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding-top: var(--space-xs);
+}
+
+.review-overview .review-overview-file-actions {
+	display: flex;
+	gap: var(--space-xs);
+	margin: 0 0 var(--space-xs) var(--space-sm);
+}
+
+.review-overview .review-overview-file-actions .button {
+	padding: 2px var(--space-sm);
+	font-size: 0.85em;
 }
 
 .review-overview .review-overview-meta {
