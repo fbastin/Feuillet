@@ -6,6 +6,7 @@ import { t } from '@/i18n';
 import PositionedDropdown from '../common/PositionedDropdown';
 import { useExternalTypesetter } from '../../hooks/useExternalTypesetter';
 import { useFileTree } from '../../hooks/useFileTree';
+import { useProjectCompileSettings } from '../../hooks/useProjectCompileSettings';
 import { useProperties } from '../../hooks/useProperties';
 import { fileStoreService } from '../../services/FileStoreService';
 import type {
@@ -56,7 +57,7 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 	const projectId = fileStoreService.getCurrentProjectId() || undefined;
 	const section = provider.ui?.export;
 	const fields = section?.fields ?? [];
-	const mainFilePropertyId = `external-${provider.id}-main-file`;
+	const settings = useProjectCompileSettings(provider);
 	const fieldPropertyId = useCallback(
 		(key: string) => `external-export-${provider.id}-${key}`,
 		[provider.id],
@@ -73,6 +74,7 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 		propertiesRegistered.current = true;
 
 		for (const field of fields) {
+			if (field.shared) continue;
 			registerProperty({
 				id: fieldPropertyId(field.key),
 				category: 'Export',
@@ -131,16 +133,19 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
 
-	const propMainFile = getProperty(mainFilePropertyId, {
-		scope: 'project',
-		projectId,
-	}) as string | undefined;
-	const effectiveMainFile = propMainFile || autoMainFile;
+	const projectMainFile =
+		settings.mainFile && availableFiles.includes(settings.mainFile)
+			? settings.mainFile
+			: undefined;
+	const effectiveMainFile = projectMainFile || autoMainFile;
 
+	// The project's compiler is set where it compiles; exports follow it.
 	const readValue = useCallback(
 		(key: string): unknown =>
-			getProperty(fieldPropertyId(key), { scope: 'project', projectId }),
-		[getProperty, projectId, fieldPropertyId],
+			settings.isShared(key)
+				? settings.readShared(key)
+				: getProperty(fieldPropertyId(key), { scope: 'project', projectId }),
+		[settings, getProperty, projectId, fieldPropertyId],
 	);
 
 	const writeValue = useCallback(
@@ -200,6 +205,23 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 	const renderField = (field: TypesetterUIField) => {
 		const stored = readValue(field.key);
 		const value = stored === undefined ? fieldDefault(field) : stored;
+
+		if (field.shared) {
+			const option = field.options?.find((entry) => entry.value === value);
+			return (
+				<div className='ui-menu-section' data-variant='control' key={field.key}>
+					<div className='ui-menu-title' data-variant='control'>
+						{resolveLabel(field.label)}
+					</div>
+					<div
+						className='ui-menu-value'
+						title={t('Kept with the project, for every collaborator')}
+					>
+						{option ? resolveLabel(option.label) : String(value)}
+					</div>
+				</div>
+			);
+		}
 
 		if (field.kind === 'boolean') {
 			return (

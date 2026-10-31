@@ -200,6 +200,7 @@ function normalizeUIField(value: unknown): TypesetterUIField | null {
 		...(help !== null ? { help } : {}),
 		...(group ? { group } : {}),
 		...(showWhen ? { showWhen } : {}),
+		...(value.shared === true ? { shared: true } : {}),
 	};
 }
 

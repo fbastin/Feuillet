@@ -16,6 +16,7 @@ import { filePathCacheService } from '../../services/FilePathCacheService';
 import { useExternalTypesetter } from '../../hooks/useExternalTypesetter';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { useFileTree } from '../../hooks/useFileTree';
+import { useProjectCompileSettings } from '../../hooks/useProjectCompileSettings';
 import { useProperties } from '../../hooks/useProperties';
 import { useSourceMap } from '../../hooks/useSourceMap';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
@@ -29,6 +30,7 @@ import ExternalCompileButton from './ExternalCompileButton';
 import SourceMapFloatingButton from './SourceMapFloatingButton';
 import {
 	chooseLatexMainFile,
+	collectValues,
 	findInputFiles,
 	outputExtension,
 	resolveLabel,
@@ -76,6 +78,7 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 	const projectId = fileStoreService.getCurrentProjectId() || undefined;
 	const { fileTree, selectedFileId, getFile } = useFileTree();
 	const { getProperty, setProperty, registerProperty } = useProperties();
+	const settings = useProjectCompileSettings(provider);
 	const {
 		reverseSync,
 		currentHighlight,
@@ -192,6 +195,9 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 			const file = await getFile(selectedFileId);
 			if (file && matches.includes(file.path)) candidate = file.path;
 		}
+		if (settings.mainFile && matches.includes(settings.mainFile)) {
+			return settings.mainFile;
+		}
 		// A LaTeX part compiles the document that includes it.
 		if (!provider.inputExtensions.includes('tex')) {
 			return candidate ?? matches[0];
@@ -205,6 +211,7 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 		linkedFileInfo,
 		selectedFileId,
 		getFile,
+		settings.mainFile,
 	]);
 
 	const handleLineClick = async (line: number, filePath?: string) => {
@@ -257,17 +264,30 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 			const mainFile = await resolveCompileTarget();
 
 			if (mainFile) {
-				await compileDocument(provider.id, mainFile, format);
+				// With the options of the compile menu, the project's compiler.
+				const { options } = collectValues(
+					provider.ui?.compile?.fields ?? [],
+					(key) =>
+						settings.isShared(key)
+							? settings.readShared(key)
+							: getProperty(`external-${provider.id}-${key}`, {
+									scope: 'project',
+									projectId,
+								}),
+				);
+				await compileDocument(provider.id, mainFile, format, options);
 			}
 		},
 		[
 			effectiveFormat,
 			formatPropertyId,
 			setProperty,
+			getProperty,
+			settings,
 			projectId,
 			resolveCompileTarget,
 			compileDocument,
-			provider.id,
+			provider,
 		],
 	);
 

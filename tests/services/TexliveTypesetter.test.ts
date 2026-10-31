@@ -59,6 +59,17 @@ describe('Feuillet TeX Live typesetter', () => {
 		).toBe(false);
 	});
 
+	it("keeps the compiler with the project, as Overleaf, and the rest with each person", () => {
+		const normalized = normalizeTypesetterConfig(
+			createTexliveTypesetterConfig(URL),
+		);
+		const shared = (fields = normalized?.ui?.compile?.fields ?? []) =>
+			fields.filter((field) => field.shared).map((field) => field.key);
+
+		expect(shared()).toEqual(['engine']);
+		expect(shared(normalized?.ui?.export?.fields)).toEqual(['engine']);
+	});
+
 	it('keeps the built-in LaTeX compiler first when TeX Live is not preferred', () => {
 		typesetterRegistryService.register(providerFrom({}));
 

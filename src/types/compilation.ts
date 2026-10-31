@@ -73,6 +73,8 @@ export interface TypesetterUIField {
 	sendAs?: 'option' | 'format';
 	group?: string;
 	showWhen?: TypesetterUIFieldCondition;
+	/** Kept with the project, the same for every collaborator. */
+	shared?: boolean;
 }
 
 export interface TypesetterUISection {

@@ -43,5 +43,13 @@ export interface DocumentList {
 		typstAutoCompileOnSave?: boolean;
 		typstPdfOptions?: TypstPdfOptions;
 		trackedFiles?: string[];
+		// Options of external compilers kept with the project, by compiler
+		// id, as Overleaf keeps the compiler: the same for every collaborator.
+		typesetterOptions?: Record<
+			string,
+			Record<string, string | number | boolean>
+		>;
 	};
 }
+
+export type ProjectMetadata = NonNullable<DocumentList['projectMetadata']>;

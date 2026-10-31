@@ -564,7 +564,10 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 		checkLinkedFile();
 	}, [localDocId, doc?.documents]);
 
-	const CompileButtons = () => {
+	// Called, not rendered as a component of its own: a component made anew
+	// on each render would remount the buttons, closing their menus, at each
+	// change to the project's data.
+	const renderCompileButtons = () => {
 		if (!projectTypeKnown) return null;
 
 		const latexButtons = [
@@ -749,7 +752,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 					)}
 				</div>
 				<div className='header-right scroll-x ui-actions' ref={headerRightRef}>
-					<CompileButtons />
+					{renderCompileButtons()}
 
 					<ShareProjectButton
 						className='header-share-button'

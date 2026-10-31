@@ -8,6 +8,10 @@ import type { FileNode } from '../types/files';
 import { isRootLatexDocument } from '../utils/compilerUtils';
 import { isBinaryFile, toArrayBuffer } from '../utils/fileUtils';
 import {
+	FILE_MOVED_EVENT,
+	type FileMovedDetail,
+} from '../utils/projectCompileSettings';
+import {
 	type FileConflict,
 	mergeResolutionService,
 } from './MergeResolutionService';
@@ -988,6 +992,11 @@ class FileStoreService {
 
 			moduleLog.info(
 				`Successfully moved file from ${sourceFile.path} to ${newFullPath}`,
+			);
+			document.dispatchEvent(
+				new CustomEvent<FileMovedDetail>(FILE_MOVED_EVENT, {
+					detail: { from: sourceFile.path, to: newFullPath },
+				}),
 			);
 
 			return newFileId;

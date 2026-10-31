@@ -9,11 +9,13 @@ import type { TypesetterUIField } from '../types/compilation';
 export const TEXLIVE_TYPESETTER_ID = 'texlive';
 export const TEXLIVE_SERVER_SETTING = 'texlive-server';
 
+// The project's compiler, as on Overleaf: the same for every collaborator.
 const ENGINE_FIELD: TypesetterUIField = {
 	key: 'engine',
 	label: { key: '{typesetter} Engine:', params: { typesetter: 'LaTeX' } },
 	kind: 'select',
 	sendAs: 'option',
+	shared: true,
 	defaultValue: 'pdflatex',
 	options: [
 		{ label: 'pdfLaTeX', value: 'pdflatex' },

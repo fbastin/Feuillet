@@ -9,6 +9,7 @@ import PopoutViewerToggleButton from './PopoutViewerToggleButton';
 import { useExternalTypesetter } from '../../hooks/useExternalTypesetter';
 import { useFileTree } from '../../hooks/useFileTree';
 import { useSettings } from '../../hooks/useSettings';
+import { useProjectCompileSettings } from '../../hooks/useProjectCompileSettings';
 import { useProperties } from '../../hooks/useProperties';
 import { fileStoreService } from '../../services/FileStoreService';
 import { genericTypesetterService } from '../../services/GenericTypesetterService';
@@ -94,7 +95,12 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 
 	const projectId = fileStoreService.getCurrentProjectId() || undefined;
 	const fields = provider.ui?.compile?.fields ?? [];
-	const mainFilePropertyId = `external-${provider.id}-main-file`;
+	const settings = useProjectCompileSettings(provider, {
+		manage: useSharedSettings,
+	});
+	const settingsTitle = settings.canEdit
+		? t('Kept with the project, for every collaborator')
+		: t("Only the project's editors can change this");
 	const autoCompilePropertyId = `external-${provider.id}-auto-compile-on-save`;
 	const fieldPropertyId = useCallback(
 		(key: string) => `external-${provider.id}-${key}`,
@@ -116,13 +122,6 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		propertiesRegistered.current = true;
 
 		registerProperty({
-			id: mainFilePropertyId,
-			category: 'Compilation',
-			subcategory: provider.label,
-			defaultValue: undefined,
-		});
-
-		registerProperty({
 			id: autoCompilePropertyId,
 			category: 'Compilation',
 			subcategory: provider.label,
@@ -130,6 +129,7 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		});
 
 		for (const field of fields) {
+			if (field.shared) continue;
 			registerProperty({
 				id: fieldPropertyId(field.key),
 				category: 'Compilation',
@@ -194,11 +194,12 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
 
-	const propMainFile = getProperty(mainFilePropertyId, {
-		scope: 'project',
-		projectId,
-	}) as string | undefined;
-	const effectiveMainFile = propMainFile || autoMainFile;
+	// The project's main document, while it is one of its files.
+	const projectMainFile =
+		settings.mainFile && availableFiles.includes(settings.mainFile)
+			? settings.mainFile
+			: undefined;
+	const effectiveMainFile = projectMainFile || autoMainFile;
 
 	const effectiveAutoCompileOnSave =
 		getProperty(autoCompilePropertyId, { scope: 'project', projectId }) ===
@@ -206,23 +207,25 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 
 	const readValue = useCallback(
 		(key: string): unknown =>
-			getProperty(fieldPropertyId(key), { scope: 'project', projectId }),
-		[getProperty, projectId, fieldPropertyId],
+			settings.isShared(key)
+				? settings.readShared(key)
+				: getProperty(fieldPropertyId(key), { scope: 'project', projectId }),
+		[settings, getProperty, projectId, fieldPropertyId],
 	);
 
 	const writeValue = useCallback(
 		(key: string, value: string | number | boolean) => {
+			if (settings.isShared(key)) {
+				settings.writeShared(key, value);
+				return;
+			}
 			setProperty(fieldPropertyId(key), value, { scope: 'project', projectId });
 		},
-		[setProperty, projectId, fieldPropertyId],
+		[settings, setProperty, projectId, fieldPropertyId],
 	);
 
 	const handleMainFileChange = (filePath: string) => {
-		setProperty(
-			mainFilePropertyId,
-			filePath === 'auto' ? undefined : filePath,
-			{ scope: 'project', projectId },
-		);
+		settings.setMainFile(filePath === 'auto' ? undefined : filePath);
 	};
 
 	const shouldNavigateToMain = useCallback((): boolean => {
@@ -417,6 +420,8 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 	const renderField = (field: TypesetterUIField) => {
 		const stored = readValue(field.key);
 		const value = stored === undefined ? fieldDefault(field) : stored;
+		const locked = isCompiling || (field.shared === true && !settings.canEdit);
+		const title = field.shared ? settingsTitle : undefined;
 
 		if (field.kind === 'boolean') {
 			return (
@@ -426,7 +431,8 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 						type='checkbox'
 						checked={value === true}
 						onChange={(e) => writeValue(field.key, e.target.checked)}
-						disabled={isCompiling}
+						disabled={locked}
+						title={title}
 					/>
 					{resolveLabel(field.label)}
 				</label>
@@ -443,7 +449,8 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 						value={String(value)}
 						onChange={(e) => writeValue(field.key, e.target.value)}
 						className='ui-field-control'
-						disabled={isCompiling}
+						disabled={locked}
+						title={title}
 					>
 						{(field.options ?? []).map((option) => (
 							<option key={option.value} value={option.value}>
@@ -470,7 +477,8 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 						)
 					}
 					className='ui-field-control'
-					disabled={isCompiling}
+					disabled={locked}
+					title={title}
 				/>
 			</div>
 		);
@@ -538,10 +546,12 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 							t('No input file')}
 					</div>
 					<select
-						value={propMainFile || 'auto'}
+						value={projectMainFile || 'auto'}
 						onChange={(e) => handleMainFileChange(e.target.value)}
 						className='ui-field-control'
-						disabled={isCompiling}
+						disabled={isCompiling || !settings.canEdit}
+						title={settingsTitle}
+						data-role='main-file'
 					>
 						<option value='auto'>{t('Auto-detect')}</option>
 						{availableFiles.map((filePath) => (
