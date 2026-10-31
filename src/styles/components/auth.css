@@ -287,3 +287,37 @@
 .modal-overlay:has(.guest-consent-modal) {
 	z-index: var(--z-above-all);
 }
+
+/* Profile: Claude and other assistants (ProfileAssistantsSection) */
+.assistants-section h3 {
+	padding-top: 1rem;
+}
+
+.assistants-section h4 {
+	margin: var(--space-sm) 0 0;
+	font-size: 0.95rem;
+}
+
+.assistant-connections {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.assistant-connections li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-sm);
+	padding: var(--space-xs) var(--space-sm);
+	border: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
+	border-radius: 6px;
+}
+
+.assistant-connections li > div {
+	display: flex;
+	flex-direction: column;
+}

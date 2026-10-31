@@ -22,7 +22,9 @@
 //  - signs people in with GitHub for GitHub sync (/github/..., github.js),
 //    handing the token to their browser without keeping it;
 //  - downloads files from the web for signed-in accounts (/fetch,
-//    fetch.js), as Overleaf's "From external URL".
+//    fetch.js), as Overleaf's "From external URL";
+//  - lets assistants such as Claude work on an account's projects once it
+//    agrees (/mcp, mcp.js; /oauth/..., oauth.js).
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -42,6 +44,15 @@
 //                       the GitHub OAuth App behind "Sign in with GitHub";
 //                       unset turns it off
 //   GITHUB_OAUTH_URL    GitHub's address for signing in (tests only)
+//   MCP_DIR             directory for the applications accounts let work on
+//                       their projects (default ./mcp)
+//   MCP_REDIRECT_URIS   comma-separated addresses, besides Claude's and
+//                       programs on the same computer, that applications
+//                       may send people back to after they agree
+//   TEXLIVE_URL         the TeX Live server, for assistants to compile
+//                       (e.g. ws://texlive:7045); unset turns that off
+//   TEXLIVE_ORIGIN      the Origin to show it (default: the first of
+//                       ALLOWED_ORIGINS)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -52,10 +63,14 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
+const { createCompiler } = require('./compile');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
 const { createGitHub } = require('./github');
 const { createHistory } = require('./history');
+const { createMcp } = require('./mcp');
+const { createOAuth } = require('./oauth');
+const { createProjectFiles } = require('./projectFiles');
 const { createReviewGuard } = require('./review');
 const { createShares } = require('./shares');
 
@@ -77,6 +92,7 @@ const filesDir = path.resolve(process.env.FILES_DIR || 'files');
 const accountsDir = path.resolve(process.env.ACCOUNTS_DIR || 'accounts');
 const sharesDir = path.resolve(process.env.SHARES_DIR || 'shares');
 const historyDir = path.resolve(process.env.HISTORY_DIR || 'history');
+const mcpDir = path.resolve(process.env.MCP_DIR || 'mcp');
 
 // LevelDB does not create parent directories, and y-websocket opens it as
 // soon as its module loads.
@@ -150,6 +166,33 @@ const history = createHistory({
 });
 
 const urlFetcher = createUrlFetcher({ accounts, maxBytes: maxFileBytes, log });
+
+const oauth = createOAuth({
+	dir: mcpDir,
+	publicUrl: process.env.PUBLIC_URL,
+	accounts,
+	log,
+	redirectUris: (process.env.MCP_REDIRECT_URIS || '')
+		.split(',')
+		.map((uri) => uri.trim())
+		.filter(Boolean),
+});
+const mcp = createMcp({
+	oauth,
+	shares,
+	files: createProjectFiles({
+		docs,
+		persistence: getPersistence(),
+		getYDoc,
+		filesDir,
+	}),
+	history,
+	compiler: createCompiler({
+		url: process.env.TEXLIVE_URL,
+		origin: process.env.TEXLIVE_ORIGIN || allowedOrigins[0],
+	}),
+	log,
+});
 
 const reviewGuard = createReviewGuard({
 	docs,
@@ -282,13 +325,25 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
+	// Applications call these with their own tokens, from anywhere.
+	if (mcp.handles(url)) {
+		void mcp.handle(req, res);
+		return;
+	}
+	if (oauth.handles(url)) {
+		void oauth.handle(req, res, url);
+		return;
+	}
+
 	const api = accounts.handles(url)
 		? accounts
 		: shares.handles(url)
 			? shares
 			: urlFetcher.handles(url)
 				? urlFetcher
-				: null;
+				: oauth.handlesAccount(url)
+					? { handle: (request, response) => oauth.handleAccount(request, response) }
+					: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {
@@ -475,6 +530,8 @@ server.listen(port, host, () => {
 		`accounts in ${accountsDir};`,
 		`project links in ${sharesDir};`,
 		`versions in ${historyDir};`,
+		`assistant connections in ${mcpDir};`,
+		process.env.TEXLIVE_URL ? 'assistants compile;' : 'assistants do not compile;',
 		github.enabled ? 'GitHub sign-in on' : 'GitHub sign-in off',
 	);
 });

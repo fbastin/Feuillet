@@ -7,11 +7,12 @@ import { useAuth } from '../../hooks/useAuth';
 import Modal from '../common/Modal';
 import { UserIcon } from '../common/Icons';
 import ProfileAccountIdentitySection from './ProfileAccountIdentitySection';
+import ProfileAssistantsSection from './ProfileAssistantsSection';
 import ProfileServerAccountSection from './ProfileServerAccountSection';
 import BrowserStorageSection from './ProfileBrowserStorageSection';
 import LocalStorageDataSection from './ProfileLocalStorageDataSection';
 
-export type ProfileSettingsTab = 'account' | 'data';
+export type ProfileSettingsTab = 'account' | 'data' | 'assistants';
 
 interface ProfileSettingsModalProps {
 	isOpen: boolean;
@@ -57,6 +58,14 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 				>
 					{t('Data')}
 				</button>
+				<button
+					type='button'
+					className={`ui-tab ${tab === 'assistants' ? 'active' : ''}`}
+					data-tab='assistants'
+					onClick={() => setTab('assistants')}
+				>
+					{t('Assistants')}
+				</button>
 			</div>
 
 			<br />
@@ -89,6 +98,8 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 						onSuccess={setSuccessMessage}
 					/>
 				</>
+			) : tab === 'assistants' ? (
+				<ProfileAssistantsSection />
 			) : (
 				user && (
 					<>

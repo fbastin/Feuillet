@@ -91,6 +91,7 @@ jest.mock('@src/components/common/Icons', () => ({
 	DownloadIcon: () => null,
 	KeyIcon: () => null,
 	UnlinkIcon: () => null,
+	CopyUrlIcon: () => null,
 }));
 
 import GitHubSyncModal from '@src/components/history/GitHubSyncModal';
@@ -300,6 +301,8 @@ describe('GitHubSyncModal', () => {
 			'href',
 			'https://github.com/octocat/paper',
 		);
+		// To work on it with Claude Code.
+		expect(screen.getByDisplayValue('git clone https://github.com/octocat/paper.git')).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Push to GitHub' }));
 

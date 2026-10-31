@@ -18,6 +18,7 @@ import {
 	GitPushIcon,
 	UnlinkIcon,
 } from '@/components/common/Icons';
+import CopyField from '@/components/common/CopyField';
 import Modal from '@/components/common/Modal';
 import { fileStoreService } from '@/services/FileStoreService';
 import { gitFileSystemService } from '@/services/GitFileSystemService';
@@ -800,6 +801,23 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 					</span>
 				</div>
 				{renderStatus()}
+				{repositoryUrl ? (
+					<details className='github-sync-clone' data-role='clone-repository'>
+						<summary>
+							{t('Work on it on your computer, with Claude Code')}
+						</summary>
+						<p className='ui-meta'>
+							{t(
+								'Clone the repository, let Claude Code work on it and push its changes; then pull them here.',
+							)}
+						</p>
+						<CopyField
+							id='github-sync-clone'
+							value={`git clone ${repositoryUrl.replace(/\/+$/, '')}.git`}
+							mono
+						/>
+					</details>
+				) : null}
 			</section>
 
 			<section

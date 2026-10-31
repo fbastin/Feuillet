@@ -13,6 +13,7 @@ import {
 	TrashIcon,
 	ExportIcon,
 	EditIcon,
+	LinkIcon,
 	LogoutIcon,
 } from '../common/Icons';
 
@@ -107,6 +108,18 @@ const UserDropdown: React.FC<UserDropdownProps> = ({
 						>
 							<EditIcon />
 							{t('Profile Settings')}
+						</button>
+						<button
+							type='button'
+							className='ui-menu-item'
+							data-action='connect-claude'
+							onClick={() => {
+								setIsOpen(false);
+								onOpenProfile('assistants');
+							}}
+						>
+							<LinkIcon />
+							{t('Connect Claude')}
 						</button>
 						<button
 							type='button'

@@ -77,6 +77,14 @@ export interface ProjectMember {
 }
 
 /** A pending invitation: its link holds `invite`. */
+/** An application that works on the account's projects, as Claude. */
+export interface AssistantConnection {
+	id: string;
+	name: string;
+	createdAt: number;
+	lastUsedAt: number;
+}
+
 export interface ProjectInvite {
 	invite: string;
 	role: MemberRole;
@@ -462,6 +470,40 @@ class AccountSyncService {
 				? result.invites.filter(valid)
 				: [],
 		};
+	}
+
+	/**
+	 * Where assistants such as Claude connect to work on this account's
+	 * projects (server/collab/mcp.js); null without a server account.
+	 */
+	assistantConnectorUrl(): string | null {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		return session?.server ? `${session.server.replace(/\/+$/, '')}/mcp` : null;
+	}
+
+	/**
+	 * The applications this account lets work on its projects, after
+	 * disconnecting `revoke` if given; null without a server account.
+	 */
+	async assistantConnections(
+		revoke?: string,
+	): Promise<AssistantConnection[] | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			revoke ? 'POST' : 'GET',
+			'/oauth/connections',
+			{ token: session.token, ...(revoke ? { body: { revoke } } : {}) },
+		);
+		return Array.isArray(result?.connections)
+			? result.connections.filter(
+					(entry: AssistantConnection) =>
+						typeof entry?.id === 'string' && typeof entry.name === 'string',
+				)
+			: [];
 	}
 
 	/** Joins the project an invitation is for; gives the link to open it. */

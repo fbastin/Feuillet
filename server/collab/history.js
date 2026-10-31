@@ -178,6 +178,11 @@ const createHistory = ({
 		});
 	};
 
+	// A change made by the server itself, for an assistant (mcp.js), with who
+	// asked for it.
+	const record = (project, collection, authors) =>
+		schedule(project, { collection, authors });
+
 	// The editor's text; null for a document that holds something else.
 	const textOf = (doc) => {
 		try {
@@ -494,7 +499,7 @@ const createHistory = ({
 		}
 	};
 
-	return { track, flush, list, get, route, handle };
+	return { track, record, flush, list, get, route, handle };
 };
 
 module.exports = { createHistory };

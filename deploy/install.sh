@@ -19,18 +19,23 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # certbot copies the virtual host once; later proxy routes are added to its
-# copy, before </VirtualHost>.
+# copy, before </VirtualHost>. A route goes to the server's root, or with a
+# fifth argument to that path (and without WebSocket).
 add_proxy_route() {
-	local conf=$1 route=$2 port=$3 comment=$4
+	local conf=$1 route=$2 port=$3 comment=$4 target=${5:-}
 	grep -q "ProxyPass  *$route " "$conf" && return 0
 	local backup
 	backup="$conf.avant-$(date +%Y%m%d-%H%M%S)"
 	cp "$conf" "$backup"
-	awk -v route="$route" -v port="$port" -v comment="$comment" '
+	awk -v route="$route" -v port="$port" -v comment="$comment" -v target="$target" '
 		/<\/VirtualHost>/ && !done {
 			print "    # " comment
-			print "    ProxyPass        " route " http://127.0.0.1:" port "/ upgrade=websocket"
-			print "    ProxyPassReverse " route " http://127.0.0.1:" port "/"
+			if (target == "") {
+				print "    ProxyPass        " route " http://127.0.0.1:" port "/ upgrade=websocket"
+				print "    ProxyPassReverse " route " http://127.0.0.1:" port "/"
+			} else {
+				print "    ProxyPass        " route " http://127.0.0.1:" port target
+			}
 			print ""
 			done = 1
 		}
@@ -47,6 +52,10 @@ a2enmod -q proxy proxy_http proxy_wstunnel headers rewrite ssl
 if [ -e "$SSL_CONF" ]; then
 	add_proxy_route "$SSL_CONF" /collab/ 1234 "Real-time collaboration server (deploy/docker-compose.yml)."
 	add_proxy_route "$SSL_CONF" /texlive/ 7045 "TeX Live compile server (deploy/docker-compose.yml)."
+	# Where applications such as Claude look for how to sign in to the
+	# collaboration server's /collab/mcp (server/collab/oauth.js).
+	add_proxy_route "$SSL_CONF" /.well-known/oauth-authorization-server 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-authorization-server
+	add_proxy_route "$SSL_CONF" /.well-known/oauth-protected-resource 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-protected-resource
 else
 	install -m 644 "$HERE/apache/$DOMAIN.conf" "$SITES/$DOMAIN.conf"
 	a2ensite -q "$DOMAIN"

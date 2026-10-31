@@ -381,6 +381,48 @@ const createAccounts = ({ dir, log }) => {
 	// have.
 	const idOf = (account) => `${keyOf(account.username)}.${account.createdAt}`;
 
+	// Changes with the password, so that what was granted with the old one
+	// ends with it, as other devices are signed out.
+	const stampOf = (account) => sha256(String(account.passwordHash)).slice(0, 16);
+
+	// Checks a username and password as signing in does, without opening a
+	// session: for letting an application use the account (oauth.js).
+	const verifyCredentials = async (username, password, ip) => {
+		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
+		const name = normalizeUsername(username);
+		if (!validUsername(name) || typeof password !== 'string') {
+			throw new HttpError(400, 'invalid_credentials');
+		}
+		const key = keyOf(name);
+		const account = read(key);
+		if (!account) throw new HttpError(404, 'unknown_username');
+		limit(`failures:${key}`, MAX_FAILURES_PER_ACCOUNT);
+		if (!(await checkPassword(password, account.passwordHash))) {
+			throw new HttpError(401, 'wrong_password');
+		}
+		clearFailures(key);
+		return {
+			id: idOf(account),
+			username: account.username,
+			stamp: stampOf(account),
+		};
+	};
+
+	// The account with this id and its projects, or null when it was deleted
+	// or made again.
+	const accountById = (id) => {
+		const [key, createdAt] = String(id).split('.');
+		if (!/^[0-9a-f]{64}$/.test(key ?? '')) return null;
+		const account = read(key);
+		if (!account || String(account.createdAt) !== createdAt) return null;
+		return {
+			id,
+			username: account.username,
+			stamp: stampOf(account),
+			projects: listProjects(account).filter((entry) => !entry.deleted),
+		};
+	};
+
 	// Who sent a request.
 	const identify = (req) =>
 		authenticate(req, (account) => ({ body: idOf(account) }));
@@ -538,6 +580,9 @@ const createAccounts = ({ dir, log }) => {
 		handles,
 		handle,
 		identify,
+		verifyCredentials,
+		accountById,
+		clientAddress,
 		findAccount,
 		usernameOf,
 		shareProject,

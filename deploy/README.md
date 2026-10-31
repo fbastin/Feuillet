@@ -97,6 +97,31 @@ The sign-in asks for the `repo` scope, as the personal access token does, so
 that private repositories can be synced. Leaving the file empty turns the
 button off; pasting a token keeps working either way.
 
+## Claude (MCP connector)
+
+The collaboration server lets Claude work on an account's projects through
+the Model Context Protocol: `https://feuillet.slashbin.net/collab/mcp`
+(server/collab/mcp.js). Nothing needs registering:
+
+- in Claude (web or desktop app): Settings → Connectors → Add custom
+  connector, with that address;
+- in Claude Code: `claude mcp add --transport http feuillet
+  https://feuillet.slashbin.net/collab/mcp`, then `/mcp` to sign in.
+
+Claude signs in on a Feuillet page with the account's username and password
+(server/collab/oauth.js), and then works with the account's role in each
+project: it reads, searches and compiles, suggests changes as tracked changes,
+and comments. Its connections are listed, and can be ended, in the profile's
+Assistants tab; changing the password ends them too.
+
+`deploy/install.sh` adds the Apache routes Claude looks for
+(`/.well-known/oauth-authorization-server` and
+`/.well-known/oauth-protected-resource`); the connections are kept in the
+`collab-mcp` volume, and compiles go to the TeX Live container
+(`TEXLIVE_URL` in `deploy/docker-compose.yml`). Applications may send people
+back only to Claude or to a program on the same computer; `MCP_REDIRECT_URIS`
+in `/etc/feuillet/collab.env` adds other addresses.
+
 ## Updating
 
 - Servers and Apache routes: `sudo deploy/install.sh` again. It adds any

@@ -522,6 +522,29 @@ const createShares = ({
 
 	// Who owns a project an account lists: "you", "other" (with their
 	// name) or "none".
+	// What an account may do with a project it lists under this id: "edit",
+	// "review" or "view", by its role if it is a member, or else by the link
+	// it holds; with the id the project is stored under. Null when nothing.
+	const accessOf = (account, id) => {
+		const found = lookup(id);
+		if (!found) return null;
+		const role = roleOf(readProject(found.project), account);
+		const byRole =
+			role === 'owner' || role === 'editor'
+				? 'edit'
+				: role === 'reviewer'
+					? 'review'
+					: role === 'reader'
+						? 'view'
+						: null;
+		const byLink = found.access === 'replaced' ? null : found.access;
+		const rank = { view: 1, review: 2, edit: 3 };
+		const access = [byRole, byLink]
+			.filter(Boolean)
+			.sort((a, b) => rank[b] - rank[a])[0];
+		return access ? { project: found.project, access, role } : null;
+	};
+
 	const describe = (account, entry) => {
 		const found = lookup(entry.editId ?? entry.id);
 		if (!found) return {};
@@ -614,7 +637,7 @@ const createShares = ({
 		}
 	};
 
-	return { handles, handle, lookup, describe };
+	return { handles, handle, lookup, describe, accessOf };
 };
 
 module.exports = { createShares, isViewId, isReviewId };

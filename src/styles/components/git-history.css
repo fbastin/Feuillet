@@ -1005,3 +1005,13 @@
 .versions-change-open:hover > span {
 	text-decoration: underline;
 }
+
+/* Cloning the linked repository, to work on it with Claude Code */
+.github-sync-clone summary {
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.github-sync-clone[open] summary {
+	margin-bottom: var(--space-xs);
+}

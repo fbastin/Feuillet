@@ -13,6 +13,8 @@ services:
     environment:
       ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
       PUBLIC_URL: "https://feuillet.slashbin.net/collab"
+      # For assistants (Claude) to compile projects (server/collab/mcp.js).
+      TEXLIVE_URL: "ws://texlive:7045"
     # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET, for "Sign in with GitHub"
     # (see deploy/README.md); kept out of the repository.
     env_file:
@@ -24,6 +26,7 @@ services:
       - collab-accounts:/accounts
       - collab-shares:/shares
       - collab-history:/history
+      - collab-mcp:/mcp
 
   # Compiles documents written by anyone who can open Feuillet: each
   # connection under its own uid, bounded in memory, processes and disk, and
@@ -64,3 +67,4 @@ volumes:
   collab-accounts:
   collab-shares:
   collab-history:
+  collab-mcp:
