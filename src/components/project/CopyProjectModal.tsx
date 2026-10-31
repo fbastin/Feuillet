@@ -77,6 +77,7 @@ const CopyProjectModal: React.FC<CopyProjectModalProps> = ({
 					data-variant='modal'
 					data-align='end'
 					data-cross='stretch'
+					data-fill='true'
 				>
 					<button
 						type='button'
