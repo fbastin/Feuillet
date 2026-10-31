@@ -146,3 +146,11 @@ export function replaceHash(hash: string): void {
 		);
 	}
 }
+
+/** A personal invitation's link, `#invite:<token>`, which joins its project. */
+export const inviteUrl = (invite: string): string =>
+	`${window.location.origin}${window.location.pathname}#invite:${invite}`;
+
+/** The invitation a location's hash holds, if any. */
+export const inviteOf = (hash: string): string | null =>
+	/^#?invite:([0-9a-f]{48})$/.exec(hash)?.[1] ?? null;

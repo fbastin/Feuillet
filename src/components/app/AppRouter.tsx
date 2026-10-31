@@ -9,11 +9,17 @@ import {
 	Suspense,
 } from 'react';
 
+import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { useAuth } from '../../hooks/useAuth';
 import { useDiskFiles } from '../../hooks/useDiskFiles';
+import {
+	AccountServerError,
+	accountSyncService,
+} from '../../services/AccountSyncService';
 import { collabService } from '../../services/CollabService';
 import { fileStoreService } from '../../services/FileStoreService';
+import { notificationService } from '../../services/NotificationService';
 import { projectLinkService } from '../../services/ProjectLinkService';
 import {
 	shareTargetService,
@@ -21,6 +27,7 @@ import {
 } from '../../services/ShareTargetService';
 import type { YjsDocUrl } from '../../types/yjs';
 import {
+	inviteOf,
 	isValidYjsUrl,
 	parseUrlFragments,
 	pushHash,
@@ -37,6 +44,7 @@ import LoadingScreen from './LoadingScreen';
 import ProjectApp from './ProjectApp';
 import PrivacyModal from '../common/PrivacyModal';
 import ShareTargetModal from '../project/ShareTargetModal';
+import ToastContainer from '../common/ToastContainer';
 
 const moduleLog = createNamedLogger('AppRouter');
 
@@ -303,6 +311,61 @@ const AppRouter: React.FC = () => {
 		createProjectFromUrl,
 	]);
 
+	// A personal invitation's link, once signed in: the account joins the
+	// project, which opens, as when accepting Overleaf's invitation.
+	const acceptedInviteRef = useRef<string | null>(null);
+	useEffect(() => {
+		const accept = () => {
+			const invite = inviteOf(window.location.hash);
+			if (!invite || !isAuthenticated || isInitializing) return;
+			if (acceptedInviteRef.current === invite) return;
+			acceptedInviteRef.current = invite;
+			const operationId = 'accept-invite';
+			const leave = (message: string) => {
+				notificationService.showError(message, { operationId });
+				replaceHash('');
+				resolveViewFromHash('');
+			};
+			if (!accountSyncService.isLinked()) {
+				leave(
+					t(
+						'To accept this invitation, sign in to an account on the server, or create one.',
+					),
+				);
+				return;
+			}
+			notificationService.showLoading(t('Joining the project...'), operationId);
+			accountSyncService
+				.acceptInvite(invite)
+				.then((joined) => {
+					notificationService.showSuccess(
+						joined.name
+							? t('You joined {name}.', { name: joined.name })
+							: t('You joined the project.'),
+						{ operationId },
+					);
+					replaceHash(`yjs:${joined.project}`);
+					resolveViewFromHash(`yjs:${joined.project}`);
+				})
+				.catch((error) => {
+					const code = error instanceof AccountServerError ? error.code : '';
+					leave(
+						code === 'unknown_invite'
+							? t('This invitation was already used or taken back.')
+							: code === 'expired_invite'
+								? t('This invitation has expired. Ask for a new one.')
+								: code === 'already_owner'
+									? t('You own this project.')
+									: t('The invitation could not be accepted.'),
+					);
+				});
+		};
+		accept();
+		// Also when the link is opened in a tab already showing Feuillet.
+		window.addEventListener('hashchange', accept);
+		return () => window.removeEventListener('hashchange', accept);
+	}, [isAuthenticated, isInitializing, resolveViewFromHash]);
+
 	useEffect(() => {
 		const handlePopState = () => {
 			resolveViewFromHash(window.location.hash.substring(1));
@@ -536,6 +599,10 @@ const AppRouter: React.FC = () => {
 			)}
 
 			<PrivacyModal isOpen={showPrivacy} onClose={handleClosePrivacy} />
+
+			{/* Once for the whole app, so that a message outlives a change of
+			    view, and shows in the project list too. */}
+			<ToastContainer />
 
 			<ShareTargetModal
 				isOpen={incomingFiles.length > 0 && isAuthenticated && !isInitializing}

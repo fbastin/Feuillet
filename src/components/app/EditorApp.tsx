@@ -39,7 +39,6 @@ import GitHubSyncButton from '../history/GitHubSyncButton';
 import { EditIcon, ProjectsIcon } from '../common/Icons';
 import Modal from '../common/Modal';
 import OfflineBanner from '../common/OfflineBanner';
-import ToastContainer from '../common/ToastContainer';
 import TypesetterInfo from '../common/TypesetterInfo';
 import WorkspaceStatusIndicator from '../workspace/WorkspaceStatusIndicator';
 import FileDocumentController from '../editor/FileDocumentController';
@@ -930,7 +929,6 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 					isInEditor={true}
 				/>
 			)}
-			<ToastContainer />
 		</div>
 	);
 };

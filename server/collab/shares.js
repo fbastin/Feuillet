@@ -35,6 +35,12 @@
 //   POST /share/members {project, remove: username}
 //   POST /share/copy {project, name} (token) -> {project}, a copy of the
 //                                               project the account owns
+//   POST /share/invites {project}    (token) -> {invites}, for the owner
+//   POST /share/invites {project, create: {role}, name, type} -> {invite,
+//                                    invites}: a personal invitation link
+//   POST /share/invites {project, revoke: invite} -> {invites}
+//   POST /share/accept {invite}      (token) -> {project, role, name, type}:
+//                                    the account becomes a member
 //
 // `project` is an editing id, or for /share/edit any link the account holds.
 // Knowing an editing id is what lets someone edit the project, so it also
@@ -48,10 +54,18 @@
 // account copy it (copy.js); the copy is a new project the account owns.
 // Account lists tell who owns each project (`describe`).
 //
+// Invitations, as Overleaf's by email but without one: the owner makes a
+// link for a role and sends it; whoever opens it signed in, with an account
+// made then if need be, becomes a member with that role. A link works once,
+// for 30 days, and its owner may take it back before.
+//
 // SHARES_DIR keeps one file per project (projects/<project>.json: {view,
-// review, edit, owner, members}), one per read-only link (views/<view>.json:
-// {project, replaced}), one per review link (reviews/<review>.json: the
-// same) and one per editing id given out (edits/<edit>.json: the same).
+// review, edit, owner, members, invites}), one per read-only link
+// (views/<view>.json: {project, replaced}), one per review link
+// (reviews/<review>.json: the same), one per editing id given out
+// (edits/<edit>.json: the same) and one per pending invitation
+// (invites/<invite>.json: {project, role, name, type, createdAt,
+// expiresAt}).
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -64,6 +78,9 @@ const PROJECT_ID = /^[A-Za-z0-9_-]{1,100}$/;
 const VIEW_ID = /^view[0-9a-f]{32}$/;
 const REVIEW_ID = /^review[0-9a-f]{32}$/;
 const ROLES = ['editor', 'reviewer', 'reader'];
+const INVITE_ID = /^[0-9a-f]{48}$/;
+const INVITE_MS = 30 * 24 * 60 * 60 * 1000;
+const MAX_INVITES = 50;
 const PROJECT_TYPES = ['latex', 'typst'];
 
 class HttpError extends Error {
@@ -93,7 +110,14 @@ const createShares = ({
 	const viewsDir = path.join(dir, 'views');
 	const reviewsDir = path.join(dir, 'reviews');
 	const editsDir = path.join(dir, 'edits');
-	for (const folder of [projectsDir, viewsDir, reviewsDir, editsDir]) {
+	const invitesDir = path.join(dir, 'invites');
+	for (const folder of [
+		projectsDir,
+		viewsDir,
+		reviewsDir,
+		editsDir,
+		invitesDir,
+	]) {
 		fs.mkdirSync(folder, { recursive: true });
 	}
 
@@ -116,6 +140,7 @@ const createShares = ({
 	const viewPath = (view) => path.join(viewsDir, `${view}.json`);
 	const reviewPath = (review) => path.join(reviewsDir, `${review}.json`);
 	const editPath = (edit) => path.join(editsDir, `${edit}.json`);
+	const invitePath = (invite) => path.join(invitesDir, `${invite}.json`);
 
 	const readProject = (project) => readJson(projectPath(project)) ?? {};
 	const writeProject = (project, record) =>
@@ -267,6 +292,52 @@ const createShares = ({
 			.map(({ username, role }) => ({ username, role }))
 			.sort((a, b) => a.username.localeCompare(b.username));
 
+	const linkOf = (project, role) =>
+		role === 'editor'
+			? editOf(project)
+			: role === 'reviewer'
+				? reviewOf(project)
+				: viewOf(project);
+
+	// An account made a member, or given another role; the project appears
+	// in its list under the link of its role.
+	const addMember = (project, member, role, { name, type } = {}) => {
+		const record = readProject(project);
+		const members = { ...record.members };
+		if (
+			!members[member.id] &&
+			Object.keys(members).length >= MAX_MEMBERS
+		) {
+			throw new HttpError(413, 'too_many_members');
+		}
+		const previous = members[member.id]?.role;
+		members[member.id] = {
+			username: member.username,
+			role,
+			addedAt: Date.now(),
+		};
+		writeProject(project, { ...record, members });
+		// Whoever is given less must not keep the link they had.
+		if (previous === 'editor' && role !== 'editor') replaceEdit(project);
+		if (
+			previous === 'reviewer' &&
+			role === 'reader' &&
+			isReviewId(record.review)
+		) {
+			reviewOf(project, true);
+		}
+		const link = linkOf(project, role);
+		const now = Date.now();
+		return accounts.shareProject(member.username, {
+			id: link,
+			docUrl: `yjs:${link}`,
+			name: typeof name === 'string' ? name : '',
+			type: PROJECT_TYPES.includes(type) ? type : 'latex',
+			createdAt: now,
+			updatedAt: now,
+		});
+	};
+
 	const shareMembers = async (req, body) => {
 		// Readers and reviewers come by their own link.
 		const found = lookup(body.project);
@@ -288,45 +359,7 @@ const createShares = ({
 			const member = accounts.findAccount(body.add.username);
 			if (!member) throw new HttpError(404, 'unknown_user');
 			if (member.id === account) throw new HttpError(400, 'already_owner');
-			const record = readProject(project);
-			const members = { ...record.members };
-			if (
-				!members[member.id] &&
-				Object.keys(members).length >= MAX_MEMBERS
-			) {
-				throw new HttpError(413, 'too_many_members');
-			}
-			const previous = members[member.id]?.role;
-			members[member.id] = {
-				username: member.username,
-				role,
-				addedAt: Date.now(),
-			};
-			writeProject(project, { ...record, members });
-			// Whoever is given less must not keep the link they had.
-			if (previous === 'editor' && role !== 'editor') replaceEdit(project);
-			if (
-				previous === 'reviewer' &&
-				role === 'reader' &&
-				isReviewId(record.review)
-			) {
-				reviewOf(project, true);
-			}
-			const link =
-				role === 'editor'
-					? editOf(project)
-					: role === 'reviewer'
-						? reviewOf(project)
-						: viewOf(project);
-			const now = Date.now();
-			shared = accounts.shareProject(member.username, {
-				id: link,
-				docUrl: `yjs:${link}`,
-				name: typeof body.name === 'string' ? body.name : '',
-				type: PROJECT_TYPES.includes(body.type) ? body.type : 'latex',
-				createdAt: now,
-				updatedAt: now,
-			});
+			shared = addMember(project, member, role, body);
 			log('collaborator added');
 		} else if (typeof body.remove === 'string') {
 			const record = readProject(project);
@@ -354,6 +387,115 @@ const createShares = ({
 			...(owner ? { owner } : {}),
 			// The editing link is the owner's to hand out.
 			...(role === 'owner' ? { edit: editOf(project) } : {}),
+		};
+	};
+
+	const dropInvite = (project, invite) => {
+		fs.rmSync(invitePath(invite), { force: true });
+		const record = readProject(project);
+		if (!(record.invites ?? []).includes(invite)) return;
+		writeProject(project, {
+			...record,
+			invites: record.invites.filter((entry) => entry !== invite),
+		});
+	};
+
+	// A project's pending invitations, the expired ones forgotten.
+	const pendingInvites = (project) => {
+		const now = Date.now();
+		const pending = [];
+		for (const invite of readProject(project).invites ?? []) {
+			const entry = readJson(invitePath(invite));
+			if (entry?.project === project && entry.expiresAt > now) {
+				const { role, createdAt, expiresAt } = entry;
+				pending.push({ invite, role, createdAt, expiresAt });
+			} else {
+				dropInvite(project, invite);
+			}
+		}
+		return pending;
+	};
+
+	const shareInvites = async (req, body) => {
+		const found = isProjectId(body.project) ? lookup(body.project) : null;
+		if (!found) throw new HttpError(400, 'invalid_project');
+		const account = await accounts.identify(req);
+		const { project } = found;
+		if (roleOf(readProject(project), account) !== 'owner') {
+			throw new HttpError(403, 'not_owner');
+		}
+
+		let created = null;
+		if (body.create && typeof body.create === 'object') {
+			const { role } = body.create;
+			if (!ROLES.includes(role)) throw new HttpError(400, 'invalid_role');
+			if (pendingInvites(project).length >= MAX_INVITES) {
+				throw new HttpError(413, 'too_many_invites');
+			}
+			const invite = crypto.randomBytes(24).toString('hex');
+			const createdAt = Date.now();
+			const expiresAt = createdAt + INVITE_MS;
+			writeJson(invitePath(invite), {
+				project,
+				role,
+				name: typeof body.name === 'string' ? body.name.slice(0, 200) : '',
+				type: PROJECT_TYPES.includes(body.type) ? body.type : 'latex',
+				createdAt,
+				expiresAt,
+			});
+			const record = readProject(project);
+			writeProject(project, {
+				...record,
+				invites: [...(record.invites ?? []), invite],
+			});
+			created = { invite, role, createdAt, expiresAt };
+			log('invitation made');
+		} else if (typeof body.revoke === 'string') {
+			if (!INVITE_ID.test(body.revoke)) {
+				throw new HttpError(400, 'invalid_invite');
+			}
+			dropInvite(project, body.revoke);
+			log('invitation taken back');
+		}
+		return {
+			...(created ? { invite: created } : {}),
+			invites: pendingInvites(project),
+		};
+	};
+
+	const acceptInvite = async (req, body) => {
+		const invite =
+			typeof body.invite === 'string' && INVITE_ID.test(body.invite)
+				? body.invite
+				: null;
+		if (!invite) throw new HttpError(400, 'invalid_invite');
+		const account = await accounts.identify(req);
+		const entry = readJson(invitePath(invite));
+		if (!entry || !isProjectId(entry.project)) {
+			throw new HttpError(404, 'unknown_invite');
+		}
+		const { project, role } = entry;
+		if (!(entry.expiresAt > Date.now())) {
+			dropInvite(project, invite);
+			throw new HttpError(410, 'expired_invite');
+		}
+		if (readProject(project).owner === account) {
+			throw new HttpError(400, 'already_owner');
+		}
+		const username = accounts.usernameOf(account);
+		if (!username || !ROLES.includes(role)) {
+			throw new HttpError(404, 'unknown_invite');
+		}
+		// Used once: gone before the member is added, so that two openings
+		// of the link cannot both add someone.
+		dropInvite(project, invite);
+		await addMember(project, { id: account, username }, role, entry);
+		log('invitation accepted');
+		return {
+			project: linkOf(project, role),
+			role,
+			name: entry.name,
+			type: entry.type,
 		};
 	};
 
@@ -414,6 +556,8 @@ const createShares = ({
 		'/share/edit': (req, body) => shareEdit(req, body),
 		'/share/members': (req, body) => shareMembers(req, body),
 		'/share/copy': (req, body) => shareCopy(req, body),
+		'/share/invites': (req, body) => shareInvites(req, body),
+		'/share/accept': (req, body) => acceptInvite(req, body),
 	};
 
 	const handles = (url) => Object.hasOwn(routes, url);

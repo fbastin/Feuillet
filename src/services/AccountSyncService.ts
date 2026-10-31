@@ -76,6 +76,14 @@ export interface ProjectMember {
 	role: MemberRole;
 }
 
+/** A pending invitation: its link holds `invite`. */
+export interface ProjectInvite {
+	invite: string;
+	role: MemberRole;
+	createdAt: number;
+	expiresAt: number;
+}
+
 export interface MembersChange {
 	add?: ProjectMember;
 	remove?: string;
@@ -416,6 +424,68 @@ class AccountSyncService {
 		} catch {
 			return null;
 		}
+	}
+
+	/**
+	 * A project's personal invitations, as Overleaf's by email but sent by
+	 * hand: made for a role, listed, or taken back. For its owner only.
+	 */
+	async projectInvites(
+		projectId: string,
+		change: {
+			create?: { role: ProjectMember['role'] };
+			revoke?: string;
+			name?: string;
+			type?: string;
+		} = {},
+	): Promise<{ invite?: ProjectInvite; invites: ProjectInvite[] } | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/share/invites',
+			{
+				token: session.token,
+				body: { project: projectLinkService.serverId(projectId), ...change },
+			},
+		);
+		const valid = (entry: ProjectInvite) =>
+			typeof entry?.invite === 'string' && MEMBER_ROLES.includes(entry.role);
+		return {
+			...(valid(result?.invite) ? { invite: result.invite } : {}),
+			invites: Array.isArray(result?.invites)
+				? result.invites.filter(valid)
+				: [],
+		};
+	}
+
+	/** Joins the project an invitation is for; gives the link to open it. */
+	async acceptInvite(invite: string): Promise<{
+		project: string;
+		role: ProjectMember['role'];
+		name: string;
+	}> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) throw new AccountServerError('signed_out', 401);
+		const result = await this.request(session.server, 'POST', '/share/accept', {
+			token: session.token,
+			body: { invite },
+		});
+		if (
+			typeof result?.project !== 'string' ||
+			!isValidYjsProjectId(result.project) ||
+			!MEMBER_ROLES.includes(result.role)
+		) {
+			throw new AccountServerError('invalid_response');
+		}
+		return {
+			project: result.project,
+			role: result.role,
+			name: typeof result.name === 'string' ? result.name : '',
+		};
 	}
 
 	private validLink(value: unknown, kind: ProjectLinkKind): string | undefined {

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { t } from '@/i18n';
 import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
 import { useTheme } from '../../hooks/useTheme';
-import { pushHash } from '../../utils/urlUtils';
+import { inviteOf, pushHash } from '../../utils/urlUtils';
 import ImportAccount from '../auth/ImportAccount';
 import Login from '../auth/Login';
 import Register from '../auth/Register';
@@ -58,6 +58,18 @@ const AuthApp: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
 						<ThemeToggleButton className='auth-theme-toggle' />
 					</div>
 				</div>
+
+				{inviteOf(window.location.hash) && (
+					<div
+						className='ui-message'
+						data-tone='info'
+						data-role='invite-notice'
+					>
+						{t(
+							'You were invited to work on a project. Sign in, or create an account, to join it.',
+						)}
+					</div>
+				)}
 
 				{activeView === 'login' ? (
 					<Login
