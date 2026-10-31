@@ -19,6 +19,7 @@ import 'katex/dist/katex.min.css';
 
 import { t } from '@/i18n';
 import { fileStoreService } from '../../services/FileStoreService';
+import { htmlToLatex } from '../../utils/htmlToLatex';
 import {
 	type FigureState,
 	figureFrame,
@@ -924,6 +925,89 @@ const visualTheme = EditorView.baseTheme({
 	},
 });
 
+// Ctrl+Shift+V pastes the plain text, as on Overleaf.
+let plainPasteAt = 0;
+
+// Paragraphs, lists or headings stand apart from the text around them, and
+// the cursor goes on below them.
+const asPasted = (state: EditorState, latex: string): string => {
+	const isBlock =
+		latex.includes('\n\n') ||
+		/^\\(section|subsection|subsubsection|paragraph|begin)\b/.test(latex) ||
+		/\\end\{[A-Za-z*]+\}$/.test(latex);
+	if (!isBlock) return latex;
+	const { from, to } = state.selection.main;
+	const line = state.doc.lineAt(from);
+	const endLine = state.doc.lineAt(to);
+	const before = line.text.slice(0, from - line.from).trim() ? '\n\n' : '';
+	const after = endLine.text.slice(to - endLine.from).trim() ? '\n\n' : '\n';
+	return `${before}${latex}${after}`;
+};
+
+// Pasted links need hyperref: loaded before \begin{document} when this file
+// has the preamble and does not load it yet.
+const linksPackage = (
+	state: EditorState,
+	text: string,
+): { from: number; insert: string } | null => {
+	if (!/\\(href|url)\{/.test(text)) return null;
+	const doc = state.doc.toString();
+	if (/\\usepackage(\[[^\]]*\])?\{[^}]*\bhyperref\b/.test(doc)) return null;
+	const begin = doc.search(/^[^%\n]*\\begin\{document\}/m);
+	if (begin < 0) return null;
+	return {
+		from: state.doc.lineAt(begin).from,
+		insert: '\\usepackage{hyperref}\n',
+	};
+};
+
+/**
+ * Formatted text pasted from Word, Google Docs or a web page comes as
+ * LaTeX in the visual editor, as on Overleaf; images go on to be uploaded.
+ */
+const formattedPaste = Prec.high(
+	EditorView.domEventHandlers({
+		keydown(event) {
+			if (
+				(event.ctrlKey || event.metaKey) &&
+				event.shiftKey &&
+				event.key.toLowerCase() === 'v'
+			) {
+				plainPasteAt = Date.now();
+			}
+			return false;
+		},
+		paste(event, view) {
+			if (!view.state.field(visualModeField) || view.state.readOnly) {
+				return false;
+			}
+			if (Date.now() - plainPasteAt < 1000) {
+				plainPasteAt = 0;
+				return false;
+			}
+			const html = event.clipboardData?.getData('text/html');
+			const latex = html ? htmlToLatex(html) : null;
+			if (!latex) return false;
+			event.preventDefault();
+			const text = asPasted(view.state, latex);
+			const { from, to } = view.state.selection.main;
+			const preamble = linksPackage(view.state, text);
+			view.dispatch({
+				changes: [...(preamble ? [preamble] : []), { from, to, insert: text }],
+				selection: {
+					anchor:
+						from +
+						text.length +
+						(preamble && preamble.from <= from ? preamble.insert.length : 0),
+				},
+				userEvent: 'input.paste',
+				scrollIntoView: true,
+			});
+			return true;
+		},
+	}),
+);
+
 /**
  * The visual editor for LaTeX, as on Overleaf: headings, emphasis, lists,
  * formulas, references and figures shown as they will look, the preamble
@@ -940,6 +1024,7 @@ export function visualLatex(initial: boolean): Extension {
 		decorationsField,
 		keepInsideArgument,
 		endOfArgument,
+		formattedPaste,
 		EditorView.editorAttributes.compute(
 			[visualModeField],
 			(state): Record<string, string> =>
