@@ -20,6 +20,7 @@ import {
 	reviewClickHandler,
 } from './review/reviewDecorations';
 import { restoreReviewBody } from './review/reviewSegments';
+import { createReviewTooltip } from './review/reviewTooltip';
 import {
 	type ReviewConfig,
 	createTrackChangesFilter,
@@ -31,7 +32,7 @@ export const setReviewConfig = StateEffect.define<Partial<ReviewConfig>>();
 
 export const reviewConfig = StateField.define<ReviewConfig>({
 	create() {
-		return { tracking: false, author: '' };
+		return { tracking: false, author: '', canDecide: false };
 	},
 
 	update(value, tr) {
@@ -172,6 +173,12 @@ export const reviewDisplayExtension = [
 	createAtomicTagRanges(reviewChunks),
 	createReviewReporter(reviewChunks),
 	reviewClickHandler,
+	createReviewTooltip({
+		chunks: reviewChunks,
+		config: reviewConfig,
+		accept: acceptReviewById,
+		reject: rejectReviewById,
+	}),
 ];
 
 export const reviewSystemExtension = [

@@ -20,9 +20,11 @@ interface ReviewItemProps {
 	readOnly?: boolean;
 	/** Whether it may be accepted, rejected or resolved: not by reviewers. */
 	canDecide?: boolean;
+	/** The change at the cursor in the editor. */
+	active?: boolean;
 }
 
-const truncateUsername = (username: string, maxLength = 15) =>
+const truncateUsername = (username: string, maxLength = 28) =>
 	username.length > maxLength
 		? `${username.substring(0, maxLength)}...`
 		: username;
@@ -39,6 +41,7 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 			deleteResponse,
 			readOnly = false,
 			canDecide = true,
+			active = false,
 		},
 		ref,
 	) => {
@@ -71,6 +74,7 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 				data-role='thread-item'
 				data-state={review.resolved ? 'resolved' : undefined}
 				data-review-id={review.id}
+				data-active={active ? 'true' : undefined}
 				ref={ref}
 				style={top === undefined ? undefined : { top: `${top}px` }}
 			>
@@ -98,28 +102,6 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 							>
 								<ResolveIcon />
 							</button>
-							<button
-								type='button'
-								className='ui-icon-button'
-								data-variant='ghost'
-								data-tone='success'
-								data-size='sm'
-								onClick={() => acceptReview(review.id)}
-								title={t('Accept change')}
-							>
-								<CheckIcon />
-							</button>
-							<button
-								type='button'
-								className='ui-icon-button'
-								data-variant='ghost'
-								data-tone='danger'
-								data-size='sm'
-								onClick={() => rejectReview(review.id)}
-								title={t('Reject change')}
-							>
-								<CloseIcon />
-							</button>
 						</div>
 					)}
 				</div>
@@ -139,6 +121,31 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 						</span>
 					))}
 				</button>
+
+				{!readOnly && canDecide && (
+					<div className='review-decision' data-role='review-decision'>
+						<button
+							type='button'
+							className='button secondary'
+							data-action='reject-change'
+							onClick={() => rejectReview(review.id)}
+							title={t('Reject change')}
+						>
+							<CloseIcon />
+							{t('Reject')}
+						</button>
+						<button
+							type='button'
+							className='button primary'
+							data-action='accept-change'
+							onClick={() => acceptReview(review.id)}
+							title={t('Accept change')}
+						>
+							<CheckIcon />
+							{t('Accept')}
+						</button>
+					</div>
+				)}
 
 				{review.responses.length > 0 && (
 					<div className='ui-thread'>
@@ -232,6 +239,9 @@ const ReviewItem = memo(
 	(previous, next) =>
 		previous.review === next.review &&
 		previous.top === next.top &&
+		previous.active === next.active &&
+		previous.readOnly === next.readOnly &&
+		previous.canDecide === next.canDecide &&
 		previous.acceptReview === next.acceptReview &&
 		previous.rejectReview === next.rejectReview &&
 		previous.resolveReview === next.resolveReview &&

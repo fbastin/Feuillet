@@ -49,6 +49,8 @@ export interface ReviewContextType {
 	reviews: ReviewSnapshot[];
 	showReviews: boolean;
 	toggleReviews: () => void;
+	/** The change at the cursor in the editor, if any. */
+	activeReviewId: string | null;
 	trackChanges: boolean;
 	trackChangesLocal: boolean;
 	trackChangesShared: boolean;

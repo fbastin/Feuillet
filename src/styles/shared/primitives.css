@@ -1907,6 +1907,32 @@ textarea:focus,
 	display: none;
 }
 
+/* Control groups on one line, the least used in a « … » menu when narrow. */
+.overflow-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--ui-plugin-controls-gap, 0.1rem);
+}
+
+.overflow-controls > *,
+.overflow-controls-item {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+}
+
+.overflow-controls-item:empty {
+	display: none;
+}
+
+.overflow-controls-menu .ui-panel-header.overflow-controls-menu-body {
+	flex-wrap: wrap;
+	max-width: 17rem;
+	padding: var(--space-xs);
+	gap: var(--space-xs);
+	background: transparent;
+}
+
 .ui-toolbar[data-role="plugin"] {
 	--ui-icon-button-size: var(
 		--ui-plugin-toolbar-item-height,

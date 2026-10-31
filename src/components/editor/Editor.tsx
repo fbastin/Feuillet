@@ -77,6 +77,9 @@ import {
 	SaveIcon,
 	ToolbarShowIcon,
 } from '../common/Icons';
+import OverflowControls, {
+	type OverflowItem,
+} from '../common/OverflowControls';
 import { PluginControlGroup, PluginHeader } from '../common/PluginHeader';
 import PluginToolbar, { type ToolbarEntry } from '../common/PluginToolbar';
 import UnlinkedDocumentNotice from './UnlinkedDocumentNotice';
@@ -605,15 +608,61 @@ const EditorContent: React.FC<{
 		getPluginToggleButtons([fileType]);
 	// Its bibliography tools change documents without tracking them.
 	const showsBibliography = !isViewOnly && !reviewOnly;
-	const hasPluginToggles =
-		showsBibliography &&
-		(availableLSPPlugins.length > 0 || availableBibPlugins.length > 0);
-	const headerControls =
-		isEditingFile && fileName ? (
-			<>
-				{isLatexFile(filePath) && <VisualEditorToggle viewRef={viewRef} />}
-				{hasToolbarSupport(fileType) && !isViewOnly && (
-					<>
+	// The control groups, by how much they matter: when the header is narrow,
+	// the least used go into a « … » menu; review and Claude always show.
+	const reviewControls: OverflowItem = {
+		key: 'review',
+		priority: Number.POSITIVE_INFINITY,
+		node: (
+			<PluginControlGroup>
+				{!isViewOnly && <TrackChangesButton className='header-review-button' />}
+				<ReviewToggleButton className='header-review-button' />
+				<CommentToggleButton className='header-comment-button' />
+				<AskClaudeButton
+					getLocation={getClaudeLocation}
+					className='header-claude-button'
+				/>
+			</PluginControlGroup>
+		),
+	};
+	const pluginToggles = (
+		lspPlugins: { id: string }[],
+		bibPlugins: { id: string }[],
+	): OverflowItem | null =>
+		showsBibliography && (lspPlugins.length > 0 || bibPlugins.length > 0)
+			? {
+					key: 'plugins',
+					priority: 3,
+					node: (
+						<PluginControlGroup>
+							{[...lspPlugins, ...bibPlugins].map((plugin) => (
+								<BibliographyToggleButton
+									key={plugin.id}
+									pluginId={plugin.id}
+									className='header-lsp-button'
+								/>
+							))}
+						</PluginControlGroup>
+					),
+				}
+			: null;
+	const editingControls = (path: string, name?: string): OverflowItem[] => {
+		const type = detectFileType(path);
+		const formatted =
+			hasToolbarSupport(type) &&
+			!isViewOnly &&
+			(isLatexFile(path) || isTypstFile(path));
+		const list: (OverflowItem | false)[] = [
+			isLatexFile(path) && {
+				key: 'visual',
+				priority: 6,
+				node: <VisualEditorToggle viewRef={viewRef} />,
+			},
+			hasToolbarSupport(type) &&
+				!isViewOnly && {
+					key: 'toolbar',
+					priority: 1,
+					node: (
 						<PluginControlGroup>
 							<button
 								type='button'
@@ -624,280 +673,182 @@ const EditorContent: React.FC<{
 								<ToolbarShowIcon />
 							</button>
 						</PluginControlGroup>
-
-						{(isLatexFile(filePath) || isTypstFile(filePath)) && (
-							<>
-								<SourceMapButton onForwardSync={handleForwardSync} />
-
-								<ContentFormatterButton
-									getCurrentContent={() =>
-										viewRef.current?.state.doc.toString() || ''
-									}
-									contentType={fileType}
-									onFormat={handleFormattedContent}
-								/>
-							</>
-						)}
-					</>
-				)}
-
-				<LSPNavigationButton fileName={fileName} />
-
-				<PluginControlGroup>
-					{!isViewOnly && onSave && (
-						<button
-							type='button'
-							onClick={onSave}
-							title={t('Save File (Ctrl+S)')}
-							className='button'
-						>
-							<SaveIcon />
-						</button>
-					)}
-					<button
-						type='button'
-						onClick={() => {
-							const content =
-								viewRef.current?.state.doc.toString() || textContent;
-							copyCleanTextToClipboard(content);
-						}}
-						title={t('Copy Text')}
-						className='button'
-					>
-						<CopyIcon />
-					</button>
-					{onExport && (
-						<button
-							type='button'
-							onClick={() =>
-								onExport?.(() => viewRef.current?.state.doc.toString() || '')
-							}
-							title={t('Download File')}
-							className='button'
-						>
-							<DownloadIcon />
-						</button>
-					)}
-				</PluginControlGroup>
-
-				<PluginControlGroup>
-					{!isViewOnly && (
-						<TrackChangesButton className='header-review-button' />
-					)}
-					<ReviewToggleButton className='header-review-button' />
-					<CommentToggleButton className='header-comment-button' />
-					<AskClaudeButton
-						getLocation={getClaudeLocation}
-						className='header-claude-button'
+					),
+				},
+			formatted && {
+				key: 'source-map',
+				priority: 4,
+				node: <SourceMapButton onForwardSync={handleForwardSync} />,
+			},
+			formatted && {
+				key: 'formatter',
+				priority: 2,
+				node: (
+					<ContentFormatterButton
+						getCurrentContent={() =>
+							viewRef.current?.state.doc.toString() || ''
+						}
+						contentType={type}
+						onFormat={handleFormattedContent}
 					/>
-				</PluginControlGroup>
+				),
+			},
+			!!name && {
+				key: 'lsp-navigation',
+				priority: 3,
+				node: <LSPNavigationButton fileName={name} />,
+			},
+		];
+		return list.filter((item): item is OverflowItem => !!item);
+	};
 
-				{hasPluginToggles && (
-					<PluginControlGroup>
-						{availableLSPPlugins.map((plugin) => (
-							<BibliographyToggleButton
-								key={plugin.id}
-								pluginId={plugin.id}
-								className='header-lsp-button'
-							/>
-						))}
-						{availableBibPlugins.map((plugin) => (
-							<BibliographyToggleButton
-								key={plugin.id}
-								pluginId={plugin.id}
-								className='header-lsp-button'
-							/>
-						))}
-					</PluginControlGroup>
-				)}
-			</>
-		) : !isEditingFile && linkedFileInfo && !showUnlinkedNotice ? (
-			<>
-				{isLatexFile(linkedFileInfo.filePath) && (
-					<VisualEditorToggle viewRef={viewRef} />
-				)}
-				{hasToolbarSupport(detectFileType(linkedFileInfo.filePath)) &&
-					!isViewOnly && (
-						<>
+	const controlItems: OverflowItem[] | null =
+		isEditingFile && fileName
+			? [
+					...editingControls(filePath || '', fileName),
+					{
+						key: 'file',
+						priority: 1,
+						node: (
 							<PluginControlGroup>
+								{!isViewOnly && onSave && (
+									<button
+										type='button'
+										onClick={onSave}
+										title={t('Save File (Ctrl+S)')}
+										className='button'
+									>
+										<SaveIcon />
+									</button>
+								)}
 								<button
 									type='button'
-									onClick={() => onToolbarToggle?.(!toolbarVisible)}
-									title={toolbarVisible ? t('Hide Toolbar') : t('Show Toolbar')}
-									className={`button ${toolbarVisible ? 'active' : ''}`}
+									onClick={() => {
+										const content =
+											viewRef.current?.state.doc.toString() || textContent;
+										copyCleanTextToClipboard(content);
+									}}
+									title={t('Copy Text')}
+									className='button'
 								>
-									<ToolbarShowIcon />
+									<CopyIcon />
 								</button>
-							</PluginControlGroup>
-							{(isLatexFile(linkedFileInfo.filePath) ||
-								isTypstFile(linkedFileInfo.filePath)) && (
-								<>
-									<SourceMapButton onForwardSync={handleForwardSync} />
-
-									<ContentFormatterButton
-										getCurrentContent={() =>
-											viewRef.current?.state.doc.toString() || ''
+								{onExport && (
+									<button
+										type='button'
+										onClick={() =>
+											onExport?.(
+												() => viewRef.current?.state.doc.toString() || '',
+											)
 										}
-										contentType={detectFileType(linkedFileInfo.filePath)}
-										onFormat={handleFormattedContent}
-									/>
-								</>
-							)}
-						</>
-					)}
-
-				{linkedFileInfo.fileName && (
-					<LSPNavigationButton fileName={linkedFileInfo.fileName} />
-				)}
-
-				<PluginControlGroup>
-					{onSaveDocument && !isViewOnly && (
-						<button
-							type='button'
-							onClick={onSaveDocument}
-							title={t('Save document to linked file (Ctrl+S)')}
-							className='button'
-						>
-							<SaveIcon />
-						</button>
-					)}
-					<button
-						type='button'
-						onClick={handleCopyLinkedFile}
-						title={t('Copy text from linked file: {fileName}', {
-							fileName: linkedFileInfo.fileName,
-						})}
-						className='button'
-					>
-						<CopyIcon />
-					</button>
-					<button
-						type='button'
-						onClick={handleDownloadLinkedFile}
-						title={t('Download linked file: {fileName}', {
-							fileName: linkedFileInfo.fileName,
-						})}
-						className='button'
-					>
-						<DownloadIcon />
-					</button>
-				</PluginControlGroup>
-
-				<PluginControlGroup>
-					{!isViewOnly && (
-						<TrackChangesButton className='header-review-button' />
-					)}
-					<ReviewToggleButton className='header-review-button' />
-					<CommentToggleButton className='header-comment-button' />
-					<AskClaudeButton
-						getLocation={getClaudeLocation}
-						className='header-claude-button'
-					/>
-				</PluginControlGroup>
-				{linkedFileInfo?.fileName &&
-					(() => {
-						const linkedFileExtension = linkedFileInfo.fileName
-							.split('.')
-							.pop()
-							?.toLowerCase();
-						const { lsp: linkedLSPPlugins, bib: linkedBibPlugins } =
-							getPluginToggleButtons(
-								linkedFileExtension ? [linkedFileExtension] : undefined,
+										title={t('Download File')}
+										className='button'
+									>
+										<DownloadIcon />
+									</button>
+								)}
+							</PluginControlGroup>
+						),
+					},
+					reviewControls,
+					pluginToggles(availableLSPPlugins, availableBibPlugins),
+				].filter((item): item is OverflowItem => !!item)
+			: !isEditingFile && linkedFileInfo && !showUnlinkedNotice
+				? [
+						...editingControls(
+							linkedFileInfo.filePath ?? '',
+							linkedFileInfo.fileName,
+						),
+						{
+							key: 'file',
+							priority: 1,
+							node: (
+								<PluginControlGroup>
+									{onSaveDocument && !isViewOnly && (
+										<button
+											type='button'
+											onClick={onSaveDocument}
+											title={t('Save document to linked file (Ctrl+S)')}
+											className='button'
+										>
+											<SaveIcon />
+										</button>
+									)}
+									<button
+										type='button'
+										onClick={handleCopyLinkedFile}
+										title={t('Copy text from linked file: {fileName}', {
+											fileName: linkedFileInfo.fileName,
+										})}
+										className='button'
+									>
+										<CopyIcon />
+									</button>
+									<button
+										type='button'
+										onClick={handleDownloadLinkedFile}
+										title={t('Download linked file: {fileName}', {
+											fileName: linkedFileInfo.fileName,
+										})}
+										className='button'
+									>
+										<DownloadIcon />
+									</button>
+								</PluginControlGroup>
+							),
+						},
+						reviewControls,
+						(() => {
+							const extension = linkedFileInfo.fileName
+								?.split('.')
+								.pop()
+								?.toLowerCase();
+							const { lsp, bib } = getPluginToggleButtons(
+								extension ? [extension] : undefined,
 							);
-						const hasLinkedPlugins =
-							showsBibliography &&
-							(linkedLSPPlugins.length > 0 || linkedBibPlugins.length > 0);
-
-						return (
-							hasLinkedPlugins && (
-								<PluginControlGroup>
-									{linkedLSPPlugins.map((plugin) => (
-										<BibliographyToggleButton
-											key={plugin.id}
-											pluginId={plugin.id}
-											className='header-lsp-button'
-										/>
-									))}
-									{linkedBibPlugins.map((plugin) => (
-										<BibliographyToggleButton
-											key={plugin.id}
-											pluginId={plugin.id}
-											className='header-lsp-button'
-										/>
-									))}
-								</PluginControlGroup>
-							)
-						);
-					})()}
-			</>
-		) : !isEditingFile && documentId && documents ? (
-			<>
-				<PluginControlGroup>
-					<button
-						type='button'
-						onClick={() => {
-							const content =
-								viewRef.current?.state.doc.toString() || textContent;
-							copyCleanTextToClipboard(content);
-						}}
-						title={t('Copy Text')}
-						className='button'
-					>
-						<CopyIcon />
-					</button>
-				</PluginControlGroup>
-
-				<PluginControlGroup>
-					{!isViewOnly && (
-						<TrackChangesButton className='header-review-button' />
-					)}
-					<ReviewToggleButton className='header-review-button' />
-					<CommentToggleButton className='header-comment-button' />
-					<AskClaudeButton
-						getLocation={getClaudeLocation}
-						className='header-claude-button'
-					/>
-				</PluginControlGroup>
-
-				{textContent?.includes('\\') &&
-					(() => {
-						const { lsp: supportedLSPPlugins, bib: supportedBibPlugins } =
-							getPluginToggleButtons([
-								'tex',
-								'latex',
-								'typ',
-								'typst',
-								'bib',
-								'bibtex',
-							]);
-						const hasSupportedPlugins =
-							showsBibliography &&
-							(supportedLSPPlugins.length > 0 ||
-								supportedBibPlugins.length > 0);
-
-						return (
-							hasSupportedPlugins && (
-								<PluginControlGroup>
-									{supportedLSPPlugins.map((plugin) => (
-										<BibliographyToggleButton
-											key={plugin.id}
-											pluginId={plugin.id}
-											className='header-lsp-button'
-										/>
-									))}
-									{supportedBibPlugins.map((plugin) => (
-										<BibliographyToggleButton
-											key={plugin.id}
-											pluginId={plugin.id}
-											className='header-lsp-button'
-										/>
-									))}
-								</PluginControlGroup>
-							)
-						);
-					})()}
-			</>
-		) : null;
+							return linkedFileInfo.fileName ? pluginToggles(lsp, bib) : null;
+						})(),
+					].filter((item): item is OverflowItem => !!item)
+				: !isEditingFile && documentId && documents
+					? [
+							{
+								key: 'file',
+								priority: 1,
+								node: (
+									<PluginControlGroup>
+										<button
+											type='button'
+											onClick={() => {
+												const content =
+													viewRef.current?.state.doc.toString() || textContent;
+												copyCleanTextToClipboard(content);
+											}}
+											title={t('Copy Text')}
+											className='button'
+										>
+											<CopyIcon />
+										</button>
+									</PluginControlGroup>
+								),
+							},
+							reviewControls,
+							(() => {
+								if (!textContent?.includes('\\')) return null;
+								const { lsp, bib } = getPluginToggleButtons([
+									'tex',
+									'latex',
+									'typ',
+									'typst',
+									'bib',
+									'bibtex',
+								]);
+								return pluginToggles(lsp, bib);
+							})(),
+						].filter((item): item is OverflowItem => !!item)
+					: null;
+	const headerControls = controlItems ? (
+		<OverflowControls items={controlItems} />
+	) : null;
 
 	return (
 		<>

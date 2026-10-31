@@ -28,6 +28,8 @@ import type { ReviewChunk } from './reviewDecorations';
 export interface ReviewConfig {
 	tracking: boolean;
 	author: string;
+	/** Whether this person may accept and reject changes: not reviewers. */
+	canDecide: boolean;
 }
 
 interface TextPiece {

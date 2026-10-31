@@ -29,6 +29,92 @@
 	right: var(--space-sm);
 }
 
+/* The change at the cursor in the editor. */
+.review-item[data-active="true"] {
+	border-color: var(--pico-primary);
+	box-shadow: 0 0 0 1px var(--pico-primary), var(--shadow-md);
+}
+
+.review-decision {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-xs);
+	margin-bottom: var(--space-sd);
+}
+
+.review-decision > button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	width: auto;
+	margin: 0;
+	padding: 2px var(--space-sm);
+	font-size: var(--font-size-meta);
+}
+
+.review-decision > button > svg {
+	width: 0.9rem;
+	height: 0.9rem;
+}
+
+/* « Accept » and « Reject » just above the change at the cursor. */
+.codemirror-editor-container .cm-tooltip.cm-review-tooltip {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	padding: 3px var(--space-xs);
+	background-color: var(--pico-background);
+	border: 1px solid var(--accent-border, #444);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-md);
+	color: var(--text-color);
+	font-family: var(
+		--texlyre-font-family,
+		var(
+			--slim-font-family,
+			var(--mobile-font-family, Inter, system-ui, sans-serif)
+		)
+	);
+	font-size: var(--font-size-small);
+	z-index: var(--z-tooltip);
+}
+
+.codemirror-editor-container .cm-review-tooltip-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	width: auto;
+	margin: 0;
+	padding: 2px var(--space-sm);
+	border: 1px solid var(--accent-border, #444);
+	border-radius: var(--radius-sm);
+	background: var(--pico-background);
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.codemirror-editor-container
+	.cm-review-tooltip-button[data-action="accept-change"]
+	> span {
+	color: var(--color-success);
+	font-weight: 700;
+}
+
+.codemirror-editor-container
+	.cm-review-tooltip-button[data-action="reject-change"]
+	> span {
+	color: var(--color-error);
+	font-weight: 700;
+}
+
+.codemirror-editor-container .cm-review-tooltip-button:is(:hover, :focus) {
+	border-color: var(--pico-primary);
+	background-color: var(--pico-primary-focus);
+	outline: none;
+}
+
 .review-diff {
 	width: 100%;
 	margin: 0 0 var(--space-sd);

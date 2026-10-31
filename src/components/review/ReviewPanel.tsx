@@ -17,6 +17,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 	const {
 		reviews,
 		showReviews,
+		activeReviewId,
 		acceptReview,
 		rejectReview,
 		resolveReview,
@@ -307,6 +308,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 								deleteResponse={deleteResponse}
 								readOnly={readOnly}
 								canDecide={!reviewOnly}
+								active={review.id === activeReviewId}
 							/>
 						))}
 					</div>

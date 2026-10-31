@@ -228,13 +228,18 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 			document.removeEventListener('reviews-changed', handleReviewsChanged);
 	}, []);
 
+	const canDecide = !readOnly && !reviewOnly;
 	const publishTrackChanges = useCallback(() => {
 		document.dispatchEvent(
 			new CustomEvent('set-track-changes', {
-				detail: { tracking: trackChanges, author: user?.username ?? '' },
+				detail: {
+					tracking: trackChanges,
+					author: user?.username ?? '',
+					canDecide,
+				},
 			}),
 		);
-	}, [trackChanges, user?.username]);
+	}, [trackChanges, user?.username, canDecide]);
 
 	useEffect(() => {
 		publishTrackChanges();
@@ -265,6 +270,26 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		() => setShowReviews((visible) => !visible),
 		[],
 	);
+
+	// The change at the cursor, whose card the panel highlights; clicking a
+	// change in the text opens the panel at it.
+	const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
+	useEffect(() => {
+		const handleActive = (event: Event) =>
+			setActiveReviewId((event as CustomEvent).detail?.reviewId ?? null);
+		const handleClicked = (event: Event) => {
+			const reviewId = (event as CustomEvent).detail?.reviewId;
+			if (!reviewId) return;
+			setActiveReviewId(reviewId);
+			setShowReviews(true);
+		};
+		document.addEventListener('review-active', handleActive);
+		document.addEventListener('scroll-to-review', handleClicked);
+		return () => {
+			document.removeEventListener('review-active', handleActive);
+			document.removeEventListener('scroll-to-review', handleClicked);
+		};
+	}, []);
 
 	const setUserTracked = useCallback(
 		(name: string, tracked: boolean) => {
@@ -386,6 +411,7 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 				reviews,
 				showReviews,
 				toggleReviews,
+				activeReviewId,
 				trackChanges,
 				trackChangesLocal,
 				trackChangesShared,

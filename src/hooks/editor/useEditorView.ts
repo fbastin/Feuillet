@@ -32,7 +32,12 @@ import {
 	type Extension,
 	Prec,
 } from '@codemirror/state';
-import { type ViewUpdate, ViewPlugin, keymap } from '@codemirror/view';
+import {
+	type ViewUpdate,
+	ViewPlugin,
+	keymap,
+	tooltips,
+} from '@codemirror/view';
 import { lineNumbers } from '@codemirror/view';
 import { EditorView } from 'codemirror';
 import { vim } from '@replit/codemirror-vim';
@@ -381,6 +386,10 @@ export const useEditorView = (
 				},
 			}),
 			EditorView.lineWrapping,
+			// Tooltips stay over the text, not under the panels beside it.
+			tooltips({
+				tooltipSpace: (view) => view.scrollDOM.getBoundingClientRect(),
+			}),
 			foldGutter(),
 			...(editorSettings.autoIndent ? [indentOnInput()] : []),
 			bidiIsolates(),
@@ -1089,8 +1098,8 @@ export const useEditorView = (
 			const view = viewRef.current;
 			if (!view || !enableReviews) return;
 
-			const { tracking, author } = (event as CustomEvent).detail;
-			setTrackChanges(view, { tracking, author });
+			const { tracking, author, canDecide } = (event as CustomEvent).detail;
+			setTrackChanges(view, { tracking, author, canDecide: !!canDecide });
 		};
 
 		document.addEventListener('set-track-changes', handleSetTrackChanges);
