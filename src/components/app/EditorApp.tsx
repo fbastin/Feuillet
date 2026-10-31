@@ -51,6 +51,7 @@ import ExternalExportButton from '../output/ExternalExportButton';
 import ExportAccountModal from '../profile/ExportAccountModal';
 import DeleteAccountModal from '../profile/DeleteAccountModal';
 import ProfileSettingsModal, {
+	OPEN_PROFILE_EVENT,
 	type ProfileSettingsTab,
 } from '../profile/ProfileSettingsModal';
 import UserDropdown from '../profile/UserDropdown';
@@ -113,6 +114,19 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 	const headerRightRef = useWheelScroll<HTMLDivElement>();
 	const [showProfileModal, setShowProfileModal] = useState(false);
 	const [profileTab, setProfileTab] = useState<ProfileSettingsTab>('account');
+
+	// "Set up the connector", from Ask Claude.
+	useEffect(() => {
+		const onOpenProfile = (event: Event) => {
+			const tab = (event as CustomEvent<{ tab?: ProfileSettingsTab }>).detail
+				?.tab;
+			setProfileTab(tab ?? 'account');
+			setShowProfileModal(true);
+		};
+		document.addEventListener(OPEN_PROFILE_EVENT, onOpenProfile);
+		return () =>
+			document.removeEventListener(OPEN_PROFILE_EVENT, onOpenProfile);
+	}, []);
 	const [showAccountExportModal, setShowAccountExportModal] = useState(false);
 	const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] =
 		useState(false);

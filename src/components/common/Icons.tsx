@@ -959,6 +959,25 @@ export const CommentIcon: React.FC = () => (
 	</svg>
 );
 
+// Sparkles, for assistants such as Claude.
+export const AssistantIcon: React.FC = () => (
+	<svg
+		xmlns='http://www.w3.org/2000/svg'
+		width='16'
+		height='16'
+		viewBox='0 0 24 24'
+		fill='none'
+		stroke='currentColor'
+		strokeWidth='2'
+		strokeLinecap='round'
+		strokeLinejoin='round'
+	>
+		<path d='M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z' />
+		<path d='M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z' />
+		<path d='M5 16l.6 1.4L7 18l-1.4.6L5 20l-.6-1.4L3 18l1.4-.6z' />
+	</svg>
+);
+
 export const ChatIcon: React.FC = () => (
 	<svg
 		xmlns='http://www.w3.org/2000/svg'

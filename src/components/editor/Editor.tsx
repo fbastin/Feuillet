@@ -54,6 +54,9 @@ import {
 	isTypstFile,
 } from '../../utils/fileUtils';
 import { computeReplacementChange } from '../../utils/textDiffUtils';
+import AskClaudeButton, {
+	type AskClaudeLocation,
+} from '../assistant/AskClaudeButton';
 import CommentPanel from '../comments/CommentPanel';
 import CommentToggleButton from '../comments/CommentToggleButton';
 import ReviewPanel from '../review/ReviewPanel';
@@ -324,6 +327,27 @@ const EditorContent: React.FC<{
 		fileInfo.filePath,
 		linkedFileInfo?.filePath,
 		forwardSync,
+	]);
+
+	// Where Ask Claude says the person is: the file, the line, the passage.
+	const getClaudeLocation = useCallback((): AskClaudeLocation => {
+		const path = isEditingFile
+			? filePath || fileInfo.filePath
+			: linkedFileInfo?.filePath;
+		const view = viewRef.current;
+		if (!view) return { path };
+		const { from, to } = view.state.selection.main;
+		return {
+			path,
+			line: view.state.doc.lineAt(from).number,
+			selection: from < to ? view.state.sliceDoc(from, to) : undefined,
+		};
+	}, [
+		viewRef,
+		isEditingFile,
+		filePath,
+		fileInfo.filePath,
+		linkedFileInfo?.filePath,
 	]);
 
 	const handleForwardSyncRef = useRef(handleForwardSync);
@@ -662,6 +686,10 @@ const EditorContent: React.FC<{
 					)}
 					<ReviewToggleButton className='header-review-button' />
 					<CommentToggleButton className='header-comment-button' />
+					<AskClaudeButton
+						getLocation={getClaudeLocation}
+						className='header-claude-button'
+					/>
 				</PluginControlGroup>
 
 				{hasPluginToggles && (
@@ -761,6 +789,10 @@ const EditorContent: React.FC<{
 					)}
 					<ReviewToggleButton className='header-review-button' />
 					<CommentToggleButton className='header-comment-button' />
+					<AskClaudeButton
+						getLocation={getClaudeLocation}
+						className='header-claude-button'
+					/>
 				</PluginControlGroup>
 				{linkedFileInfo?.fileName &&
 					(() => {
@@ -821,6 +853,10 @@ const EditorContent: React.FC<{
 					)}
 					<ReviewToggleButton className='header-review-button' />
 					<CommentToggleButton className='header-comment-button' />
+					<AskClaudeButton
+						getLocation={getClaudeLocation}
+						className='header-claude-button'
+					/>
 				</PluginControlGroup>
 
 				{textContent?.includes('\\') &&

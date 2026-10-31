@@ -14,6 +14,9 @@ import LocalStorageDataSection from './ProfileLocalStorageDataSection';
 
 export type ProfileSettingsTab = 'account' | 'data' | 'assistants';
 
+/** Opens the profile at a tab: {detail: {tab}}, from anywhere in the app. */
+export const OPEN_PROFILE_EVENT = 'open-profile-settings';
+
 interface ProfileSettingsModalProps {
 	isOpen: boolean;
 	onClose: () => void;

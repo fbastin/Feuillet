@@ -82,3 +82,42 @@
 	opacity: 0.9;
 	cursor: pointer;
 }
+
+/* Ask Claude (components/assistant/AskClaudeButton) */
+.ask-claude-passage {
+	max-height: 10rem;
+	overflow: auto;
+	margin: 0;
+	padding: var(--space-xs) var(--space-sm);
+	font-size: 0.8rem;
+	line-height: 1.4;
+	white-space: pre-wrap;
+	word-break: break-word;
+	border-radius: 6px;
+	background: var(--surface-secondary, rgba(127, 127, 127, 0.08));
+}
+
+.ask-claude-presets {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xs);
+}
+
+.ask-claude-presets button.button {
+	font-size: 0.8rem;
+	padding: 2px 8px;
+}
+
+.ask-claude button.ask-claude-setup {
+	display: inline;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--pico-primary);
+	font-size: inherit;
+	font-weight: 500;
+	text-decoration: underline;
+	cursor: pointer;
+}
