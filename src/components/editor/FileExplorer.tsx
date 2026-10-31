@@ -53,6 +53,7 @@ import {
 	TrashIcon,
 	UploadIcon,
 } from '../common/Icons';
+import AddFilesModal, { type AddFilesSource } from './AddFilesModal';
 import FileCreationMenu from './FileCreationMenu';
 import FileExplorerOptionsMenu from './FileExplorerOptionsMenu';
 import FileOperationsModal from './FileOperationsModal';
@@ -170,6 +171,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 	const menuRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
 	const [showFileCreationMenu, setShowFileCreationMenu] = useState(false);
+	const [addFilesSource, setAddFilesSource] = useState<AddFilesSource | null>(
+		null,
+	);
+	const [addFilesFolder, setAddFilesFolder] = useState('/');
 	const [fileCreationTrigger, setFileCreationTrigger] =
 		useState<HTMLElement | null>(null);
 	const [fileCreationParentPath, setFileCreationParentPath] =
@@ -497,6 +502,61 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		setExpandedFolders(newExpandedFolders);
 	};
 
+	// Opens a file just added to the project, as Overleaf does.
+	const openFileAtPath = async (filePath: string) => {
+		const findFileByPath = (
+			nodes: FileNode[],
+			path: string,
+		): FileNode | null => {
+			for (const node of nodes) {
+				if (node.path === path && node.type === 'file') {
+					return node;
+				}
+				if (node.children) {
+					const found = findFileByPath(node.children, path);
+					if (found) return found;
+				}
+			}
+			return null;
+		};
+
+		const newFile = findFileByPath(await refreshFileTree(), filePath);
+		if (!newFile) {
+			moduleLog.warn('Could not find newly created file:', filePath);
+			return;
+		}
+		selectFile(newFile.id);
+		const content = await getFileContent(newFile.id);
+		if (content) {
+			onFileSelect(newFile.id, content, newFile.isBinary || false);
+
+			const currentFragment = parseUrlFragments(
+				window.location.hash.substring(1),
+			);
+			const newUrl = buildUrlWithFragments(
+				currentFragment.yjsUrl,
+				undefined,
+				newFile.path,
+			);
+			pushHash(newUrl);
+		}
+	};
+
+	const handleAddFrom = (source: AddFilesSource) => {
+		setAddFilesFolder(fileCreationParentPath);
+		setAddFilesSource(source);
+	};
+
+	const handleAddImportedFile = async (file: File, folderPath: string) => {
+		await processFiles([file], folderPath);
+		expandAllParentDirectories(folderPath);
+		if (!isArchiveFile(file.name)) {
+			await openFileAtPath(
+				folderPath === '/' ? `/${file.name}` : `${folderPath}/${file.name}`,
+			);
+		}
+	};
+
 	const handleConfirmNewItem = async () => {
 		if (!creatingNewItem || !newItemName.trim()) return;
 
@@ -523,50 +583,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
 				expandAllParentDirectories(creatingNewItem.parentPath);
 
-				const newFilePath =
+				await openFileAtPath(
 					creatingNewItem.parentPath === '/'
 						? `/${newItemName.trim()}`
-						: `${creatingNewItem.parentPath}/${newItemName.trim()}`;
-
-				const updatedFileTree = await refreshFileTree();
-
-				const findFileByPath = (
-					nodes: FileNode[],
-					path: string,
-				): FileNode | null => {
-					for (const node of nodes) {
-						if (node.path === path && node.type === 'file') {
-							return node;
-						}
-						if (node.children) {
-							const found = findFileByPath(node.children, path);
-							if (found) return found;
-						}
-					}
-					return null;
-				};
-
-				const newFile = findFileByPath(updatedFileTree, newFilePath);
-
-				if (newFile) {
-					selectFile(newFile.id);
-					const content = await getFileContent(newFile.id);
-					if (content) {
-						onFileSelect(newFile.id, content, newFile.isBinary || false);
-
-						const currentFragment = parseUrlFragments(
-							window.location.hash.substring(1),
-						);
-						const newUrl = buildUrlWithFragments(
-							currentFragment.yjsUrl,
-							undefined,
-							newFile.path,
-						);
-						pushHash(newUrl);
-					}
-				} else {
-					moduleLog.warn('Could not find newly created file:', newFilePath);
-				}
+						: `${creatingNewItem.parentPath}/${newItemName.trim()}`,
+				);
 			}
 		} catch (error) {
 			moduleLog.error(`Error creating ${creatingNewItem.type}:`, error);
@@ -1378,11 +1399,23 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 						isOpen={showFileCreationMenu}
 						onClose={() => setShowFileCreationMenu(false)}
 						onCreate={handleCreateFileWithTemplate}
+						onAddFrom={currentProjectId ? handleAddFrom : undefined}
 						triggerElement={fileCreationTrigger}
 						projectType={projectType}
 						parentPath={fileCreationParentPath}
 						mode='dropdown'
 					/>
+
+					{currentProjectId && (
+						<AddFilesModal
+							source={addFilesSource}
+							onSourceChange={setAddFilesSource}
+							onClose={() => setAddFilesSource(null)}
+							currentProjectId={currentProjectId}
+							folderPath={addFilesFolder}
+							onAdd={handleAddImportedFile}
+						/>
+					)}
 				</div>
 
 				{selectionMode && (

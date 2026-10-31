@@ -330,6 +330,28 @@ class AccountSyncService {
 	}
 
 	/**
+	 * The collaboration server's download of a file from the web, as
+	 * Overleaf's "From external URL", or null when no account is signed in.
+	 */
+	async fetchThroughServer(
+		url: string,
+		signal?: AbortSignal,
+	): Promise<Response | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		return fetch(`${session.server}/fetch`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${session.token}`,
+			},
+			body: JSON.stringify({ url }),
+			signal,
+		});
+	}
+
+	/**
 	 * The accounts the owner invited to a project, after adding or removing
 	 * one. Removing someone replaces the link they used.
 	 */

@@ -20,7 +20,9 @@
 //  - saves versions of each project a short while after it changes, with who
 //    changed it (/history/..., history.js), as on Overleaf;
 //  - signs people in with GitHub for GitHub sync (/github/..., github.js),
-//    handing the token to their browser without keeping it.
+//    handing the token to their browser without keeping it;
+//  - downloads files from the web for signed-in accounts (/fetch,
+//    fetch.js), as Overleaf's "From external URL".
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -51,6 +53,7 @@ const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
 const { createProjectCopier } = require('./copy');
+const { createUrlFetcher } = require('./fetch');
 const { createGitHub } = require('./github');
 const { createHistory } = require('./history');
 const { createReviewGuard } = require('./review');
@@ -145,6 +148,8 @@ const history = createHistory({
 	idleMs: Number(process.env.HISTORY_IDLE_MS) || undefined,
 	maxVersions: Number(process.env.HISTORY_MAX_VERSIONS) || undefined,
 });
+
+const urlFetcher = createUrlFetcher({ accounts, maxBytes: maxFileBytes, log });
 
 const reviewGuard = createReviewGuard({
 	docs,
@@ -281,7 +286,9 @@ const server = http.createServer((req, res) => {
 		? accounts
 		: shares.handles(url)
 			? shares
-			: null;
+			: urlFetcher.handles(url)
+				? urlFetcher
+				: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {

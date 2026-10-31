@@ -108,23 +108,54 @@ class FileStoreService {
 
 			this.contentCache.clear();
 
-			const dbName = `${this.DB_PREFIX}${this.projectId}`;
-
-			this.db = await openDB(dbName, this.DB_VERSION, {
-				upgrade: (db, _oldVersion) => {
-					if (!db.objectStoreNames.contains(this.FILES_STORE)) {
-						const store = db.createObjectStore(this.FILES_STORE, {
-							keyPath: 'id',
-						});
-						store.createIndex('path', 'path', { unique: false });
-					}
-				},
-			});
+			this.db = await this.openProjectDatabase(this.projectId);
 
 			moduleLog.info(`Initialized for project: ${this.projectId}`);
 		} catch (error) {
 			moduleLog.error('Failed to initialize file storage:', error);
 			throw error;
+		}
+	}
+
+	private openProjectDatabase(projectId: string): Promise<IDBPDatabase> {
+		return openDB(`${this.DB_PREFIX}${projectId}`, this.DB_VERSION, {
+			upgrade: (db, _oldVersion) => {
+				if (!db.objectStoreNames.contains(this.FILES_STORE)) {
+					const store = db.createObjectStore(this.FILES_STORE, {
+						keyPath: 'id',
+					});
+					store.createIndex('path', 'path', { unique: false });
+				}
+			},
+		});
+	}
+
+	/**
+	 * The files of another project on this device, without their contents,
+	 * read without leaving the open project.
+	 */
+	async getProjectFiles(projectId: string): Promise<FileNode[]> {
+		const db = await this.openProjectDatabase(projectId);
+		try {
+			const files: FileNode[] = await db.getAll(this.FILES_STORE);
+			return files
+				.filter((file) => file.type === 'file' && !file.isDeleted)
+				.map(({ content, ...rest }) => rest as FileNode);
+		} finally {
+			db.close();
+		}
+	}
+
+	/** One file of another project on this device, with its content. */
+	async getProjectFile(
+		projectId: string,
+		fileId: string,
+	): Promise<FileNode | undefined> {
+		const db = await this.openProjectDatabase(projectId);
+		try {
+			return await db.get(this.FILES_STORE, fileId);
+		} finally {
+			db.close();
 		}
 	}
 
