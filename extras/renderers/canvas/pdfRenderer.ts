@@ -243,7 +243,17 @@ export async function renderPdfPageToCanvas(
 			canvasContext: offCtx,
 			viewport: scaledViewport,
 		});
-		await renderTask.promise;
+		try {
+			await renderTask.promise;
+		} catch (error) {
+			// Cancelled because the document closed or changed: nothing to draw.
+			if (
+				(error as { name?: string })?.name === 'RenderingCancelledException'
+			) {
+				return;
+			}
+			throw error;
+		}
 
 		const ctx2d = canvas.getContext('2d');
 		if (ctx2d) {
