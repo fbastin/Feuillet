@@ -82,6 +82,8 @@ export interface ProjectInvite {
 	role: MemberRole;
 	createdAt: number;
 	expiresAt: number;
+	/** The address it was mailed to, if any. */
+	email?: string;
 }
 
 export interface MembersChange {
@@ -437,6 +439,7 @@ class AccountSyncService {
 			revoke?: string;
 			name?: string;
 			type?: string;
+			email?: string;
 		} = {},
 	): Promise<{ invite?: ProjectInvite; invites: ProjectInvite[] } | null> {
 		const userId = this.userId;

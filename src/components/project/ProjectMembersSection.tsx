@@ -3,6 +3,7 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { t } from '@/i18n';
+import { useAuth } from '../../hooks/useAuth';
 import {
 	AccountServerError,
 	type MembersChange,
@@ -32,6 +33,31 @@ const errorMessage = (error: unknown): string => {
 	return t('Could not manage the collaborators.');
 };
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// The message an invitation by email opens in one's mail program, as
+// Feuillet sends no email itself.
+const mailtoInvitation = (
+	email: string,
+	link: string,
+	projectName: string,
+	inviter: string,
+): string => {
+	const subject = t('Invitation to work on {name} with Feuillet', {
+		name: projectName,
+	});
+	const body = [
+		t('{inviter} invites you to work on {name} with Feuillet.', {
+			inviter,
+			name: projectName,
+		}),
+		t('Open this link to join the project, signing in or creating an account:'),
+		link,
+		t('The link works once, for 30 days.'),
+	].join('\n\n');
+	return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+};
+
 const roleLabel = (role: ProjectMember['role']): string => {
 	if (role === 'editor') return t('Can edit');
 	return role === 'reviewer' ? t('Can review') : t('Read-only');
@@ -56,6 +82,9 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 	const [invites, setInvites] = useState<ProjectInvite[] | null>(null);
 	const [inviteRole, setInviteRole] = useState<ProjectMember['role']>('editor');
 	const [newInvite, setNewInvite] = useState<string | null>(null);
+	// The address the newest invitation went to, to open the mail again.
+	const [mailedTo, setMailedTo] = useState<string | null>(null);
+	const { user } = useAuth();
 
 	const change = useCallback(
 		async (update: MembersChange = {}) => {
@@ -82,7 +111,8 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		async (update: {
 			create?: { role: ProjectMember['role'] };
 			revoke?: string;
-		}) => {
+			email?: string;
+		}): Promise<string | null> => {
 			setError(null);
 			setBusy(true);
 			try {
@@ -90,11 +120,13 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 					...update,
 					...(update.create ? { name: projectName, type: projectType } : {}),
 				});
-				if (!result) return;
+				if (!result) return null;
 				setInvites(result.invites);
 				if (result.invite) setNewInvite(result.invite.invite);
+				return result.invite?.invite ?? null;
 			} catch (caught) {
 				setError(errorMessage(caught));
+				return null;
 			} finally {
 				setBusy(false);
 			}
@@ -117,6 +149,17 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		};
 	}, [projectId]);
 
+	const openMail = (email: string, invite: string) => {
+		const link = document.createElement('a');
+		link.href = mailtoInvitation(
+			email,
+			inviteUrl(invite),
+			projectName,
+			user?.username ?? '',
+		);
+		link.click();
+	};
+
 	const expiry = (invite: ProjectInvite) =>
 		new Date(invite.expiresAt).toLocaleDateString(undefined, {
 			dateStyle: 'long',
@@ -126,6 +169,15 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		event.preventDefault();
 		const name = username.trim();
 		if (!name) return;
+		// An address, as on Overleaf: a personal invitation, mailed.
+		if (EMAIL.test(name)) {
+			const created = await changeInvites({ create: { role }, email: name });
+			if (!created) return;
+			setMailedTo(name);
+			setUsername('');
+			openMail(name, created);
+			return;
+		}
 		const added = await change({
 			add: { username: name, role },
 			name: projectName,
@@ -143,8 +195,8 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 					className='ui-field-control'
 					type='text'
 					autoComplete='off'
-					placeholder={t('Account name')}
-					aria-label={t('Account name')}
+					placeholder={t('Account name or email address')}
+					aria-label={t('Account name or email address')}
 					value={username}
 					onChange={(event) => setUsername(event.target.value)}
 				/>
@@ -171,7 +223,7 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 			</form>
 			<p className='ui-meta'>
 				{t(
-					'Enter the name of their account on this server: they find the project in their list. Someone without an account can be sent a link below.',
+					'Enter the name of their account on this server: they find the project in their list. Or enter their email address: your mail program opens with an invitation link to send them.',
 				)}{' '}
 				{t(
 					'Reviewers comment and suggest changes, which editors accept or reject.',
@@ -203,19 +255,40 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 							className='button secondary'
 							data-action='create-invite'
 							disabled={busy}
-							onClick={() =>
-								void changeInvites({ create: { role: inviteRole } })
-							}
+							onClick={() => {
+								setMailedTo(null);
+								void changeInvites({ create: { role: inviteRole } });
+							}}
 						>
 							{t('Make an invitation link')}
 						</button>
 					</div>
 					{newInvite && invites.some((entry) => entry.invite === newInvite) && (
-						<CopyField
-							id='share-invite-url'
-							label={t('Send this link to the person you invite')}
-							value={inviteUrl(newInvite)}
-						/>
+						<>
+							<CopyField
+								id='share-invite-url'
+								label={t('Send this link to the person you invite')}
+								value={inviteUrl(newInvite)}
+							/>
+							{mailedTo && (
+								<p className='ui-meta' data-role='invite-mailed'>
+									{t(
+										'Your mail program opened with the invitation for {email}. If not, copy the link and send it.',
+										{ email: mailedTo },
+									)}{' '}
+									<a
+										href={mailtoInvitation(
+											mailedTo,
+											inviteUrl(newInvite),
+											projectName,
+											user?.username ?? '',
+										)}
+									>
+										{t('Open the email again')}
+									</a>
+								</p>
+							)}
+						</>
 					)}
 					{invites.length > 0 && (
 						<ul className='project-share-members' id='share-invites'>
@@ -226,9 +299,14 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 									data-invite={invite.invite}
 								>
 									<span>
-										{t('Invitation as {role}', {
-											role: roleLabel(invite.role),
-										})}
+										{invite.email
+											? t('{email}, invited as {role}', {
+													email: invite.email,
+													role: roleLabel(invite.role),
+												})
+											: t('Invitation as {role}', {
+													role: roleLabel(invite.role),
+												})}
 									</span>
 									<span className='ui-meta'>
 										{t('until {date}', { date: expiry(invite) })}

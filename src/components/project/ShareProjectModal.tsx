@@ -221,13 +221,60 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 					{projectName}"
 				</h4>
 
-				{serverLinks && access?.owner === 'you' && (
-					<ProjectMembersSection
-						projectId={projectId}
-						projectName={projectName}
-						projectType={doc?.projectMetadata?.type ?? 'latex'}
-					/>
-				)}
+				{/* Inviting first, as on Overleaf, and saying why when one cannot. */}
+				{serverLinks &&
+					(access?.owner === 'you' ? (
+						<ProjectMembersSection
+							projectId={projectId}
+							projectName={projectName}
+							projectType={doc?.projectMetadata?.type ?? 'latex'}
+						/>
+					) : (
+						<section
+							className='ui-stack'
+							data-gap='xs'
+							data-role='share-invite'
+						>
+							<strong>{t('Invite collaborators')}</strong>
+							{accessError && (
+								<div className='ui-message' data-tone='warning'>
+									{accessError}
+								</div>
+							)}
+							{access === undefined ? (
+								<p className='ui-meta'>{t('Loading...')}</p>
+							) : access === null ? (
+								<p className='ui-meta'>
+									{t(
+										'Sign in to an account on the server to invite collaborators.',
+									)}
+								</p>
+							) : access.owner === 'none' ? (
+								<div className='ui-actions' data-align='between'>
+									<span className='ui-meta'>
+										{t(
+											'This project has no owner yet. Become its owner to invite collaborators and manage its links.',
+										)}
+									</span>
+									<button
+										type='button'
+										className='button primary'
+										data-action='claim'
+										disabled={accessBusy}
+										onClick={() => void changeAccess({ claim: true })}
+									>
+										{t('Become the owner')}
+									</button>
+								</div>
+							) : (
+								<p className='ui-meta'>
+									{t(
+										"Only the project's owner invites collaborators. Send someone a link below, or ask the owner to invite them.",
+									)}
+								</p>
+							)}
+						</section>
+					))}
 
 				{/* As on Overleaf's link sharing: a link to edit, one to read. */}
 				<section className='ui-stack' data-gap='sm' data-role='share-links'>
@@ -288,36 +335,12 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 					<details className='share-more' data-role='share-access'>
 						<summary>{t('Take back access given by a link')}</summary>
 						<div className='ui-stack' data-gap='sm'>
-							{accessError && (
+							{access?.owner === 'you' && accessError && (
 								<div className='ui-message' data-tone='warning'>
 									{accessError}
 								</div>
 							)}
-							{access === null && (
-								<p className='ui-meta'>
-									{t(
-										'Sign in to a server account to manage who can edit this project.',
-									)}
-								</p>
-							)}
-							{access?.owner === 'none' && (
-								<div className='ui-actions' data-align='end'>
-									<span className='ui-meta'>
-										{t(
-											"This project has no owner yet. Its owner can replace the editing link to remove someone's access.",
-										)}
-									</span>
-									<button
-										type='button'
-										className='button secondary'
-										disabled={accessBusy}
-										onClick={() => void changeAccess({ claim: true })}
-									>
-										{t('Become the owner')}
-									</button>
-								</div>
-							)}
-							{access?.owner === 'other' && (
+							{access?.owner !== 'you' && (
 								<p className='ui-meta'>
 									{t("Only the project's owner can replace the editing link.")}
 								</p>

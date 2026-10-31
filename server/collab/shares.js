@@ -36,8 +36,9 @@
 //   POST /share/copy {project, name} (token) -> {project}, a copy of the
 //                                               project the account owns
 //   POST /share/invites {project}    (token) -> {invites}, for the owner
-//   POST /share/invites {project, create: {role}, name, type} -> {invite,
-//                                    invites}: a personal invitation link
+//   POST /share/invites {project, create: {role}, name, type, email} ->
+//                                    {invite, invites}: a personal invitation
+//                                    link, and the address it is mailed to
 //   POST /share/invites {project, revoke: invite} -> {invites}
 //   POST /share/accept {invite}      (token) -> {project, role, name, type}:
 //                                    the account becomes a member
@@ -407,8 +408,14 @@ const createShares = ({
 		for (const invite of readProject(project).invites ?? []) {
 			const entry = readJson(invitePath(invite));
 			if (entry?.project === project && entry.expiresAt > now) {
-				const { role, createdAt, expiresAt } = entry;
-				pending.push({ invite, role, createdAt, expiresAt });
+				const { role, createdAt, expiresAt, email } = entry;
+				pending.push({
+					invite,
+					role,
+					createdAt,
+					expiresAt,
+					...(email ? { email } : {}),
+				});
 			} else {
 				dropInvite(project, invite);
 			}
@@ -435,9 +442,17 @@ const createShares = ({
 			const invite = crypto.randomBytes(24).toString('hex');
 			const createdAt = Date.now();
 			const expiresAt = createdAt + INVITE_MS;
+			// The address it is mailed to, to tell pending ones apart.
+			const email =
+				typeof body.email === 'string' &&
+				body.email.length <= 254 &&
+				/^[^\s@]+@[^\s@]+$/.test(body.email)
+					? body.email
+					: undefined;
 			writeJson(invitePath(invite), {
 				project,
 				role,
+				...(email ? { email } : {}),
 				name: typeof body.name === 'string' ? body.name.slice(0, 200) : '',
 				type: PROJECT_TYPES.includes(body.type) ? body.type : 'latex',
 				createdAt,
@@ -448,7 +463,13 @@ const createShares = ({
 				...record,
 				invites: [...(record.invites ?? []), invite],
 			});
-			created = { invite, role, createdAt, expiresAt };
+			created = {
+				invite,
+				role,
+				createdAt,
+				expiresAt,
+				...(email ? { email } : {}),
+			};
 			log('invitation made');
 		} else if (typeof body.revoke === 'string') {
 			if (!INVITE_ID.test(body.revoke)) {
