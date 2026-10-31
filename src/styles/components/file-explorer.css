@@ -322,6 +322,19 @@
 	font-size: 0.8em;
 }
 
+/* Added from another project or a URL, and refreshable from there. */
+.file-imported-indicator {
+	display: inline-flex;
+	margin-left: var(--space-xs);
+	vertical-align: middle;
+	color: var(--pico-muted-color);
+}
+
+.file-imported-indicator svg {
+	width: 0.9em;
+	height: 0.9em;
+}
+
 .ui-tab-list[data-role="explorer-view"] {
 	display: flex;
 	height: var(--ui-explorer-tabs-height, auto);

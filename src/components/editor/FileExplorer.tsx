@@ -6,6 +6,7 @@ import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { useCollab } from '../../hooks/useCollab';
 import { useFileTree } from '../../hooks/useFileTree';
+import { useImportedFiles } from '../../hooks/useImportedFiles';
 import { useProperties } from '../../hooks/useProperties';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import {
@@ -13,10 +14,12 @@ import {
 	fileConflictPromptService,
 } from '../../services/FileConflictPromptService';
 import { fileHandlerService } from '../../services/FileHandlerService';
+import { FileImportError } from '../../services/FileImportService';
 import {
 	fileStoreService,
 	type FileStorageChange,
 } from '../../services/FileStoreService';
+import type { ImportedFileSource } from '../../types/documents';
 import type { FileNode, FilePropertiesInfo } from '../../types/files';
 import type { ProjectType } from '../../types/projects';
 import {
@@ -33,6 +36,7 @@ import {
 	parseUrlFragments,
 	pushHash,
 } from '../../utils/urlUtils';
+import { notificationService } from '../../services/NotificationService';
 import { workspaceService } from '../../services/WorkspaceService';
 import { stripAnnotations } from '../../utils/fileCommentUtils';
 import {
@@ -53,6 +57,7 @@ import {
 	TrashIcon,
 	UploadIcon,
 } from '../common/Icons';
+import Modal from '../common/Modal';
 import AddFilesModal, { type AddFilesSource } from './AddFilesModal';
 import FileCreationMenu from './FileCreationMenu';
 import FileExplorerOptionsMenu from './FileExplorerOptionsMenu';
@@ -134,6 +139,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		batchMoveFiles,
 	} = useFileTree();
 	const { readOnly } = useCollab();
+	const importedFiles = useImportedFiles({ manage: true });
+	const [refreshConfirm, setRefreshConfirm] = useState<FileNode | null>(null);
 
 	const { getProperty, setProperty, registerProperty } = useProperties();
 	const propertiesRegistered = useRef(false);
@@ -547,12 +554,52 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		setAddFilesSource(source);
 	};
 
-	const handleAddImportedFile = async (file: File, folderPath: string) => {
-		await processFiles([file], folderPath);
+	// An imported file keeps its source, to be refreshed later; an archive
+	// is unpacked or kept as uploads are.
+	const handleAddImportedFile = async (
+		file: File,
+		folderPath: string,
+		source: ImportedFileSource,
+	) => {
+		if (isArchiveFile(file.name)) {
+			await processFiles([file], folderPath);
+			expandAllParentDirectories(folderPath);
+			return;
+		}
+		const [path] = await uploadFiles([file], folderPath);
+		if (!path) return;
+		await importedFiles.record(path, source, await file.arrayBuffer());
 		expandAllParentDirectories(folderPath);
-		if (!isArchiveFile(file.name)) {
-			await openFileAtPath(
-				folderPath === '/' ? `/${file.name}` : `${folderPath}/${file.name}`,
+		await openFileAtPath(path);
+	};
+
+	// Fetches an imported file again from its source, as Overleaf's Refresh.
+	const handleRefreshImported = async (node: FileNode, force = false) => {
+		setRefreshConfirm(null);
+		const operationId = `refresh-imported-${node.path}`;
+		notificationService.showLoading(
+			t('Refreshing {name}...', { name: node.name }),
+			operationId,
+		);
+		try {
+			const result = await importedFiles.refresh(node.path, { force });
+			if (result === 'changed-here') {
+				notificationService.dismiss(operationId);
+				setRefreshConfirm(node);
+				return;
+			}
+			notificationService.showSuccess(
+				result === 'unchanged'
+					? t('{name} is already up to date.', { name: node.name })
+					: t('{name} was refreshed.', { name: node.name }),
+				{ operationId },
+			);
+		} catch (error) {
+			notificationService.showError(
+				error instanceof FileImportError
+					? error.message
+					: t('The file could not be refreshed.'),
+				{ operationId },
 			);
 		}
 	};
@@ -1560,6 +1607,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 									menuRefs={menuRefs}
 									collabProjectId={collabProjectId}
 									docsWithPeers={docsWithPeers}
+									importedFiles={importedFiles.files}
+									onRefreshImported={
+										importedFiles.canEdit ? handleRefreshImported : undefined
+									}
 									selectionMode={selectionMode}
 									selectedNodeIds={selectedNodeIds}
 									onToggleSelection={handleToggleSelection}
@@ -1604,6 +1655,47 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 				dragDropTargetPath={dragDropTargetPath}
 				onConfirmDragDrop={handleConfirmDragDrop}
 			/>
+
+			<Modal
+				isOpen={refreshConfirm !== null}
+				onClose={() => setRefreshConfirm(null)}
+				title={t('Refresh')}
+				icon={RefreshIcon}
+				size='small'
+			>
+				<div className='ui-stack' data-gap='sm'>
+					<p>
+						{t(
+							'{name} was changed in this project since it was imported. Refreshing it replaces these changes.',
+							{ name: refreshConfirm?.name ?? '' },
+						)}
+					</p>
+					<div
+						className='ui-actions'
+						data-variant='modal'
+						data-align='end'
+						data-fill='true'
+					>
+						<button
+							type='button'
+							className='button secondary'
+							onClick={() => setRefreshConfirm(null)}
+						>
+							{t('Cancel')}
+						</button>
+						<button
+							type='button'
+							className='button primary'
+							data-role='refresh-anyway'
+							onClick={() =>
+								refreshConfirm && handleRefreshImported(refreshConfirm, true)
+							}
+						>
+							{t('Refresh anyway')}
+						</button>
+					</div>
+				</div>
+			</Modal>
 
 			{pendingZipFile && (
 				<ZipHandlingModal

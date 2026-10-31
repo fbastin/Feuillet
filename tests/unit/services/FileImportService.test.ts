@@ -110,6 +110,43 @@ describe('files from another project', () => {
 		expect(text(await read('/main.tex'))).toBe('old text');
 	});
 
+	it('fetches an imported file again from its project', async () => {
+		jest
+			.spyOn(authService, 'getProjects')
+			.mockResolvedValue([project('source')]);
+		const source = fileImportService.projectSource(
+			project('source'),
+			stored[1],
+		);
+		expect(source).toEqual({
+			kind: 'project',
+			projectId: 'source',
+			projectName: 'source',
+			path: '/main.tex',
+		});
+
+		expect(text(await fileImportService.fetchSource(source))).toBe(
+			'text from the document',
+		);
+		await expect(
+			fileImportService.fetchSource({ ...source, path: '/gone.tex' }),
+		).rejects.toThrow('The file gone.tex is no longer in the project source.');
+		await expect(
+			fileImportService.fetchSource({
+				...source,
+				projectId: 'elsewhere',
+				projectName: 'Ailleurs',
+			}),
+		).rejects.toThrow('The project Ailleurs is not on this device.');
+
+		jest
+			.spyOn(authService, 'getProjects')
+			.mockResolvedValue([project('empty')]);
+		await expect(
+			fileImportService.fetchSource({ ...source, projectId: 'empty' }),
+		).rejects.toThrow('The project empty has no files on this device.');
+	});
+
 	it('lists the other projects of the account, by name', async () => {
 		jest
 			.spyOn(authService, 'getProjects')
@@ -150,6 +187,21 @@ describe('files from a URL', () => {
 			expect.anything(),
 		);
 		expect(blocked).not.toHaveBeenCalled();
+	});
+
+	it('fetches an imported file again from its URL', async () => {
+		jest
+			.spyOn(accountSyncService, 'fetchThroughServer')
+			.mockResolvedValue(response(200, 'again') as never);
+
+		expect(
+			text(
+				await fileImportService.fetchSource({
+					kind: 'url',
+					url: 'https://a.org/x.bib',
+				}),
+			),
+		).toBe('again');
 	});
 
 	it('downloads in the browser without an account, when the site allows it', async () => {

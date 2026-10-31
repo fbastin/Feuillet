@@ -7,10 +7,7 @@ import { createNamedLogger } from '@/logging';
 import type { FileNode } from '../types/files';
 import { isRootLatexDocument } from '../utils/compilerUtils';
 import { isBinaryFile, toArrayBuffer } from '../utils/fileUtils';
-import {
-	FILE_MOVED_EVENT,
-	type FileMovedDetail,
-} from '../utils/projectCompileSettings';
+import { FILE_MOVED_EVENT, type FileMovedDetail } from '../utils/fileEvents';
 import {
 	type FileConflict,
 	mergeResolutionService,

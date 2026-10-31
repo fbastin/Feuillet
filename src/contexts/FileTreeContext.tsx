@@ -34,6 +34,10 @@ import {
 	stringToArrayBuffer,
 } from '../utils/fileUtils';
 import { batchExtractArchive } from '../utils/archiveUtils';
+import {
+	FILE_DELETED_EVENT,
+	type FileDeletedDetail,
+} from '../utils/fileEvents';
 import { isReadOnlyDocUrl, isReviewDocUrl } from '../utils/urlUtils';
 
 const moduleLog = createNamedLogger('FileTreeContext');
@@ -144,21 +148,28 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 					filesToProcess.push(rawFile);
 				}
 
+				let storedIds: string[];
 				try {
-					await fileStoreService.batchStoreFiles(filesToProcess);
+					storedIds = await fileStoreService.batchStoreFiles(filesToProcess);
 				} catch (error) {
 					if (
 						error instanceof Error &&
 						error.message === t('File operation cancelled by user')
 					) {
-						return;
+						return [];
 					}
 					throw error;
 				}
 
 				await refreshFileTree();
+				// Under another name when the person kept both files.
+				const stored = await Promise.all(
+					storedIds.map((id) => fileStoreService.getFile(id)),
+				);
+				return stored.flatMap((file) => (file ? [file.path] : []));
 			} catch (error) {
 				moduleLog.error('Error uploading files:', error);
+				return [];
 			} finally {
 				setIsLoading(false);
 			}
@@ -531,6 +542,11 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 				await fileStoreService.batchDeleteFiles(allFilesToDelete, {
 					hardDelete: hasTemporaryFiles,
 				});
+				document.dispatchEvent(
+					new CustomEvent<FileDeletedDetail>(FILE_DELETED_EVENT, {
+						detail: { paths: filesToDelete.map((file) => file.path) },
+					}),
+				);
 
 				if (selectedFileId && allFilesToDelete.includes(selectedFileId)) {
 					setSelectedFileId(null);
@@ -814,7 +830,7 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 	const ignore = async () => {};
 	const readOnlyOperations = (isReadOnlyDocUrl(docUrl) ||
 		isReviewDocUrl(docUrl)) && {
-		uploadFiles: ignore,
+		uploadFiles: async () => [],
 		createDirectory: ignore,
 		deleteFileOrDirectory: ignore,
 		linkFileToDocument: ignore,

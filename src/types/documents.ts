@@ -22,9 +22,26 @@ export interface SharedGitRemote {
 	syncedCommit?: string;
 }
 
+// Where a file added from another project or from a URL came from, so that
+// it can be refreshed, as Overleaf's linked files.
+export type ImportedFileSource =
+	| { kind: 'url'; url: string }
+	| { kind: 'project'; projectId: string; projectName: string; path: string };
+
+export interface ImportedFile {
+	source: ImportedFileSource;
+	// SHA-256 of the content as last imported, to tell whether it was changed
+	// in this project since.
+	checksum: string;
+	importedAt: number;
+	importedBy?: string;
+}
+
 export interface DocumentList {
 	documents: Document[];
 	gitRemote?: SharedGitRemote;
+	// By path in the project.
+	importedFiles?: Record<string, ImportedFile>;
 	currentDocId: string;
 	cursors: unknown[];
 	chatMessages?: ChatMessage[];

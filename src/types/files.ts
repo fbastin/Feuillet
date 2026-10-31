@@ -62,11 +62,12 @@ export interface FileTreeContextType {
 	selectedFileId: string | null;
 	isLoading: boolean;
 	selectFile: (fileId: string | null) => void;
+	/** Gives the paths the files were stored at. */
 	uploadFiles: (
 		files: FileList | File[],
 		currentPath: string,
 		targetDirectoryId?: string,
-	) => Promise<void>;
+	) => Promise<string[]>;
 	createDirectory: (name: string, path: string) => Promise<void>;
 	deleteFileOrDirectory: (id: string) => Promise<void>;
 	linkFileToDocument: (

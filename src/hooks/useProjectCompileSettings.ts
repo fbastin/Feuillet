@@ -15,6 +15,8 @@ import {
 	FILE_MOVED_EVENT,
 	type FileMovedDetail,
 	movedPath,
+} from '../utils/fileEvents';
+import {
 	sharedFieldValue,
 	withMainFile,
 	withSharedFieldValue,

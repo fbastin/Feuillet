@@ -11,6 +11,7 @@ import {
 	FileImportError,
 	fileImportService,
 } from '../../services/FileImportService';
+import type { ImportedFileSource } from '../../types/documents';
 import type { FileNode } from '../../types/files';
 import type { Project } from '../../types/projects';
 import {
@@ -31,7 +32,12 @@ interface AddFilesModalProps {
 	onClose: () => void;
 	currentProjectId: string;
 	folderPath: string;
-	onAdd: (file: File, folderPath: string) => Promise<void>;
+	/** With where the file came from, so that it can be refreshed. */
+	onAdd: (
+		file: File,
+		folderPath: string,
+		source: ImportedFileSource,
+	) => Promise<void>;
 }
 
 const AddFilesModal: React.FC<AddFilesModalProps> = ({
@@ -131,11 +137,17 @@ const AddFilesModal: React.FC<AddFilesModalProps> = ({
 		setBusy(true);
 		setError(null);
 		try {
-			const content =
+			const [content, from]: [ArrayBuffer, ImportedFileSource] =
 				source === 'project' && project && file
-					? await fileImportService.readFile(project, file)
-					: await fileImportService.fetchUrl(url.trim());
-			await onAdd(new File([content], name.trim()), folderPath);
+					? [
+							await fileImportService.readFile(project, file),
+							fileImportService.projectSource(project, file),
+						]
+					: [
+							await fileImportService.fetchUrl(url.trim()),
+							{ kind: 'url', url: url.trim() },
+						];
+			await onAdd(new File([content], name.trim()), folderPath, from);
 			onClose();
 		} catch (caught) {
 			setError(

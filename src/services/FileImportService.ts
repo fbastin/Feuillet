@@ -5,6 +5,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import { t } from '@/i18n';
+import type { ImportedFileSource } from '../types/documents';
 import type { FileNode } from '../types/files';
 import type { Project } from '../types/projects';
 import { isTemporaryFile } from '../utils/fileUtils';
@@ -132,6 +133,47 @@ class FileImportService {
 			);
 		}
 		return this.read(direct);
+	}
+
+	/** Where a file taken from another project comes from, to refresh it. */
+	projectSource(project: Project, file: FileNode): ImportedFileSource {
+		return {
+			kind: 'project',
+			projectId: projectIdOf(project),
+			projectName: project.name,
+			path: file.path,
+		};
+	}
+
+	/** The latest content of where an imported file came from. */
+	async fetchSource(source: ImportedFileSource): Promise<ArrayBuffer> {
+		if (source.kind === 'url') return this.fetchUrl(source.url);
+		const project = (await authService.getProjects()).find(
+			(entry) => projectIdOf(entry) === source.projectId,
+		);
+		if (!project) {
+			throw new FileImportError(
+				t('The project {name} is not on this device.', {
+					name: source.projectName,
+				}),
+			);
+		}
+		const files = await fileStoreService.getProjectFiles(source.projectId);
+		const file = files.find((entry) => entry.path === source.path);
+		if (!file) {
+			throw new FileImportError(
+				files.length === 0
+					? t(
+							'The project {name} has no files on this device. Open it here once to refresh this file.',
+							{ name: project.name },
+						)
+					: t('The file {path} is no longer in the project {name}.', {
+							path: source.path.replace(/^\//, ''),
+							name: project.name,
+						}),
+			);
+		}
+		return this.readFile(project, file);
 	}
 
 	private async read(response: Response): Promise<ArrayBuffer> {

@@ -5,12 +5,15 @@ import { t } from '@/i18n';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
 import { useCollab } from '../../hooks/useCollab';
 import CollaboratorAvatars from '../common/CollaboratorAvatars';
+import type { ImportedFile } from '../../types/documents';
 import type { FileNode } from '../../types/files';
 import { isTemporaryFile } from '../../utils/fileUtils';
+import { describeImportedSource } from '../../utils/importedFiles';
 import {
 	CopyUrlIcon,
 	DownloadIcon,
 	DuplicateIcon,
+	ExternalLinkIcon,
 	EditIcon,
 	FileIcon,
 	UnknownFileIcon,
@@ -23,6 +26,7 @@ import {
 	LinkIcon,
 	MoreVerticalIcon,
 	MoveIcon,
+	RefreshIcon,
 	TrashIcon,
 	UnlinkIcon,
 	UploadIcon,
@@ -80,6 +84,10 @@ interface FileTreeItemProps {
 	selectionMode?: boolean;
 	selectedNodeIds?: Set<string>;
 	onToggleSelection?: (node: FileNode) => void;
+	/** Files added from another project or a URL, by path. */
+	importedFiles?: Record<string, ImportedFile>;
+	/** Set for those who can refresh an imported file. */
+	onRefreshImported?: (node: FileNode) => void;
 }
 
 const FileTreeItem: React.FC<FileTreeItemProps> = ({
@@ -133,8 +141,18 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 	selectionMode = false,
 	selectedNodeIds,
 	onToggleSelection,
+	importedFiles,
+	onRefreshImported,
 }) => {
 	const { getAwareness, readOnly } = useCollab();
+	const imported =
+		node.type === 'file' ? importedFiles?.[node.path] : undefined;
+	const importedTitle = imported
+		? t('Imported from {source} on {date}', {
+				source: describeImportedSource(imported.source),
+				date: new Date(imported.importedAt).toLocaleString(),
+			})
+		: undefined;
 
 	const isExpanded = expandedFolders.has(node.path);
 	const hasDocument = !!node.documentId;
@@ -308,6 +326,16 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 									<DiskLinkedIcon />
 								</button>
 							)}
+							{imported && (
+								<span
+									className='file-imported-indicator'
+									data-role='imported-file'
+									data-source={imported.source.kind}
+									title={importedTitle}
+								>
+									<ExternalLinkIcon />
+								</span>
+							)}
 						</span>
 						{(() => {
 							if (
@@ -398,6 +426,22 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 							isOpen={activeMenu === node.id}
 							onClose={() => onSetActiveMenu(null)}
 						>
+							{imported && onRefreshImported && !readOnly && (
+								<button
+									type='button'
+									className='ui-menu-item'
+									data-role='refresh-imported'
+									title={importedTitle}
+									onClick={(e) => {
+										e.stopPropagation();
+										onSetActiveMenu(null);
+										onRefreshImported(node);
+									}}
+								>
+									<RefreshIcon />
+									<span>{t('Refresh')}</span>
+								</button>
+							)}
 							{!readOnly && (
 								<button
 									type='button'
@@ -702,6 +746,8 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 							selectionMode={selectionMode}
 							selectedNodeIds={selectedNodeIds}
 							onToggleSelection={onToggleSelection}
+							importedFiles={importedFiles}
+							onRefreshImported={onRefreshImported}
 						/>
 					))}
 				</div>

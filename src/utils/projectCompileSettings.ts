@@ -6,26 +6,6 @@ import type { ProjectMetadata } from '../types/documents';
 
 type FieldValue = string | number | boolean;
 
-/** Sent on the document when a file or folder of the project moves. */
-export const FILE_MOVED_EVENT = 'file-moved';
-
-export interface FileMovedDetail {
-	from: string;
-	to: string;
-}
-
-/** Where a path is once `from` has moved to `to`, if it moved with it. */
-export function movedPath(
-	path: string | undefined,
-	from: string,
-	to: string,
-): string | undefined {
-	if (!path) return undefined;
-	if (path === from) return to;
-	if (path.startsWith(`${from}/`)) return `${to}${path.slice(from.length)}`;
-	return undefined;
-}
-
 /** A project's value for a field, if it is one the field accepts. */
 export function sharedFieldValue(
 	metadata: ProjectMetadata | undefined,

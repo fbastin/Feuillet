@@ -1,7 +1,7 @@
 import type { TypesetterUIField } from '@src/types/compilation';
 import type { ProjectMetadata } from '@src/types/documents';
+import { movedPath } from '@src/utils/fileEvents';
 import {
-	movedPath,
 	sharedFieldValue,
 	withMainFile,
 	withSharedFieldValue,
