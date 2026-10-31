@@ -81,11 +81,7 @@ export function createTexliveTypesetterConfig(
 		capabilities: { outline: false, stop: true },
 		ui: {
 			compile: {
-				fields: [
-					ENGINE_FIELD,
-					COMPILE_MODE_FIELD,
-					ERROR_HANDLING_FIELD,
-				],
+				fields: [ENGINE_FIELD, COMPILE_MODE_FIELD, ERROR_HANDLING_FIELD],
 			},
 			export: {
 				label: 'Export',
