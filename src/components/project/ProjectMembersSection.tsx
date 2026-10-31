@@ -226,7 +226,9 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 									data-invite={invite.invite}
 								>
 									<span>
-										{t('Invitation as {role}', { role: roleLabel(invite.role) })}
+										{t('Invitation as {role}', {
+											role: roleLabel(invite.role),
+										})}
 									</span>
 									<span className='ui-meta'>
 										{t('until {date}', { date: expiry(invite) })}
