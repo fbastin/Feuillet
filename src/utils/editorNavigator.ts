@@ -28,7 +28,13 @@ function dispatchGoto(target: EditorTarget | null, opts: GotoOptions): void {
 export function gotoEditor(
 	target: EditorTarget | null,
 	opts: GotoOptions,
-	options?: { waitForReady?: boolean; timeoutMs?: number },
+	options?: {
+		waitForReady?: boolean;
+		timeoutMs?: number;
+		// Without it, a target that never gets ready is not gone to: for one
+		// that may already be open, and was gone to directly.
+		fallback?: boolean;
+	},
 ): void {
 	if (!options?.waitForReady || !target) {
 		dispatchGoto(target, opts);
@@ -52,7 +58,7 @@ export function gotoEditor(
 
 	const fallback = setTimeout(() => {
 		cleanup();
-		dispatchGoto(target, opts);
+		if (options.fallback !== false) dispatchGoto(target, opts);
 	}, options.timeoutMs ?? 3000);
 
 	const cleanup = () => {

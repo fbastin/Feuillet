@@ -12,12 +12,14 @@ import {
 	FileIcon,
 	GitBranchIcon,
 	HistoryIcon,
+	ReviewPanelIcon,
 	SearchIcon,
 	UsersIcon,
 } from '../common/Icons';
 import ResizablePanel from '../common/ResizablePanel';
 import GitHistoryPanel from '../history/GitHistoryPanel';
 import ProjectVersionsPanel from '../history/ProjectVersionsPanel';
+import ReviewOverviewPanel from '../review/ReviewOverviewPanel';
 import type { GitDiffView } from '../history/GitDiffViewer';
 import DocumentExplorer from './DocumentExplorer';
 import FileExplorer from './FileExplorer';
@@ -137,6 +139,16 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 			</button>
 			<button
 				type='button'
+				className={`view-toggle-icon ui-tab${activeView === 'review' ? ' active' : ''}`}
+				onClick={() => onViewChange('review')}
+				title={t('Review overview')}
+				aria-label={t('Review overview')}
+				data-view='review'
+			>
+				<ReviewPanelIcon />
+			</button>
+			<button
+				type='button'
 				className={`view-toggle-icon ui-tab${activeView === 'versions' ? ' active' : ''}`}
 				onClick={onVersionsSelect}
 				title={t('Versions')}
@@ -202,6 +214,11 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 					{viewToggle}
 					{activeView === 'search' ? (
 						<SearchPanel onNavigateToResult={onNavigateToSearchResult} />
+					) : activeView === 'review' ? (
+						<ReviewOverviewPanel
+							projectId={projectId}
+							onNavigate={onNavigateToSearchResult}
+						/>
 					) : activeView === 'documents' ? (
 						<DocumentExplorer
 							documents={documents}

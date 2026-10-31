@@ -47,3 +47,105 @@
 	min-width: 240px;
 	padding: var(--space-sm);
 }
+
+/* The overview of every file's comments and tracked changes. */
+.review-overview-file + .review-overview-file {
+	margin-top: var(--space-sm);
+}
+
+.review-overview button.review-overview-file-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-sm);
+	width: 100%;
+	margin: 0;
+	padding: var(--space-xs) var(--space-sm);
+	border: 0;
+	border-radius: var(--radius-sm, 4px);
+	background: transparent;
+	color: inherit;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+
+.review-overview button.review-overview-file-header:hover {
+	background: var(
+		--accent-bg-hover,
+		color-mix(in srgb, currentColor 8%, transparent)
+	);
+}
+
+.review-overview-path {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.review-overview button.review-overview-item {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	margin: 2px 0;
+	padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-md);
+	border: 0;
+	border-left: 3px solid var(--accent-border);
+	border-radius: 0;
+	background: transparent;
+	color: inherit;
+	font-size: 0.9em;
+	text-align: left;
+	align-items: stretch;
+	justify-content: flex-start;
+	cursor: pointer;
+}
+
+.review-overview button.review-overview-item[data-kind="comment"] {
+	border-left-color: var(--pico-primary);
+}
+
+.review-overview button.review-overview-item[data-kind="change"] {
+	border-left-color: var(--color-success);
+}
+
+.review-overview button.review-overview-item:hover {
+	background: var(
+		--accent-bg-hover,
+		color-mix(in srgb, currentColor 8%, transparent)
+	);
+}
+
+.review-overview .review-overview-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-xs);
+}
+
+.review-overview .review-overview-meta svg {
+	width: 0.9em;
+	height: 0.9em;
+}
+
+.review-overview .review-overview-line {
+	margin-left: auto;
+}
+
+.review-overview-text {
+	overflow-wrap: anywhere;
+}
+
+.review-overview-change {
+	font-weight: 600;
+}
+
+.review-overview-text ins {
+	background-color: color-mix(in srgb, var(--color-success) 18%, transparent);
+	text-decoration: none;
+}
+
+.review-overview-text del {
+	background-color: color-mix(in srgb, var(--color-error) 15%, transparent);
+}

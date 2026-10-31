@@ -101,6 +101,7 @@ export type EditorSidebarView =
 	| 'documents'
 	| 'files'
 	| 'search'
+	| 'review'
 	| 'versions'
 	| 'history';
 
