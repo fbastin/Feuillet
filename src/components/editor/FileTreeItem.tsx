@@ -5,6 +5,7 @@ import { t } from '@/i18n';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
 import { useCollab } from '../../hooks/useCollab';
 import CollaboratorAvatars from '../common/CollaboratorAvatars';
+import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import type { ImportedFile } from '../../types/documents';
 import type { FileNode } from '../../types/files';
 import { isTemporaryFile } from '../../utils/fileUtils';
@@ -351,6 +352,13 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 									awareness={awareness}
 									excludeLocal
 									maxVisible={2}
+									onSelect={(collab) =>
+										collaboratorJumpService.request({
+											userId: collab.user.id,
+											username: collab.user.username,
+											documentId: node.documentId,
+										})
+									}
 								/>
 							);
 						})()}

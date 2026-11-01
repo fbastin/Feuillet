@@ -24,6 +24,7 @@ import {
 	isReviewDocUrl,
 	parseUrlFragments,
 } from '../../utils/urlUtils';
+import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import { useAuth } from '../useAuth';
 import { useEditorTabs } from '../useEditorTabs';
 import { useFileTree } from '../useFileTree';
@@ -507,6 +508,19 @@ export const useEditorNavigation = ({
 			document.removeEventListener('file-saved', buildDocToFileMap);
 		};
 	}, [docUrl]);
+
+	// Going to a collaborator opens the document they have open; the editor
+	// then shows their cursor.
+	useEffect(
+		() =>
+			collaboratorJumpService.subscribe((jump) => {
+				const { documentId } = jump;
+				if (!documentId) return;
+				if (!isEditingFile && documentId === selectedDocId) return;
+				openDocumentById(documentId, 'files', true);
+			}),
+		[isEditingFile, selectedDocId, openDocumentById],
+	);
 
 	useEffect(() => {
 		const handleOpenSearchPanel = () => setActiveView('search');

@@ -1,5 +1,6 @@
 {
   "(The passage is cut short: read the file for the rest.)": "(Le passage est tronqué : lis le fichier pour la suite.)",
+  "(you)": "(vous)",
   "- Real-time sync active": "- Synchronisation en temps réel active",
   "- we only use local browser storage to save your projects on your device.": "- nous utilisons uniquement le stockage local du navigateur pour enregistrer vos projets sur votre appareil.",
   ", \\subsection": ", \\subsection",
@@ -1484,6 +1485,7 @@
   "Go to Implementation": "Aller à l'implémentation",
   "Go to line {line}": "Aller à la ligne {{line}}",
   "Go to Type Definition": "Aller à la définition de type",
+  "Go to where {name} is": "Aller là où se trouve {{name}}",
   "Go to...": "Aller à...",
   "Grant Access": "Accorder l'accès",
   "Graph": "Graphe",
@@ -2657,6 +2659,7 @@
   "Sharing Tips": "Conseils de partage",
   "Shift": "Shift",
   "Show": "Afficher",
+  "Show everyone": "Voir tout le monde",
   "Show {action} {pluginName} panel": "{{action}} le panneau {{pluginName}}",
   "Show a tooltip for previewing and editing links": "Afficher une infobulle pour prévisualiser et modifier les liens",
   "Show annotations": "Afficher les annotations",

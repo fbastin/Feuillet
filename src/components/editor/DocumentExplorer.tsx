@@ -9,6 +9,7 @@ import { filePathCacheService } from '../../services/FilePathCacheService';
 import { useCollab } from '../../hooks/useCollab';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import CollaboratorAvatars from '../common/CollaboratorAvatars';
+import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import type { Document } from '../../types/documents';
 import type { YjsDocUrl } from '../../types/yjs';
 import {
@@ -297,6 +298,13 @@ const DocumentExplorer: React.FC<FileViewerProps> = ({
 												awareness={awareness}
 												excludeLocal
 												maxVisible={3}
+												onSelect={(collab) =>
+													collaboratorJumpService.request({
+														userId: collab.user.id,
+														username: collab.user.username,
+														documentId: doc.id,
+													})
+												}
 											/>
 										);
 									})()}

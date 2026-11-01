@@ -4,7 +4,9 @@ import type { Awareness } from 'y-protocols/awareness';
 
 import { useHeaderVisibility } from '../../hooks/useHeaderVisibility';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
-import CollaboratorAvatars from './CollaboratorAvatars';
+import CollaboratorAvatars, {
+	type CollaboratorState,
+} from './CollaboratorAvatars';
 import InfoTooltip from './InfoTooltip';
 import { LinkIcon } from './Icons';
 
@@ -24,6 +26,8 @@ interface PluginHeaderProps {
 		fileId?: string;
 	} | null;
 	awareness?: Awareness | null;
+	/** Going to a collaborator from their avatar. */
+	onSelectCollaborator?: (collaborator: CollaboratorState) => void;
 }
 
 interface PluginControlGroupProps {
@@ -101,6 +105,7 @@ export const PluginHeader: React.FC<PluginHeaderProps> = ({
 	onNavigateToLinkedFile,
 	linkedFileInfo,
 	awareness,
+	onSelectCollaborator,
 }) => {
 	const { headerVisible } = useHeaderVisibility();
 	const setHeaderRef = useWheelScroll<HTMLDivElement>();
@@ -169,7 +174,12 @@ export const PluginHeader: React.FC<PluginHeaderProps> = ({
 			</div>
 			{(awareness || controls) && (
 				<div className='ui-toolbar-actions' data-role='plugin-controls'>
-					{awareness && <CollaboratorAvatars awareness={awareness} />}
+					{awareness && (
+						<CollaboratorAvatars
+							awareness={awareness}
+							onSelect={onSelectCollaborator}
+						/>
+					)}
 					{controls}
 				</div>
 			)}

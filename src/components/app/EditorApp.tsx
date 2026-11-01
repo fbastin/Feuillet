@@ -1,6 +1,7 @@
 // src/components/app/EditorApp.tsx
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Awareness } from 'y-protocols/awareness';
 
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
@@ -22,6 +23,7 @@ import { useGlobalKeyboard } from '../../hooks/useGlobalKeyboard';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useOffline } from '../../hooks/useOffline';
 import { useSettings } from '../../hooks/useSettings';
+import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import { fileStoreService } from '../../services/FileStoreService';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import { popoutViewerService } from '../../services/PopoutViewerService';
@@ -79,6 +81,18 @@ interface EditorAppProps {
 	targetDocId?: string | null;
 	targetFilePath?: string | null;
 }
+
+// The document a collaborator has open, from the project's presence
+// (PeerDocumentTrackingService publishes it as `openDocs`).
+const openDocumentOf = (
+	awareness: Awareness,
+	clientId: number,
+): string | undefined => {
+	const openDocs = awareness.getStates().get(clientId)?.openDocs;
+	return Array.isArray(openDocs) && typeof openDocs[0] === 'string'
+		? openDocs[0]
+		: undefined;
+};
 
 const EditorAppView: React.FC<EditorAppProps> = ({
 	docUrl,
@@ -753,6 +767,19 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 										awareness={provider.awareness}
 										excludeLocal
 										maxVisible={2}
+										canSelect={(collab) =>
+											!!openDocumentOf(provider.awareness, collab.clientId)
+										}
+										onSelect={(collab) =>
+											collaboratorJumpService.request({
+												userId: collab.user.id,
+												username: collab.user.username,
+												documentId: openDocumentOf(
+													provider.awareness,
+													collab.clientId,
+												),
+											})
+										}
 									/>
 								</div>
 							)}

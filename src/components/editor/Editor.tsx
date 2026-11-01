@@ -34,6 +34,7 @@ import type {
 } from '../../plugins/PluginInterface';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
 import { CHANGE_REFUSED_EVENT } from '../../services/CollabService';
+import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import { fileStoreService } from '../../services/FileStoreService';
 import type { DocumentList } from '../../types/documents';
 import {
@@ -876,6 +877,13 @@ const EditorContent: React.FC<{
 					}
 					linkedFileInfo={!isEditingFile ? linkedFileInfo : null}
 					awareness={awareness}
+					onSelectCollaborator={(collab) =>
+						collaboratorJumpService.request({
+							userId: collab.user.id,
+							username: collab.user.username,
+							documentId,
+						})
+					}
 				/>
 			)}
 

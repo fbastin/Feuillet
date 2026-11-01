@@ -1399,3 +1399,22 @@ math-field {
 	line-height: 1.4;
 	white-space: normal;
 }
+
+/* A collaborator's line, lit for a moment when one goes to them. */
+.codemirror-editor-container .cm-line.cm-collaborator-flash {
+	animation: cm-collaborator-flash 1.8s ease-out;
+}
+
+@keyframes cm-collaborator-flash {
+	0%,
+	40% {
+		background-color: color-mix(
+			in srgb,
+			var(--collab-flash, var(--pico-primary)) 35%,
+			transparent
+		);
+	}
+	100% {
+		background-color: transparent;
+	}
+}

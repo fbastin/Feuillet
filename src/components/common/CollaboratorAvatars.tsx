@@ -3,6 +3,7 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 
+import { t } from '@/i18n';
 import Popover from './Popover';
 
 interface CollaboratorUser {
@@ -14,7 +15,7 @@ interface CollaboratorUser {
 	colorLight?: string;
 }
 
-interface CollaboratorState {
+export interface CollaboratorState {
 	clientId: number;
 	user: CollaboratorUser;
 	isLocal: boolean;
@@ -24,12 +25,21 @@ interface CollaboratorAvatarsProps {
 	awareness: Awareness;
 	maxVisible?: number;
 	excludeLocal?: boolean;
+	/**
+	 * Going to where a collaborator is, as on Overleaf: clicking their
+	 * avatar, or their name in the list. Without it, a click shows the list.
+	 */
+	onSelect?: (collaborator: CollaboratorState) => void;
+	/** Whether one can go to them, such as when they have a document open. */
+	canSelect?: (collaborator: CollaboratorState) => boolean;
 }
 
 const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
 	awareness,
 	maxVisible = 4,
 	excludeLocal = false,
+	onSelect,
+	canSelect,
 }) => {
 	const [collaborators, setCollaborators] = useState<CollaboratorState[]>([]);
 	const [expanded, setExpanded] = useState(false);
@@ -75,12 +85,33 @@ const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
 
 	const getInitial = (user: CollaboratorUser) =>
 		(user.name || user.username || '?').charAt(0).toUpperCase();
+	const nameOf = (collab: CollaboratorState) =>
+		collab.user.name || collab.user.username;
+	const selectable = (collab: CollaboratorState) =>
+		!!onSelect && !collab.isLocal && (canSelect?.(collab) ?? true);
+	const titleOf = (collab: CollaboratorState) =>
+		collab.isLocal
+			? `${nameOf(collab)} ${t('(you)')}`
+			: selectable(collab)
+				? t('Go to where {name} is', { name: nameOf(collab) })
+				: nameOf(collab);
+	const colors = (collab: CollaboratorState) =>
+		({
+			'--collab-color': collab.user.color,
+			'--collab-color-light': collab.user.colorLight || collab.user.color,
+		}) as React.CSSProperties;
+	const select = (collab: CollaboratorState) => {
+		setExpanded(false);
+		onSelect?.(collab);
+	};
 
 	const renderTooltipContent = (collab: CollaboratorState) => (
 		<div className='collab-avatar-tooltip'>
 			<div className='collab-avatar-tooltip-name'>
-				{collab.user.name || collab.user.username}
-				{collab.isLocal && <span className='collab-avatar-you'>(You)</span>}
+				{nameOf(collab)}
+				{collab.isLocal && (
+					<span className='collab-avatar-you'>{t('(you)')}</span>
+				)}
 			</div>
 			{collab.user.email && (
 				<a
@@ -96,34 +127,40 @@ const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
 
 	return (
 		<div className='collab-avatars'>
-			<div
-				ref={rowRef}
-				className='collab-avatars-row'
-				onClick={() => setExpanded(!expanded)}
-			>
+			<div ref={rowRef} className='collab-avatars-row'>
 				{visible.map((collab) => (
-					<div
+					<button
+						type='button'
 						key={collab.clientId}
 						className={`collab-avatar ${collab.isLocal ? 'local' : ''}`}
-						style={
-							{
-								'--collab-color': collab.user.color,
-								'--collab-color-light':
-									collab.user.colorLight || collab.user.color,
-							} as React.CSSProperties
-						}
-						title={
-							(collab.user.name || collab.user.username) +
-							(collab.isLocal ? ' (You)' : '')
-						}
+						data-action={selectable(collab) ? 'go-to-collaborator' : undefined}
+						data-username={collab.user.username}
+						style={colors(collab)}
+						title={titleOf(collab)}
+						aria-label={titleOf(collab)}
+						onClick={(event) => {
+							event.stopPropagation();
+							if (selectable(collab)) select(collab);
+							else setExpanded(!expanded);
+						}}
 					>
 						{getInitial(collab.user)}
-					</div>
+					</button>
 				))}
 				{overflow > 0 && (
-					<div className='collab-avatar collab-avatar-overflow'>
+					<button
+						type='button'
+						className='collab-avatar collab-avatar-overflow'
+						data-action='show-collaborators'
+						title={t('Show everyone')}
+						aria-label={t('Show everyone')}
+						onClick={(event) => {
+							event.stopPropagation();
+							setExpanded(!expanded);
+						}}
+					>
 						+{overflow}
-					</div>
+					</button>
 				)}
 			</div>
 
@@ -134,23 +171,31 @@ const CollaboratorAvatars: React.FC<CollaboratorAvatarsProps> = ({
 				clampHeight
 				onClose={() => setExpanded(false)}
 			>
-				{collaborators.map((collab) => (
-					<div key={collab.clientId} className='collab-avatars-panel-item'>
-						<div
-							className='collab-avatar'
-							style={
-								{
-									'--collab-color': collab.user.color,
-									'--collab-color-light':
-										collab.user.colorLight || collab.user.color,
-								} as React.CSSProperties
-							}
+				{collaborators.map((collab) =>
+					selectable(collab) ? (
+						<button
+							type='button'
+							key={collab.clientId}
+							className='collab-avatars-panel-item'
+							data-action='go-to-collaborator'
+							data-username={collab.user.username}
+							title={titleOf(collab)}
+							onClick={() => select(collab)}
 						>
-							{getInitial(collab.user)}
+							<div className='collab-avatar' style={colors(collab)}>
+								{getInitial(collab.user)}
+							</div>
+							{renderTooltipContent(collab)}
+						</button>
+					) : (
+						<div key={collab.clientId} className='collab-avatars-panel-item'>
+							<div className='collab-avatar' style={colors(collab)}>
+								{getInitial(collab.user)}
+							</div>
+							{renderTooltipContent(collab)}
 						</div>
-						{renderTooltipContent(collab)}
-					</div>
-				))}
+					),
+				)}
 			</Popover>
 		</div>
 	);

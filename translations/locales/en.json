@@ -1,5 +1,6 @@
 {
   "(The passage is cut short: read the file for the rest.)": "(The passage is cut short: read the file for the rest.)",
+  "(you)": "(you)",
   "- Real-time sync active": "- Real-time sync active",
   "- we only use local browser storage to save your projects on your device.": "- we only use local browser storage to save your projects on your device.",
   ", \\subsection": ", \\subsection",
@@ -1484,6 +1485,7 @@
   "Go to Implementation": "Go to Implementation",
   "Go to line {line}": "Go to line {{line}}",
   "Go to Type Definition": "Go to Type Definition",
+  "Go to where {name} is": "Go to where {{name}} is",
   "Go to...": "Go to...",
   "Grant Access": "Grant Access",
   "Graph": "Graph",
@@ -2657,6 +2659,7 @@
   "Sharing Tips": "Sharing Tips",
   "Shift": "Shift",
   "Show": "Show",
+  "Show everyone": "Show everyone",
   "Show {action} {pluginName} panel": "Show {{action}} {{pluginName}} panel",
   "Show a tooltip for previewing and editing links": "Show a tooltip for previewing and editing links",
   "Show annotations": "Show annotations",

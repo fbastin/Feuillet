@@ -48,7 +48,11 @@ import { latexCompletionSource } from 'codemirror-lang-latex';
 import { typstCompletionSource } from 'codemirror-lang-typst/lezer';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type * as Y from 'yjs';
-import { UndoManager } from 'yjs';
+import {
+	UndoManager,
+	createAbsolutePositionFromRelativePosition,
+	createRelativePositionFromJSON,
+} from 'yjs';
 
 import { createNamedLogger } from '@/logging';
 import { createLanguageExtension } from '../../extensions/codemirror/LanguageExtension';
@@ -88,6 +92,10 @@ import {
 import { createPasteExtension } from '../../extensions/codemirror/PasteExtension';
 import { createListingsExtension } from '../../extensions/codemirror/ListingsExtension';
 import { createBurstDeferredLanguage } from '../../extensions/codemirror/BurstDeferLanguage';
+import {
+	collaboratorFlashExtension,
+	showCollaborator,
+} from '../../extensions/codemirror/CollaboratorFlashExtension';
 import { createCompileDiagnosticsExtension } from '../../extensions/codemirror/CompileDiagnosticsExtension';
 import { createSpellingExtension } from '../../extensions/codemirror/SpellingExtension';
 import {
@@ -106,6 +114,7 @@ import type { EditorSettings } from '../../types/editor';
 import { autoSaveService } from '../../services/AutoSaveService';
 import { detectFileType, isBibFile } from '../../utils/fileUtils';
 import { collabService } from '../../services/CollabService';
+import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import { fileStoreService } from '../../services/FileStoreService';
 import { filePathCacheService } from '../../services/FilePathCacheService';
 import type { CollabProvider } from '../../types/collab';
@@ -386,6 +395,7 @@ export const useEditorView = (
 				},
 			}),
 			EditorView.lineWrapping,
+			collaboratorFlashExtension,
 			// Tooltips stay over the text, not under the panels beside it.
 			tooltips({
 				tooltipSpace: (view) => view.scrollDOM.getBoundingClientRect(),
@@ -732,6 +742,59 @@ export const useEditorView = (
 			createdAt: 0,
 		});
 	}, [projectId, documentId, isEditingFile, user]);
+
+	// Going to a collaborator from their avatar: once this document's editor
+	// knows their cursor, it scrolls to it (CollaboratorJumpService).
+	useEffect(() => {
+		const awareness = provider?.awareness;
+		if (!awareness || !yDoc || !documentId || isEditingFile) return;
+
+		let timer: number | null = null;
+		const attempt = () => {
+			const jump = collaboratorJumpService.pending(documentId);
+			const view = viewRef.current;
+			const ytext = ytextRef.current;
+			if (!jump || !view || !ytext) return Boolean(jump);
+			for (const [clientId, state] of awareness.getStates()) {
+				if (clientId === awareness.clientID) continue;
+				if (!collaboratorJumpService.matches(jump, state.user)) continue;
+				const head = state.cursor?.head;
+				if (!head) continue;
+				const position = createAbsolutePositionFromRelativePosition(
+					createRelativePositionFromJSON(head),
+					yDoc,
+				);
+				if (!position || position.type !== ytext) continue;
+				showCollaborator(
+					view,
+					jump,
+					position.index,
+					typeof state.user?.color === 'string' ? state.user.color : '',
+				);
+				return false;
+			}
+			return true;
+		};
+		// Their cursor may come a moment after the document opens.
+		const poll = () => {
+			if (timer !== null) return;
+			timer = window.setInterval(() => {
+				if (!attempt() && timer !== null) {
+					window.clearInterval(timer);
+					timer = null;
+				}
+			}, 250);
+		};
+		const onJump = () => {
+			if (attempt()) poll();
+		};
+		const unsubscribe = collaboratorJumpService.subscribe(onJump);
+		onJump();
+		return () => {
+			unsubscribe();
+			if (timer !== null) window.clearInterval(timer);
+		};
+	}, [provider, yDoc, documentId, isEditingFile]);
 
 	// --- Create / recreate EditorView ---
 	/* biome-ignore lint/correctness/useExhaustiveDependencies: Build helpers (buildBaseExtensions, buildKeymapExtensions, buildLanguageSpecificExtensions, buildCommentExtensions, buildLanguageExtension, scheduleFilePathSync) close over editorSettings/getXxxEnabled and are intentionally re-evaluated only on the listed triggers; settings-only changes go through the separate reconfigure effect below. yDoc and enableComments are triggers, not body reads. */
