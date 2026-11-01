@@ -16,6 +16,11 @@ Your account menu, at the top right, opens the profile:
 
 - changing your password; your other devices will have to sign in again,
   and assistants such as Claude lose their access;
+- **Devices**: the devices signed in to your account, with their browser
+  and system, when they signed in and were last used. **Sign out** ends a
+  device's session, such as a shared computer's; **Sign out all other
+  devices** ends all of them but this one. Unused, a session ends by itself
+  after 90 days;
 - **Assistants**: the address of the Claude connector and the connected
   applications (see [Claude](claude.md));
 - **Export Account**: your projects and settings in an archive;
@@ -37,8 +42,8 @@ The **Privacy** link, at the bottom of the page, says in detail what
 Feuillet's server keeps, for how long, and what goes to other services
 (GitHub, Anthropic, TeXlyre…) when you use them. In short:
 
-- your account: name, a hash of the password (never the password), the list
-  of your projects;
+- your account: name, a hash of the password (never the password), the
+  signed-in devices (browser and system), the list of your projects;
 - your projects, their versions and their sharing, for your collaborators;
 - the web server's logs, 14 days; the collaboration server's, 30 MB at
   most;

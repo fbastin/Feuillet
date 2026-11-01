@@ -8,11 +8,12 @@ import Modal from '../common/Modal';
 import { UserIcon } from '../common/Icons';
 import ProfileAccountIdentitySection from './ProfileAccountIdentitySection';
 import ProfileAssistantsSection from './ProfileAssistantsSection';
+import ProfileDevicesSection from './ProfileDevicesSection';
 import ProfileServerAccountSection from './ProfileServerAccountSection';
 import BrowserStorageSection from './ProfileBrowserStorageSection';
 import LocalStorageDataSection from './ProfileLocalStorageDataSection';
 
-export type ProfileSettingsTab = 'account' | 'data' | 'assistants';
+export type ProfileSettingsTab = 'account' | 'devices' | 'data' | 'assistants';
 
 /** Opens the profile at a tab: {detail: {tab}}, from anywhere in the app. */
 export const OPEN_PROFILE_EVENT = 'open-profile-settings';
@@ -53,6 +54,14 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 					onClick={() => setTab('account')}
 				>
 					{t('Account')}
+				</button>
+				<button
+					type='button'
+					className={`ui-tab ${tab === 'devices' ? 'active' : ''}`}
+					data-tab='devices'
+					onClick={() => setTab('devices')}
+				>
+					{t('Devices')}
 				</button>
 				<button
 					type='button'
@@ -103,6 +112,8 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 				</>
 			) : tab === 'assistants' ? (
 				<ProfileAssistantsSection />
+			) : tab === 'devices' ? (
+				<ProfileDevicesSection />
 			) : (
 				user && (
 					<>

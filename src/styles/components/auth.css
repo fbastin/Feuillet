@@ -298,7 +298,8 @@
 	font-size: 0.95rem;
 }
 
-.assistant-connections {
+.assistant-connections,
+.account-devices {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -307,7 +308,8 @@
 	gap: var(--space-xs);
 }
 
-.assistant-connections li {
+.assistant-connections li,
+.account-devices li {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -317,7 +319,17 @@
 	border-radius: 6px;
 }
 
-.assistant-connections li > div {
+.assistant-connections li > div,
+.account-devices li > div {
 	display: flex;
 	flex-direction: column;
+}
+
+.account-devices li[data-current="true"] {
+	border-color: var(--pico-primary);
+}
+
+.account-devices [data-role="this-device"] {
+	align-self: flex-start;
+	margin: 2px 0;
 }

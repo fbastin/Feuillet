@@ -85,6 +85,16 @@ export interface AssistantConnection {
 	lastUsedAt: number;
 }
 
+// A device signed in to the account, as Overleaf's sessions list them.
+export interface AccountDevice {
+	id: string;
+	current: boolean;
+	createdAt: number;
+	lastUsedAt: number;
+	browser?: string;
+	os?: string;
+}
+
 export interface ProjectInvite {
 	invite: string;
 	role: MemberRole;
@@ -502,6 +512,31 @@ class AccountSyncService {
 			? result.connections.filter(
 					(entry: AssistantConnection) =>
 						typeof entry?.id === 'string' && typeof entry.name === 'string',
+				)
+			: [];
+	}
+
+	/**
+	 * The devices signed in to the account, this one first; signing out
+	 * another (`revoke`), or all the others. Null without a server account.
+	 */
+	async accountDevices(
+		change?: { revoke: string } | { others: true },
+	): Promise<AccountDevice[] | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			change ? 'POST' : 'GET',
+			'/account/sessions',
+			{ token: session.token, ...(change ? { body: change } : {}) },
+		);
+		return Array.isArray(result?.sessions)
+			? result.sessions.filter(
+					(entry: AccountDevice) =>
+						typeof entry?.id === 'string' &&
+						typeof entry.lastUsedAt === 'number',
 				)
 			: [];
 	}

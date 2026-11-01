@@ -17,6 +17,8 @@
 //                                                        projects it owns
 //   GET    /account/projects                             (token) -> {projects}
 //   POST   /account/projects  {projects}                 (token) -> {projects}
+//   GET    /account/sessions                             (token) -> {sessions}
+//   POST   /account/sessions  {revoke: id} | {others: true} (token) -> {sessions}
 //   GET    /account/dictionary                           (token) -> {words}
 //   POST   /account/dictionary {words}                   (token) -> {words}
 //
@@ -179,6 +181,38 @@ const mergeProjects = (stored, incoming) =>
 const mergeWords = (stored, incoming) =>
 	mergeLatest(stored, incoming, cleanWord, (entry) => entry.word);
 
+// What device signs in, from its browser's User-Agent: the names of the
+// browser and of the system only, for the list of devices; neither the
+// User-Agent itself nor the address is kept.
+const deviceOf = (req) => {
+	const agent = String(req.headers?.['user-agent'] ?? '');
+	const browser = /Edg(?:e|A|iOS)?\//.test(agent)
+		? 'Edge'
+		: /OPR\/|Opera/.test(agent)
+			? 'Opera'
+			: /Firefox\/|FxiOS\//.test(agent)
+				? 'Firefox'
+				: /Chrome\/|CriOS\//.test(agent)
+					? 'Chrome'
+					: /Safari\//.test(agent)
+						? 'Safari'
+						: '';
+	const os = /Android/.test(agent)
+		? 'Android'
+		: /iPhone|iPad|iPod/.test(agent)
+			? 'iOS'
+			: /Windows/.test(agent)
+				? 'Windows'
+				: /CrOS/.test(agent)
+					? 'ChromeOS'
+					: /Mac OS X|Macintosh/.test(agent)
+						? 'macOS'
+						: /Linux/.test(agent)
+							? 'Linux'
+							: '';
+	return { browser, os };
+};
+
 const createAccounts = ({ dir, log }) => {
 	fs.mkdirSync(dir, { recursive: true });
 
@@ -236,7 +270,7 @@ const createAccounts = ({ dir, log }) => {
 		}
 	}, ATTEMPT_WINDOW_MS).unref();
 
-	const openSession = (account, key) => {
+	const openSession = (account, key, device = {}) => {
 		const secret = crypto.randomBytes(32).toString('base64url');
 		const now = Date.now();
 		const sessions = Object.entries(account.sessions ?? {})
@@ -248,9 +282,58 @@ const createAccounts = ({ dir, log }) => {
 			createdAt: now,
 			lastUsedAt: now,
 			expiresAt: now + SESSION_MS,
+			...(device.browser || device.os ? { device } : {}),
 		};
 		return `${key}.${secret}`;
 	};
+
+	// The devices signed in to an account, as Overleaf's sessions: this one
+	// first, then the most recently used. Each has an id of its own, not the
+	// stored hash of its token.
+	const deviceId = (sessionKey) =>
+		sha256(`device:${sessionKey}`).slice(0, 24);
+	const listSessions = (account, current) => {
+		const now = Date.now();
+		return Object.entries(account.sessions ?? {})
+			.filter(([, session]) => session.expiresAt > now)
+			.map(([sessionKey, session]) => ({
+				id: deviceId(sessionKey),
+				current: sessionKey === current,
+				createdAt: session.createdAt,
+				lastUsedAt: session.lastUsedAt,
+				...(session.device?.browser ? { browser: session.device.browser } : {}),
+				...(session.device?.os ? { os: session.device.os } : {}),
+			}))
+			.sort(
+				(a, b) =>
+					Number(b.current) - Number(a.current) || b.lastUsedAt - a.lastUsedAt,
+			);
+	};
+
+	const getSessions = (req) =>
+		authenticate(req, (account, sessionId) => ({
+			body: { sessions: listSessions(account, sessionId) },
+		}));
+
+	// Signs out another device, or all the others; this one signs out with
+	// /account/logout.
+	const endSessions = (req, body) =>
+		authenticate(req, (account, sessionId) => {
+			const others = body.others === true;
+			const revoke = typeof body.revoke === 'string' ? body.revoke : null;
+			if (!others && !revoke) throw new HttpError(400, 'invalid_request');
+			account.sessions = Object.fromEntries(
+				Object.entries(account.sessions ?? {}).filter(
+					([sessionKey]) =>
+						sessionKey === sessionId ||
+						(!others && deviceId(sessionKey) !== revoke),
+				),
+			);
+			return {
+				changed: true,
+				body: { sessions: listSessions(account, sessionId) },
+			};
+		});
 
 	// Finds the account and session a request's token belongs to, and keeps
 	// a session in use from expiring.
@@ -300,7 +383,7 @@ const createAccounts = ({ dir, log }) => {
 					: { ...entry, ...describeProject(idOf(account), entry) },
 			);
 
-	const register = async (body, ip) => {
+	const register = async (body, ip, device) => {
 		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
 		const username = normalizeUsername(body.username);
 		if (!validUsername(username)) throw new HttpError(400, 'invalid_username');
@@ -319,14 +402,14 @@ const createAccounts = ({ dir, log }) => {
 				projects: {},
 				sessions: {},
 			};
-			const token = openSession(account, key);
+			const token = openSession(account, key, device);
 			write(key, account);
 			log('account created', JSON.stringify(username));
 			return { username, token };
 		});
 	};
 
-	const login = async (body, ip) => {
+	const login = async (body, ip, device) => {
 		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
 		const username = normalizeUsername(body.username);
 		if (!validUsername(username) || typeof body.password !== 'string') {
@@ -343,7 +426,7 @@ const createAccounts = ({ dir, log }) => {
 
 		return withAccount(key, (current) => {
 			if (!current) throw new HttpError(404, 'unknown_username');
-			const token = openSession(current, key);
+			const token = openSession(current, key, device);
 			write(key, current);
 			return { username: current.username, token };
 		});
@@ -573,8 +656,11 @@ const createAccounts = ({ dir, log }) => {
 
 	const routes = {
 		'POST /account/register': (req, body) =>
-			register(body, clientAddress(req)),
-		'POST /account/login': (req, body) => login(body, clientAddress(req)),
+			register(body, clientAddress(req), deviceOf(req)),
+		'POST /account/login': (req, body) =>
+			login(body, clientAddress(req), deviceOf(req)),
+		'GET /account/sessions': (req) => getSessions(req),
+		'POST /account/sessions': (req, body) => endSessions(req, body),
 		'POST /account/logout': (req) => logout(req),
 		'POST /account/password': (req, body) => changePassword(req, body),
 		'DELETE /account': (req, body) => deleteAccount(req, body),
@@ -633,6 +719,7 @@ const createAccounts = ({ dir, log }) => {
 
 module.exports = {
 	createAccounts,
+	deviceOf,
 	mergeProjects,
 	cleanProject,
 	mergeWords,

@@ -16,6 +16,12 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 
 - changer de mot de passe; vos autres appareils devront se reconnecter, et
   les assistants comme Claude perdent leur accès;
+- **Appareils** : les appareils connectés à votre compte, avec leur
+  navigateur et leur système, la date de connexion et la dernière
+  utilisation. **Déconnecter** ferme la session d'un appareil, par exemple
+  un ordinateur partagé; **Déconnecter tous les autres appareils** les ferme
+  toutes sauf celle-ci. Sans utilisation, une session se ferme d'elle-même
+  après 90 jours;
 - **Assistants** : l'adresse du connecteur Claude et les applications
   connectées (voir [Claude](claude.md));
 - **Exporter le compte** : vos projets et réglages dans une archive;
@@ -40,7 +46,7 @@ serveur de Feuillet, combien de temps, et ce qui part chez d'autres services
 (GitHub, Anthropic, TeXlyre…) quand vous les utilisez. En bref :
 
 - votre compte : nom, empreinte du mot de passe (jamais le mot de passe),
-  liste de vos projets;
+  appareils connectés (navigateur et système), liste de vos projets;
 - vos projets, leurs versions et leur partage, pour vos collaborateurs;
 - les journaux du serveur web, 14 jours; ceux du serveur de collaboration,
   limités à 30 Mo;
