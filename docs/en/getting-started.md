@@ -73,6 +73,11 @@ Feuillet's server. The menu next to the compile button offers:
 - **error handling**: compile despite errors, or stop at the first one;
 - compiling with the cache cleared.
 
+Projects made before Feuillet had TeX Live compiled in the browser: they
+move to TeX Live, with their engine, the next time an editor opens them. The
+browser compiler is still offered: choose **LaTeX** as the compiler in the
+project's details (the pencil next to its name), and the project keeps it.
+
 ### Understanding an error
 
 The **Log** lists errors and warnings with their file and line; a click goes

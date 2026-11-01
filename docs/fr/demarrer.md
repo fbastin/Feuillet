@@ -75,6 +75,12 @@ serveur de Feuillet. Le menu à côté du bouton de compilation offre :
   la première;
 - la compilation avec le cache vidé.
 
+Les projets créés avant que Feuillet ait TeX Live compilaient dans le
+navigateur : ils passent à TeX Live, avec leur moteur, la prochaine fois
+qu'un éditeur les ouvre. Le compilateur du navigateur reste offert :
+choisissez **LaTeX** comme compilateur dans les détails du projet (le crayon
+à côté de son nom), et le projet le garde.
+
 ### Comprendre une erreur
 
 Le **Journal** liste les erreurs et les avertissements avec leur fichier et

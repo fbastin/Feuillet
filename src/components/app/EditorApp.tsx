@@ -23,6 +23,7 @@ import { useGlobalKeyboard } from '../../hooks/useGlobalKeyboard';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useOffline } from '../../hooks/useOffline';
 import { useSettings } from '../../hooks/useSettings';
+import { useBrowserCompilerMigration } from '../../hooks/useBrowserCompilerMigration';
 import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import { fileStoreService } from '../../services/FileStoreService';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
@@ -67,6 +68,8 @@ import GuestUpgradeBanner from '../auth/GuestUpgradeBanner';
 import GuestUpgradeModal from '../auth/GuestUpgradeModal';
 import { isValidYjsUrl, pushHash } from '../../utils/urlUtils';
 import { clickWhenReady } from '../../utils/editorNavigator';
+import { choosesBrowserCompiler } from '../../utils/browserCompilerMigration';
+import { TEXLIVE_TYPESETTER_ID } from '../../utils/texliveTypesetter';
 import FooterLinks from '../common/FooterLinks';
 import ServiceStatusBanner from '../common/ServiceStatusBanner';
 import QuotaBanner from '../common/QuotaBanner';
@@ -81,6 +84,10 @@ interface EditorAppProps {
 	targetDocId?: string | null;
 	targetFilePath?: string | null;
 }
+
+// Whether Feuillet's TeX Live server is offered for LaTeX projects.
+const texliveOffered = () =>
+	typesetterRegistryService.get(TEXLIVE_TYPESETTER_ID) !== undefined;
 
 // The document a collaborator has open, from the project's presence
 // (PeerDocumentTrackingService publishes it as `openDocs`).
@@ -201,6 +208,8 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 			?.value as boolean) ?? false;
 
 	useGlobalKeyboard();
+	// Projects from before TeX Live move to it, as on Overleaf.
+	useBrowserCompilerMigration();
 
 	const updateContent = (docId: string, content: string) => {
 		changeDoc((d) => {
@@ -340,6 +349,10 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 		compilerId?: string;
 	}) => {
 		setIsSubmitting(true);
+		const browserCompilerChosen = choosesBrowserCompiler(
+			projectData.compilerId,
+			texliveOffered(),
+		);
 		changeDoc((d) => {
 			if (!d.projectMetadata) {
 				d.projectMetadata = {
@@ -348,6 +361,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 					type: projectData.type || 'latex',
 					group: projectData.group,
 					compilerId: projectData.compilerId,
+					...(browserCompilerChosen ? { browserCompilerChosen } : {}),
 				};
 			} else {
 				d.projectMetadata.name = projectData.name;
@@ -355,6 +369,11 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 				d.projectMetadata.type = projectData.type || 'latex';
 				d.projectMetadata.group = projectData.group;
 				d.projectMetadata.compilerId = projectData.compilerId;
+				if (browserCompilerChosen) {
+					d.projectMetadata.browserCompilerChosen = true;
+				} else {
+					delete d.projectMetadata.browserCompilerChosen;
+				}
 			}
 		});
 		await persistProjectMetadata({
@@ -515,12 +534,18 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 			const projectMetadata = sessionStorage.getItem('projectMetadata');
 			if (projectMetadata) {
 				const parsedMetadata = JSON.parse(projectMetadata);
+				// A new project: its compiler was just chosen.
+				const browserCompilerChosen = choosesBrowserCompiler(
+					parsedMetadata.compilerId,
+					texliveOffered(),
+				);
 				changeDoc((d) => {
 					d.projectMetadata = {
 						name: parsedMetadata.name || 'Untitled Project',
 						description: parsedMetadata.description || '',
 						type: parsedMetadata.type || 'latex',
 						compilerId: parsedMetadata.compilerId,
+						...(browserCompilerChosen ? { browserCompilerChosen } : {}),
 						mainFile: parsedMetadata.mainFile,
 						latexEngine: parsedMetadata.latexEngine,
 						typstEngine: parsedMetadata.typstEngine,

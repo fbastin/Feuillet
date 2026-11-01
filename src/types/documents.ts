@@ -58,6 +58,9 @@ export interface DocumentList {
 		type?: ProjectType;
 		group?: ProjectGroup;
 		compilerId?: string;
+		// The browser compiler, chosen while TeX Live was offered: kept, not
+		// moved to TeX Live as the projects made before it.
+		browserCompilerChosen?: boolean;
 		mainFile?: string;
 		latexEngine?: LaTeXEngine;
 		typstEngine?: string;

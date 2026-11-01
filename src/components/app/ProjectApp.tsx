@@ -25,6 +25,8 @@ import {
 	createStarterFile,
 } from '../../utils/projectStarterUtils';
 import { type ProjectView, inProjectView } from '../../utils/projectViewUtils';
+import { listedBeforeTexlive } from '../../utils/browserCompilerMigration';
+import { TEXLIVE_TYPESETTER_ID } from '../../utils/texliveTypesetter';
 import {
 	isValidYjsUrl,
 	buildUrlWithFragments,
@@ -73,6 +75,9 @@ interface ProjectManagerProps {
 	) => void;
 	onLogout: () => void;
 }
+
+// Projects this page has tried to move to TeX Live in the list.
+const triedTexliveMove = new Set<string>();
 
 const ProjectApp: React.FC<ProjectManagerProps> = ({
 	onOpenProject,
@@ -178,6 +183,46 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 	useEffect(() => {
 		loadProjects();
 	}, [loadProjects]);
+
+	// Projects listed with the browser compiler since before TeX Live show
+	// TeX Live, which they move to once opened (useBrowserCompilerMigration).
+	// Each is tried once, so that one that cannot change does not loop.
+	const [texliveOffered, setTexliveOffered] = useState(
+		() => typesetterRegistryService.get(TEXLIVE_TYPESETTER_ID) !== undefined,
+	);
+	useEffect(
+		() =>
+			typesetterRegistryService.onChange(() =>
+				setTexliveOffered(
+					typesetterRegistryService.get(TEXLIVE_TYPESETTER_ID) !== undefined,
+				),
+			),
+		[],
+	);
+	useEffect(() => {
+		if (!texliveOffered) return;
+		const stale = projects.filter(
+			(project) =>
+				listedBeforeTexlive(project) && !triedTexliveMove.has(project.id),
+		);
+		if (stale.length === 0) return;
+		for (const project of stale) triedTexliveMove.add(project.id);
+		void (async () => {
+			let moved = 0;
+			for (const project of stale) {
+				try {
+					await updateProject({
+						...project,
+						compilerId: TEXLIVE_TYPESETTER_ID,
+					});
+					moved++;
+				} catch (error) {
+					moduleLog.warn('Failed to move a project to TeX Live:', error);
+				}
+			}
+			if (moved > 0) await loadProjects();
+		})();
+	}, [texliveOffered, projects, updateProject, loadProjects]);
 
 	// Projects created, renamed or deleted on another device.
 	useEffect(() => {
