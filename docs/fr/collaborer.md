@@ -1,5 +1,7 @@
 # Collaborer
 
+*[English](../en/collaborating.md)*
+
 Tous les collaborateurs d'un projet travaillent sur le même texte en même
 temps; chacun voit le curseur des autres. Le serveur de Feuillet garde le
 projet : il n'est pas nécessaire d'être en ligne en même temps.

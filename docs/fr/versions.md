@@ -1,5 +1,7 @@
 # Versions
 
+*[English](../en/versions.md)*
+
 Le serveur enregistre une version du projet peu après chaque modification,
 avec le nom de ceux qui l'ont faite. L'onglet **Versions** de la colonne de
 gauche les montre, les plus récentes d'abord, avec les fichiers changés.

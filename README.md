@@ -9,7 +9,7 @@ LaTeX and Typst editor that runs in the browser. Feuillet keeps TeXlyre's
 editor and adds a server, so that projects, accounts, sharing, review,
 versions and compiling work as they do on Overleaf.
 
-**User guide (in French): [`docs/`](docs/README.md).**
+**User guide: [English](docs/en/README.md) · [Français](docs/fr/README.md).**
 
 ## What Feuillet adds to TeXlyre
 

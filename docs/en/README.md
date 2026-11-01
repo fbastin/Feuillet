@@ -1,0 +1,46 @@
+# Feuillet guide
+
+*[Français](../fr/README.md)*
+
+Feuillet is an online collaborative LaTeX editor in the spirit of Overleaf,
+linked to GitHub. It runs at <https://feuillet.slashbin.net>.
+
+It comes from [TeXlyre](https://texlyre.org) and keeps its editor: LaTeX
+and Typst, a visual editor, spell checking, formulas, diagrams. It adds a
+server that keeps projects and accounts, with sharing, review, versions,
+compiling with TeX Live, GitHub sync and working with Claude.
+
+The interface is in French or English, as chosen in the settings; this
+guide names the buttons as they read in English.
+
+## Contents
+
+1. [Getting started](getting-started.md): account, projects, editor,
+   compiling.
+2. [Collaborating](collaborating.md): sharing a project, inviting, roles,
+   seeing who works where, chat.
+3. [Review](review.md): comments, tracked changes, accepting or rejecting.
+4. [Versions](versions.md): the project's history, labels, comparing,
+   restoring.
+5. [GitHub](github.md): linking a project to a repository, pushing, pulling,
+   working on your computer.
+6. [Claude](claude.md): letting Claude read, compile, comment on and suggest
+   changes to your projects.
+7. [Account and privacy](account.md): devices, password, deleting, what the
+   server keeps.
+
+## What comes from TeXlyre
+
+These features are described in
+[TeXlyre's documentation](https://texlyre.org/docs/intro): Typst, language
+servers (LSP), the bibliography with Zotero and OpenAlex, draw.io and TikZ
+diagrams, the MathLive formula editor, themes and editing keybindings (Vim,
+Emacs).
+
+In Feuillet, collaboration goes through Feuillet's server rather than
+peer to peer, so TeXlyre's pages on collaboration, file sharing and hosting
+do not apply.
+
+## A question, a problem?
+
+Open an issue on [GitHub](https://github.com/fbastin/Feuillet/issues).

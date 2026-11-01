@@ -1,5 +1,7 @@
 # Claude
 
+*[English](../en/claude.md)*
+
 Claude, l'assistant d'Anthropic, peut travailler sur vos projets Feuillet,
 avec votre propre abonnement Claude, par le **connecteur Feuillet** : il lit
 et cherche dans les projets, compile, commente et propose des modifications,

@@ -1,5 +1,7 @@
 # Premiers pas
 
+*[English](../en/getting-started.md)*
+
 ## Créer un compte
 
 Sur <https://feuillet.slashbin.net>, choisissez **Créer un compte** et donnez
@@ -77,10 +79,10 @@ serveur de Feuillet. Le menu à côté du bouton de compilation offre :
 
 Le **Journal** liste les erreurs et les avertissements avec leur fichier et
 leur ligne; un clic mène à la ligne. Sous chaque erreur fréquente, une
-explication en français dit ce que TeX n'a pas compris et comment corriger,
-par exemple une commande inconnue ou un environnement qui demande un paquet.
-Les lignes en cause sont aussi marquées dans l'éditeur, et leur info-bulle
-donne la même explication.
+explication dit ce que TeX n'a pas compris et comment corriger, par exemple
+une commande inconnue ou un environnement qui demande un paquet. Les lignes
+en cause sont aussi marquées dans l'éditeur, et leur info-bulle donne la
+même explication. Ces explications sont dans la langue de l'interface.
 
 ### Du texte au PDF, et retour
 

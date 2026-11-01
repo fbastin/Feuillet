@@ -1,5 +1,7 @@
 # Relecture
 
+*[English](../en/review.md)*
+
 Comme dans Overleaf, on peut commenter un passage et suivre les
 modifications pour les faire accepter ou rejeter.
 

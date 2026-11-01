@@ -1,5 +1,7 @@
 # Compte et confidentialité
 
+*[English](../en/account.md)*
+
 ## Plusieurs appareils
 
 Votre compte existe dans votre navigateur et sur le serveur de Feuillet. En

@@ -1,5 +1,7 @@
 # GitHub
 
+*[English](../en/github.md)*
+
 Un projet Feuillet peut être lié à un dépôt GitHub, comme dans Overleaf : on
 envoie ses modifications vers GitHub et on récupère celles qui y ont été
 faites. GitLab, Gitea et Forgejo fonctionnent de la même façon.

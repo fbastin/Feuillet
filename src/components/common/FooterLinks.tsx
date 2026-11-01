@@ -2,8 +2,8 @@
 import type React from 'react';
 import { useRef, useState } from 'react';
 
-import { APP_DOCS_URL, APP_SOURCE_URL, UPSTREAM_NAME } from '@/branding';
-import { t } from '@/i18n';
+import { APP_SOURCE_URL, UPSTREAM_NAME, docsUrl } from '@/branding';
+import i18next, { t } from '@/i18n';
 import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
 import { useSettings } from '../../hooks/useSettings';
 import Popover from './Popover';
@@ -38,7 +38,7 @@ const FooterLinks: React.FC<FooterLinksProps> = ({
 					•{' '}
 				</>
 			) : null}
-			<a href={APP_DOCS_URL} target='_blank' rel='noreferrer'>
+			<a href={docsUrl(i18next.language)} target='_blank' rel='noreferrer'>
 				{t('Documentation')}
 			</a>{' '}
 			•{' '}
