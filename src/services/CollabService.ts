@@ -464,6 +464,31 @@ class CollabService {
 		return this.docContainers.get(containerId);
 	}
 
+	/**
+	 * Resolves once the copy of a connected document kept in this browser is
+	 * loaded, or after `timeoutMs` if it does not load (no IndexedDB).
+	 */
+	public whenLoaded(
+		docId: string,
+		collectionName: string,
+		timeoutMs = 3000,
+	): Promise<void> {
+		const persistence = this.getDocContainer(
+			docId,
+			collectionName,
+		)?.persistence;
+		if (!persistence || persistence.synced) return Promise.resolve();
+		return new Promise<void>((resolve) => {
+			const done = () => {
+				clearTimeout(timeout);
+				persistence.off('synced', done);
+				resolve();
+			};
+			const timeout = setTimeout(done, timeoutMs);
+			persistence.on('synced', done);
+		});
+	}
+
 	public isConnectionOnline(docId: string, collectionName: string): boolean {
 		const containerId = `${docId}-${collectionName}`;
 		const container = this.docContainers.get(containerId);

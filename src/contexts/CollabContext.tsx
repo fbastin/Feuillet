@@ -20,6 +20,7 @@ import type {
 	CollabProviderType,
 } from '../types/collab';
 import type { YjsDocUrl } from '../types/yjs';
+import { applySharedDataChange } from '../utils/sharedDataChange';
 import { isReadOnlyDocUrl, isReviewDocUrl } from '../utils/urlUtils';
 
 const moduleLog = createNamedLogger('CollabContext');
@@ -90,6 +91,8 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 	const [doc, setDoc] = useState<Y.Doc | undefined>();
 	const [provider, setProvider] = useState<ICollabProvider | undefined>();
 	const isUpdatingRef = useRef(false);
+	// Changes asked for before the copy kept in this browser was loaded.
+	const pendingChangesRef = useRef<Array<(data: any) => void>>([]);
 	const { getSetting } = useSettings();
 
 	const providerType =
@@ -139,6 +142,8 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 
 	useEffect(() => {
 		if (!projectId || !collectionName) return;
+		pendingChangesRef.current = [];
+		let active = true;
 
 		const serversToUse =
 			signalingServers.length > 0
@@ -157,7 +162,6 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 					awarenessTimeout: awarenessTimeout * 1000,
 				},
 			);
-			setDoc(ydoc);
 			setProvider((yprovider as ICollabProvider) ?? undefined);
 
 			const ymap = ydoc.getMap('data');
@@ -186,8 +190,20 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 				);
 			};
 
-			ymap.observe(observer);
-			setData(ymap.toJSON());
+			// The document and its data are shown once the copy kept in this
+			// browser is loaded. A change written into the still empty document
+			// would otherwise compete with that copy, which wins at random: a
+			// new project's details, written apart when it is created, then
+			// replaced those its creator had just chosen.
+			void collabService.whenLoaded(projectId, collectionName).then(() => {
+				if (!active) return;
+				for (const change of pendingChangesRef.current.splice(0)) {
+					applySharedDataChange(ydoc, change);
+				}
+				ymap.observe(observer);
+				setDoc(ydoc);
+				setData(ymap.toJSON());
+			});
 			setIsConnected(false);
 			yprovider?.on('status', handleProviderStatus);
 
@@ -195,6 +211,7 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 			updateProviderStatus();
 
 			return () => {
+				active = false;
 				window.clearInterval(statusInterval);
 				yprovider?.off?.('status', handleProviderStatus);
 				ymap.unobserve(observer);
@@ -222,27 +239,15 @@ export const CollabProvider: React.FC<CollabProviderProps> = ({
 
 	const changeData = useCallback(
 		(fn: (currentData: any) => void) => {
-			if (!doc || readOnly) return;
+			if (readOnly) return;
+			if (!doc) {
+				pendingChangesRef.current.push(fn);
+				return;
+			}
 
-			const ymap = doc.getMap('data');
 			isUpdatingRef.current = true;
-
-			doc.transact(() => {
-				const currentData = ymap.toJSON();
-				fn(currentData);
-
-				for (const key of ymap.keys()) {
-					ymap.delete(key);
-				}
-				if (typeof currentData === 'object' && currentData !== null) {
-					Object.entries(currentData).forEach(([key, value]) => {
-						ymap.set(key, value);
-					});
-				}
-			});
-
-			setData(ymap.toJSON());
-
+			applySharedDataChange(doc, fn);
+			setData(doc.getMap('data').toJSON());
 			isUpdatingRef.current = false;
 		},
 		[doc, readOnly],
