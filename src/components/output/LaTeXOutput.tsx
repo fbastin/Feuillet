@@ -19,7 +19,6 @@ import { useProperties } from '../../hooks/useProperties';
 import { useSettings } from '../../hooks/useSettings';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
 import type { RendererController } from '../../plugins/PluginInterface';
-import type { LaTeXOutputFormat } from '../../types/latex';
 import type { SourceMapClickMode } from '../../types/sourceMap';
 import type { FileNode } from '../../types/files';
 import ResizablePanel from '../common/ResizablePanel';
@@ -60,12 +59,9 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 	const {
 		compileLog,
 		compiledPdf,
-		compiledCanvas,
 		currentView,
 		toggleOutputView,
 		logIndicator,
-		currentFormat,
-		compileDocument,
 	} = useLaTeX();
 
 	const { selectedFileId, getFile, fileTree } = useFileTree();
@@ -89,25 +85,16 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 	const [visualizerCollapsed, setVisualizerCollapsed] = useState(false);
 	const [autoMainFile, setAutoMainFile] = useState<string | undefined>();
 
-	const settingFormat =
-		(getSetting('latex-default-format')?.value as LaTeXOutputFormat) ?? 'pdf';
-
 	const propMainFile = getProperty('latex-main-file', {
 		scope: 'project',
 		projectId,
 	}) as string | undefined;
-	const propFormat = getProperty('latex-output-format', {
-		scope: 'project',
-		projectId,
-	}) as LaTeXOutputFormat | undefined;
 
 	const effectiveMainFile = propMainFile || autoMainFile;
-	const effectiveFormat = propFormat || currentFormat || settingFormat;
 
 	const useEnhancedRenderer = getSetting('pdf-renderer-enable')?.value ?? true;
 	const loggerPlugin = pluginRegistry.getLoggerForType('latex');
 	const pdfRendererPlugin = pluginRegistry.getRendererForOutput('pdf');
-	const canvasControllerRef = useRef<RendererController | null>(null);
 	const pdfControllerRef = useRef<RendererController | null>(null);
 
 	const clickCountRef = useRef(0);
@@ -143,13 +130,6 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 			category: 'Compilation',
 			subcategory: 'LaTeX',
 			defaultValue: undefined,
-		});
-
-		registerProperty({
-			id: 'latex-output-format',
-			category: 'Compilation',
-			subcategory: 'LaTeX',
-			defaultValue: 'pdf',
 		});
 	}, [registerProperty]);
 
@@ -227,10 +207,6 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 	}, [getProperty]);
 
 	useEffect(() => {
-		if (canvasControllerRef.current?.setHighlight) {
-			canvasControllerRef.current.setHighlight(currentHighlight);
-		}
-
 		if (pdfControllerRef.current?.setHighlight) {
 			pdfControllerRef.current.setHighlight(currentHighlight);
 		}
@@ -310,62 +286,6 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 		[compiledPdf],
 	);
 
-	const resolveCompileTarget = useCallback(async (): Promise<
-		string | undefined
-	> => {
-		if (effectiveMainFile) {
-			return effectiveMainFile;
-		}
-
-		if (
-			selectedDocId &&
-			linkedFileInfo?.filePath &&
-			isLatexMainFile(linkedFileInfo.filePath)
-		) {
-			return linkedFileInfo.filePath;
-		}
-
-		if (selectedFileId) {
-			const file = await getFile(selectedFileId);
-
-			if (file && isLatexMainFile(file.path)) {
-				return file.path;
-			}
-		}
-
-		return undefined;
-	}, [
-		effectiveMainFile,
-		selectedDocId,
-		linkedFileInfo,
-		selectedFileId,
-		getFile,
-	]);
-
-	const handleTabSwitch = useCallback(
-		async (format: LaTeXOutputFormat) => {
-			if (effectiveFormat === format) return;
-
-			setProperty('latex-output-format', format, {
-				scope: 'project',
-				projectId,
-			});
-
-			const mainFile = await resolveCompileTarget();
-
-			if (mainFile) {
-				await compileDocument(mainFile, format);
-			}
-		},
-		[
-			effectiveFormat,
-			setProperty,
-			projectId,
-			resolveCompileTarget,
-			compileDocument,
-		],
-	);
-
 	const handleLocationClick = useCallback(
 		(page: number, x: number, y: number) => {
 			if (!reverseClickEnabled) return;
@@ -402,7 +322,7 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 	}, []);
 
 	const outputViewerContent = useMemo(() => {
-		if (effectiveFormat === 'pdf' && compiledPdf) {
+		if (compiledPdf) {
 			return (
 				<div className='pdf-viewer'>
 					{pdfRendererPlugin && useEnhancedRenderer ? (
@@ -431,45 +351,16 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 			);
 		}
 
-		if (effectiveFormat === 'canvas-pdf') {
-			const canvasRenderer = pluginRegistry.getRendererForOutput(
-				'canvas',
-				'canvas-renderer',
-			);
-
-			return (
-				<div className='canvas-viewer'>
-					{canvasRenderer ? (
-						React.createElement(canvasRenderer.renderOutput, {
-							content: compiledCanvas || new ArrayBuffer(0),
-							mimeType: 'application/pdf',
-							fileName: 'output.pdf',
-							controllerRef: (controller: RendererController | null) => {
-								canvasControllerRef.current = controller;
-							},
-							onLocationClick: handleLocationClick,
-						})
-					) : (
-						<div className='canvas-fallback'>
-							{t('Canvas renderer not available')}
-						</div>
-					)}
-				</div>
-			);
-		}
-
 		return null;
 	}, [
-		effectiveFormat,
 		compiledPdf,
-		compiledCanvas,
 		pdfRendererPlugin,
 		useEnhancedRenderer,
 		handleSavePdf,
 		handleLocationClick,
 	]);
 
-	const hasAnyOutput = compiledPdf || compiledCanvas;
+	const hasAnyOutput = compiledPdf;
 
 	return (
 		<div
@@ -496,32 +387,11 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 						{t('Log')}
 					</button>
 
+					{/* One PDF viewer, as on Overleaf. */}
 					{currentView === 'output' && (
-						<>
-							<button
-								type='button'
-								className={`ui-tab ${
-									currentView === 'output' && effectiveFormat === 'pdf'
-										? 'active'
-										: ''
-								}`}
-								onClick={() => handleTabSwitch('pdf')}
-							>
-								{t('PDF')}
-							</button>
-
-							<button
-								type='button'
-								className={`ui-tab ${
-									currentView === 'output' && effectiveFormat === 'canvas-pdf'
-										? 'active'
-										: ''
-								}`}
-								onClick={() => handleTabSwitch('canvas-pdf')}
-							>
-								{t('Canvas (PDF)')}
-							</button>
-						</>
+						<button type='button' className='ui-tab active'>
+							{t('PDF')}
+						</button>
 					)}
 
 					{currentView === 'log' && (

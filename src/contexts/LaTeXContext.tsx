@@ -45,7 +45,6 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 	const [hasAutoCompiled, setHasAutoCompiled] = useState(false);
 	const [compileError, setCompileError] = useState<string | null>(null);
 	const [compiledPdf, setCompiledPdf] = useState<Uint8Array | null>(null);
-	const [compiledCanvas, setCompiledCanvas] = useState<Uint8Array | null>(null);
 	const [compileLog, setCompileLog] = useState<string>('');
 	const [currentView, setCurrentView] = useState<'log' | 'output'>('log');
 	const [logIndicator, setLogIndicator] = useState<
@@ -57,8 +56,9 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 
 	const latexEngine =
 		(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'pdftex';
-	const currentFormat =
-		(getSetting('latex-default-format')?.value as LaTeXOutputFormat) ?? 'pdf';
+	// One PDF viewer, as on Overleaf: TeXlyre's Canvas view of the same PDF
+	// is no longer offered.
+	const currentFormat: LaTeXOutputFormat = 'pdf';
 	const texliveEndpoint =
 		(getSetting('latex-texlive-endpoint')?.value as string) ??
 		'http://texlive.localhost:8082';
@@ -135,7 +135,6 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 		setActiveCompiler('latex');
 
 		// setCompiledPdf(null);
-		setCompiledCanvas(null);
 
 		try {
 			const result = await latexService.compileLaTeX(
@@ -164,24 +163,6 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 							content: result.pdf,
 							mimeType: 'application/pdf',
 							fileName,
-							projectName: getProjectName(t('LaTeX Project')),
-						});
-						break;
-					}
-					case 'canvas-pdf': {
-						setCompiledCanvas(result.pdf);
-						setCurrentView('output');
-						setLogIndicator('success');
-						const canvasFileName =
-							mainFileName
-								.split('/')
-								.pop()
-								?.replace(/\.(tex|ltx|latex)$/i, '.pdf') || 'output.pdf';
-						popoutViewerService.sendContent({
-							kind: 'canvas-pdf',
-							content: result.pdf,
-							mimeType: 'application/pdf',
-							fileName: canvasFileName,
 							projectName: getProjectName(t('LaTeX Project')),
 						});
 						break;
@@ -325,7 +306,6 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 		setActiveCompiler('latex');
 
 		setCompiledPdf(null);
-		setCompiledCanvas(null);
 
 		try {
 			await latexService.clearCacheDirectories();
@@ -357,24 +337,6 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 							content: result.pdf,
 							mimeType: 'application/pdf',
 							fileName,
-							projectName: getProjectName(t('LaTeX Project')),
-						});
-						break;
-					}
-					case 'canvas-pdf': {
-						setCompiledCanvas(result.pdf);
-						setCurrentView('output');
-						setLogIndicator('success');
-						const canvasFileName =
-							mainFileName
-								.split('/')
-								.pop()
-								?.replace(/\.(tex|ltx|latex)$/i, '.pdf') || 'output.pdf';
-						popoutViewerService.sendContent({
-							kind: 'canvas-pdf',
-							content: result.pdf,
-							mimeType: 'application/pdf',
-							fileName: canvasFileName,
 							projectName: getProjectName(t('LaTeX Project')),
 						});
 						break;
@@ -419,7 +381,6 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 				setIsExporting,
 				compileError,
 				compiledPdf,
-				compiledCanvas,
 				compileLog,
 				currentFormat,
 				compileDocument,

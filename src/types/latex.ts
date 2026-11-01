@@ -8,7 +8,8 @@ declare global {
 	}
 }
 
-export type LaTeXOutputFormat = 'pdf' | 'canvas-pdf';
+// One PDF viewer, as on Overleaf.
+export type LaTeXOutputFormat = 'pdf';
 
 export const LATEX_ENGINES = [
 	'pdftex',
@@ -34,7 +35,6 @@ export interface LaTeXContextType {
 	setIsExporting: (value: boolean) => void;
 	compileError: string | null;
 	compiledPdf: Uint8Array | null;
-	compiledCanvas: Uint8Array | null;
 	clearCache: () => Promise<void>;
 	compileWithClearCache: (mainFileName: string) => Promise<void>;
 	compileLog: string;

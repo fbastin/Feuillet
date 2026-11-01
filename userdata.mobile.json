@@ -35,7 +35,6 @@
     "image-viewer-enable-filters": true,
     "image-viewer-quality": "high",
     "latex-engine": "pdftex",
-    "latex-default-format": "pdf",
     "latex-store-cache": true,
     "latex-store-working-directory": false,
     "latex-texlive-endpoint": "https://texlive.texlyre.org",

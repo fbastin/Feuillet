@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { t } from '@/i18n';
 import { useSettings } from '../hooks/useSettings';
 import { BUSYTEX_BUNDLE_LABELS } from '../extensions/texlyre-busytex/BusyTeXService';
-import type { LaTeXOutputFormat, LaTeXEngine } from '../types/latex';
+import type { LaTeXEngine } from '../types/latex';
 
 export function useRegisterLatexSettings() {
 	const { registerSetting, getSetting } = useSettings();
@@ -27,8 +27,6 @@ export function useRegisterLatexSettings() {
 			(getSetting('latex-sourcemap-enable')?.value as boolean) ?? true;
 		const initialAutoCompile =
 			(getSetting('latex-auto-compile-on-open')?.value as boolean) ?? false;
-		const initialDefaultFormat =
-			(getSetting('latex-default-format')?.value as LaTeXOutputFormat) ?? 'pdf';
 		const initialAutoNavigate =
 			(getSetting('latex-auto-navigate-to-main')?.value as string) ??
 			'conditional';
@@ -150,22 +148,6 @@ export function useRegisterLatexSettings() {
 				},
 				{ label: t('Always navigate to main file'), value: 'always' },
 				{ label: t('Never navigate to main file'), value: 'never' },
-			],
-		});
-
-		registerSetting({
-			id: 'latex-default-format',
-			category: t('Compilation'),
-			subcategory: t('LaTeX'),
-			type: 'select',
-			label: t('Default output format'),
-			description: t('Default format for {typesetter} compilation', {
-				typesetter: t('LaTeX'),
-			}),
-			defaultValue: initialDefaultFormat,
-			options: [
-				{ label: t('PDF'), value: 'pdf' },
-				{ label: t('Canvas (PDF)'), value: 'canvas-pdf' },
 			],
 		});
 

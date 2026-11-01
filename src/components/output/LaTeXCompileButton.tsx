@@ -115,8 +115,6 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 
 	const settingEngine =
 		(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'pdftex';
-	const settingFormat =
-		(getSetting('latex-default-format')?.value as LaTeXOutputFormat) ?? 'pdf';
 	const settingBundle =
 		(getSetting('latex-busytex-bundles')?.value as string) ?? 'recommended';
 	const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
@@ -129,10 +127,6 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 		scope: 'project',
 		projectId,
 	}) as LaTeXEngine | undefined;
-	const propFormat = getProperty('latex-output-format', {
-		scope: 'project',
-		projectId,
-	}) as LaTeXOutputFormat | undefined;
 	const propBundle = getProperty('latex-busytex-bundle', {
 		scope: 'project',
 		projectId,
@@ -144,13 +138,11 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 	const projectEngine = useSharedSettings
 		? doc?.projectMetadata?.latexEngine
 		: undefined;
-	const projectFormat = useSharedSettings
-		? doc?.projectMetadata?.latexOutputFormat
-		: undefined;
 
 	const effectiveMainFile = projectMainFile || propMainFile || autoMainFile;
 	const effectiveEngine = projectEngine || propEngine || settingEngine;
-	const effectiveFormat = projectFormat || propFormat || settingFormat;
+	// One PDF viewer, as on Overleaf: no Canvas output to choose.
+	const effectiveFormat: LaTeXOutputFormat = 'pdf';
 	const effectiveBundle = propBundle || settingBundle;
 	const effectiveAutoCompileOnSave = useSharedSettings
 		? (doc?.projectMetadata?.latexAutoCompileOnSave ?? false)
@@ -187,13 +179,6 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 			category: 'Compilation',
 			subcategory: 'LaTeX',
 			defaultValue: 'pdftex',
-		});
-
-		registerProperty({
-			id: 'latex-output-format',
-			category: 'Compilation',
-			subcategory: 'LaTeX',
-			defaultValue: 'pdf',
 		});
 
 		registerProperty({
@@ -648,21 +633,6 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 		});
 	};
 
-	const handleShareFormat = (checked: boolean) => {
-		if (!useSharedSettings || !changeDoc) return;
-
-		changeDoc((d) => {
-			if (!d.projectMetadata) {
-				d.projectMetadata = { name: '', description: '' };
-			}
-			if (checked) {
-				d.projectMetadata.latexOutputFormat = effectiveFormat;
-			} else {
-				delete d.projectMetadata.latexOutputFormat;
-			}
-		});
-	};
-
 	const handleAutoCompileOnSaveChange = (checked: boolean) => {
 		if (!useSharedSettings || !changeDoc) return;
 
@@ -951,52 +921,6 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 					{isChangingEngine && (
 						<div className='engine-status'>{t('Switching engine...')}</div>
 					)}
-				</div>
-
-				<div className='ui-menu-section' data-variant='control'>
-					<div className='ui-toolbar' data-justify='between' data-gap='sm'>
-						<div className='ui-menu-title' data-variant='control'>
-							{t('Output Format:')}
-						</div>
-					</div>
-					<div className='ui-toolbar' data-gap='sm'>
-						<select
-							value={effectiveFormat}
-							onChange={(e) => {
-								const format = e.target.value as LaTeXOutputFormat;
-								if (useSharedSettings && projectFormat) {
-									if (!changeDoc) return;
-									changeDoc((d) => {
-										if (!d.projectMetadata) {
-											d.projectMetadata = { name: '', description: '' };
-										}
-										d.projectMetadata.latexOutputFormat = format;
-									});
-								} else {
-									setProperty('latex-output-format', format, {
-										scope: 'project',
-										projectId,
-									});
-								}
-							}}
-							className='ui-field-control'
-							disabled={isChangingEngine || isCompiling}
-						>
-							<option value='pdf'>{t('PDF')}</option>
-							<option value='canvas-pdf'>{t('Canvas (PDF)')}</option>
-						</select>
-					</div>
-					{/* TODO (fabawi): disabled for now as it conflicts with the output setting from tabs*/}
-					{/* {useSharedSettings &&
-            <label className='ui-menu-item checkbox-control'>
-              <input
-                type="checkbox"
-                checked={!!projectFormat}
-                onChange={(e) => handleShareFormat(e.target.checked)}
-                disabled={isChangingEngine || isCompiling} />
-              {t('Share with collaborators')}
-            </label>
-          } */}
 				</div>
 
 				<div className='ui-menu-section' data-variant='control'>
