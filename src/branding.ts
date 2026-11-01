@@ -3,6 +3,8 @@
 // `organizationName`/`projectName`). TeXlyre is the upstream project.
 export const APP_NAME: string = __APP_NAME__;
 export const APP_SOURCE_URL: string = __APP_SOURCE_URL__;
+// Feuillet's own guide, in the repository's docs/ folder.
+export const APP_DOCS_URL = `${APP_SOURCE_URL}/tree/main/docs#readme`;
 export const UPSTREAM_NAME = 'TeXlyre';
 // Feuillet compiles with its own TeX Live server and does not offer the
 // Chelys account sign-up, sign-in and profile connection.

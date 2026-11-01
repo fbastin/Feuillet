@@ -18,6 +18,8 @@
 //    comments and tracked changes (review.js), as on Overleaf;
 //  - copies projects (/share/copy, copy.js) and tells accounts who owns
 //    the projects they list, as Overleaf's project list does;
+//  - deletes projects for good (/share/delete), erasing their documents,
+//    files and versions, and those an account owns when it is deleted;
 //  - saves versions of each project a short while after it changes, with who
 //    changed it (/history/..., history.js), as on Overleaf;
 //  - signs people in with GitHub for GitHub sync (/github/..., github.js),
@@ -144,8 +146,38 @@ const shares = createShares({
 		getYDoc,
 		filesDir,
 	}),
+	eraseProject: (project) => eraseProject(project),
 });
 accounts.setProjectDescriber(shares.describe);
+accounts.setAccountDeleted((account) => shares.forgetAccount(account));
+
+// Erases a project deleted for good: its documents, open or stored, its
+// files and its versions. shares.js has already cut off its connections.
+const eraseProject = async (project) => {
+	const ours = (name) => name.match(PROJECT_ROOM)?.[1] === project;
+	for (const [name, doc] of docs) {
+		if (!ours(name)) continue;
+		for (const conn of doc.conns.keys()) conn.close(4404, 'Project deleted');
+	}
+	// A document closes once its last connection has gone.
+	for (let waited = 0; waited < 5000; waited += 50) {
+		if (![...docs.keys()].some(ours)) break;
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+	for (const [name, doc] of docs) {
+		if (!ours(name)) continue;
+		docs.delete(name);
+		doc.destroy();
+	}
+	const stored = getPersistence()?.provider;
+	if (stored) {
+		for (const name of await stored.getAllDocNames()) {
+			if (ours(name)) await stored.clearDocument(name);
+		}
+	}
+	fs.rmSync(path.join(filesDir, project), { recursive: true, force: true });
+	await history.erase(project);
+};
 
 const github = createGitHub({
 	clientId: process.env.GITHUB_CLIENT_ID,

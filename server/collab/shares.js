@@ -36,6 +36,8 @@
 //   POST /share/members {project, remove: username}
 //   POST /share/leave {project}      (token) -> {left: true}: no longer a
 //                                    member, nor listing it; not the owner
+//   POST /share/delete {project}     (token) -> {deleted: true}: the owner
+//                                    deletes the project for good
 //   POST /share/copy {project, name} (token) -> {project}, a copy of the
 //                                               project the account owns
 //   POST /share/invites {project}    (token) -> {invites}, for the owner
@@ -62,6 +64,12 @@
 // link for a role and sends it; whoever opens it signed in, with an account
 // made then if need be, becomes a member with that role. A link works once,
 // for 30 days, and its owner may take it back before.
+//
+// Deleting a project for good, as on Overleaf, erases its documents, files
+// and versions (`eraseProject`, given by the server), takes it off every
+// list, and leaves only {deleted: true} in its file, so that none of its
+// links opens anything again, nor makes a new project under its id. Deleting
+// an account deletes the projects it owns.
 //
 // SHARES_DIR keeps one file per project (projects/<project>.json: {view,
 // review, edit, owner, members, invites}), one per read-only link
@@ -109,6 +117,7 @@ const createShares = ({
 	accounts,
 	onRevoke = () => {},
 	copyProject = null,
+	eraseProject = async () => {},
 }) => {
 	const projectsDir = path.join(dir, 'projects');
 	const viewsDir = path.join(dir, 'views');
@@ -156,6 +165,14 @@ const createShares = ({
 	// "replaced" (the id opened the project until its link was replaced);
 	// null when it opens nothing.
 	const lookup = (id) => {
+		const found = lookupLink(id);
+		// A project deleted for good opens nothing, by any of its links.
+		return found && readJson(projectPath(found.project))?.deleted
+			? null
+			: found;
+	};
+
+	const lookupLink = (id) => {
 		if (typeof id !== 'string' || !PROJECT_ID.test(id)) return null;
 		const kind = isViewId(id) ? 'view' : isReviewId(id) ? 'review' : null;
 		if (kind) {
@@ -349,7 +366,10 @@ const createShares = ({
 			entry.editId,
 			/^yjs:([A-Za-z0-9_-]+)/.exec(String(entry.docUrl ?? ''))?.[1],
 			entry.id,
-		].some((id) => typeof id === 'string' && lookup(id)?.project === project);
+		].some(
+			// Deleted projects too, whose links no longer open them.
+			(id) => typeof id === 'string' && lookupLink(id)?.project === project,
+		);
 
 	// A member gone, removed by the owner or leaving: the link of their role
 	// is replaced, which cuts them off, and the project leaves their list.
@@ -431,6 +451,66 @@ const createShares = ({
 			log('shared project left');
 		}
 		return { left: true };
+	};
+
+	// Deletes a project for good: no link opens it from now on, those
+	// connected are cut off, its contents are erased, and it leaves the
+	// lists of its owner and members (but `keep`'s, whose account is going).
+	const deleteProject = async (project, keep = null) => {
+		const record = readProject(project);
+		if (record.deleted) return;
+		writeProject(project, { deleted: true, deletedAt: Date.now() });
+		for (const invite of record.invites ?? []) {
+			fs.rmSync(invitePath(invite), { force: true });
+		}
+		for (const id of [project, record.edit, record.view, record.review]) {
+			if (id) onRevoke(id);
+		}
+		await eraseProject(project);
+		const people = [
+			...(record.owner && record.owner !== keep ? [record.owner] : []),
+			...Object.keys(record.members ?? {}).filter((id) => id !== keep),
+		];
+		for (const id of people) {
+			const username = accounts.usernameOf(id);
+			if (username) await accounts.unshareProject(username, names(project));
+		}
+		log('project deleted');
+	};
+
+	const shareDelete = async (req, body) => {
+		const found = lookup(body.project);
+		if (!found) throw new HttpError(400, 'invalid_project');
+		const account = await accounts.identify(req);
+		const { project } = found;
+		const record = readProject(project);
+		// Its owner, or for a project nobody claimed, whoever holds its
+		// current editing link (who could claim it).
+		const allowed =
+			record.owner === account ||
+			(!record.owner && found.access === 'edit');
+		if (!allowed) throw new HttpError(403, 'not_owner');
+		await deleteProject(project);
+		return { deleted: true };
+	};
+
+	// An account deleted: the projects it owns go with it, and it leaves
+	// those it was a member of.
+	const forgetAccount = async (account) => {
+		for (const file of fs.readdirSync(projectsDir)) {
+			if (!file.endsWith('.json')) continue;
+			const project = file.slice(0, -5);
+			if (!isProjectId(project)) continue;
+			const record = readProject(project);
+			if (record.deleted) continue;
+			if (record.owner === account) {
+				await deleteProject(project, account);
+			} else if (record.members?.[account]) {
+				const members = { ...record.members };
+				delete members[account];
+				writeProject(project, { ...record, members });
+			}
+		}
 	};
 
 	const dropInvite = (project, invite) => {
@@ -642,6 +722,7 @@ const createShares = ({
 		'/share/edit': (req, body) => shareEdit(req, body),
 		'/share/members': (req, body) => shareMembers(req, body),
 		'/share/leave': (req, body) => shareLeave(req, body),
+		'/share/delete': (req, body) => shareDelete(req, body),
 		'/share/copy': (req, body) => shareCopy(req, body),
 		'/share/invites': (req, body) => shareInvites(req, body),
 		'/share/accept': (req, body) => acceptInvite(req, body),
@@ -680,7 +761,7 @@ const createShares = ({
 		}
 	};
 
-	return { handles, handle, lookup, describe, accessOf };
+	return { handles, handle, lookup, describe, accessOf, forgetAccount };
 };
 
 module.exports = { createShares, isViewId, isReviewId };

@@ -2,7 +2,7 @@
 import type React from 'react';
 import { useRef, useState } from 'react';
 
-import { APP_SOURCE_URL, UPSTREAM_NAME } from '@/branding';
+import { APP_DOCS_URL, APP_SOURCE_URL, UPSTREAM_NAME } from '@/branding';
 import { t } from '@/i18n';
 import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
 import { useSettings } from '../../hooks/useSettings';
@@ -38,7 +38,7 @@ const FooterLinks: React.FC<FooterLinksProps> = ({
 					•{' '}
 				</>
 			) : null}
-			<a href='https://texlyre.org/docs/intro' target='_blank' rel='noreferrer'>
+			<a href={APP_DOCS_URL} target='_blank' rel='noreferrer'>
 				{t('Documentation')}
 			</a>{' '}
 			•{' '}

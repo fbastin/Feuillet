@@ -137,8 +137,18 @@ Documents are kept in the `feuillet_collab-data` volume, file contents in
 file per account, with a scrypt hash of its password and the hashes of its
 session tokens), project links and owners in `feuillet_collab-shares` and
 the list of each project's versions in `feuillet_collab-history` (their
-texts are with the files); none is touched by an update. The TeX Live server keeps nothing: each
-connection compiles in its own temporary directory.
+texts are with the files); none is touched by an update. The TeX Live server
+keeps nothing: each connection compiles in its own temporary directory.
+
+Deleting a project for good (its owner, from the trash) or deleting an
+account (with the projects it owns) erases the project's documents, files
+and versions from these volumes; its file in `feuillet_collab-shares` keeps
+only `{"deleted": true}`, so that none of its links opens it again. The
+privacy page in the app says so.
+
+The containers' logs are rotated: three files of 10 MB at most each
+(`x-logging` in `docker-compose.yml`). Apache's own logs follow the system's
+logrotate (14 days).
 
 ## Checks
 
@@ -153,7 +163,8 @@ connection compiles in its own temporary directory.
 - Files larger than 100 MiB are refused (`MAX_FILE_BYTES`).
 - `sudo docker logs feuillet-collab` shows each account created or deleted.
   There is no e-mail, so a forgotten password cannot be reset; removing the
-  account frees its name (the projects themselves are kept):
+  account file by hand frees its name (the projects themselves are kept,
+  unlike when the person deletes their account):
   ```
   name=$(printf %s 'alice' | tr '[:upper:]' '[:lower:]' | sha256sum | cut -d' ' -f1)
   sudo docker exec feuillet-collab rm "/accounts/$name.json"

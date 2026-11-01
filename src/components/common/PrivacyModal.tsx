@@ -27,76 +27,13 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 			size='medium'
 		>
 			<div className='ui-stack' data-gap='md' data-role='privacy'>
-				<h3>{t('TeXlyre Data Practices')}</h3>
-				<ul>
-					<li>
-						<strong>{t('Local Storage:')}</strong>&nbsp;
-						{t('Your projects and account data stay in your browser')}
-					</li>
-					<li>
-						<strong>{t('Real-time Collaboration:')}</strong>&nbsp;
-						{t('Direct peer-to-peer connections via signaling servers')}
-					</li>
-					<li>
-						<strong>{t('No Tracking:')}</strong>&nbsp;
-						{t("We don't collect analytics or personal information")}
-					</li>
-					<li>
-						<strong>{t('GitHub Integration:')}</strong>&nbsp;
-						{t('Only used when you explicitly enable it')}
-					</li>
-					<li>
-						<strong>{t('GitLab Integration:')}</strong>&nbsp;
-						{t('Only used when you explicitly enable it')}
-					</li>
-					<li>
-						<strong>{t('Gitea Integration:')}</strong>&nbsp;
-						{t('Only used when you explicitly enable it')}
-					</li>
-					<li>
-						<strong>{t('Forgejo Integration:')}</strong>&nbsp;
-						{t('Only used when you explicitly enable it')}
-					</li>
-					<li>
-						<strong>{t('Zotero Integration:')}</strong>&nbsp;
-						{t('Only used when you explicitly enable it')}
-					</li>
-					<li>
-						<strong>{t('OpenAlex Integration:')}</strong>&nbsp;
-						{t('Only used when you explicitly enable it')}
-					</li>
-					<li>
-						<Trans
-							i18nKey='<strong>DOI Lookup:</strong> When you enable the BibTeX DOI finder, paper titles and authors are sent to the <crossref>Crossref API</crossref> to find matching DOIs'
-							components={{
-								strong: <strong />,
-								crossref: (
-									<TransLink
-										href='https://www.crossref.org/'
-										target='_blank'
-										rel='noreferrer'
-									/>
-								),
-							}}
-						/>
-					</li>
-				</ul>
-
-				<h3>{t('Data Processing')}</h3>
-				<p>
-					{t(
-						'IP addresses are temporarily processed through our signaling servers to establish direct connections between collaborators. No project content passes through our servers.',
-					)}
-				</p>
-
-				<h3>{t('Open Infrastructure')}</h3>
 				<p>
 					<Trans
-						i18nKey='TeXlyre uses open source signaling servers. The source code for the signaling infrastructure is available on <github>GitHub</github>.'
+						i18nKey='Feuillet is hosted at feuillet.slashbin.net. For any question, <issues>open an issue on GitHub</issues>.'
 						components={{
-							github: (
+							issues: (
 								<TransLink
-									href='https://github.com/texlyre/texlyre-infrastructure'
+									href={`${APP_SOURCE_URL}/issues`}
 									target='_blank'
 									rel='noreferrer'
 								/>
@@ -105,10 +42,70 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					/>
 				</p>
 
+				<h3>{t("What Feuillet's server keeps")}</h3>
+				<ul data-role='privacy-server'>
+					<li>
+						<strong>{t('Your account:')}</strong>&nbsp;
+						{t(
+							'your username and a hash of your password, never the password itself; your open sessions, the list of your projects and the words added to your dictionary, to find them on your other devices.',
+						)}
+					</li>
+					<li>
+						<strong>{t('Your projects:')}</strong>&nbsp;
+						{t(
+							'the text of the documents, the files, the comments, the tracked changes and the chat, so that your collaborators receive them even when you are not online; and the versions of the project with their authors, the latest 1000 and those you name.',
+						)}
+					</li>
+					<li>
+						<strong>{t('Project sharing:')}</strong>&nbsp;
+						{t(
+							'the members of each project and their role, and pending invitations, for 30 days at most, with the email address you sent one to.',
+						)}
+					</li>
+					<li>
+						<strong>{t('Assistants such as Claude:')}</strong>&nbsp;
+						{t(
+							'the applications you allowed, when they were last used, and their access tokens, which last an hour and are renewed for 30 days. You disconnect them in your profile, Assistants tab.',
+						)}
+					</li>
+					<li>
+						<strong>{t('When compiling:')}</strong>&nbsp;
+						{t(
+							"the files sent to the TeX Live server stay in a folder of your connection's own, erased when it closes, after 15 minutes without use at the latest.",
+						)}
+					</li>
+					<li>
+						<strong>{t('What only passes through:')}</strong>&nbsp;
+						{t(
+							'signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. A file imported from a web address is downloaded by the server for you, without being kept.',
+						)}
+					</li>
+					<li>
+						<strong>{t('Server logs:')}</strong>&nbsp;
+						{t(
+							"the web server notes the IP address and the pages asked for, kept 14 days. The collaboration server notes events such as an account's creation, with its name, but never a project's content or id; it keeps 30 MB of notes at most, erasing the oldest first.",
+						)}
+					</li>
+				</ul>
+
+				<h3>{t('What your browser keeps')}</h3>
+				<p>
+					{t(
+						'A copy of your projects, to work offline, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.',
+					)}
+				</p>
+
+				<h3>{t('No tracking')}</h3>
+				<p>
+					{t(
+						'Feuillet has no visit statistics, no advertising and no tracking cookies.',
+					)}
+				</p>
+
 				<h3>{t('Your Control')}</h3>
 				<p>
 					{t(
-						'You can export or delete all your data using the account menu. Everything is stored locally in your browser.',
+						'In the project list, deleting one of your projects for good erases it from the server, with its documents, files and versions, for its collaborators as well; you may also leave a project shared with you. In your profile, you may disconnect an assistant, export your data and delete your account, which erases the projects you own from the server.',
 					)}
 				</p>
 
@@ -118,8 +115,22 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						'When you use optional features, data may be sent to external APIs:',
 					)}
 				</p>
-
 				<ul>
+					<li>
+						<Trans
+							i18nKey='<strong>Anthropic (Claude):</strong> when you connect Claude, it reads and changes the projects your role gives you access to, and what it is sent falls under its terms (<privacy>Privacy Policy</privacy>)'
+							components={{
+								strong: <strong />,
+								privacy: (
+									<TransLink
+										href='https://www.anthropic.com/legal/privacy'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					</li>
 					<li>
 						<Trans
 							i18nKey='<strong>Crossref API:</strong> Paper titles and authors when using the BibTeX DOI lookup feature (<privacy>Privacy Policy</privacy>)'
@@ -238,76 +249,38 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 							}}
 						/>
 					</li>
-				</ul>
-
-				<p>
-					<Trans
-						i18nKey='TeXlyre is hosted on <githubPages>GitHub Pages</githubPages> and uses <cloudflareWorkers>Cloudflare Workers</cloudflareWorkers> for signaling and download servers. These services may set their own cookies for security and performance purposes.'
-						components={{
-							githubPages: (
-								<TransLink
-									href='https://pages.github.com/'
-									target='_blank'
-									rel='noreferrer'
-								/>
-							),
-							cloudflareWorkers: (
-								<TransLink
-									href='https://workers.cloudflare.com/'
-									target='_blank'
-									rel='noreferrer'
-								/>
-							),
-						}}
-					/>
-				</p>
-
-				<p>
-					<strong>{t("TeXlyre itself doesn't use any cookies")}</strong>&nbsp;
-					{t(
-						'- we only use local browser storage to save your projects on your device.',
-					)}
-				</p>
-
-				<p>
-					<Trans
-						i18nKey='<githubPages>GitHub Pages</githubPages> • <cloudflare>Cloudflare</cloudflare>'
-						components={{
-							githubPages: (
-								<TransLink
-									href='https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages#data-collection'
-									target='_blank'
-									rel='noopener'
-								/>
-							),
-							cloudflare: (
-								<TransLink
-									href='https://www.cloudflare.com/privacypolicy/'
-									target='_blank'
-									rel='noopener'
-								/>
-							),
-						}}
-					/>
-				</p>
-
-				<div className='ui-meta' data-divided='true'>
-					<p>
+					<li>
 						<Trans
-							i18nKey='<strong>Questions?</strong> <issues>Open an issue on our GitHub repository</issues>.'
+							i18nKey='<strong>TeXlyre</strong>, the project Feuillet comes from: its gallery of templates, the import of a repository by its address, and the LaTeX packages of the compilers that run in the browser (<source>source code</source>)'
 							components={{
 								strong: <strong />,
-								issues: (
+								source: (
 									<TransLink
-										href={`${APP_SOURCE_URL}/issues`}
+										href='https://github.com/TeXlyre/texlyre'
 										target='_blank'
 										rel='noreferrer'
 									/>
 								),
 							}}
 						/>
-					</p>
-				</div>
+					</li>
+				</ul>
+
+				<h3>{t('Open source')}</h3>
+				<p>
+					<Trans
+						i18nKey='Feuillet is free software (AGPL), based on TeXlyre. The code of the site and of its servers is on <github>GitHub</github>.'
+						components={{
+							github: (
+								<TransLink
+									href={APP_SOURCE_URL}
+									target='_blank'
+									rel='noreferrer'
+								/>
+							),
+						}}
+					/>
+				</p>
 			</div>
 		</Modal>
 	);

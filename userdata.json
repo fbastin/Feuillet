@@ -1,5 +1,5 @@
 {
-  "version": "1.3.6",
+  "version": "1.3.7",
   "settings": {
     "bibtex-viewer-auto-tidy": false,
     "bibtex-viewer-tidy-options": "standard",
@@ -48,8 +48,8 @@
     "pdf-viewer-rendering-quality": "high",
     "repository-proxy-url": "https://proxy.texlyre.org/?url=",
     "latex-sourcemap-enable": true,
-    "status-json-url": "https://raw.githubusercontent.com/TeXlyre/upptime/master/status.json",
-    "status-page-url": "https://texlyre.org/upptime",
+    "status-json-url": "",
+    "status-page-url": "",
     "templates-api-url": "https://texlyre.github.io/texlyre-templates/api/templates.json",
     "texlive-server": "wss://feuillet.slashbin.net/texlive/",
     "theme-plugin": "texlyre-compact-theme",

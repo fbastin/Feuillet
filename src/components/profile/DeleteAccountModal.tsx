@@ -191,6 +191,15 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
 								{t('and its list of projects')}
 							</li>
 						)}
+						{hasServerAccount && (
+							<li data-role='owned-projects-erased'>
+								<strong>{t('The projects you own, on the server')}</strong>
+								&nbsp;
+								{t(
+									'with their documents, files and versions, for their collaborators too',
+								)}
+							</li>
+						)}
 					</ul>
 					<p>
 						<strong>

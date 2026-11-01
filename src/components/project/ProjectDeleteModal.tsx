@@ -94,7 +94,7 @@ const ProjectDeleteModal: React.FC<ProjectDeleteModalProps> = ({
 
 				<div className='ui-message' data-tone='warning'>
 					{t(
-						'All documents, files, and collaboration data for these projects will be permanently deleted.',
+						'Your projects are erased from the server too, with their documents, files and versions, for their collaborators as well. Those shared with you are left: you leave them.',
 					)}
 				</div>
 				<div className='ui-message' data-tone='warning'>

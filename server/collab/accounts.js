@@ -13,7 +13,8 @@
 //   POST   /account/login     {username, password}       -> {username, token}
 //   POST   /account/logout                               (token)
 //   POST   /account/password  {password, newPassword}    (token)
-//   DELETE /account           {password}                 (token)
+//   DELETE /account           {password}                 (token): with the
+//                                                        projects it owns
 //   GET    /account/projects                             (token) -> {projects}
 //   POST   /account/projects  {projects}                 (token) -> {projects}
 //   GET    /account/dictionary                           (token) -> {words}
@@ -368,11 +369,19 @@ const createAccounts = ({ dir, log }) => {
 			return { changed: true };
 		});
 
+	// What goes with an account: the projects it owns, its memberships
+	// (shares.js). Set by the server.
+	let accountDeleted = async () => {};
+	const setAccountDeleted = (handler) => {
+		accountDeleted = handler;
+	};
+
 	const deleteAccount = (req, body) =>
 		authenticate(req, async (account) => {
 			if (!(await checkPassword(String(body.password), account.passwordHash))) {
 				throw new HttpError(401, 'wrong_password');
 			}
+			await accountDeleted(idOf(account));
 			log('account deleted', JSON.stringify(account.username));
 			return { deleted: true };
 		});
@@ -618,6 +627,7 @@ const createAccounts = ({ dir, log }) => {
 		shareProject,
 		unshareProject,
 		setProjectDescriber,
+		setAccountDeleted,
 	};
 };
 

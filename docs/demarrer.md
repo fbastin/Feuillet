@@ -1,0 +1,89 @@
+# Premiers pas
+
+## Créer un compte
+
+Sur <https://feuillet.slashbin.net>, choisissez **Créer un compte** et donnez
+un nom d'utilisateur, une adresse courriel et un mot de passe. Le compte
+existe dans votre navigateur et sur le serveur de Feuillet : en vous
+connectant sur un autre appareil avec le même nom et le même mot de passe,
+vous retrouvez vos projets.
+
+Une **session invitée** permet d'essayer Feuillet sans compte, mais elle n'a
+pas de compte sur le serveur : on ne peut ni y être invité ni partager par
+invitation.
+
+## La liste des projets
+
+La colonne de gauche classe les projets : **Tous les projets**, **Mes
+projets**, **Partagés avec moi**, **Archivés** et **Corbeille**. Chaque carte
+de projet offre :
+
+- **Ouvrir**;
+- **Faire une copie**, qui crée un projet à vous avec les mêmes documents et
+  fichiers, sans la discussion ni les versions;
+- **Archiver**, pour ranger un projet sans le supprimer;
+- **Mettre à la corbeille**, d'où on peut le **Restaurer** ou le
+  **Supprimer définitivement**. Supprimer définitivement un de vos projets
+  l'efface aussi du serveur, pour ses collaborateurs également;
+- pour un projet partagé avec vous, **Quitter le projet**
+  (voir [Collaborer](collaborer.md)).
+
+### Nouveau projet
+
+**Nouveau projet** propose des modèles : vide, exemple, article, livre,
+lettre, devoir, affiche, présentation, rapport, thèse, CV. Le projet compile
+avec TeX Live dès sa création.
+
+### Importer
+
+**Importer** crée un projet à partir :
+
+- d'une archive `.zip`, par exemple un projet téléchargé d'Overleaf;
+- d'un dépôt GitHub, GitLab, Gitea ou Forgejo (voir aussi [GitHub](github.md));
+- d'une adresse web (dépôt ou archive);
+- de la galerie de modèles de TeXlyre.
+
+## L'éditeur
+
+- À gauche, l'arbre des **Fichiers**, avec la **Recherche** dans tout le
+  projet, la **Relecture**, les **Versions** et l'**Historique Git**. Le
+  bouton **Nouveau fichier** crée un fichier LaTeX, BibTeX ou autre; on peut
+  aussi y déposer des images.
+- Au centre, le texte, en mode **Code** ou **Visuel**. Le mode visuel montre
+  les titres, les listes, les formules, les figures et les tableaux comme
+  dans le document; une barre d'outils sert à la mise en forme.
+- À droite, la sortie : le **Journal** de compilation et le PDF.
+
+Le correcteur d'orthographe souligne les fautes dans le texte LaTeX; un clic
+droit propose des corrections. La langue suit celle du document.
+
+Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
+l'éditeur passent dans le menu **…**.
+
+## Compiler
+
+**Ctrl+Entrée** (ou **Cmd+Entrée**) compile le projet avec TeX Live, sur le
+serveur de Feuillet. Le menu à côté du bouton de compilation offre :
+
+- le **document principal** du projet et le **moteur** (pdfLaTeX, XeLaTeX
+  ou LuaLaTeX), communs à tous les collaborateurs;
+- le **mode de compilation** : normal, ou rapide (brouillon), qui dessine les
+  images comme des cadres;
+- la **gestion des erreurs** : compiler malgré les erreurs, ou s'arrêter à
+  la première;
+- la compilation avec le cache vidé.
+
+### Comprendre une erreur
+
+Le **Journal** liste les erreurs et les avertissements avec leur fichier et
+leur ligne; un clic mène à la ligne. Sous chaque erreur fréquente, une
+explication en français dit ce que TeX n'a pas compris et comment corriger,
+par exemple une commande inconnue ou un environnement qui demande un paquet.
+Les lignes en cause sont aussi marquées dans l'éditeur, et leur info-bulle
+donne la même explication.
+
+### Du texte au PDF, et retour
+
+Un double-clic dans le PDF mène à la ligne correspondante du texte. Le
+bouton de synchronisation de la barre de l'éditeur fait l'inverse : il montre
+dans le PDF l'endroit où se trouve le curseur.

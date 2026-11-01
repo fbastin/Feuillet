@@ -2,6 +2,7 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { APP_NAME, APP_SOURCE_URL } from '@/branding';
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
@@ -212,13 +213,39 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 	};
 	const sharedWithMe = (project: Project) => project.owner === 'other';
 
+	// Deleting one's project for good erases it from the server too, for
+	// its collaborators as well, as on Overleaf: the server first, so that
+	// nothing stays there unlisted. A project nobody owns, which this
+	// account may not delete there, only leaves this device.
+	const deleteForGood = async (project: Project) => {
+		if (project.docUrl.startsWith('yjs:')) {
+			try {
+				await accountSyncService.deleteProjectForGood(project.docUrl.slice(4));
+			} catch (error) {
+				const ownerless =
+					project.owner !== 'you' &&
+					error instanceof AccountServerError &&
+					error.status === 403;
+				if (!ownerless) {
+					throw new Error(
+						error instanceof AccountServerError && error.code === 'unreachable'
+							? t('Could not reach the collaboration server.')
+							: t('Could not delete the project on the server.'),
+					);
+				}
+			}
+		}
+		await deleteProject(project.id);
+	};
+
 	const handleMultiDeleteProjects = async (projectIds: string[]) => {
 		try {
 			setIsSubmitting(true);
 			for (const projectId of projectIds) {
 				const project = projects.find((entry) => entry.id === projectId);
-				if (project && sharedWithMe(project)) await leaveProject(project);
-				else await deleteProject(projectId);
+				if (!project) await deleteProject(projectId);
+				else if (sharedWithMe(project)) await leaveProject(project);
+				else await deleteForGood(project);
 			}
 			await loadProjects();
 		} catch (error) {
@@ -376,7 +403,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 		try {
 			setIsSubmitting(true);
 			if (sharedWithMe(currentProject)) await leaveProject(currentProject);
-			else await deleteProject(currentProject.id);
+			else await deleteForGood(currentProject);
 			setShowDeleteModal(false);
 			await loadProjects();
 		} catch (error) {
@@ -607,8 +634,13 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 				</div>
 
 				<div className='header-center'>
-					<a href='https://texlyre.org' target='_blank' rel='noreferrer'>
-						<img src={texlyreLogo} className='logo' alt={t('TeXlyre logo')} />
+					<a
+						href={APP_SOURCE_URL}
+						target='_blank'
+						rel='noreferrer'
+						title={APP_NAME}
+					>
+						<img src={texlyreLogo} className='logo' alt={APP_NAME} />
 					</a>
 				</div>
 
@@ -813,7 +845,9 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 								)}
 							</p>
 							<p className='ui-message' data-tone='warning'>
-								{t('This action cannot be undone.')}
+								{t(
+									'It is erased from the server too, with its documents, files and versions, for its collaborators as well. This action cannot be undone.',
+								)}
 							</p>
 						</>
 					)}

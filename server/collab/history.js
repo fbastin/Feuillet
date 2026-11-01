@@ -349,6 +349,16 @@ const createHistory = ({
 	// Saves every pending change now, before the server stops.
 	const flush = () => Promise.all([...pending.keys()].map(save));
 
+	// A project deleted for good: its versions go, after any save under way,
+	// and changes not saved yet are dropped.
+	const erase = async (project) => {
+		const entry = pending.get(project);
+		if (entry) clearTimeout(entry.timer);
+		pending.delete(project);
+		await (running.get(project) ?? Promise.resolve()).catch(() => {});
+		fs.rmSync(projectDir(project), { recursive: true, force: true });
+	};
+
 	const list = (project) =>
 		readJson(indexPath(project), []).slice().reverse();
 
@@ -499,7 +509,7 @@ const createHistory = ({
 		}
 	};
 
-	return { track, record, flush, list, get, route, handle };
+	return { track, record, flush, erase, list, get, route, handle };
 };
 
 module.exports = { createHistory };
