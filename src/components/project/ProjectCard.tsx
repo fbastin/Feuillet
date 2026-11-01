@@ -18,6 +18,7 @@ import {
 	ChevronDownIcon,
 	FileTextIcon,
 	FileIcon,
+	LogoutIcon,
 	UndoIcon,
 } from '../common/Icons.tsx';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
@@ -35,6 +36,8 @@ interface ProjectCardProps {
 	onCopy?: (project: Project) => void;
 	onArchive?: (project: Project, archived: boolean) => void;
 	onTrash?: (project: Project, trashed: boolean) => void;
+	// For a project shared with one, as Overleaf's "Leave".
+	onLeave?: (project: Project) => void;
 	isSelectionMode?: boolean;
 	isSelected?: boolean;
 	onSelectionChange?: (projectId: string, isSelected: boolean) => void;
@@ -50,12 +53,31 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 	onCopy,
 	onArchive,
 	onTrash,
+	onLeave,
 	isSelectionMode = false,
 	isSelected = false,
 	onSelectionChange,
 }) => {
 	const [isOpenDropdownOpen, setIsOpenDropdownOpen] = useState(false);
 	const openDropdownRef = useRef<HTMLDivElement>(null);
+
+	// Someone else's: leaving it takes the place of deleting it.
+	const leaveButton = (danger: boolean) =>
+		project.owner === 'other' && onLeave ? (
+			<button
+				type='button'
+				className={danger ? 'button danger' : 'button'}
+				data-action='leave-project'
+				onClick={(e) => {
+					e.stopPropagation();
+					onLeave(project);
+				}}
+				title={t('Leave project')}
+				aria-label={t('Leave project')}
+			>
+				<LogoutIcon />
+			</button>
+		) : null;
 
 	const handleSelectionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		e.stopPropagation();
@@ -356,17 +378,19 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 							>
 								<UndoIcon />
 							</button>
-							<button
-								type='button'
-								className='button danger'
-								onClick={(e) => {
-									e.stopPropagation();
-									onDelete(project);
-								}}
-								title={t('Delete for good')}
-							>
-								<TrashIcon />
-							</button>
+							{leaveButton(true) ?? (
+								<button
+									type='button'
+									className='button danger'
+									onClick={(e) => {
+										e.stopPropagation();
+										onDelete(project);
+									}}
+									title={t('Delete for good')}
+								>
+									<TrashIcon />
+								</button>
+							)}
 						</>
 					) : (
 						<>
@@ -405,6 +429,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 							>
 								<ArchiveIcon />
 							</button>
+							{leaveButton(false)}
 							<button
 								type='button'
 								className='button danger'

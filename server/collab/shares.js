@@ -19,7 +19,8 @@
 // and they may name it by a link that no longer opens it to learn the
 // current one, so they follow when it changes. Removing an editor replaces
 // the editing link, a reviewer the review link, and a reader the read-only
-// link, which cuts them off.
+// link, which cuts them off. A member may also leave a project, as on
+// Overleaf, with the same effect. Either way the project leaves their list.
 //
 //   POST /share/view {project}               -> {view}, the same each time
 //   POST /share/view {project, reset: true}  -> {view}, a new one; the old
@@ -33,6 +34,8 @@
 //                                    member, as Overleaf shows collaborators
 //   POST /share/members {project, add: {username, role}, name, type}
 //   POST /share/members {project, remove: username}
+//   POST /share/leave {project}      (token) -> {left: true}: no longer a
+//                                    member, nor listing it; not the owner
 //   POST /share/copy {project, name} (token) -> {project}, a copy of the
 //                                               project the account owns
 //   POST /share/invites {project}    (token) -> {invites}, for the owner
@@ -339,6 +342,32 @@ const createShares = ({
 		});
 	};
 
+	// Whether an entry of an account's list names this project, by any of
+	// the links it keeps (mcp.js reads them the same way).
+	const names = (project) => (entry) =>
+		[
+			entry.editId,
+			/^yjs:([A-Za-z0-9_-]+)/.exec(String(entry.docUrl ?? ''))?.[1],
+			entry.id,
+		].some((id) => typeof id === 'string' && lookup(id)?.project === project);
+
+	// A member gone, removed by the owner or leaving: the link of their role
+	// is replaced, which cuts them off, and the project leaves their list.
+	const dropMember = async (project, id) => {
+		const record = readProject(project);
+		const member = record.members?.[id];
+		if (!member) return null;
+		const members = { ...record.members };
+		delete members[id];
+		writeProject(project, { ...record, members });
+		if (member.role === 'editor') replaceEdit(project);
+		else if (member.role === 'reviewer') {
+			if (isReviewId(record.review)) reviewOf(project, true);
+		} else if (isViewId(record.view)) viewOf(project, true);
+		await accounts.unshareProject(member.username, names(project));
+		return member;
+	};
+
 	const shareMembers = async (req, body) => {
 		// Readers and reviewers come by their own link.
 		const found = lookup(body.project);
@@ -369,14 +398,7 @@ const createShares = ({
 				([, member]) => member.username.toLowerCase() === name,
 			);
 			if (!entry) throw new HttpError(404, 'unknown_member');
-			const [id, member] = entry;
-			const members = { ...record.members };
-			delete members[id];
-			writeProject(project, { ...record, members });
-			if (member.role === 'editor') replaceEdit(project);
-			else if (member.role === 'reviewer') {
-				if (isReviewId(record.review)) reviewOf(project, true);
-			} else if (isViewId(record.view)) viewOf(project, true);
+			await dropMember(project, entry[0]);
 			log('collaborator removed');
 		}
 
@@ -389,6 +411,26 @@ const createShares = ({
 			// The editing link is the owner's to hand out.
 			...(role === 'owner' ? { edit: editOf(project) } : {}),
 		};
+	};
+
+	// Leaving a project shared with one, as Overleaf's "Leave". Someone who
+	// came by a link only, without being a member, just stops listing it.
+	const shareLeave = async (req, body) => {
+		const found = lookup(body.project);
+		if (!found) throw new HttpError(400, 'invalid_project');
+		const account = await accounts.identify(req);
+		const { project } = found;
+		const role = roleOf(readProject(project), account);
+		if (role === 'owner') throw new HttpError(400, 'owner_cannot_leave');
+		if (role) {
+			await dropMember(project, account);
+			log('collaborator left');
+		} else {
+			const username = accounts.usernameOf(account);
+			if (username) await accounts.unshareProject(username, names(project));
+			log('shared project left');
+		}
+		return { left: true };
 	};
 
 	const dropInvite = (project, invite) => {
@@ -599,6 +641,7 @@ const createShares = ({
 		'/share/view': (_req, body) => shareView(body),
 		'/share/edit': (req, body) => shareEdit(req, body),
 		'/share/members': (req, body) => shareMembers(req, body),
+		'/share/leave': (req, body) => shareLeave(req, body),
 		'/share/copy': (req, body) => shareCopy(req, body),
 		'/share/invites': (req, body) => shareInvites(req, body),
 		'/share/accept': (req, body) => acceptInvite(req, body),

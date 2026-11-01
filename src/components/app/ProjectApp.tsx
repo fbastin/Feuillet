@@ -194,11 +194,31 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 		setShowGuestUpgradeModal(false);
 	};
 
+	// Leaving a project shared with one, as Overleaf's "Leave": the server
+	// first, so that the project does not come back with the next sync.
+	const leaveProject = async (project: Project) => {
+		if (project.docUrl.startsWith('yjs:')) {
+			try {
+				await accountSyncService.leaveProject(project.docUrl.slice(4));
+			} catch (error) {
+				throw new Error(
+					error instanceof AccountServerError && error.code === 'unreachable'
+						? t('Could not reach the collaboration server.')
+						: t('Could not leave the project.'),
+				);
+			}
+		}
+		await deleteProject(project.id);
+	};
+	const sharedWithMe = (project: Project) => project.owner === 'other';
+
 	const handleMultiDeleteProjects = async (projectIds: string[]) => {
 		try {
 			setIsSubmitting(true);
 			for (const projectId of projectIds) {
-				await deleteProject(projectId);
+				const project = projects.find((entry) => entry.id === projectId);
+				if (project && sharedWithMe(project)) await leaveProject(project);
+				else await deleteProject(projectId);
 			}
 			await loadProjects();
 		} catch (error) {
@@ -355,7 +375,8 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 
 		try {
 			setIsSubmitting(true);
-			await deleteProject(currentProject.id);
+			if (sharedWithMe(currentProject)) await leaveProject(currentProject);
+			else await deleteProject(currentProject.id);
 			setShowDeleteModal(false);
 			await loadProjects();
 		} catch (error) {
@@ -490,6 +511,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 		setShowEditModal(true);
 	};
 
+	const leaving = !!currentProject && sharedWithMe(currentProject);
 	const openDeleteModal = (project: Project) => {
 		setError(null);
 		setCurrentProject(project);
@@ -673,6 +695,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 							onCopyProject={canCopy ? setCopySource : undefined}
 							onArchiveProjects={handleArchiveProjects}
 							onTrashProjects={handleTrashProjects}
+							onLeaveProject={openDeleteModal}
 							view={projectView}
 							viewMode={viewMode}
 						/>
@@ -759,18 +782,46 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 			<Modal
 				isOpen={showDeleteModal}
 				onClose={() => setShowDeleteModal(false)}
-				title={t('Delete Project')}
+				title={leaving ? t('Leave project') : t('Delete Project')}
 				size='small'
 			>
-				<div className='delete-confirmation'>
-					<p>
-						{t('Are you sure you want to delete the project "{projectName}"?', {
-							projectName: currentProject?.name || '',
-						})}
-					</p>
-					<p className='ui-message' data-tone='warning'>
-						{t('This action cannot be undone.')}
-					</p>
+				<div
+					className='delete-confirmation'
+					data-role={leaving ? 'leave-confirmation' : 'delete-confirmation'}
+				>
+					{leaving ? (
+						<>
+							<p>
+								{t('Leave the project "{projectName}"?', {
+									projectName: currentProject?.name || '',
+								})}
+							</p>
+							<p className='ui-message' data-tone='warning'>
+								{t(
+									'It leaves your list on all your devices, and you can no longer open it unless its owner invites you again. The project itself stays with its owner.',
+								)}
+							</p>
+						</>
+					) : (
+						<>
+							<p>
+								{t(
+									'Are you sure you want to delete the project "{projectName}"?',
+									{
+										projectName: currentProject?.name || '',
+									},
+								)}
+							</p>
+							<p className='ui-message' data-tone='warning'>
+								{t('This action cannot be undone.')}
+							</p>
+						</>
+					)}
+					{error && showDeleteModal && (
+						<p className='ui-message' data-tone='error'>
+							{error}
+						</p>
+					)}
 
 					<div
 						className='ui-actions'
@@ -789,10 +840,17 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 						<button
 							type='button'
 							className='button danger'
+							data-action={leaving ? 'confirm-leave' : 'confirm-delete'}
 							onClick={handleDeleteProject}
 							disabled={isSubmitting}
 						>
-							{isSubmitting ? t('Deleting...') : t('Delete Project')}
+							{leaving
+								? isSubmitting
+									? t('Leaving...')
+									: t('Leave project')
+								: isSubmitting
+									? t('Deleting...')
+									: t('Delete Project')}
 						</button>
 					</div>
 				</div>

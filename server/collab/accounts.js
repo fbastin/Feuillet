@@ -451,8 +451,38 @@ const createAccounts = ({ dir, log }) => {
 		const key = keyOf(normalizeUsername(username));
 		return withAccount(key, (account) => {
 			if (!account) return;
-			account.projects = mergeProjects(account.projects ?? {}, [entry]);
+			// Shared again after leaving it: newer than the removal.
+			const removed = account.projects?.[entry.id];
+			const updatedAt = removed?.deleted
+				? Math.max(entry.updatedAt, removed.updatedAt + 1)
+				: entry.updatedAt;
+			account.projects = mergeProjects(account.projects ?? {}, [
+				{ ...entry, updatedAt },
+			]);
 			write(key, account);
+		});
+	};
+
+	// Takes projects off an account's list, on all its devices: those of a
+	// shared project it left or was removed from. `matches` tells them.
+	const unshareProject = (username, matches) => {
+		const key = keyOf(normalizeUsername(username));
+		return withAccount(key, (account) => {
+			if (!account) return 0;
+			const now = Date.now();
+			let removed = 0;
+			for (const [id, entry] of Object.entries(account.projects ?? {})) {
+				if (entry.deleted || !matches(entry)) continue;
+				// Newer than the entry, so that every device takes it.
+				account.projects[id] = {
+					id,
+					updatedAt: Math.max(now, entry.updatedAt + 1),
+					deleted: true,
+				};
+				removed++;
+			}
+			if (removed) write(key, account);
+			return removed;
 		});
 	};
 
@@ -586,6 +616,7 @@ const createAccounts = ({ dir, log }) => {
 		findAccount,
 		usernameOf,
 		shareProject,
+		unshareProject,
 		setProjectDescriber,
 	};
 };

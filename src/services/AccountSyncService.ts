@@ -506,6 +506,22 @@ class AccountSyncService {
 			: [];
 	}
 
+	/**
+	 * Leaves a project shared with the account, as Overleaf's "Leave": the
+	 * account is no longer a member, and the project leaves its list on all
+	 * its devices. False when no account is signed in on the server.
+	 */
+	async leaveProject(projectId: string): Promise<boolean> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return false;
+		await this.request(session.server, 'POST', '/share/leave', {
+			token: session.token,
+			body: { project: projectLinkService.serverId(projectId) },
+		});
+		return true;
+	}
+
 	/** Joins the project an invitation is for; gives the link to open it. */
 	async acceptInvite(invite: string): Promise<{
 		project: string;

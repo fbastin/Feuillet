@@ -12,7 +12,8 @@
 //    through one receives the project, and its changes are dropped;
 //  - lets a project's owner replace its editing link (/share/edit,
 //    shares.js), which cuts off whoever kept the old one, and invite other
-//    accounts, who follow its links as they change (/share/members);
+//    accounts, who follow its links as they change (/share/members) and
+//    may leave it (/share/leave);
 //  - lets reviewers, through their own link, change documents only by
 //    comments and tracked changes (review.js), as on Overleaf;
 //  - copies projects (/share/copy, copy.js) and tells accounts who owns

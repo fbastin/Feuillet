@@ -31,6 +31,7 @@ interface ProjectListProps {
 	onCopyProject?: (project: Project) => void;
 	onArchiveProjects?: (projectIds: string[], archived: boolean) => void;
 	onTrashProjects?: (projectIds: string[], trashed: boolean) => void;
+	onLeaveProject?: (project: Project) => void;
 	view?: ProjectView;
 	onToggleViewMode?: () => void;
 	viewMode?: 'grid' | 'list';
@@ -49,6 +50,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
 	onCopyProject,
 	onArchiveProjects,
 	onTrashProjects,
+	onLeaveProject,
 	view = 'all',
 	onToggleViewMode,
 	viewMode: externalViewMode = 'grid',
@@ -443,6 +445,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
 									onTrashProjects &&
 									((target, trashed) => onTrashProjects([target.id], trashed))
 								}
+								onLeave={onLeaveProject}
 								isSelectionMode={isSelectionMode}
 								isSelected={selectedProjects.has(project.id)}
 								onSelectionChange={handleProjectSelection}
