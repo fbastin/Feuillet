@@ -1,5 +1,6 @@
 // extras/loggers/latex_visualizer/parser.ts
 import { t } from '@/i18n';
+import { latexHint } from './hints';
 
 export interface ParsedError {
 	type: 'error' | 'warning' | 'info';
@@ -8,6 +9,8 @@ export interface ParsedError {
 	file?: string;
 	lineContent?: string;
 	fullMessage?: string;
+	/** What it means and how to fix it, for the common ones. */
+	hint?: string;
 }
 
 const DEFAULT_FILE = 'main.tex';
@@ -34,7 +37,10 @@ export function parseLatexLog(log: string): ParsedError[] {
 			extractBoxWarning(line, contextFile) ??
 			extractSimpleDiagnostic(line, contextFile);
 
-		if (parsed) result.push(parsed);
+		if (parsed) {
+			parsed.hint ??= latexHint(parsed);
+			result.push(parsed);
+		}
 	}
 
 	return dedupeErrors(result);
@@ -456,6 +462,10 @@ function extractSimpleDiagnostic(
 			message: t('Undefined references detected'),
 			line: undefined,
 			file: contextFile,
+			hint: latexHint({
+				type: 'warning',
+				message: 'There were undefined references',
+			}),
 		};
 	}
 
@@ -471,6 +481,7 @@ function extractSimpleDiagnostic(
 				}),
 				line: charMatch[2] ? Number.parseInt(charMatch[2], 10) : undefined,
 				file: contextFile,
+				hint: latexHint({ type: 'warning', message: 'Missing character' }),
 			};
 		}
 	}
@@ -484,6 +495,7 @@ function extractSimpleDiagnostic(
 			message: t('Fatal compilation error - no output produced'),
 			line: undefined,
 			file: contextFile,
+			hint: latexHint({ type: 'error', message: 'Emergency stop' }),
 		};
 	}
 
@@ -497,6 +509,10 @@ function extractSimpleDiagnostic(
 				}),
 				line: undefined,
 				file: contextFile,
+				hint: latexHint({
+					type: 'error',
+					message: `File \`${fileMatch[1]}' not found`,
+				}),
 			};
 		}
 	}

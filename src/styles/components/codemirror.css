@@ -1389,3 +1389,13 @@ math-field {
 	color: var(--pico-secondary);
 	font-size: var(--font-size-caption);
 }
+
+/* The explanation of a compile error, under its message. */
+.codemirror-editor-container .cm-diagnostic-hint {
+	max-width: 28rem;
+	margin-top: var(--space-xs);
+	color: var(--pico-muted-color, var(--text-color));
+	font-size: var(--font-size-small);
+	line-height: 1.4;
+	white-space: normal;
+}

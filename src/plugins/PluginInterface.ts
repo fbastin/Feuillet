@@ -136,6 +136,8 @@ export interface LogDiagnostic {
 	message: string;
 	line?: number;
 	file?: string;
+	/** What it means and how to fix it. */
+	hint?: string;
 }
 
 export interface LoggerProps {

@@ -167,6 +167,11 @@ const LaTeXVisualizer: React.FC<LoggerProps> = ({ log, onLineClick }) => {
 								<div className='log-diagnostic-message'>
 									{error.fullMessage || error.message}
 								</div>
+								{error.hint && (
+									<p className='log-diagnostic-hint' data-role='log-hint'>
+										{error.hint}
+									</p>
+								)}
 								{error.lineContent && (
 									<pre className='ui-code-block' data-wrap='true'>
 										{error.lineContent}

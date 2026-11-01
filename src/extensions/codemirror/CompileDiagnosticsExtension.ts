@@ -60,6 +60,21 @@ export function toEditorDiagnostics(
 			severity: entry.severity,
 			message: entry.message,
 			source: t('Compile log'),
+			// The explanation under the message, as in the log panel.
+			...(entry.hint
+				? {
+						renderMessage: () => {
+							const box = document.createElement('div');
+							const message = document.createElement('div');
+							message.textContent = entry.message;
+							const hint = document.createElement('div');
+							hint.className = 'cm-diagnostic-hint';
+							hint.textContent = entry.hint ?? '';
+							box.append(message, hint);
+							return box;
+						},
+					}
+				: {}),
 		};
 	});
 }

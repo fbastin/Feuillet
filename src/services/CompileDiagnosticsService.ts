@@ -12,6 +12,7 @@ export interface CompileDiagnostic {
 	line: number;
 	severity: LogDiagnostic['type'];
 	message: string;
+	hint?: string;
 }
 
 export interface CompileDiagnosticTarget {
@@ -48,6 +49,7 @@ class CompileDiagnosticsService {
 					line: entry.line,
 					severity: entry.type,
 					message: entry.message,
+					...(entry.hint ? { hint: entry.hint } : {}),
 				});
 			}
 		} catch (error) {
