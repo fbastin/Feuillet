@@ -28,6 +28,11 @@ et vous pouvez le reprendre avant.
 Seul le propriétaire du projet invite. Le projet appartient à qui l'a créé;
 pour un projet plus ancien, **Devenir propriétaire** le réclame.
 
+Le propriétaire peut céder le projet, comme sur Overleaf : **Rendre
+propriétaire**, à côté d'un membre dans **Partager**. Ce membre devient
+propriétaire, et l'ancien propriétaire en reste éditeur; il peut ensuite le
+quitter.
+
 ### Partager avec un lien
 
 **Partager avec un lien** donne des liens que toute personne peut ouvrir,

@@ -27,6 +27,10 @@ program; the link works once, for 30 days, and you may take it back before.
 Only the project's owner invites. A project belongs to whoever created it;
 for an older project, **Become the owner** claims it.
 
+The owner can hand the project over, as on Overleaf: **Make owner**, next to
+a member in **Share**. That member becomes the owner, and the former owner
+stays on as an editor, who may then leave it.
+
 ### Sharing with a link
 
 **Share with a link** gives links that anyone can open, without an

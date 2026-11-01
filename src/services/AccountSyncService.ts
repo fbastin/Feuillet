@@ -107,6 +107,9 @@ export interface ProjectInvite {
 export interface MembersChange {
 	add?: ProjectMember;
 	remove?: string;
+	// A member made the owner, as Overleaf's "Make owner"; the owner stays
+	// on as an editor.
+	transfer?: string;
 	// What the invited account's project list shows.
 	name?: string;
 	type?: string;
@@ -402,6 +405,8 @@ class AccountSyncService {
 		);
 		const edit = this.validLink(result?.edit, 'edit');
 		if (edit) await this.rememberEditLink(userId, projectId, edit);
+		// The project list tells who owns each project.
+		if (change.transfer) this.projectChanged(userId);
 		return Array.isArray(result?.members)
 			? result.members.filter(
 					(member: ProjectMember) =>

@@ -68,6 +68,8 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 	const [accessError, setAccessError] = useState<string | null>(null);
 	const [confirmEditReplace, setConfirmEditReplace] = useState(false);
 	const [accessBusy, setAccessBusy] = useState(false);
+	// Who was just made the owner, from this dialog.
+	const [handedTo, setHandedTo] = useState<string | null>(null);
 
 	const loadReadOnlyLink = useCallback(
 		async (reset: boolean) => {
@@ -123,6 +125,7 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 		if (!isOpen) {
 			setConfirmEditReplace(false);
 			setAccess(undefined);
+			setHandedTo(null);
 		}
 	}, [isOpen, serverLinks, changeAccess]);
 	const typesetters = useTypesetterConfig();
@@ -229,6 +232,10 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 							projectId={projectId}
 							projectName={projectName}
 							projectType={doc?.projectMetadata?.type ?? 'latex'}
+							onOwnerChanged={(owner) => {
+								setHandedTo(owner);
+								void changeAccess({});
+							}}
 						/>
 					) : (
 						<section
@@ -266,6 +273,13 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 										{t('Become the owner')}
 									</button>
 								</div>
+							) : handedTo ? (
+								<p className='ui-meta' data-role='owner-changed'>
+									{t(
+										'{username} now owns this project; you are one of its editors.',
+										{ username: handedTo },
+									)}
+								</p>
 							) : (
 								<p className='ui-meta'>
 									{t(

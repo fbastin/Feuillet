@@ -34,6 +34,10 @@
 //                                    member, as Overleaf shows collaborators
 //   POST /share/members {project, add: {username, role}, name, type}
 //   POST /share/members {project, remove: username}
+//   POST /share/members {project, transfer: username, name, type}
+//                                    (owner) the member becomes the owner and
+//                                    the owner an editor, as Overleaf's
+//                                    "Make owner"
 //   POST /share/leave {project}      (token) -> {left: true}: no longer a
 //                                    member, nor listing it; not the owner
 //   POST /share/delete {project}     (token) -> {deleted: true}: the owner
@@ -397,7 +401,10 @@ const createShares = ({
 		const role = roleOf(readProject(project), account);
 		// Every member sees who works on the project, to choose whose changes
 		// are tracked, as on Overleaf; only the owner changes who does.
-		const changes = Boolean(body.add) || typeof body.remove === 'string';
+		const changes =
+			Boolean(body.add) ||
+			typeof body.remove === 'string' ||
+			typeof body.transfer === 'string';
 		if (role !== 'owner' && (changes || !role)) {
 			throw new HttpError(403, 'not_owner');
 		}
@@ -420,6 +427,9 @@ const createShares = ({
 			if (!entry) throw new HttpError(404, 'unknown_member');
 			await dropMember(project, entry[0]);
 			log('collaborator removed');
+		} else if (typeof body.transfer === 'string') {
+			await transferOwnership(project, account, body.transfer, body);
+			log('project owner changed');
 		}
 
 		await shared;
@@ -429,8 +439,42 @@ const createShares = ({
 			members: listMembers(record),
 			...(owner ? { owner } : {}),
 			// The editing link is the owner's to hand out.
-			...(role === 'owner' ? { edit: editOf(project) } : {}),
+			...(record.owner === account ? { edit: editOf(project) } : {}),
 		};
+	};
+
+	// A member made the owner, as Overleaf's "Make owner": the owner stays
+	// on as an editor. A new owner who was not an editor gets the editing
+	// link in their list, in place of the one of their role.
+	const transferOwnership = async (project, owner, username, { name, type }) => {
+		const record = readProject(project);
+		const wanted = username.trim().toLowerCase();
+		const entry = Object.entries(record.members ?? {}).find(
+			([, member]) => member.username.toLowerCase() === wanted,
+		);
+		if (!entry) throw new HttpError(404, 'unknown_member');
+		const [id, member] = entry;
+		const ownerName = accounts.usernameOf(owner);
+		if (!ownerName) throw new HttpError(409, 'owner_unknown');
+
+		const members = { ...record.members };
+		delete members[id];
+		members[owner] = { username: ownerName, role: 'editor', addedAt: Date.now() };
+		writeProject(project, { ...record, owner: id, members });
+
+		if (member.role !== 'editor') {
+			await accounts.unshareProject(member.username, names(project));
+			const link = editOf(project);
+			const now = Date.now();
+			await accounts.shareProject(member.username, {
+				id: link,
+				docUrl: `yjs:${link}`,
+				name: typeof name === 'string' ? name : '',
+				type: PROJECT_TYPES.includes(type) ? type : 'latex',
+				createdAt: now,
+				updatedAt: now,
+			});
+		}
 	};
 
 	// Leaving a project shared with one, as Overleaf's "Leave". Someone who

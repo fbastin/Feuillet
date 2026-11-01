@@ -18,12 +18,17 @@ interface ProjectMembersSectionProps {
 	projectId: string;
 	projectName: string;
 	projectType: string;
+	// Someone else now owns the project.
+	onOwnerChanged?: (owner: string) => void;
 }
 
 const errorMessage = (error: unknown): string => {
 	const code = error instanceof AccountServerError ? error.code : '';
 	if (code === 'unknown_user') return t('No account has this name.');
 	if (code === 'already_owner') return t('You already own this project.');
+	if (code === 'unknown_member') {
+		return t('This account is no longer a member of the project.');
+	}
 	if (code === 'unreachable') {
 		return t('Could not reach the collaboration server.');
 	}
@@ -72,6 +77,7 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 	projectId,
 	projectName,
 	projectType,
+	onOwnerChanged,
 }) => {
 	const [members, setMembers] = useState<ProjectMember[] | null>(null);
 	const [username, setUsername] = useState('');
@@ -84,6 +90,8 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 	const [newInvite, setNewInvite] = useState<string | null>(null);
 	// The address the newest invitation went to, to open the mail again.
 	const [mailedTo, setMailedTo] = useState<string | null>(null);
+	// The member about to be made the owner, once confirmed.
+	const [newOwner, setNewOwner] = useState<string | null>(null);
 	const { user } = useAuth();
 
 	const change = useCallback(
@@ -184,6 +192,18 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 			type: projectType,
 		});
 		if (added) setUsername('');
+	};
+
+	// As Overleaf's "Make owner": the member owns the project, and one stays
+	// on as an editor.
+	const makeOwner = async (username: string) => {
+		const changed = await change({
+			transfer: username,
+			name: projectName,
+			type: projectType,
+		});
+		setNewOwner(null);
+		if (changed) onOwnerChanged?.(username);
 	};
 
 	return (
@@ -351,9 +371,22 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 				) : (
 					<ul className='project-share-members' id='share-members'>
 						{members.map((member) => (
-							<li key={member.username} className='project-share-member'>
+							<li
+								key={member.username}
+								className='project-share-member'
+								data-username={member.username}
+							>
 								<span>{member.username}</span>
 								<span className='ui-meta'>{roleLabel(member.role)}</span>
+								<button
+									type='button'
+									className='button secondary'
+									data-action='make-owner'
+									disabled={busy}
+									onClick={() => setNewOwner(member.username)}
+								>
+									{t('Make owner')}
+								</button>
 								<button
 									type='button'
 									className='button secondary'
@@ -366,6 +399,40 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 						))}
 					</ul>
 				))}
+			{newOwner && (
+				<div
+					className='ui-message ui-stack'
+					data-tone='warning'
+					data-gap='xs'
+					data-role='owner-confirmation'
+				>
+					<span>
+						{t(
+							'Make {username} the owner of this project? You will stay on as an editor, but only the new owner will invite or remove collaborators, replace the links and delete the project.',
+							{ username: newOwner },
+						)}
+					</span>
+					<div className='ui-actions'>
+						<button
+							type='button'
+							className='button primary'
+							data-action='confirm-make-owner'
+							disabled={busy}
+							onClick={() => void makeOwner(newOwner)}
+						>
+							{t('Change owner')}
+						</button>
+						<button
+							type='button'
+							className='button secondary'
+							disabled={busy}
+							onClick={() => setNewOwner(null)}
+						>
+							{t('Cancel')}
+						</button>
+					</div>
+				</div>
+			)}
 		</section>
 	);
 };
