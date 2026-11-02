@@ -547,6 +547,78 @@ class AccountSyncService {
 	}
 
 	/**
+	 * How many recovery codes the account has left, and when they were made.
+	 * Null when no account is signed in on the server.
+	 */
+	async recoveryStatus(): Promise<{
+		count: number;
+		createdAt?: number;
+	} | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			'GET',
+			'/account/recovery',
+			{ token: session.token },
+		);
+		return {
+			count: typeof result?.count === 'number' ? result.count : 0,
+			...(typeof result?.createdAt === 'number'
+				? { createdAt: result.createdAt }
+				: {}),
+		};
+	}
+
+	/**
+	 * New recovery codes for the account, replacing those it had, as
+	 * GitHub's: the server shows them only now and keeps their hashes.
+	 */
+	async createRecoveryCodes(
+		password: string,
+	): Promise<{ codes: string[]; createdAt: number } | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/account/recovery',
+			{ token: session.token, body: { password } },
+		);
+		return {
+			codes: Array.isArray(result?.codes)
+				? result.codes.filter((code: unknown) => typeof code === 'string')
+				: [],
+			createdAt: Number(result?.createdAt) || Date.now(),
+		};
+	}
+
+	/**
+	 * A forgotten password: a recovery code, used up, sets a new one on the
+	 * server, and every device signs in again.
+	 */
+	async recover(
+		username: string,
+		code: string,
+		newPassword: string,
+	): Promise<{ username: string; remaining: number }> {
+		const result = await this.request(
+			this.serverFor(),
+			'POST',
+			'/account/recover',
+			{
+				body: { username, code, newPassword },
+			},
+		);
+		return {
+			username: String(result?.username ?? username),
+			remaining: Number(result?.remaining) || 0,
+		};
+	}
+
+	/**
 	 * Leaves a project shared with the account, as Overleaf's "Leave": the
 	 * account is no longer a member, and the project leaves its list on all
 	 * its devices. False when no account is signed in on the server.

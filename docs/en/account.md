@@ -16,6 +16,8 @@ Your account menu, at the top right, opens the profile:
 
 - changing your password; your other devices will have to sign in again,
   and assistants such as Claude lose their access;
+- **Recovery codes**: ten codes to keep somewhere safe, such as a password
+  manager (see below);
 - **Devices**: the devices signed in to your account, with their browser
   and system, when they signed in and were last used. **Sign out** ends a
   device's session, such as a shared computer's; **Sign out all other
@@ -25,6 +27,16 @@ Your account menu, at the top right, opens the profile:
   applications (see [Claude](claude.md));
 - **Export Account**: your projects and settings in an archive;
 - **Delete Account**.
+
+## Forgotten password
+
+Feuillet keeps no email address: it cannot send you a link. Make **recovery
+codes** instead, in your profile, **Account** tab, and keep them somewhere
+safe; they are shown only once. If you forget your password, **Forgot your
+password?**, on the sign-in page, asks for your name, one of these codes and
+a new password. Each code works once; your other devices will have to sign
+in again, and assistants such as Claude lose their access. New codes replace
+the old ones.
 
 ## Deleting
 
@@ -42,8 +54,9 @@ The **Privacy** link, at the bottom of the page, says in detail what
 Feuillet's server keeps, for how long, and what goes to other services
 (GitHub, Anthropic, TeXlyre…) when you use them. In short:
 
-- your account: name, a hash of the password (never the password), the
-  signed-in devices (browser and system), the list of your projects;
+- your account: name, a hash of the password (never the password), hashes
+  of your recovery codes, the signed-in devices (browser and system), the
+  list of your projects;
 - your projects, their versions and their sharing, for your collaborators;
 - the web server's logs, 14 days; the collaboration server's, 30 MB at
   most;

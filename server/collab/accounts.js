@@ -21,6 +21,17 @@
 //   POST   /account/sessions  {revoke: id} | {others: true} (token) -> {sessions}
 //   GET    /account/dictionary                           (token) -> {words}
 //   POST   /account/dictionary {words}                   (token) -> {words}
+//   GET    /account/recovery                             (token) -> {count,
+//                                                        createdAt}
+//   POST   /account/recovery  {password}                 (token) -> {codes,
+//                                                        createdAt}: new codes,
+//                                                        shown once
+//   POST   /account/recover   {username, code, newPassword} -> {username,
+//                                                        remaining}
+//
+// Recovery codes, as GitHub's, for a forgotten password without an email
+// address: each opens the account once to choose a new password, which
+// signs every device out. Only their hashes are kept.
 //
 // The token goes in an `Authorization: Bearer` header.
 
@@ -38,6 +49,9 @@ const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS_PER_IP = 30;
 const MAX_FAILURES_PER_ACCOUNT = 10;
+const RECOVERY_CODES = 10;
+// Without letters or digits that look alike: 16 of them, about 79 bits.
+const RECOVERY_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 const PROJECT_ID = /^[A-Za-z0-9_-]{1,100}$/;
 // Words as the spell checker finds them: letters, with the apostrophes,
 // hyphens and middle dots inside words.
@@ -61,6 +75,16 @@ const validUsername = (username) =>
 	username.length <= 64 &&
 	// biome-ignore lint/suspicious/noControlCharactersInRegex: rejects them.
 	!/[\u0000-\u001f\u007f]/.test(username);
+
+const newRecoveryCode = () => {
+	const letters = Array.from(
+		{ length: 16 },
+		() => RECOVERY_ALPHABET[crypto.randomInt(RECOVERY_ALPHABET.length)],
+	);
+	return [0, 4, 8, 12].map((at) => letters.slice(at, at + 4).join('')).join('-');
+};
+const recoveryHash = (code) =>
+	sha256(`recovery:${String(code).toLowerCase().replace(/[^a-z0-9]/g, '')}`);
 
 const validPassword = (password) =>
 	typeof password === 'string' &&
@@ -452,6 +476,66 @@ const createAccounts = ({ dir, log }) => {
 			return { changed: true };
 		});
 
+	// How many recovery codes are left, and when they were made.
+	const getRecovery = (req) =>
+		authenticate(req, (account) => ({
+			body: {
+				count: account.recovery?.codes?.length ?? 0,
+				...(account.recovery?.createdAt
+					? { createdAt: account.recovery.createdAt }
+					: {}),
+			},
+		}));
+
+	// New recovery codes, replacing those there were; shown only now.
+	const createRecovery = (req, body) =>
+		authenticate(req, async (account) => {
+			if (!(await checkPassword(String(body.password), account.passwordHash))) {
+				throw new HttpError(401, 'wrong_password');
+			}
+			const codes = Array.from({ length: RECOVERY_CODES }, newRecoveryCode);
+			const createdAt = Date.now();
+			account.recovery = { createdAt, codes: codes.map(recoveryHash) };
+			log('recovery codes made');
+			return { changed: true, body: { codes, createdAt } };
+		});
+
+	// A forgotten password: a recovery code, used up, lets the account
+	// choose a new one. Every device signs in again, and what was granted
+	// with the old password ends (stampOf).
+	const recover = async (body, ip) => {
+		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
+		const username = normalizeUsername(body.username);
+		if (!validPassword(body.newPassword)) {
+			throw new HttpError(400, 'invalid_password');
+		}
+		if (!validUsername(username) || typeof body.code !== 'string') {
+			throw new HttpError(401, 'invalid_recovery');
+		}
+		const key = keyOf(username);
+		limit(`failures:${key}`, MAX_FAILURES_PER_ACCOUNT);
+		const passwordHash = await hashPassword(body.newPassword);
+		const hash = recoveryHash(body.code);
+		const recovered = await withAccount(key, (account) => {
+			const codes = account?.recovery?.codes ?? [];
+			if (!codes.includes(hash)) throw new HttpError(401, 'invalid_recovery');
+			account.recovery = {
+				...account.recovery,
+				codes: codes.filter((stored) => stored !== hash),
+			};
+			account.passwordHash = passwordHash;
+			account.sessions = {};
+			write(key, account);
+			return {
+				username: account.username,
+				remaining: account.recovery.codes.length,
+			};
+		});
+		clearFailures(key);
+		log('account recovered');
+		return recovered;
+	};
+
 	// What goes with an account: the projects it owns, its memberships
 	// (shares.js). Set by the server.
 	let accountDeleted = async () => {};
@@ -668,6 +752,9 @@ const createAccounts = ({ dir, log }) => {
 		'POST /account/projects': (req, body) => syncProjects(req, body),
 		'GET /account/dictionary': (req) => getDictionary(req),
 		'POST /account/dictionary': (req, body) => syncDictionary(req, body),
+		'GET /account/recovery': (req) => getRecovery(req),
+		'POST /account/recovery': (req, body) => createRecovery(req, body),
+		'POST /account/recover': (req, body) => recover(body, clientAddress(req)),
 	};
 
 	const handles = (url) => url === '/account' || url.startsWith('/account/');

@@ -13,6 +13,7 @@ import {
 	clearTempPrf,
 } from '../../utils/chelysWebauthn';
 import GuestConsentModal from './GuestConsentModal';
+import RecoverAccount from './RecoverAccount';
 import PrivacyModal from '../common/PrivacyModal';
 import { PasskeyIcon } from '../common/Icons';
 
@@ -45,6 +46,8 @@ const Login: React.FC<LoginProps> = ({
 	const [showGuestModal, setShowGuestModal] = useState(false);
 	const [showPrivacy, setShowPrivacy] = useState(false);
 	const [confirmCreate, setConfirmCreate] = useState(false);
+	// A forgotten password, recovered with a recovery code.
+	const [recovering, setRecovering] = useState(false);
 
 	const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -163,6 +166,19 @@ const Login: React.FC<LoginProps> = ({
 		}
 	};
 
+	if (recovering) {
+		return (
+			<RecoverAccount
+				initialUsername={username}
+				onRecovered={() => {
+					onLoginSuccess();
+					window.location.reload();
+				}}
+				onCancel={() => setRecovering(false)}
+			/>
+		);
+	}
+
 	return (
 		<>
 			<div className='auth-form-container'>
@@ -200,6 +216,19 @@ const Login: React.FC<LoginProps> = ({
 							disabled={isLoading}
 							autoComplete='current-password'
 						/>
+						<button
+							type='button'
+							className='button'
+							data-variant='text'
+							data-action='forgot-password'
+							onClick={() => {
+								setError(null);
+								setRecovering(true);
+							}}
+							disabled={isLoading}
+						>
+							{t('Forgot your password?')}
+						</button>
 					</div>
 
 					<button

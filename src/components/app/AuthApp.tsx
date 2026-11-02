@@ -96,19 +96,24 @@ const AuthApp: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
 					data-density='compact'
 					data-align='center'
 				>
-					<p>
+					{/* TeXlyre kept everything in the browser; Feuillet keeps the
+					    projects on its server too. */}
+					<p data-role='auth-privacy'>
 						{t(
-							'Your account and projects stay private in this browser. TeXlyre is',
+							'Your projects are kept in this browser and on the Feuillet server, for your other devices and your collaborators; no tracking, no advertising.',
 						)}
 						&nbsp;
-						<a
-							href='https://www.inkandswitch.com/essay/local-first/'
-							target='_blank'
-							rel='noreferrer'
+						<button
+							type='button'
+							className='button'
+							data-variant='text'
+							onClick={() => {
+								pushHash('privacy-policy');
+								setShowPrivacy(true);
+							}}
 						>
-							{t('local-first')}
-						</a>
-						.
+							{t('What the server keeps')}
+						</button>
 					</p>
 				</div>
 			</div>

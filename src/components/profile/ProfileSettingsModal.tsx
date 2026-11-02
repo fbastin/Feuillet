@@ -9,6 +9,7 @@ import { UserIcon } from '../common/Icons';
 import ProfileAccountIdentitySection from './ProfileAccountIdentitySection';
 import ProfileAssistantsSection from './ProfileAssistantsSection';
 import ProfileDevicesSection from './ProfileDevicesSection';
+import ProfileRecoverySection from './ProfileRecoverySection';
 import ProfileServerAccountSection from './ProfileServerAccountSection';
 import BrowserStorageSection from './ProfileBrowserStorageSection';
 import LocalStorageDataSection from './ProfileLocalStorageDataSection';
@@ -109,6 +110,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 						onError={setError}
 						onSuccess={setSuccessMessage}
 					/>
+					<ProfileRecoverySection />
 				</>
 			) : tab === 'assistants' ? (
 				<ProfileAssistantsSection />
