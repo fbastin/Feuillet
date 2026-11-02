@@ -163,9 +163,11 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 						type='submit'
 						className='button primary'
 						data-action='set-recovery-email'
+						data-state={busy ? 'loading' : undefined}
 						disabled={busy || !address.trim()}
 					>
-						{t('Send the confirmation link')}
+						{/* Sending may take some seconds. */}
+						{busy ? t('Sending the link…') : t('Send the confirmation link')}
 					</button>
 				</div>
 			</form>
