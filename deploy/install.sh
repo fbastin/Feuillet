@@ -73,6 +73,10 @@ if [ ! -e /etc/feuillet/collab.env ]; then
 # fill in its client id and secret, then run deploy/install.sh again.
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+# Recovering accounts by email: an SMTP server and a sender (see
+# deploy/README.md); empty keeps it off.
+SMTP_URL=
+MAIL_FROM=
 SETTINGS
 	echo "Created /etc/feuillet/collab.env (GitHub sign-in stays off until it is filled in)."
 fi

@@ -28,6 +28,24 @@
 //                                                        shown once
 //   POST   /account/recover   {username, code, newPassword} -> {username,
 //                                                        remaining}
+//   GET    /account/recovery/options                     -> {email}: whether
+//                                                        accounts may be
+//                                                        recovered by email
+//   GET    /account/email                                (token) -> {enabled,
+//                                                        address, pending}
+//   POST   /account/email     {password, address, language} (token): mails a
+//                                                        link confirming it
+//   POST   /account/email     {password, remove: true}   (token)
+//   POST   /account/email/confirm {token}                -> {address}
+//   POST   /account/forgot    {login, language}          -> {sent: true}
+//   POST   /account/reset     {token, newPassword}       -> {username}
+//
+// Recovery by email, as on Overleaf, when the server can send mail
+// (mail.js): an account may give an address, kept once confirmed through a
+// link mailed to it (24 hours). Forgetting the password, one gives one's
+// name or that address, and a link (one hour) lets one choose a new
+// password, which signs every device out. Whether an account or address
+// exists is not told, and addresses are never logged.
 //
 // Recovery codes, as GitHub's, for a forgotten password without an email
 // address: each opens the account once to choose a new password, which
@@ -50,6 +68,11 @@ const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS_PER_IP = 30;
 const MAX_FAILURES_PER_ACCOUNT = 10;
 const RECOVERY_CODES = 10;
+const EMAIL_CONFIRM_MS = 24 * 60 * 60 * 1000;
+const RESET_MS = 60 * 60 * 1000;
+// Emails one account may be sent in ATTEMPT_WINDOW_MS.
+const MAX_MAILS_PER_ACCOUNT = 3;
+const LINK_TOKEN = /^([0-9a-f]{64})\.([A-Za-z0-9_-]{20,100})$/;
 // Without letters or digits that look alike: 16 of them, about 79 bits.
 const RECOVERY_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 const PROJECT_ID = /^[A-Za-z0-9_-]{1,100}$/;
@@ -85,6 +108,15 @@ const newRecoveryCode = () => {
 };
 const recoveryHash = (code) =>
 	sha256(`recovery:${String(code).toLowerCase().replace(/[^a-z0-9]/g, '')}`);
+
+const normalizeEmail = (value) =>
+	typeof value === 'string' ? value.trim().toLowerCase() : '';
+const validEmail = (address) =>
+	address.length <= 254 && /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(address);
+const sameHash = (a, b) =>
+	typeof a === 'string' &&
+	a.length === b.length &&
+	crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 const validPassword = (password) =>
 	typeof password === 'string' &&
@@ -237,8 +269,12 @@ const deviceOf = (req) => {
 	return { browser, os };
 };
 
-const createAccounts = ({ dir, log }) => {
+const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 	fs.mkdirSync(dir, { recursive: true });
+	// Which account confirmed each recovery address, by a hash of it.
+	const emailsDir = path.join(dir, 'emails');
+	fs.mkdirSync(emailsDir, { recursive: true });
+	const appBase = String(appUrl).replace(/\/+$/, '');
 
 	const accountPath = (key) => path.join(dir, `${key}.json`);
 	const keyOf = (username) => sha256(username.toLowerCase());
@@ -259,6 +295,39 @@ const createAccounts = ({ dir, log }) => {
 		const temp = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
 		fs.writeFileSync(temp, JSON.stringify(account), { mode: 0o600 });
 		fs.renameSync(temp, target);
+	};
+
+	const emailPath = (address) =>
+		path.join(emailsDir, `${sha256(`email:${address}`)}.json`);
+	const emailOwner = (address) => {
+		try {
+			return JSON.parse(fs.readFileSync(emailPath(address), 'utf8')).key ?? null;
+		} catch (error) {
+			if (error.code === 'ENOENT') return null;
+			throw error;
+		}
+	};
+	const setEmailOwner = (address, key) => {
+		const target = emailPath(address);
+		const temp = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
+		fs.writeFileSync(temp, JSON.stringify({ key }), { mode: 0o600 });
+		fs.renameSync(temp, target);
+	};
+	const dropEmailOwner = (address, key) => {
+		if (address && emailOwner(address) === key) {
+			fs.rmSync(emailPath(address), { force: true });
+		}
+	};
+
+	// A link's token: the account's key, so that it is found without the
+	// session, and a secret, kept as its hash.
+	const newLinkToken = (key) => {
+		const secret = crypto.randomBytes(32).toString('base64url');
+		return { token: `${key}.${secret}`, hash: sha256(secret) };
+	};
+	const parseLinkToken = (token) => {
+		const match = LINK_TOKEN.exec(typeof token === 'string' ? token : '');
+		return match ? { key: match[1], hash: sha256(match[2]) } : null;
 	};
 
 	// Changes to one account run one after the other.
@@ -471,6 +540,7 @@ const createAccounts = ({ dir, log }) => {
 				throw new HttpError(401, 'wrong_password');
 			}
 			account.passwordHash = await hashPassword(body.newPassword);
+			delete account.reset;
 			// Other devices sign in again with the new password.
 			account.sessions = { [sessionId]: account.sessions[sessionId] };
 			return { changed: true };
@@ -525,6 +595,7 @@ const createAccounts = ({ dir, log }) => {
 			};
 			account.passwordHash = passwordHash;
 			account.sessions = {};
+			delete account.reset;
 			write(key, account);
 			return {
 				username: account.username,
@@ -534,6 +605,158 @@ const createAccounts = ({ dir, log }) => {
 		clearFailures(key);
 		log('account recovered');
 		return recovered;
+	};
+
+	const emailStatus = (account) => {
+		const pending = account.emailToken;
+		return {
+			enabled: Boolean(mailer),
+			...(account.email?.address ? { address: account.email.address } : {}),
+			...(pending && pending.expiresAt > Date.now()
+				? { pending: pending.address }
+				: {}),
+		};
+	};
+
+	const getEmail = (req) =>
+		authenticate(req, (account) => ({ body: emailStatus(account) }));
+
+	// The address an account may be recovered with, once confirmed through
+	// a link mailed to it; or none any more.
+	const setEmail = (req, body) =>
+		authenticate(req, async (account) => {
+			if (!mailer) throw new HttpError(404, 'mail_disabled');
+			if (!(await checkPassword(String(body.password), account.passwordHash))) {
+				throw new HttpError(401, 'wrong_password');
+			}
+			const key = keyOf(account.username);
+			if (body.remove === true) {
+				dropEmailOwner(account.email?.address, key);
+				delete account.email;
+				delete account.emailToken;
+				log('recovery address removed');
+				return { changed: true, body: emailStatus(account) };
+			}
+			const address = normalizeEmail(body.address);
+			if (!validEmail(address)) throw new HttpError(400, 'invalid_email');
+			const owner = emailOwner(address);
+			if (owner && owner !== key) throw new HttpError(409, 'email_taken');
+			if (account.email?.address === address) {
+				delete account.emailToken;
+				return { changed: true, body: emailStatus(account) };
+			}
+			limit(`mail:${key}`, MAX_MAILS_PER_ACCOUNT);
+			const { token, hash } = newLinkToken(key);
+			try {
+				await mailer.send('confirm', {
+					to: address,
+					language: body.language,
+					username: account.username,
+					link: `${appBase}/#confirm-email:${token}`,
+				});
+			} catch {
+				throw new HttpError(502, 'mail_failed');
+			}
+			account.emailToken = {
+				address,
+				hash,
+				expiresAt: Date.now() + EMAIL_CONFIRM_MS,
+			};
+			log('recovery address to confirm');
+			return { changed: true, body: emailStatus(account) };
+		});
+
+	// The link mailed to confirm an address; it may be opened on any device.
+	const confirmEmail = async (body, ip) => {
+		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
+		const parsed = parseLinkToken(body.token);
+		if (!parsed) throw new HttpError(400, 'invalid_token');
+		return withAccount(parsed.key, (account) => {
+			const pending = account?.emailToken;
+			if (
+				!pending ||
+				!sameHash(pending.hash, parsed.hash) ||
+				pending.expiresAt <= Date.now()
+			) {
+				throw new HttpError(410, 'expired_token');
+			}
+			const owner = emailOwner(pending.address);
+			if (owner && owner !== parsed.key) {
+				throw new HttpError(409, 'email_taken');
+			}
+			if (account.email?.address !== pending.address) {
+				dropEmailOwner(account.email?.address, parsed.key);
+			}
+			setEmailOwner(pending.address, parsed.key);
+			account.email = { address: pending.address, confirmedAt: Date.now() };
+			delete account.emailToken;
+			write(parsed.key, account);
+			log('recovery address confirmed');
+			return { address: account.email.address };
+		});
+	};
+
+	// A forgotten password, by the account's name or its recovery address:
+	// a link to choose a new one goes to that address. The answer is the
+	// same, and as quick, whether or not there is such an account.
+	const forgot = async (body, ip) => {
+		if (!mailer) throw new HttpError(404, 'mail_disabled');
+		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
+		const login = typeof body.login === 'string' ? body.login.trim() : '';
+		if (!login || login.length > 254) throw new HttpError(400, 'invalid_login');
+		const name = normalizeUsername(login);
+		const key = login.includes('@')
+			? emailOwner(normalizeEmail(login))
+			: validUsername(name)
+				? keyOf(name)
+				: null;
+		if (key) {
+			void withAccount(key, async (account) => {
+				const address = account?.email?.address;
+				if (!address) return;
+				limit(`mail:${key}`, MAX_MAILS_PER_ACCOUNT);
+				const { token, hash } = newLinkToken(key);
+				await mailer.send('reset', {
+					to: address,
+					language: body.language,
+					username: account.username,
+					link: `${appBase}/#reset-password:${token}`,
+				});
+				account.reset = { hash, expiresAt: Date.now() + RESET_MS };
+				write(key, account);
+			}).catch(() => {});
+		}
+		return { sent: true };
+	};
+
+	// The link mailed for a forgotten password: a new one, and every device
+	// signs in again.
+	const resetPassword = async (body, ip) => {
+		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
+		if (!validPassword(body.newPassword)) {
+			throw new HttpError(400, 'invalid_password');
+		}
+		const parsed = parseLinkToken(body.token);
+		if (!parsed) throw new HttpError(400, 'invalid_token');
+		const passwordHash = await hashPassword(body.newPassword);
+		const username = await withAccount(parsed.key, (account) => {
+			const pending = account?.reset;
+			if (
+				!pending ||
+				!sameHash(pending.hash, parsed.hash) ||
+				pending.expiresAt <= Date.now()
+			) {
+				throw new HttpError(410, 'expired_token');
+			}
+			account.passwordHash = passwordHash;
+			account.sessions = {};
+			delete account.reset;
+			write(parsed.key, account);
+			return account.username;
+		});
+		clearFailures(parsed.key);
+		log('password reset by email');
+		return { username };
 	};
 
 	// What goes with an account: the projects it owns, its memberships
@@ -549,6 +772,7 @@ const createAccounts = ({ dir, log }) => {
 				throw new HttpError(401, 'wrong_password');
 			}
 			await accountDeleted(idOf(account));
+			dropEmailOwner(account.email?.address, keyOf(account.username));
 			log('account deleted', JSON.stringify(account.username));
 			return { deleted: true };
 		});
@@ -755,6 +979,14 @@ const createAccounts = ({ dir, log }) => {
 		'GET /account/recovery': (req) => getRecovery(req),
 		'POST /account/recovery': (req, body) => createRecovery(req, body),
 		'POST /account/recover': (req, body) => recover(body, clientAddress(req)),
+		'GET /account/recovery/options': () => ({ email: Boolean(mailer) }),
+		'GET /account/email': (req) => getEmail(req),
+		'POST /account/email': (req, body) => setEmail(req, body),
+		'POST /account/email/confirm': (req, body) =>
+			confirmEmail(body, clientAddress(req)),
+		'POST /account/forgot': (req, body) => forgot(body, clientAddress(req)),
+		'POST /account/reset': (req, body) =>
+			resetPassword(body, clientAddress(req)),
 	};
 
 	const handles = (url) => url === '/account' || url.startsWith('/account/');

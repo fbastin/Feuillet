@@ -16,8 +16,8 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 
 - changer de mot de passe; vos autres appareils devront se reconnecter, et
   les assistants comme Claude perdent leur accès;
-- **Codes de récupération** : dix codes à garder en lieu sûr, par exemple
-  dans un gestionnaire de mots de passe (voir plus bas);
+- **Adresse de récupération** et **Codes de récupération**, si vous oubliez
+  votre mot de passe (voir plus bas);
 - **Appareils** : les appareils connectés à votre compte, avec leur
   navigateur et leur système, la date de connexion et la dernière
   utilisation. **Déconnecter** ferme la session d'un appareil, par exemple
@@ -31,14 +31,23 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 
 ## Mot de passe oublié
 
-Feuillet ne garde pas d'adresse courriel : il ne peut pas vous envoyer de
-lien. Créez plutôt des **codes de récupération** dans votre profil, onglet
-**Compte**, et gardez-les en lieu sûr; ils ne sont affichés qu'une fois.
-Si vous oubliez votre mot de passe, **Mot de passe oublié?**, sur la page de
-connexion, demande votre nom, l'un de ces codes et un nouveau mot de passe.
-Chaque code ne sert qu'une fois; vos autres appareils devront se reconnecter,
-et les assistants comme Claude perdent leur accès. De nouveaux codes
-remplacent les anciens.
+Deux moyens, à préparer dans votre profil, onglet **Compte** :
+
+- **Adresse de récupération** : comme sur Overleaf, donnez une adresse
+  courriel; un lien envoyé à cette adresse la confirme, pendant 24 heures.
+  Si vous oubliez votre mot de passe, **Mot de passe oublié?**, sur la page
+  de connexion, demande votre nom ou cette adresse, et y envoie un lien,
+  valable une heure, pour choisir un nouveau mot de passe. L'adresse ne sert
+  qu'à cela et n'est montrée à personne. Ce moyen n'est offert que si le
+  serveur envoie des courriels.
+- **Codes de récupération** : gardez-les en lieu sûr; ils ne sont affichés
+  qu'une fois. **Mot de passe oublié?**, puis **J'ai un code de
+  récupération**, demande votre nom, l'un de ces codes et un nouveau mot de
+  passe. Chaque code ne sert qu'une fois; de nouveaux codes remplacent les
+  anciens.
+
+Dans les deux cas, vos autres appareils devront se reconnecter, et les
+assistants comme Claude perdent leur accès.
 
 ## Supprimer
 
@@ -59,8 +68,9 @@ serveur de Feuillet, combien de temps, et ce qui part chez d'autres services
 (GitHub, Anthropic, TeXlyre…) quand vous les utilisez. En bref :
 
 - votre compte : nom, empreinte du mot de passe (jamais le mot de passe),
-  empreintes de vos codes de récupération, appareils connectés (navigateur
-  et système), liste de vos projets;
+  empreintes de vos codes de récupération, adresse de récupération si vous
+  en avez donné une, appareils connectés (navigateur et système), liste de
+  vos projets;
 - vos projets, leurs versions et leur partage, pour vos collaborateurs;
 - les journaux du serveur web, 14 jours; ceux du serveur de collaboration,
   limités à 30 Mo;

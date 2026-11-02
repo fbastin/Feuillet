@@ -97,6 +97,29 @@ The sign-in asks for the `repo` scope, as the personal access token does, so
 that private repositories can be synced. Leaving the file empty turns the
 button off; pasting a token keeps working either way.
 
+## Recovering accounts by email
+
+Accounts may give a recovery address, which a link mailed to it confirms; a
+forgotten password then sends a link there, valid one hour, as on Overleaf
+(server/collab/mail.js). Without mail settings, this stays off and accounts
+recover with recovery codes only. The collaboration server sends through an
+SMTP server set in `/etc/feuillet/collab.env`:
+
+```
+SMTP_URL=smtps://USER:PASSWORD@smtp.example.org:465
+MAIL_FROM=Feuillet <noreply@example.org>
+```
+
+`SMTP_URL` may also be `smtp://...:587` (STARTTLS). Characters such as `@`
+or `:` in the user or password are written percent-encoded (`%40`, `%3A`).
+The sender's domain should allow that server in its SPF record, and sign
+with DKIM, or mail providers may set the messages aside as spam. Links lead
+to `APP_URL`, by default the first of `ALLOWED_ORIGINS`.
+
+After `sudo deploy/install.sh`, the start line in
+`sudo docker logs feuillet-collab` says "recovery by email on". The server
+logs that a message was sent or not, never to which address.
+
 ## Claude (MCP connector)
 
 The collaboration server lets Claude work on an account's projects through

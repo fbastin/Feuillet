@@ -1,10 +1,11 @@
 // src/components/auth/RecoverAccount.tsx
-// A forgotten password: one of the account's recovery codes sets a new one
-// on the server, then signs in with it, as on any device.
+// A forgotten password: a link mailed to the account's recovery address, as
+// on Overleaf, when the server sends mail; or one of the account's recovery
+// codes, which sets a new password on the server, then signs in with it.
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { t } from '@/i18n';
+import i18next, { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
 import {
 	AccountServerError,
@@ -48,6 +49,129 @@ const RecoverAccount: React.FC<RecoverAccountProps> = ({
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
+	// By email when the server sends mail; null while asking it.
+	const [mode, setMode] = useState<'email' | 'code' | null>(null);
+	const [emailOffered, setEmailOffered] = useState(false);
+	const [loginName, setLogin] = useState(initialUsername);
+	const [sent, setSent] = useState(false);
+
+	useEffect(() => {
+		let current = true;
+		void accountSyncService.recoveryOptions().then(({ email }) => {
+			if (!current) return;
+			setEmailOffered(email);
+			setMode(email ? 'email' : 'code');
+		});
+		return () => {
+			current = false;
+		};
+	}, []);
+
+	const sendLink = async (event: React.FormEvent) => {
+		event.preventDefault();
+		if (!loginName.trim()) {
+			setError(t('Please fill in all fields'));
+			return;
+		}
+		setError(null);
+		setBusy(true);
+		try {
+			await accountSyncService.forgotPassword(
+				loginName.trim(),
+				i18next.language,
+			);
+			setSent(true);
+		} catch (caught) {
+			setError(errorMessage(caught));
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	const switchTo = (next: 'email' | 'code') => {
+		setError(null);
+		setSent(false);
+		setMode(next);
+	};
+
+	if (mode !== 'code') {
+		return (
+			<div className='auth-form-container' data-role='recover-account'>
+				<h2>{t('Forgot your password?')}</h2>
+				{mode === null ? (
+					<p className='ui-meta'>{t('Loading...')}</p>
+				) : sent ? (
+					<div
+						className='ui-message'
+						data-tone='success'
+						data-role='reset-link-sent'
+					>
+						{t(
+							'If this name or address belongs to an account with a confirmed recovery address, a link was just sent there. It works for one hour.',
+						)}
+					</div>
+				) : (
+					<>
+						<p>
+							{t(
+								'Enter your username, or your recovery address: Feuillet sends a link to that address to choose a new password.',
+							)}
+						</p>
+						{error && (
+							<div className='ui-message' data-tone='error'>
+								{error}
+							</div>
+						)}
+						<form onSubmit={sendLink} className='ui-stack'>
+							<div className='ui-field' data-spacing='section'>
+								<label htmlFor='forgot-login'>
+									{t('Username or email address')}
+								</label>
+								<input
+									type='text'
+									id='forgot-login'
+									value={loginName}
+									onChange={(event) => setLogin(event.target.value)}
+									disabled={busy}
+									autoComplete='username'
+								/>
+							</div>
+							<button
+								type='submit'
+								className='button primary'
+								data-action='send-reset-link'
+								data-state={busy ? 'loading' : undefined}
+								disabled={busy}
+							>
+								{t('Send me a link')}
+							</button>
+						</form>
+					</>
+				)}
+				<div className='ui-stack' data-gap='xs'>
+					<button
+						type='button'
+						className='button'
+						data-variant='text'
+						data-action='use-recovery-code'
+						onClick={() => switchTo('code')}
+						disabled={busy}
+					>
+						{t('I have a recovery code')}
+					</button>
+					<button
+						type='button'
+						className='button'
+						data-variant='text'
+						onClick={onCancel}
+						disabled={busy}
+					>
+						{t('Back')}
+					</button>
+				</div>
+			</div>
+		);
+	}
 
 	const submit = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -155,6 +279,18 @@ const RecoverAccount: React.FC<RecoverAccountProps> = ({
 				>
 					{t('Choose this password and log in')}
 				</button>
+				{emailOffered && (
+					<button
+						type='button'
+						className='button'
+						data-variant='text'
+						data-action='use-email'
+						onClick={() => switchTo('email')}
+						disabled={busy}
+					>
+						{t('Get a link by email instead')}
+					</button>
+				)}
 				<button
 					type='button'
 					className='button'

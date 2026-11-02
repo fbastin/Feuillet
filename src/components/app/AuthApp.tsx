@@ -5,10 +5,11 @@ import { useState } from 'react';
 import { t } from '@/i18n';
 import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
 import { useTheme } from '../../hooks/useTheme';
-import { inviteOf, pushHash } from '../../utils/urlUtils';
+import { inviteOf, pushHash, replaceHash } from '../../utils/urlUtils';
 import ImportAccount from '../auth/ImportAccount';
 import Login from '../auth/Login';
 import Register from '../auth/Register';
+import ResetPassword from '../auth/ResetPassword';
 import PrivacyModal from '../common/PrivacyModal';
 import ThemeToggleButton from '../settings/ThemeToggleButton';
 import LanguageToggleButton from '../settings/LanguageToggleButton';
@@ -16,9 +17,16 @@ import FooterLinks from '../common/FooterLinks';
 
 interface AuthContainerProps {
 	onAuthSuccess: () => void;
+	/** A mailed link's token, to choose a new password. */
+	resetToken?: string | null;
+	onResetClose?: () => void;
 }
 
-const AuthApp: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
+const AuthApp: React.FC<AuthContainerProps> = ({
+	onAuthSuccess,
+	resetToken,
+	onResetClose,
+}) => {
 	const { currentThemePlugin, currentVariant } = useTheme();
 	const [activeView, setActiveView] = useState<'login' | 'register' | 'import'>(
 		'login',
@@ -71,7 +79,16 @@ const AuthApp: React.FC<AuthContainerProps> = ({ onAuthSuccess }) => {
 					</div>
 				)}
 
-				{activeView === 'login' ? (
+				{resetToken ? (
+					<ResetPassword
+						token={resetToken}
+						onDone={() => {
+							replaceHash('');
+							window.location.reload();
+						}}
+						onCancel={() => onResetClose?.()}
+					/>
+				) : activeView === 'login' ? (
 					<Login
 						onLoginSuccess={onAuthSuccess}
 						onSwitchToRegister={switchToRegister}

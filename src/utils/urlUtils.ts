@@ -154,3 +154,15 @@ export const inviteUrl = (invite: string): string =>
 /** The invitation a location's hash holds, if any. */
 export const inviteOf = (hash: string): string | null =>
 	/^#?invite:([0-9a-f]{48})$/.exec(hash)?.[1] ?? null;
+
+// The links of recovery emails (server/collab/mail.js): confirming the
+// address an account may be recovered with, and choosing a new password.
+const LINK_TOKEN = '([0-9a-f]{64}\\.[A-Za-z0-9_-]{20,100})';
+
+/** The token of a link confirming a recovery address, if any. */
+export const confirmEmailOf = (hash: string): string | null =>
+	new RegExp(`^#?confirm-email:${LINK_TOKEN}$`).exec(hash)?.[1] ?? null;
+
+/** The token of a link to choose a new password, if any. */
+export const resetPasswordOf = (hash: string): string | null =>
+	new RegExp(`^#?reset-password:${LINK_TOKEN}$`).exec(hash)?.[1] ?? null;

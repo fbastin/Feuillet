@@ -27,11 +27,13 @@ import {
 } from '../../services/ShareTargetService';
 import type { YjsDocUrl } from '../../types/yjs';
 import {
+	confirmEmailOf,
 	inviteOf,
 	isValidYjsUrl,
 	parseUrlFragments,
 	pushHash,
 	replaceHash,
+	resetPasswordOf,
 } from '../../utils/urlUtils';
 import {
 	batchExtractArchive,
@@ -311,6 +313,53 @@ const AppRouter: React.FC = () => {
 		createProjectFromUrl,
 	]);
 
+	// The links of recovery emails. One choosing a new password shows its
+	// form, signed in or not; one confirming a recovery address is followed
+	// at once, on any device.
+	const [resetToken, setResetToken] = useState(() =>
+		resetPasswordOf(window.location.hash),
+	);
+	const confirmedEmailRef = useRef<string | null>(null);
+	useEffect(() => {
+		const follow = () => {
+			const reset = resetPasswordOf(window.location.hash);
+			if (reset) setResetToken(reset);
+			const token = confirmEmailOf(window.location.hash);
+			if (!token || confirmedEmailRef.current === token) return;
+			confirmedEmailRef.current = token;
+			replaceHash('');
+			const operationId = 'confirm-email';
+			notificationService.showLoading(
+				t('Confirming the recovery address...'),
+				operationId,
+			);
+			accountSyncService
+				.confirmRecoveryEmail(token)
+				.then((address) =>
+					notificationService.showSuccess(
+						t('{address} now recovers your account.', { address }),
+						{ operationId },
+					),
+				)
+				.catch((error) => {
+					const code = error instanceof AccountServerError ? error.code : '';
+					notificationService.showError(
+						code === 'email_taken'
+							? t('This address already recovers another account.')
+							: code === 'expired_token' || code === 'invalid_token'
+								? t(
+										'This link has expired or was already used. Send a new one from your profile.',
+									)
+								: t('The recovery address could not be confirmed.'),
+						{ operationId },
+					);
+				});
+		};
+		follow();
+		window.addEventListener('hashchange', follow);
+		return () => window.removeEventListener('hashchange', follow);
+	}, []);
+
 	// A personal invitation's link, once signed in: the account joins the
 	// project, which opens, as when accepting Overleaf's invitation.
 	const acceptedInviteRef = useRef<string | null>(null);
@@ -581,7 +630,16 @@ const AppRouter: React.FC = () => {
 
 	return (
 		<>
-			{!isAuthenticated ? (
+			{resetToken ? (
+				<AuthApp
+					onAuthSuccess={handleAuthSuccess}
+					resetToken={resetToken}
+					onResetClose={() => {
+						replaceHash('');
+						setResetToken(null);
+					}}
+				/>
+			) : !isAuthenticated ? (
 				<AuthApp onAuthSuccess={handleAuthSuccess} />
 			) : currentView === 'projects' ? (
 				<ProjectApp onOpenProject={handleOpenProject} onLogout={handleLogout} />

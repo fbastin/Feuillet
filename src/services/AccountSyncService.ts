@@ -104,6 +104,20 @@ export interface ProjectInvite {
 	email?: string;
 }
 
+export interface RecoveryEmailStatus {
+	/** Whether the server sends mail at all. */
+	enabled: boolean;
+	address?: string;
+	/** An address whose confirmation link was mailed. */
+	pending?: string;
+}
+
+const recoveryEmailStatus = (result: any): RecoveryEmailStatus => ({
+	enabled: result?.enabled === true,
+	...(typeof result?.address === 'string' ? { address: result.address } : {}),
+	...(typeof result?.pending === 'string' ? { pending: result.pending } : {}),
+});
+
 export interface MembersChange {
 	add?: ProjectMember;
 	remove?: string;
@@ -616,6 +630,99 @@ class AccountSyncService {
 			username: String(result?.username ?? username),
 			remaining: Number(result?.remaining) || 0,
 		};
+	}
+
+	/** Whether the server recovers accounts by email (it sends mail). */
+	async recoveryOptions(): Promise<{ email: boolean }> {
+		try {
+			const result = await this.request(
+				this.serverFor(),
+				'GET',
+				'/account/recovery/options',
+			);
+			return { email: result?.email === true };
+		} catch {
+			return { email: false };
+		}
+	}
+
+	/**
+	 * The address the account may be recovered with, and one waiting to be
+	 * confirmed. Null when no account is signed in on the server.
+	 */
+	async recoveryEmail(): Promise<RecoveryEmailStatus | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(session.server, 'GET', '/account/email', {
+			token: session.token,
+		});
+		return recoveryEmailStatus(result);
+	}
+
+	/**
+	 * Gives the account an address to be recovered with, which the server
+	 * mails a link to confirm; or, with null, takes it away.
+	 */
+	async setRecoveryEmail(
+		address: string | null,
+		password: string,
+		language: string,
+	): Promise<RecoveryEmailStatus | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/account/email',
+			{
+				token: session.token,
+				body:
+					address === null
+						? { password, remove: true }
+						: { password, address, language },
+			},
+		);
+		return recoveryEmailStatus(result);
+	}
+
+	/** The link mailed to confirm a recovery address, on any device. */
+	async confirmRecoveryEmail(token: string): Promise<string> {
+		const result = await this.request(
+			this.serverFor(),
+			'POST',
+			'/account/email/confirm',
+			{ body: { token } },
+		);
+		return String(result?.address ?? '');
+	}
+
+	/**
+	 * A forgotten password: the server mails a link to the account's
+	 * recovery address, if the name or address is one it knows; it does not
+	 * say whether it is.
+	 */
+	async forgotPassword(login: string, language: string): Promise<void> {
+		await this.request(this.serverFor(), 'POST', '/account/forgot', {
+			body: { login, language },
+		});
+	}
+
+	/** The mailed link's new password; every device signs in again. */
+	async resetPassword(
+		token: string,
+		newPassword: string,
+	): Promise<{ username: string }> {
+		const result = await this.request(
+			this.serverFor(),
+			'POST',
+			'/account/reset',
+			{
+				body: { token, newPassword },
+			},
+		);
+		return { username: String(result?.username ?? '') };
 	}
 
 	/**

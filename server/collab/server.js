@@ -56,6 +56,12 @@
 //                       (e.g. ws://texlive:7045); unset turns that off
 //   TEXLIVE_ORIGIN      the Origin to show it (default: the first of
 //                       ALLOWED_ORIGINS)
+//   SMTP_URL            the SMTP server for recovery emails (mail.js), such
+//                       as smtps://user:password@smtp.example.org; with
+//   MAIL_FROM           their sender, such as "Feuillet <noreply@example.org>";
+//                       either unset turns recovery by email off
+//   APP_URL             the application's address, for the links in emails
+//                       (default: the first of ALLOWED_ORIGINS)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -66,6 +72,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
+const { createMailer } = require('./mail');
 const { createCompiler } = require('./compile');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
@@ -126,7 +133,19 @@ const log = (...parts) =>
 const isAllowedOrigin = (origin) =>
 	allowedOrigins.length === 0 || allowedOrigins.includes(origin);
 
-const accounts = createAccounts({ dir: accountsDir, log });
+// Recovery emails link to the application, never to an address a request
+// names.
+const mailer = createMailer({
+	url: process.env.SMTP_URL,
+	from: process.env.MAIL_FROM,
+	log,
+});
+const accounts = createAccounts({
+	dir: accountsDir,
+	log,
+	mailer,
+	appUrl: process.env.APP_URL || allowedOrigins[0] || '',
+});
 
 // Connections by the link they were opened through, closed when it is
 // replaced. Close codes 4400-4499 tell clients not to reconnect.
@@ -565,7 +584,8 @@ server.listen(port, host, () => {
 		`versions in ${historyDir};`,
 		`assistant connections in ${mcpDir};`,
 		process.env.TEXLIVE_URL ? 'assistants compile;' : 'assistants do not compile;',
-		github.enabled ? 'GitHub sign-in on' : 'GitHub sign-in off',
+		github.enabled ? 'GitHub sign-in on;' : 'GitHub sign-in off;',
+		mailer ? 'recovery by email on' : 'recovery by email off',
 	);
 });
 
