@@ -2,9 +2,9 @@
 // Feuillet's few emails, for recovering an account as on Overleaf:
 // confirming the address it may be recovered with, and a link to choose a
 // new password. They go through the SMTP server given by SMTP_URL (such as
-// smtps://user:password@smtp.example.org or smtp://host.docker.internal:25),
-// from MAIL_FROM (such as "Feuillet <noreply@example.org>"). Without both,
-// Feuillet sends none and offers no recovery by email.
+// smtps://user:password@smtp.example.org:465), from MAIL_FROM (such as
+// "Feuillet <noreply@example.org>"). Without both, Feuillet sends none and
+// offers no recovery by email.
 //
 // Messages are plain text, in the language of the page that asked for them
 // (French or English), and name nothing but the account and the link.

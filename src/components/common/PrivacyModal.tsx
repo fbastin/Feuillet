@@ -47,7 +47,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					<li>
 						<strong>{t('Your account:')}</strong>&nbsp;
 						{t(
-							'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your recovery email address, if you gave one, which serves only to send you a link if you forget your password, through the mail service the server sends with; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects and the words added to your dictionary, to find them on your other devices.',
+							'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your recovery email address, if you gave one, which serves only to send you a link if you forget your password, through Gmail; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects and the words added to your dictionary, to find them on your other devices.',
 						)}
 					</li>
 					<li>
@@ -139,6 +139,22 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 								privacy: (
 									<TransLink
 										href='https://www.crossref.org/privacy/'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					</li>
+
+					<li>
+						<Trans
+							i18nKey='<strong>Google (Gmail):</strong> the emails that confirm a recovery address, or send a link for a forgotten password, go through Gmail, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
+							components={{
+								strong: <strong />,
+								privacy: (
+									<TransLink
+										href='https://policies.google.com/privacy'
 										target='_blank'
 										rel='noreferrer'
 									/>

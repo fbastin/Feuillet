@@ -116,6 +116,20 @@ The sender's domain should allow that server in its SPF record, and sign
 with DKIM, or mail providers may set the messages aside as spam. Links lead
 to `APP_URL`, by default the first of `ALLOWED_ORIGINS`.
 
+A Gmail account sends with an app password (Google account → Security →
+App passwords), its 16 letters without spaces; Gmail shows the account's
+own address as the sender, so `MAIL_FROM` names it:
+
+```
+SMTP_URL=smtps://ACCOUNT%40gmail.com:APPPASSWORD@smtp.gmail.com:465
+MAIL_FROM=Feuillet <ACCOUNT@gmail.com>
+```
+
+Relaying through the host's own mail server instead would mean letting the
+Docker network send through it (Postfix's `mynetworks`); the TeX Live
+container shares that network and runs anyone's documents, so it would be
+able to send mail too.
+
 After `sudo deploy/install.sh`, the start line in
 `sudo docker logs feuillet-collab` says "recovery by email on". The server
 logs that a message was sent or not, never to which address.
