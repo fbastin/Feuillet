@@ -14,9 +14,10 @@ export function useRegisterCompilationSettings() {
 
 		const initialAutoExpand =
 			(getSetting('compilation-auto-expand-output')?.value as boolean) ?? true;
+		// As on Overleaf, which compiles a project when it opens.
 		const initialExternalAutoCompile =
 			(getSetting('external-typesetter-auto-compile-on-open')
-				?.value as boolean) ?? false;
+				?.value as boolean) ?? true;
 		const initialExternalAutoNavigate =
 			(getSetting('external-typesetter-auto-navigate-to-main')
 				?.value as string) ?? 'conditional';

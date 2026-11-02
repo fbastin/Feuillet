@@ -73,6 +73,10 @@ Feuillet's server. The menu next to the compile button offers:
 - **error handling**: compile despite errors, or stop at the first one;
 - compiling with the cache cleared.
 
+As on Overleaf, a project compiles when it opens; its last PDF shows first,
+while it compiles. The **Auto-compile on project open** setting (Settings,
+Compilation) turns this off.
+
 Projects made before Feuillet had TeX Live compiled in the browser: they
 move to TeX Live, with their engine, the next time an editor opens them. The
 browser compiler is still offered: choose **LaTeX** as the compiler in the

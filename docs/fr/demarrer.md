@@ -75,6 +75,11 @@ serveur de Feuillet. Le menu à côté du bouton de compilation offre :
   la première;
 - la compilation avec le cache vidé.
 
+Comme sur Overleaf, un projet se compile quand on l'ouvre; son dernier PDF
+s'affiche d'abord, le temps de la compilation. Le réglage **Compiler
+automatiquement à l'ouverture du projet** (Paramètres, Compilation) désactive
+cette compilation.
+
 Les projets créés avant que Feuillet ait TeX Live compilaient dans le
 navigateur : ils passent à TeX Live, avec leur moteur, la prochaine fois
 qu'un éditeur les ouvre. Le compilateur du navigateur reste offert :

@@ -1,5 +1,5 @@
 {
-  "version": "1.3.7",
+  "version": "1.3.8",
   "settings": {
     "bibtex-viewer-auto-tidy": false,
     "bibtex-viewer-tidy-options": "standard",
@@ -54,6 +54,7 @@
     "theme-plugin": "texlyre-compact-theme",
     "theme-variant": "system",
     "typst-auto-compile-on-open": false,
+    "external-typesetter-auto-compile-on-open": true,
     "typst-default-format": "canvas",
     "typst-sourcemap-enable": true
   },
@@ -77,8 +78,7 @@
     "settings": [
       "status-page-url",
       "status-json-url",
-      "theme-plugin",
-      "file-sync-notifications"
+      "external-typesetter-auto-compile-on-open"
     ],
     "properties": []
   },

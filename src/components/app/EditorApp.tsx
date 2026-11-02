@@ -23,6 +23,7 @@ import { useGlobalKeyboard } from '../../hooks/useGlobalKeyboard';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useOffline } from '../../hooks/useOffline';
 import { useSettings } from '../../hooks/useSettings';
+import { usePeerFileSync } from '../../hooks/usePeerFileSync';
 import { useBrowserCompilerMigration } from '../../hooks/useBrowserCompilerMigration';
 import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import { fileStoreService } from '../../services/FileStoreService';
@@ -205,7 +206,8 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 	);
 	const externalAutoCompileOnOpen =
 		(getSetting('external-typesetter-auto-compile-on-open')
-			?.value as boolean) ?? false;
+			?.value as boolean) ?? true;
+	const { filesReceived } = usePeerFileSync();
 
 	useGlobalKeyboard();
 	// Projects from before TeX Live move to it, as on Overleaf.
@@ -496,7 +498,9 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 	}, [isCompiling, isTypstCompiling, projectType]);
 
 	useEffect(() => {
-		if (!hasDoc || !activeTypesetterProvider) return;
+		// Once the project's files have come from the server, so that a new
+		// device does not compile a project it does not have yet.
+		if (!hasDoc || !activeTypesetterProvider || !filesReceived) return;
 
 		const timer = setTimeout(() => {
 			if (activeTypesetterProvider.id === 'internal:latex') {
@@ -524,6 +528,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 	}, [
 		hasDoc,
 		activeTypesetterProvider,
+		filesReceived,
 		externalAutoCompileOnOpen,
 		triggerAutoCompile,
 		triggerTypstAutoCompile,
