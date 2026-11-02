@@ -274,7 +274,7 @@
   "A closing brace {close} has no opening brace to match it, or a {dollar} is missing. Count the braces on this line.": "A closing brace {{close}} has no opening brace to match it, or a {{dollar}} is missing. Count the braces on this line.",
   "A closing brace {close} is missing: a group opened with {open} is not closed, often in a formula.": "A closing brace {{close}} is missing: a group opened with {{open}} is not closed, often in a formula.",
   "A conference poster in two columns.": "A conference poster in two columns.",
-  "A copy of your projects, to work offline, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.": "A copy of your projects, to work offline, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.",
+  "A copy of your projects, to work offline, with the last PDF of each, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.": "A copy of your projects, to work offline, with the last PDF of each, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.",
   "A credential is required": "A credential is required",
   "A displayed formula opened with {open} is not closed the same way.": "A displayed formula opened with {{open}} is not closed the same way.",
   "A figure or table is inside a box, a table or a minipage, where floats are not allowed. Take it out, or use {here} with the float package.": "A figure or table is inside a box, a table or a minipage, where floats are not allowed. Take it out, or use {{here}} with the float package.",

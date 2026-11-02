@@ -1021,9 +1021,9 @@ const EditorApp: React.FC<EditorAppProps> = (props) => {
 			<ChatProvider docUrl={props.docUrl}>
 				<FileTreeProvider docUrl={props.docUrl}>
 					<FileSyncProvider docUrl={props.docUrl}>
-						<LaTeXProvider>
+						<LaTeXProvider docUrl={props.docUrl}>
 							<TypstProvider>
-								<ExternalTypesetterProvider>
+								<ExternalTypesetterProvider docUrl={props.docUrl}>
 									<SourceMapProvider>
 										<ContentFormatterProvider>
 											<EditorAppView {...props} />

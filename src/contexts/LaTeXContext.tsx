@@ -14,6 +14,10 @@ import { createNamedLogger } from '@/logging';
 import { useFileTree } from '../hooks/useFileTree';
 import { useSettings } from '../hooks/useSettings';
 import { compileDiagnosticsService } from '../services/CompileDiagnosticsService';
+import {
+	compileOutputStore,
+	projectKeyOf,
+} from '../services/CompileOutputStore';
 import { latexService } from '../services/LaTeXService';
 import type {
 	LaTeXContextType,
@@ -34,9 +38,17 @@ export const LaTeXContext = createContext<LaTeXContextType | null>(null);
 
 interface LaTeXProviderProps {
 	children: ReactNode;
+	/** The open project, whose last PDF shows again when it opens. */
+	docUrl?: string;
 }
 
-export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
+const BUILTIN_LATEX = 'internal:latex';
+
+export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({
+	children,
+	docUrl,
+}) => {
+	const projectKey = docUrl ? projectKeyOf(docUrl) : '';
 	const { fileTree } = useFileTree();
 	const { getSetting } = useSettings();
 	const [isCompiling, setIsCompiling] = useState<boolean>(false);
@@ -87,6 +99,42 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 			);
 		};
 	}, []);
+
+	// The project's last PDF, kept in this browser, shows again when it
+	// opens, as on Overleaf, unless a compile came first.
+	useEffect(() => {
+		setCompiledPdf(null);
+		setCompileLog('');
+		setCurrentView('log');
+		setLogIndicator('idle');
+		if (!projectKey) return;
+		const request = requestRef.current;
+		let current = true;
+		void compileOutputStore.latest(projectKey, [BUILTIN_LATEX]).then((kept) => {
+			if (!current || !kept || requestRef.current !== request) return;
+			setCompileLog(kept.log);
+			setCompiledPdf(kept.output);
+			setCurrentView('output');
+			setLogIndicator(kept.status === 0 ? 'success' : 'error');
+			void compileDiagnosticsService.publish('latex', kept.log, kept.mainFile);
+		});
+		return () => {
+			current = false;
+		};
+	}, [projectKey]);
+
+	const keepPdf = (pdf: Uint8Array, log: string, mainFile: string) =>
+		void compileOutputStore.save(projectKey, {
+			providerId: BUILTIN_LATEX,
+			// A copy of its own: it may be a view of a larger buffer.
+			output: pdf.slice(),
+			mimeType: 'application/pdf',
+			format: 'pdf',
+			log,
+			status: 0,
+			mainFile,
+			compiledAt: Date.now(),
+		});
 
 	useEffect(() => {
 		latexService.setTexliveEndpoint(texliveEndpoint);
@@ -153,6 +201,7 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 						setCompiledPdf(result.pdf);
 						setCurrentView('output');
 						setLogIndicator('success');
+						keepPdf(result.pdf, result.log, mainFileName);
 						const fileName =
 							mainFileName
 								.split('/')
@@ -327,6 +376,7 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({ children }) => {
 						setCompiledPdf(result.pdf);
 						setCurrentView('output');
 						setLogIndicator('success');
+						keepPdf(result.pdf, result.log, mainFileName);
 						const fileName =
 							mainFileName
 								.split('/')

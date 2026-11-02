@@ -91,7 +91,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 				<h3>{t('What your browser keeps')}</h3>
 				<p>
 					{t(
-						'A copy of your projects, to work offline, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.',
+						'A copy of your projects, to work offline, with the last PDF of each, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.',
 					)}
 				</p>
 

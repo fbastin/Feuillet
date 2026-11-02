@@ -1,10 +1,21 @@
 // src/contexts/ExternalTypesetterContext.tsx
 import type React from 'react';
-import { type ReactNode, createContext, useCallback, useState } from 'react';
+import {
+	type ReactNode,
+	createContext,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from 'react';
 
 import { typesetterRegistryService } from '../services/TypesetterRegistryService';
 import { fileStoreService } from '../services/FileStoreService';
 import { compileDiagnosticsService } from '../services/CompileDiagnosticsService';
+import {
+	compileOutputStore,
+	projectKeyOf,
+} from '../services/CompileOutputStore';
 import { filePathCacheService } from '../services/FilePathCacheService';
 import { latexSourceMapService } from '../services/LaTeXSourceMapService';
 import {
@@ -59,6 +70,8 @@ export const ExternalTypesetterContext =
 
 interface ExternalTypesetterProviderProps {
 	children: ReactNode;
+	/** The open project, whose last output shows again when it opens. */
+	docUrl?: string;
 }
 
 const getBaseName = (filePath: string): string => {
@@ -68,7 +81,8 @@ const getBaseName = (filePath: string): string => {
 
 export const ExternalTypesetterProvider: React.FC<
 	ExternalTypesetterProviderProps
-> = ({ children }) => {
+> = ({ children, docUrl }) => {
+	const projectKey = docUrl ? projectKeyOf(docUrl) : '';
 	const [isCompiling, setIsCompiling] = useState(false);
 	const [isExporting, setIsExporting] = useState(false);
 	const [compileError, setCompileError] = useState<string | null>(null);
@@ -84,6 +98,56 @@ export const ExternalTypesetterProvider: React.FC<
 	const toggleOutputView = useCallback(() => {
 		setCurrentView((view) => (view === 'log' ? 'output' : 'log'));
 	}, []);
+
+	// Compiles since the project opened, which a kept output must not cover.
+	const compilesRef = useRef(0);
+
+	// The project's last output, kept in this browser, shows again when it
+	// opens, as on Overleaf, with its log, its errors in the editor and its
+	// SyncTeX.
+	useEffect(() => {
+		setCompiledOutput(null);
+		setOutputMimeType(null);
+		setOutputFormat(null);
+		setCompileLog('');
+		setCurrentView('log');
+		setLogIndicator('idle');
+		if (!projectKey) return;
+		const compiles = compilesRef.current;
+		const external = typesetterRegistryService
+			.list()
+			.filter((provider) => provider.source !== 'builtin')
+			.map((provider) => provider.id);
+		let current = true;
+		void compileOutputStore
+			.latest(projectKey, external.length > 0 ? external : undefined)
+			.then((kept) => {
+				if (!current || !kept || compilesRef.current !== compiles) return;
+				const provider = typesetterRegistryService.get(kept.providerId);
+				if (provider?.source === 'builtin') return;
+				setCompileLog(kept.log);
+				setCompiledOutput(kept.output);
+				setOutputMimeType(kept.mimeType);
+				setOutputFormat(kept.format);
+				setCurrentView('output');
+				setLogIndicator(kept.status === 0 ? 'success' : 'error');
+				void compileDiagnosticsService.publish(
+					provider?.projectType ?? 'latex',
+					kept.log,
+					kept.mainFile,
+				);
+				if (kept.synctex) {
+					document.dispatchEvent(
+						new CustomEvent('compiler-active', { detail: { type: 'latex' } }),
+					);
+					filePathCacheService.setMainFilePath(kept.mainFile);
+					latexSourceMapService.loadFromBytes(kept.synctex);
+				}
+			});
+		return () => {
+			current = false;
+		};
+	}, [projectKey]);
 
 	const loadFiles = useCallback(async (): Promise<TypesetterFile[]> => {
 		const nodes = await fileStoreService.getAllFiles(false, false, true);
@@ -119,6 +183,7 @@ export const ExternalTypesetterProvider: React.FC<
 
 			setIsCompiling(true);
 			setCompileError(null);
+			compilesRef.current += 1;
 
 			try {
 				const files = await loadFiles();
@@ -169,6 +234,18 @@ export const ExternalTypesetterProvider: React.FC<
 					setOutputFormat(resolvedFormat);
 					setCurrentView('output');
 					setLogIndicator(result.status === 0 ? 'success' : 'error');
+					// Copies of their own: they may be views of a larger message.
+					void compileOutputStore.save(projectKey, {
+						providerId,
+						output: result.output.slice(),
+						mimeType,
+						format: resolvedFormat,
+						log: result.log,
+						status: result.status,
+						mainFile: mainFileName,
+						...(synctex ? { synctex: synctex.data.slice() } : {}),
+						compiledAt: Date.now(),
+					});
 
 					const kind: PopoutContentKind =
 						outputFormat?.outputType === 'canvas'
@@ -203,7 +280,7 @@ export const ExternalTypesetterProvider: React.FC<
 				setIsCompiling(false);
 			}
 		},
-		[loadFiles],
+		[loadFiles, projectKey],
 	);
 
 	const exportDocument = useCallback(

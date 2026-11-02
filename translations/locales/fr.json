@@ -206,7 +206,7 @@
   "A closing brace {close} has no opening brace to match it, or a {dollar} is missing. Count the braces on this line.": "Une accolade fermante {{close}} n'a pas d'accolade ouvrante correspondante, ou un {{dollar}} manque. Comptez les accolades de cette ligne.",
   "A closing brace {close} is missing: a group opened with {open} is not closed, often in a formula.": "Il manque une accolade fermante {{close}} : un groupe ouvert par {{open}} n'est pas fermé, souvent dans une formule.",
   "A conference poster in two columns.": "Une affiche de congrès sur deux colonnes.",
-  "A copy of your projects, to work offline, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.": "Une copie de vos projets pour travailler hors ligne, vos réglages, et vos jetons GitHub, GitLab, Gitea ou Forgejo, chiffrés avec votre mot de passe.",
+  "A copy of your projects, to work offline, with the last PDF of each, your settings, and your GitHub, GitLab, Gitea or Forgejo tokens, encrypted with your password.": "Une copie de vos projets pour travailler hors ligne, avec le dernier PDF de chacun, vos réglages, et vos jetons GitHub, GitLab, Gitea ou Forgejo, chiffrés avec votre mot de passe.",
   "A credential is required": "Un identifiant est requis",
   "A displayed formula opened with {open} is not closed the same way.": "Une formule centrée ouverte par {{open}} n'est pas fermée de la même façon.",
   "A figure or table is inside a box, a table or a minipage, where floats are not allowed. Take it out, or use {here} with the float package.": "Une figure ou un tableau se trouve dans une boîte, un tableau ou une minipage, où les flottants ne sont pas permis. Sortez-le, ou utilisez {{here}} avec le paquet float.",
