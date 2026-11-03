@@ -159,6 +159,7 @@ const createMailer = ({
 	// (by a hash of it).
 	let sent = [];
 	const sentTo = new Map();
+	const startedAt = now();
 
 	// Counts an email about to go, or refuses it.
 	const take = (kind, to) => {
@@ -209,7 +210,20 @@ const createMailer = ({
 		}
 	};
 
-	return { send };
+	// For the administration page (admin.js): the emails of the last 24
+	// hours, counted since `since`, and the limits.
+	const stats = () => {
+		const since = now() - DAY_MS;
+		sent = sent.filter((at) => at > since);
+		return {
+			sent: sent.length,
+			limit,
+			invitationLimit: Math.floor((limit * 3) / 4),
+			since: startedAt,
+		};
+	};
+
+	return { send, stats };
 };
 
 module.exports = { createMailer, MailQuotaError };

@@ -77,14 +77,21 @@ GITHUB_CLIENT_SECRET=
 # deploy/README.md); empty keeps it off.
 SMTP_URL=
 MAIL_FROM=
+# The accounts that see the administration page, by name, comma-separated.
+ADMIN_ACCOUNTS=
 SETTINGS
 	echo "Created /etc/feuillet/collab.env (GitHub sign-in stays off until it is filled in)."
+elif ! grep -q '^ADMIN_ACCOUNTS=' /etc/feuillet/collab.env; then
+	printf '\n# The accounts that see the administration page, by name, comma-separated.\nADMIN_ACCOUNTS=\n' >>/etc/feuillet/collab.env
+	echo "Added ADMIN_ACCOUNTS= to /etc/feuillet/collab.env: name there the accounts that administer Feuillet, then run deploy/install.sh again."
 fi
 
 echo "== Backups (deploy/backup.sh, each night at 4:30, in /var/backups/feuillet)"
 # Root's own copies: cron runs no file that another account may change.
 install -o root -g root -m 755 "$HERE/backup.sh" /usr/local/sbin/feuillet-backup
 install -o root -g root -m 755 "$HERE/restore.sh" /usr/local/sbin/feuillet-restore
+# How the last one went, which the collaboration server reads.
+install -d -m 755 /var/lib/feuillet /var/lib/feuillet/backup-status
 if [ ! -e /etc/cron.d/feuillet-backup ]; then
 	cat >/etc/cron.d/feuillet-backup <<'CRON'
 # Feuillet: each night, a backup of the collaboration server's data

@@ -32,6 +32,7 @@ import './styles/components/resizable-panel.css';
 import './styles/components/toast.css';
 import './styles/components/comments.css';
 import './styles/components/review.css';
+import './styles/components/admin.css';
 import './styles/components/auth.css';
 import './styles/components/project.css';
 import './styles/components/git-history.css';

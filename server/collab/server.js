@@ -27,7 +27,10 @@
 //  - downloads files from the web for signed-in accounts (/fetch,
 //    fetch.js), as Overleaf's "From external URL";
 //  - lets assistants such as Claude work on an account's projects once it
-//    agrees (/mcp, mcp.js; /oauth/..., oauth.js).
+//    agrees (/mcp, mcp.js; /oauth/..., oauth.js);
+//  - shows its administrators the server's state and its accounts, which
+//    they may delete (/admin/..., admin.js), as Overleaf Server's admin
+//    panel.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -64,6 +67,10 @@
 //   MAIL_DAILY_LIMIT    most emails sent in 24 hours (default 200)
 //   APP_URL             the application's address, for the links in emails
 //                       (default: the first of ALLOWED_ORIGINS)
+//   ADMIN_ACCOUNTS      comma-separated names of the accounts that see the
+//                       administration page; unset, none does
+//   BACKUP_STATUS_DIR   where deploy/backup.sh tells how the last backup
+//                       went, for that page
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -74,6 +81,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
 const { createAccounts } = require('./accounts');
+const { createAdmin } = require('./admin');
 const { createMailer } = require('./mail');
 const { createCompiler } = require('./compile');
 const { createProjectCopier } = require('./copy');
@@ -222,6 +230,26 @@ const history = createHistory({
 });
 
 const urlFetcher = createUrlFetcher({ accounts, maxBytes: maxFileBytes, log });
+
+const admin = createAdmin({
+	admins: (process.env.ADMIN_ACCOUNTS || '').split(','),
+	accounts,
+	shares,
+	mailer,
+	dirs: {
+		documents: process.env.YPERSISTENCE
+			? path.resolve(process.env.YPERSISTENCE)
+			: '',
+		files: filesDir,
+		history: historyDir,
+		accounts: accountsDir,
+	},
+	backupStatusDir: process.env.BACKUP_STATUS_DIR
+		? path.resolve(process.env.BACKUP_STATUS_DIR)
+		: '',
+	activity: () => ({ documents: docs.size, connections: wss.clients.size }),
+	log,
+});
 
 const oauth = createOAuth({
 	dir: mcpDir,
@@ -395,11 +423,13 @@ const server = http.createServer((req, res) => {
 		? accounts
 		: shares.handles(url)
 			? shares
-			: urlFetcher.handles(url)
-				? urlFetcher
-				: oauth.handlesAccount(url)
-					? { handle: (request, response) => oauth.handleAccount(request, response) }
-					: null;
+			: admin.handles(url)
+				? admin
+				: urlFetcher.handles(url)
+					? urlFetcher
+					: oauth.handlesAccount(url)
+						? { handle: (request, response) => oauth.handleAccount(request, response) }
+						: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {
@@ -589,7 +619,8 @@ server.listen(port, host, () => {
 		`assistant connections in ${mcpDir};`,
 		process.env.TEXLIVE_URL ? 'assistants compile;' : 'assistants do not compile;',
 		github.enabled ? 'GitHub sign-in on;' : 'GitHub sign-in off;',
-		mailer ? 'recovery by email on' : 'recovery by email off',
+		mailer ? 'recovery by email on;' : 'recovery by email off;',
+		admin.enabled ? 'administration page on' : 'administration page off',
 	);
 });
 

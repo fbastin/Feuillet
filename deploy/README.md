@@ -214,6 +214,44 @@ A backup can be looked at without restoring it:
 `sudo cat /var/backups/feuillet/<date>/info.txt`, or
 `sudo tar -tzf /var/backups/feuillet/<date>/accounts.tar.gz`.
 
+`backup.sh` also tells the administration page (below) how the last backup
+went, in `/var/lib/feuillet/backup-status/` (`backup.json`, and
+`backup-failed.json` after a failure), which the collaboration server reads
+through a read-only mount.
+
+## Administration
+
+As Overleaf Server's admin panel, a page for the accounts named in
+`ADMIN_ACCOUNTS`, in `/etc/feuillet/collab.env`, comma-separated:
+
+```
+ADMIN_ACCOUNTS=alice
+```
+
+then `sudo deploy/install.sh` (a running container does not read the file
+again). Those accounts find **Administration** in their account menu, at
+the top right. It shows:
+
+- the server: since when it runs, open documents and connections, projects,
+  and the space taken by documents, files, versions and accounts, with what
+  is left on the disk;
+- the emails sent in the last 24 hours, against `MAIL_DAILY_LIMIT`;
+- the last backup, and whether it failed, is more than a day old or stays
+  on this machine;
+- every account: when it was made and last used, its signed-in devices,
+  how many projects it owns and is a member of, the space the projects it
+  owns take, and whether its email address is confirmed. Neither the
+  address nor the projects' names or contents are shown, as the privacy
+  page says.
+
+An account may be deleted there, once its name is typed, as its owner would
+from the profile: with the projects it owns, for their collaborators too.
+Neither one's own account nor another administrator's is deleted there.
+
+The names are taken as they are: before deleting an account named in
+`ADMIN_ACCOUNTS`, take its name out, or someone could make an account with
+that name and administer the server.
+
 ## Updating
 
 - Servers and Apache routes: `sudo deploy/install.sh` again. It adds any

@@ -134,6 +134,67 @@ const recoveryEmailStatus = (result: any): RecoveryEmailStatus => ({
 	...(typeof result?.pending === 'string' ? { pending: result.pending } : {}),
 });
 
+/**
+ * An account as the administration page shows it: never its address, its
+ * password or its projects' names.
+ */
+export interface AdminAccount {
+	id: string;
+	username: string;
+	createdAt: number;
+	lastUsedAt?: number;
+	/** Devices signed in. */
+	devices: number;
+	email: 'confirmed' | 'pending' | 'none';
+	/** Projects in its list, its own and others'. */
+	listed: number;
+	/** Projects it owns, and the bytes their files and versions take. */
+	owned: number;
+	bytes: number;
+	memberOf: number;
+	/** Named in the server's ADMIN_ACCOUNTS. */
+	admin: boolean;
+}
+
+export interface AdminOverview {
+	/** The id of the account asking. */
+	you: string;
+	server: {
+		startedAt: number;
+		documents: number;
+		connections: number;
+		projects: number;
+		unowned: number;
+		disk: {
+			documents: number;
+			files: number;
+			versions: number;
+			accounts: number;
+			free?: number;
+		};
+	};
+	/** Null when the server sends no email. */
+	mail: {
+		sent: number;
+		limit: number;
+		invitationLimit: number;
+		/** Counted since then, the server's start. */
+		since: number;
+	} | null;
+	/** Null when no backup has told how it went. */
+	backup: {
+		last?: {
+			time: number;
+			bytes: number;
+			kept: number;
+			copy: 'none' | 'done' | 'failed';
+		};
+		/** A backup that failed after the last one made. */
+		failed?: { time: number; error: string };
+	} | null;
+	accounts: AdminAccount[];
+}
+
 export interface MembersChange {
 	add?: ProjectMember;
 	remove?: string;
@@ -184,6 +245,8 @@ class AccountSyncService {
 	private intervalTimer: ReturnType<typeof setInterval> | null = null;
 	private lastFocusSync = 0;
 	private status: AccountSyncStatus = { state: 'unlinked' };
+	// Whether the account signed in with this token administers the server.
+	private adminCheck: { token: string; admin: Promise<boolean> } | null = null;
 	private listeners: Set<(status: AccountSyncStatus) => void> = new Set();
 
 	constructor() {
@@ -588,6 +651,68 @@ class AccountSyncService {
 						typeof entry.lastUsedAt === 'number',
 				)
 			: [];
+	}
+
+	/**
+	 * Whether the signed-in account administers the server (its
+	 * ADMIN_ACCOUNTS), asked once per session; false when the server cannot
+	 * say.
+	 */
+	async isAdmin(): Promise<boolean> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session) return false;
+		if (this.adminCheck?.token !== session.token) {
+			const admin = this.request(session.server, 'GET', '/admin', {
+				token: session.token,
+			}).then(
+				(result) => result?.admin === true,
+				() => {
+					// Asked again next time, the server being back.
+					if (this.adminCheck?.admin === admin) this.adminCheck = null;
+					return false;
+				},
+			);
+			this.adminCheck = { token: session.token, admin };
+		}
+		return this.adminCheck.admin;
+	}
+
+	/** The administration page: the server's state and every account. */
+	async adminOverview(): Promise<AdminOverview> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session) throw new AccountServerError('signed_out', 401);
+		const result = await this.request(
+			session.server,
+			'GET',
+			'/admin/overview',
+			{ token: session.token },
+		);
+		return {
+			...result,
+			accounts: Array.isArray(result?.accounts)
+				? result.accounts.filter(
+						(entry: AdminAccount) =>
+							typeof entry?.id === 'string' &&
+							typeof entry.username === 'string',
+					)
+				: [],
+		};
+	}
+
+	/**
+	 * Deletes an account from the administration page, with the projects it
+	 * owns, if it still has this name.
+	 */
+	async adminDeleteAccount(id: string, username: string): Promise<void> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session) throw new AccountServerError('signed_out', 401);
+		await this.request(session.server, 'POST', '/admin/delete', {
+			token: session.token,
+			body: { account: id, username },
+		});
 	}
 
 	/**

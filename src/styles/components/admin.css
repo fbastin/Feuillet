@@ -1,0 +1,95 @@
+/* The administration page (src/components/profile/AdminModal.tsx), wider
+   than other dialogs for its table of accounts. */
+.ui-panel[data-role="modal"]:has(.admin-page) {
+	--ui-modal-width: min(1100px, calc(100vw - 2rem));
+}
+
+.admin-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+	gap: var(--space-sm);
+}
+
+.admin-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	padding: var(--space-sm);
+	border: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
+	border-radius: 6px;
+}
+
+.admin-page h3 {
+	margin: 0;
+	font-size: 1rem;
+}
+
+.admin-card dl {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 2px var(--space-sm);
+	margin: 0;
+}
+
+.admin-card dt {
+	color: var(--pico-secondary);
+}
+
+.admin-card dd {
+	margin: 0;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.admin-card .ui-message {
+	margin: 0;
+}
+
+.admin-toolbar input,
+.admin-toolbar select {
+	width: auto;
+	margin: 0;
+}
+
+.admin-table {
+	overflow-x: auto;
+}
+
+.admin-accounts {
+	width: 100%;
+	margin: 0;
+	border-collapse: collapse;
+}
+
+.admin-accounts th,
+.admin-accounts td {
+	padding: 4px var(--space-sm);
+	border-bottom: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
+	background: transparent;
+	font-size: var(--font-size-small);
+	text-align: left;
+	white-space: nowrap;
+	vertical-align: middle;
+}
+
+.admin-accounts th {
+	color: var(--pico-secondary);
+	font-weight: 600;
+	white-space: normal;
+	vertical-align: bottom;
+}
+
+.admin-accounts [data-align="end"] {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.admin-accounts .ui-badge {
+	margin-left: var(--space-xs);
+	font-size: var(--font-size-tiny);
+}
+
+.admin-accounts .button {
+	margin: 0;
+	padding: 2px var(--space-sm);
+}

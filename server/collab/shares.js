@@ -577,6 +577,30 @@ const createShares = ({
 		}
 	};
 
+	// Every project not deleted, with its owner and members, for the
+	// administration page (admin.js).
+	const census = () => {
+		const projects = [];
+		for (const file of fs.readdirSync(projectsDir)) {
+			if (!file.endsWith('.json')) continue;
+			const project = file.slice(0, -5);
+			if (!isProjectId(project)) continue;
+			let record;
+			try {
+				record = readProject(project);
+			} catch {
+				continue;
+			}
+			if (record.deleted) continue;
+			projects.push({
+				project,
+				owner: record.owner ?? null,
+				members: Object.keys(record.members ?? {}),
+			});
+		}
+		return projects;
+	};
+
 	const dropInvite = (project, invite) => {
 		fs.rmSync(invitePath(invite), { force: true });
 		const record = readProject(project);
@@ -882,7 +906,15 @@ const createShares = ({
 		}
 	};
 
-	return { handles, handle, lookup, describe, accessOf, forgetAccount };
+	return {
+		handles,
+		handle,
+		lookup,
+		describe,
+		accessOf,
+		forgetAccount,
+		census,
+	};
 };
 
 module.exports = { createShares, isViewId, isReviewId };

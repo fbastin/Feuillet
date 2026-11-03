@@ -3,7 +3,7 @@ FROM node:22-slim
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-COPY server.js accounts.js shares.js history.js github.js review.js copy.js fetch.js \
+COPY server.js accounts.js admin.js shares.js history.js github.js review.js copy.js fetch.js \
      annotations.js compile.js mcp.js oauth.js projectFiles.js mail.js ./
 
 ENV NODE_ENV=production \

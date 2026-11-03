@@ -17,6 +17,11 @@
 #   BACKUP_KEEP=14                     how many to keep (0: all)
 #   BACKUP_COPY_TO=user@host:feuillet/ also copy each one there with rsync,
 #                                      off this machine, whose disk could fail
+#   BACKUP_STATUS_DIR=/var/lib/feuillet/backup-status
+#                                      where it tells how it went, for the
+#                                      administration page (server/collab/
+#                                      admin.js): backup.json, the last backup,
+#                                      and backup-failed.json, a failure since
 set -euo pipefail
 
 ENV_FILE=${FEUILLET_BACKUP_ENV:-/etc/feuillet/backup.env}
@@ -29,14 +34,36 @@ BACKUP_DIR=${BACKUP_DIR:-/var/backups/feuillet}
 BACKUP_KEEP=${FEUILLET_BACKUP_KEEP:-${BACKUP_KEEP:-14}}
 BACKUP_COPY_TO=${BACKUP_COPY_TO:-}
 if [ -n "${FEUILLET_BACKUP_NO_COPY:-}" ]; then BACKUP_COPY_TO=; fi
+BACKUP_STATUS_DIR=${BACKUP_STATUS_DIR:-/var/lib/feuillet/backup-status}
 DOCKER=${FEUILLET_DOCKER:-docker}
 CONTAINER=feuillet-collab
 VOLUMES=(data files accounts shares history mcp)
 STAMP_PATTERN='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}$'
 
 log() { echo "$(date -Is) $*"; }
+
+# A JSON string, without control characters.
+json_string() {
+	local value=${1//\\/\\\\}
+	value=${value//\"/\\\"}
+	printf '"%s"' "$(printf '%s' "$value" | tr -d '\000-\037')"
+}
+# How it went, for the administration page, readable by the collaboration
+# server's container; never a reason for the backup to fail.
+write_status() {
+	local name=$1 content=$2
+	mkdir -p "$BACKUP_STATUS_DIR" && chmod 755 "$BACKUP_STATUS_DIR" || return 0
+	local temp=$BACKUP_STATUS_DIR/.$name.$$
+	if printf '%s\n' "$content" >"$temp" && chmod 644 "$temp"; then
+		mv -f "$temp" "$BACKUP_STATUS_DIR/$name" || rm -f "$temp"
+	else
+		rm -f "$temp"
+	fi
+}
+
 fail() {
 	log "backup failed: $*"
+	write_status backup-failed.json "{\"time\":$(json_string "$(date -Is)"),\"error\":$(json_string "$*")}" || true
 	exit 1
 }
 
@@ -116,14 +143,21 @@ if [ "$BACKUP_KEEP" -gt 0 ]; then
 fi
 
 status=0
+copy=none
 if [ -n "$BACKUP_COPY_TO" ]; then
 	if rsync -a "$target" "$BACKUP_COPY_TO"; then
 		log "copied $stamp to $BACKUP_COPY_TO"
+		copy=done
 	else
 		log "could not copy $stamp to $BACKUP_COPY_TO"
 		status=1
+		copy=failed
 	fi
 fi
 
-log "backup $target: $(du -sk "$target" | cut -f1) KB, server paused ${pause_seconds} s, ${removed} old backup(s) removed"
+kb=$(du -sk "$target" | cut -f1)
+kept=$(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | grep -cE "$STAMP_PATTERN" || true)
+write_status backup.json "{\"time\":$(json_string "$(date -Is)"),\"folder\":\"$stamp\",\"kb\":$kb,\"pausedSeconds\":$pause_seconds,\"kept\":$kept,\"keep\":$BACKUP_KEEP,\"copy\":\"$copy\"}" || true
+rm -f "$BACKUP_STATUS_DIR/backup-failed.json"
+log "backup $target: $kb KB, server paused ${pause_seconds} s, ${removed} old backup(s) removed"
 exit "$status"

@@ -377,6 +377,7 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 			expiresAt: now + SESSION_MS,
 			...(device.browser || device.os ? { device } : {}),
 		};
+		account.lastUsedAt = now;
 		return `${key}.${secret}`;
 	};
 
@@ -454,6 +455,8 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 					account.sessions[sessionId].lastUsedAt = now;
 					account.sessions[sessionId].expiresAt = now + SESSION_MS;
 				}
+				// Kept after signing out, for the administration page.
+				account.lastUsedAt = Math.max(account.lastUsedAt ?? 0, now);
 				write(key, account);
 			}
 			return result?.body;
@@ -766,16 +769,84 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		accountDeleted = handler;
 	};
 
+	// What goes before an account's file: its projects, its memberships, its
+	// address.
+	const forget = async (account) => {
+		await accountDeleted(idOf(account));
+		dropEmailOwner(account.email?.address, keyOf(account.username));
+	};
+
 	const deleteAccount = (req, body) =>
 		authenticate(req, async (account) => {
 			if (!(await checkPassword(String(body.password), account.passwordHash))) {
 				throw new HttpError(401, 'wrong_password');
 			}
-			await accountDeleted(idOf(account));
-			dropEmailOwner(account.email?.address, keyOf(account.username));
+			await forget(account);
 			log('account deleted', JSON.stringify(account.username));
 			return { deleted: true };
 		});
+
+	// Deletes an account as DELETE /account does, without its password, for
+	// the administration page (admin.js): `username` must still be its name.
+	const removeAccount = (id, username) => {
+		const [key, createdAt] = String(id).split('.');
+		if (!/^[0-9a-f]{64}$/.test(key ?? '')) {
+			throw new HttpError(404, 'unknown_account');
+		}
+		return withAccount(key, async (account) => {
+			if (!account || String(account.createdAt) !== createdAt) {
+				throw new HttpError(404, 'unknown_account');
+			}
+			if (account.username !== username) {
+				throw new HttpError(409, 'wrong_username');
+			}
+			await forget(account);
+			fs.rmSync(accountPath(key), { force: true });
+			return account.username;
+		});
+	};
+
+	// Every account, for the administration page (admin.js): its name, when
+	// it was made and last used, its devices, whether its email address is
+	// confirmed, and how many projects it lists; never the address, the
+	// password or the projects.
+	const summaries = () => {
+		const now = Date.now();
+		const list = [];
+		for (const file of fs.readdirSync(dir)) {
+			if (!/^[0-9a-f]{64}\.json$/.test(file)) continue;
+			let account;
+			try {
+				account = read(file.slice(0, -5));
+			} catch {
+				continue;
+			}
+			if (!account?.username) continue;
+			const sessions = Object.values(account.sessions ?? {}).filter(
+				(session) => session.expiresAt > now,
+			);
+			const lastUsedAt = Math.max(
+				Number(account.lastUsedAt) || 0,
+				...sessions.map((session) => Number(session.lastUsedAt) || 0),
+			);
+			list.push({
+				id: idOf(account),
+				username: account.username,
+				createdAt: account.createdAt,
+				...(lastUsedAt > 0 ? { lastUsedAt } : {}),
+				devices: sessions.length,
+				email: account.email?.address
+					? 'confirmed'
+					: account.emailToken?.expiresAt > now
+						? 'pending'
+						: 'none',
+				listed: Object.values(account.projects ?? {}).filter(
+					(entry) => !entry.deleted,
+				).length,
+			});
+		}
+		return list;
+	};
 
 	// An id for an account that a new account with the same name will not
 	// have.
@@ -1044,6 +1115,8 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		findAccount,
 		usernameOf,
 		hasConfirmedEmail,
+		summaries,
+		removeAccount,
 		shareProject,
 		unshareProject,
 		setProjectDescriber,

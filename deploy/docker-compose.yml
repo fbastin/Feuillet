@@ -24,8 +24,12 @@ services:
       PUBLIC_URL: "https://feuillet.slashbin.net/collab"
       # For assistants (Claude) to compile projects (server/collab/mcp.js).
       TEXLIVE_URL: "ws://texlive:7045"
-    # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET, for "Sign in with GitHub"
-    # (see deploy/README.md); kept out of the repository.
+      # How the last backup went, for the administration page
+      # (deploy/backup.sh, server/collab/admin.js).
+      BACKUP_STATUS_DIR: "/backup-status"
+    # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET, for "Sign in with GitHub",
+    # the email settings and ADMIN_ACCOUNTS (see deploy/README.md); kept out
+    # of the repository.
     env_file:
       - path: /etc/feuillet/collab.env
         required: false
@@ -36,6 +40,7 @@ services:
       - collab-shares:/shares
       - collab-history:/history
       - collab-mcp:/mcp
+      - /var/lib/feuillet/backup-status:/backup-status:ro
 
   # Compiles documents written by anyone who can open Feuillet: each
   # connection under its own uid, bounded in memory, processes and disk, and

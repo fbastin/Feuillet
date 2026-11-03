@@ -1,9 +1,10 @@
 // src/components/profile/UserDropdown.tsx
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
 import { useStorageQuota } from '../../hooks/useStorageQuota';
+import { accountSyncService } from '../../services/AccountSyncService';
 import { formatFileSize } from '../../utils/fileUtils';
 import PositionedDropdown from '../common/PositionedDropdown';
 import type { ProfileSettingsTab } from './ProfileSettingsModal';
@@ -15,7 +16,10 @@ import {
 	EditIcon,
 	LinkIcon,
 	LogoutIcon,
+	SettingsIcon,
 } from '../common/Icons';
+
+const AdminModal = lazy(() => import('./AdminModal'));
 
 interface UserDropdownProps {
 	username: string;
@@ -37,7 +41,29 @@ const UserDropdown: React.FC<UserDropdownProps> = ({
 	isGuest = false,
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isAdmin, setIsAdmin] = useState(false);
+	const [showAdmin, setShowAdmin] = useState(false);
 	const buttonRef = useRef<HTMLButtonElement>(null);
+
+	// The administration page, for the accounts the server names; asked
+	// again when the account signs in or out of the server.
+	useEffect(() => {
+		if (isGuest) {
+			setIsAdmin(false);
+			return;
+		}
+		let current = true;
+		const check = () =>
+			void accountSyncService.isAdmin().then((admin) => {
+				if (current) setIsAdmin(admin);
+			});
+		check();
+		const stop = accountSyncService.addListener(check);
+		return () => {
+			current = false;
+			stop();
+		};
+	}, [isGuest]);
 	const { isSupported, isLow, usageBytes, quotaBytes, usedRatio } =
 		useStorageQuota();
 	const showStorageSummary = !isGuest && isSupported && quotaBytes > 0;
@@ -132,6 +158,20 @@ const UserDropdown: React.FC<UserDropdownProps> = ({
 							<ExportIcon />
 							{t('Export Account')}
 						</button>
+						{isAdmin && (
+							<button
+								type='button'
+								className='ui-menu-item'
+								data-action='open-admin'
+								onClick={() => {
+									setIsOpen(false);
+									setShowAdmin(true);
+								}}
+							>
+								<SettingsIcon />
+								{t('Administration')}
+							</button>
+						)}
 						<div className='dropdown-separator' />
 						<button
 							type='button'
@@ -184,6 +224,11 @@ const UserDropdown: React.FC<UserDropdownProps> = ({
 					)}
 				</button>
 			</PositionedDropdown>
+			{showAdmin && (
+				<Suspense fallback={null}>
+					<AdminModal isOpen={showAdmin} onClose={() => setShowAdmin(false)} />
+				</Suspense>
+			)}
 		</div>
 	);
 };

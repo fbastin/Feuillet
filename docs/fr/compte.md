@@ -70,6 +70,12 @@ assistants comme Claude perdent leur accès.
 Les sauvegardes du serveur, faites chaque nuit, gardent au plus deux
 semaines ce qui a été effacé; seul l'administrateur du serveur peut les lire.
 
+L'administrateur du serveur voit, sur une page d'administration, le nom de
+chaque compte, quand il a été créé et utilisé pour la dernière fois, son
+nombre d'appareils et de projets, l'espace qu'occupent ses projets et si son
+adresse courriel est confirmée, mais ni l'adresse ni les projets; il peut
+supprimer un compte, avec les projets dont celui-ci est propriétaire.
+
 ## Ce que garde le serveur
 
 Le lien **Confidentialité**, en bas de la page, dit en détail ce que garde le

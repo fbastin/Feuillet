@@ -109,6 +109,9 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					)}{' '}
 					{t(
 						"The server's backups, made each night, keep what was erased for two weeks at most; only the server's administrator can read them.",
+					)}{' '}
+					{t(
+						"The server's administrator sees, on an administration page, each account's name, when it was made and last used, how many devices and projects it has, the space its projects take and whether its email address is confirmed, but neither the address nor the projects; they may delete an account, with the projects it owns.",
 					)}
 				</p>
 
