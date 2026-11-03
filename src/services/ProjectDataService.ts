@@ -35,6 +35,8 @@ export class ProjectDataService {
 			username: user.username,
 			passwordHash: user.passwordHash,
 			email: user.email,
+			// Always written, so that importing tells it from older exports.
+			gitEmail: user.gitEmail ?? '',
 			createdAt: user.createdAt,
 			lastLogin: user.lastLogin,
 			color: user.color,

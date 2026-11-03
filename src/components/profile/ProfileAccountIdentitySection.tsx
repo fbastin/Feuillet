@@ -33,7 +33,7 @@ const ProfileAccountIdentitySection: React.FC<
 	const { isEnrolled, reauthenticate, renameEnrollment } = useChelys();
 
 	const [username, setUsername] = useState('');
-	const [email, setEmail] = useState('');
+	const [gitEmail, setGitEmail] = useState('');
 	const [color, setColor] = useState('');
 	const [colorLight, setColorLight] = useState('');
 	const [currentPassword, setCurrentPassword] = useState('');
@@ -48,7 +48,7 @@ const ProfileAccountIdentitySection: React.FC<
 	useEffect(() => {
 		if (user) {
 			setUsername(user.username);
-			setEmail(user.email || '');
+			setGitEmail(user.gitEmail || '');
 			setColor(user.color || generateRandomColor(false));
 			setColorLight(user.colorLight || generateRandomColor(true));
 		}
@@ -105,14 +105,15 @@ const ProfileAccountIdentitySection: React.FC<
 				}
 			}
 
-			if (email && !/\S+@\S+\.\S+/.test(email)) {
+			const commitEmail = gitEmail.trim();
+			if (commitEmail && !/\S+@\S+\.\S+/.test(commitEmail)) {
 				throw new Error(t('Please enter a valid email address'));
 			}
 
 			const updatedUser: User = {
 				...user,
 				username,
-				email: email || undefined,
+				gitEmail: commitEmail || undefined,
 				color,
 				colorLight,
 			};
@@ -153,14 +154,21 @@ const ProfileAccountIdentitySection: React.FC<
 			</div>
 
 			<div className='ui-field' data-spacing='section'>
-				<label htmlFor='email'>{t('Email')}</label>
+				<label htmlFor='git-email'>{t('Git commit email')}</label>
 				<input
 					type='email'
-					id='email'
-					value={email}
-					onChange={(e) => setEmail(e.target.value)}
+					id='git-email'
+					value={gitEmail}
+					onChange={(e) => setGitEmail(e.target.value)}
 					disabled={isSubmitting}
+					aria-describedby='git-email-help'
 				/>
+				{/* Apart from the account's address, which only recovers it. */}
+				<div id='git-email-help' className='ui-note ui-field-hint'>
+					{t(
+						'The author address of your Git commits, which anyone who sees the repository reads: on GitHub, for example, your noreply address. Your account email is never written there.',
+					)}
+				</div>
 			</div>
 
 			<div className='color-picker-group'>

@@ -54,7 +54,14 @@ export interface User {
 	username: string;
 	name?: string;
 	passwordHash: string;
+	/**
+	 * The account's address, as on Overleaf: once a link mailed to it
+	 * confirms it, a forgotten password sends a link there. The server
+	 * keeps it; this is the browser's copy.
+	 */
 	email?: string;
+	/** The author address of the user's Git commits, kept apart. */
+	gitEmail?: string;
 	createdAt: number;
 	lastLogin?: number;
 	color?: string;

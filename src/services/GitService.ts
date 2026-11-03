@@ -120,7 +120,8 @@ export type GitComparisonRef =
 function authorForUser(user: User | null): { name: string; email: string } {
 	return {
 		name: user?.name?.trim() || user?.username?.trim() || `${APP_NAME} User`,
-		email: user?.email?.trim() || DEFAULT_EMAIL,
+		// Never the account's address, which only recovers the account.
+		email: user?.gitEmail?.trim() || DEFAULT_EMAIL,
 	};
 }
 

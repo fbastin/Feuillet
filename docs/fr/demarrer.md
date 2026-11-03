@@ -5,7 +5,9 @@
 ## Créer un compte
 
 Sur <https://feuillet.slashbin.net>, choisissez **Créer un compte** et donnez
-un nom d'utilisateur, une adresse courriel et un mot de passe. Le compte
+un nom d'utilisateur, un mot de passe et, si vous le voulez, une adresse
+courriel : un lien envoyé à cette adresse la confirme, et elle servira si
+vous oubliez votre mot de passe (voir [Compte](compte.md)). Le compte
 existe dans votre navigateur et sur le serveur de Feuillet : en vous
 connectant sur un autre appareil avec le même nom et le même mot de passe,
 vous retrouvez vos projets.

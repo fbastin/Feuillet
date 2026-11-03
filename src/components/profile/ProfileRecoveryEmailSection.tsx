@@ -1,9 +1,10 @@
 // src/components/profile/ProfileRecoveryEmailSection.tsx
-// The address the account may be recovered with, as on Overleaf: a link
-// mailed to it confirms it; a forgotten password then sends a link there.
-// Shown only when the server sends mail.
+// The account's email address, as on Overleaf: a link mailed to it
+// confirms it; a forgotten password then sends a link there. The server
+// keeps it; the browser's copy follows it. Shown only when the server sends
+// mail.
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import i18next, { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
@@ -19,7 +20,7 @@ const errorMessage = (error: unknown): string => {
 	if (code === 'wrong_password') return t('Invalid password');
 	if (code === 'invalid_email') return t('Enter a valid email address.');
 	if (code === 'email_taken') {
-		return t('This address already recovers another account.');
+		return t('This address is already the email address of another account.');
 	}
 	if (code === 'too_many_attempts') {
 		return t('Too many attempts. Please try again in a few minutes.');
@@ -31,7 +32,7 @@ const errorMessage = (error: unknown): string => {
 };
 
 const ProfileRecoveryEmailSection: React.FC = () => {
-	const { user, isGuestUser } = useAuth();
+	const { user, isGuestUser, updateUser } = useAuth();
 	const [status, setStatus] = useState<AccountSyncStatus>(
 		accountSyncService.getStatus(),
 	);
@@ -40,6 +41,7 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 	const [password, setPassword] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const prefilled = useRef(false);
 
 	useEffect(() => accountSyncService.addListener(setStatus), []);
 	const linked = status.state !== 'signed-out' && accountSyncService.isLinked();
@@ -56,11 +58,32 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 		if (linked) void load();
 	}, [linked, load]);
 
+	// The browser's copy follows the server's address, set on any device.
+	useEffect(() => {
+		if (!user || !email?.enabled || !email.address) return;
+		if (user.email !== email.address) {
+			void updateUser({ ...user, email: email.address });
+		}
+	}, [user, email, updateUser]);
+
+	// An address given here before the server kept one, as when signing up
+	// before recovery by email: offered, to confirm it.
+	const unconfirmed =
+		email?.enabled && !email.address && !email.pending && user?.email
+			? user.email
+			: null;
+	useEffect(() => {
+		if (unconfirmed && !prefilled.current) {
+			prefilled.current = true;
+			setAddress(unconfirmed);
+		}
+	}, [unconfirmed]);
+
 	if (!user || isGuestUser(user) || !linked || !email?.enabled) return null;
 
 	const change = async (next: string | null) => {
 		if (!password) {
-			setError(t('Enter your password to change the recovery address.'));
+			setError(t('Enter your password to change your email address.'));
 			return;
 		}
 		setBusy(true);
@@ -71,7 +94,10 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 				password,
 				i18next.language,
 			);
-			if (updated) setEmail(updated);
+			if (updated) {
+				setEmail(updated);
+				if (next === null) await updateUser({ ...user, email: undefined });
+			}
 			setPassword('');
 			setAddress('');
 		} catch (caught) {
@@ -83,17 +109,22 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 
 	return (
 		<div className='ui-stack recovery-section' data-gap='sm'>
-			<h3>{t('Recovery email')}</h3>
+			<h3>{t('Account email')}</h3>
 			<p>
 				{t(
-					'If you forget your password, Feuillet can send a link to this address to choose a new one. It serves only for that, and is never shown to anyone.',
+					'If you forget your password, Feuillet sends a link to this address to choose a new one; a first link confirms it. It is never shown to anyone, nor written in your Git commits.',
 				)}
 			</p>
 
 			<p className='ui-meta' data-role='recovery-email-status'>
 				{email.address
-					? t('Your recovery address is {address}.', { address: email.address })
-					: t('Your account has no recovery address.')}
+					? t('Your email address is {address}.', { address: email.address })
+					: unconfirmed
+						? t(
+								'{address} is not confirmed yet: confirm it to recover your account if you forget your password.',
+								{ address: unconfirmed },
+							)
+						: t('Your account has no email address.')}
 			</p>
 			{email.pending && (
 				<div
@@ -124,7 +155,7 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 			>
 				<div className='ui-field'>
 					<label htmlFor='recovery-email'>
-						{email.address ? t('New recovery address') : t('Recovery address')}
+						{email.address ? t('New email address') : t('Email address')}
 					</label>
 					<input
 						type='email'

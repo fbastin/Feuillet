@@ -47,7 +47,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					<li>
 						<strong>{t('Your account:')}</strong>&nbsp;
 						{t(
-							'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your recovery email address, if you gave one, which serves only to send you a link if you forget your password, through Gmail; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects and the words added to your dictionary, to find them on your other devices.',
+							'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your email address, if you gave one, which serves only to send you a link if you forget your password, through Gmail; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects and the words added to your dictionary, to find them on your other devices.',
 						)}
 					</li>
 					<li>

@@ -16,8 +16,11 @@ Your account menu, at the top right, opens the profile:
 
 - changing your password; your other devices will have to sign in again,
   and assistants such as Claude lose their access;
-- **Recovery email** and **Recovery codes**, in case you forget your
+- **Account email** and **Recovery codes**, in case you forget your
   password (see below);
+- **Git commit email**: the author address of your commits, which anyone
+  who sees the repository reads (on GitHub, for example, your noreply
+  address); it is apart from the account email;
 - **Devices**: the devices signed in to your account, with their browser
   and system, when they signed in and were last used. **Sign out** ends a
   device's session, such as a shared computer's; **Sign out all other
@@ -32,12 +35,13 @@ Your account menu, at the top right, opens the profile:
 
 Two ways, to prepare in your profile, **Account** tab:
 
-- **Recovery email**: as on Overleaf, give an email address; a link sent
-  there confirms it, for 24 hours. If you forget your password, **Forgot
-  your password?**, on the sign-in page, asks for your name or that address,
-  and sends a link there, valid one hour, to choose a new password. The
-  address serves only for that and is shown to no one. This is offered only
-  if the server sends email.
+- **Account email**: as on Overleaf, the address given when signing up, or
+  later in the profile, receives a link that confirms it, for 24 hours; it
+  serves only once confirmed. If you forget your password, **Forgot your
+  password?**, on the sign-in page, asks for your name or that address, and
+  sends a link there, valid one hour, to choose a new password. The address
+  serves only for that: it is shown to no one, nor written in your Git
+  commits. This is offered only if the server sends email.
 - **Recovery codes**: keep them somewhere safe; they are shown only once.
   **Forgot your password?**, then **I have a recovery code**, asks for your
   name, one of these codes and a new password. Each code works once; new
@@ -63,7 +67,7 @@ Feuillet's server keeps, for how long, and what goes to other services
 (GitHub, Anthropic, TeXlyre…) when you use them. In short:
 
 - your account: name, a hash of the password (never the password), hashes
-  of your recovery codes, your recovery email if you gave one, the
+  of your recovery codes, your email address if you gave one, the
   signed-in devices (browser and system), the list of your projects;
 - your projects, their versions and their sharing, for your collaborators;
 - the web server's logs, 14 days; the collaboration server's, 30 MB at

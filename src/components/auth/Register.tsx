@@ -2,11 +2,16 @@
 import type React from 'react';
 import { useState } from 'react';
 
-import { t } from '@/i18n';
+import i18next, { t } from '@/i18n';
 import { CHELYS_ACCOUNTS_ENABLED } from '../../branding';
 import PasswordInfo from './PasswordInfo';
 import { useAuth } from '../../hooks/useAuth';
 import { useChelys } from '../../hooks/useChelys';
+import {
+	AccountServerError,
+	accountSyncService,
+} from '../../services/AccountSyncService';
+import { notificationService } from '../../services/NotificationService';
 import {
 	validateEmail,
 	validatePassword,
@@ -14,6 +19,41 @@ import {
 } from '../../utils/authUtils';
 import CopyField from '../common/CopyField';
 import { PasskeyIcon } from '../common/Icons';
+
+// The address given becomes the account's once the link mailed to it
+// confirms it, as on Overleaf. Mailing takes some seconds: the sign-up does
+// not wait for it.
+const confirmEmailLater = (address: string, password: string): void => {
+	const operationId = 'confirm-sign-up-email';
+	accountSyncService
+		.confirmSignUpEmail(address, password, i18next.language)
+		.then((status) => {
+			if (status?.pending) {
+				notificationService.showSuccess(
+					t(
+						'A link was sent to {address}: open it to confirm your email address. It works for 24 hours.',
+						{ address: status.pending },
+					),
+					{ operationId, duration: 10000 },
+				);
+			}
+		})
+		.catch((error) => {
+			const code = error instanceof AccountServerError ? error.code : '';
+			notificationService.showError(
+				code === 'email_taken'
+					? t(
+							'{address} is already the email address of another account: give another in your profile.',
+							{ address },
+						)
+					: t(
+							'The confirmation link could not be sent to {address}: send it again from your profile.',
+							{ address },
+						),
+				{ operationId },
+			);
+		});
+};
 
 interface RegisterProps {
 	onRegisterSuccess: () => void;
@@ -71,11 +111,13 @@ const Register: React.FC<RegisterProps> = ({
 		setIsLoading(true);
 
 		try {
+			const address = email.trim();
 			if (isUpgrade && upgradeFunction) {
-				await upgradeFunction(username, password, email || undefined);
+				await upgradeFunction(username, password, address || undefined);
 			} else {
-				await register(username, password, email || undefined);
+				await register(username, password, address || undefined);
 			}
+			if (address) confirmEmailLater(address, password);
 			onRegisterSuccess();
 		} catch (error) {
 			setError(
@@ -176,7 +218,13 @@ const Register: React.FC<RegisterProps> = ({
 						onChange={(e) => setEmail(e.target.value)}
 						disabled={isLoading}
 						autoComplete='email'
+						aria-describedby='email-help'
 					/>
+					<div id='email-help' className='ui-note ui-field-hint'>
+						{t(
+							'Optional. If you forget your password, Feuillet sends a link to this address; a first link confirms it. It is never shown to anyone.',
+						)}
+					</div>
 				</div>
 
 				<div className='ui-field' data-spacing='section'>

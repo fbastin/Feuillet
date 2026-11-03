@@ -90,7 +90,9 @@ const user = {
 	username: 'fares',
 	name: 'Fares',
 	passwordHash: 'hash',
-	email: 'fares@example.com',
+	// The account's address, which commits never name.
+	email: 'account@example.com',
+	gitEmail: 'fares@example.com',
 	createdAt: 1,
 };
 

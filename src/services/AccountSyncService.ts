@@ -687,6 +687,20 @@ class AccountSyncService {
 		return recoveryEmailStatus(result);
 	}
 
+	/**
+	 * The address given when signing up, which becomes the account's once
+	 * the link mailed to it confirms it, as on Overleaf; null when the
+	 * server sends no mail.
+	 */
+	async confirmSignUpEmail(
+		address: string,
+		password: string,
+		language: string,
+	): Promise<RecoveryEmailStatus | null> {
+		if (!(await this.recoveryOptions()).email) return null;
+		return this.setRecoveryEmail(address, password, language);
+	}
+
 	/** The link mailed to confirm a recovery address, on any device. */
 	async confirmRecoveryEmail(token: string): Promise<string> {
 		const result = await this.request(

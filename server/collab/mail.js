@@ -1,7 +1,7 @@
 // server/collab/mail.js
 // Feuillet's few emails, for recovering an account as on Overleaf:
-// confirming the address it may be recovered with, and a link to choose a
-// new password. They go through the SMTP server given by SMTP_URL (such as
+// confirming the account's email address, and a link to choose a new
+// password. They go through the SMTP server given by SMTP_URL (such as
 // smtps://user:password@smtp.example.org:465), from MAIL_FROM (such as
 // "Feuillet <noreply@example.org>"). Without both, Feuillet sends none and
 // offers no recovery by email.
@@ -12,11 +12,11 @@
 const MESSAGES = {
 	fr: {
 		confirm: ({ username, link }) => ({
-			subject: 'Confirmez votre adresse de récupération Feuillet',
+			subject: 'Confirmez votre adresse courriel Feuillet',
 			text: [
 				`Bonjour ${username},`,
 				'',
-				'Pour que cette adresse serve à récupérer votre compte Feuillet si vous oubliez votre mot de passe, ouvrez ce lien dans les 24 heures :',
+				'Pour que cette adresse soit celle de votre compte Feuillet, et serve à le récupérer si vous oubliez votre mot de passe, ouvrez ce lien dans les 24 heures :',
 				'',
 				link,
 				'',
@@ -39,11 +39,11 @@ const MESSAGES = {
 	},
 	en: {
 		confirm: ({ username, link }) => ({
-			subject: 'Confirm your Feuillet recovery address',
+			subject: 'Confirm your Feuillet email address',
 			text: [
 				`Hello ${username},`,
 				'',
-				'For this address to recover your Feuillet account if you forget your password, open this link within 24 hours:',
+				'For this address to be your Feuillet account\'s, and recover it if you forget your password, open this link within 24 hours:',
 				'',
 				link,
 				'',

@@ -34,7 +34,9 @@ GitHub pas encore dans le projet.
 
 - **Envoyer vers GitHub** crée un commit avec votre message et l'envoie.
   Si GitHub a reçu d'autres modifications entre-temps, elles sont d'abord
-  fusionnées.
+  fusionnées. Le commit porte votre nom et le **courriel des commits Git**
+  de votre profil; votre adresse noreply de GitHub le relie à votre compte
+  GitHub sans montrer votre adresse.
 - **Récupérer depuis GitHub** fusionne les modifications de GitHub dans le
   projet. Quand les mêmes lignes ont changé des deux côtés, Feuillet montre
   les conflits à résoudre; vous pouvez aussi annuler la fusion.

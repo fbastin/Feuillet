@@ -5,7 +5,9 @@
 ## Creating an account
 
 At <https://feuillet.slashbin.net>, choose **Create account** and give a
-username, an email address and a password. The account exists in your
+username, a password and, if you wish, an email address: a link sent there
+confirms it, and it will serve if you forget your password (see
+[Account](account.md)). The account exists in your
 browser and on Feuillet's server: signing in on another device with the same
 name and password brings back your projects.
 

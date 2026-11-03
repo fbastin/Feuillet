@@ -469,6 +469,11 @@ class AccountExportService {
 			colorLight: userData.colorLight || '',
 			passwordHash: userData.passwordHash,
 			email: userData.email,
+			// Older exports had one address, which named the commits too.
+			gitEmail:
+				'gitEmail' in userData
+					? userData.gitEmail || undefined
+					: userData.email || undefined,
 			createdAt: userData.createdAt,
 			lastLogin: Date.now(),
 		};

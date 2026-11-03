@@ -27,6 +27,8 @@ import { personalDictionaryService } from './PersonalDictionaryService';
 
 const moduleLog = createNamedLogger('AuthService');
 
+const COMMIT_EMAILS_KEPT = 'feuillet-commit-emails-kept';
+
 const shouldAutoSync = (): boolean => {
 	return localStorage.getItem('texlyre-auto-sync') === 'true';
 };
@@ -64,6 +66,8 @@ class AuthService {
 					}
 				},
 			});
+
+			await this.keepCommitEmails();
 
 			const userId = localStorage.getItem('texlyre-current-user');
 			if (userId) {
@@ -343,6 +347,20 @@ class AuthService {
 		} catch (error) {
 			moduleLog.error(`Error cleaning up guest ${guestUser.id}:`, error);
 		}
+	}
+
+	// A profile's email used to be its Git commits' author too; it is now the
+	// account's address, which recovers it, so the commits keep their own
+	// copy of it (once per browser).
+	private async keepCommitEmails(): Promise<void> {
+		if (localStorage.getItem(COMMIT_EMAILS_KEPT)) return;
+		const users = ((await this.db?.getAll(this.USER_STORE)) ?? []) as User[];
+		for (const user of users) {
+			if (user.email && user.gitEmail === undefined) {
+				await this.db?.put(this.USER_STORE, { ...user, gitEmail: user.email });
+			}
+		}
+		localStorage.setItem(COMMIT_EMAILS_KEPT, '1');
 	}
 
 	async register(

@@ -330,14 +330,17 @@ const AppRouter: React.FC = () => {
 			replaceHash('');
 			const operationId = 'confirm-email';
 			notificationService.showLoading(
-				t('Confirming the recovery address...'),
+				t('Confirming your email address...'),
 				operationId,
 			);
 			accountSyncService
 				.confirmRecoveryEmail(token)
 				.then((address) =>
 					notificationService.showSuccess(
-						t('{address} now recovers your account.', { address }),
+						t(
+							'{address} is confirmed: if you forget your password, Feuillet will send a link there.',
+							{ address },
+						),
 						{ operationId },
 					),
 				)
@@ -345,12 +348,14 @@ const AppRouter: React.FC = () => {
 					const code = error instanceof AccountServerError ? error.code : '';
 					notificationService.showError(
 						code === 'email_taken'
-							? t('This address already recovers another account.')
+							? t(
+									'This address is already the email address of another account.',
+								)
 							: code === 'expired_token' || code === 'invalid_token'
 								? t(
 										'This link has expired or was already used. Send a new one from your profile.',
 									)
-								: t('The recovery address could not be confirmed.'),
+								: t('The email address could not be confirmed.'),
 						{ operationId },
 					);
 				});

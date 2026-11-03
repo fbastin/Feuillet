@@ -107,14 +107,14 @@ const RecoverAccount: React.FC<RecoverAccountProps> = ({
 						data-role='reset-link-sent'
 					>
 						{t(
-							'If this name or address belongs to an account with a confirmed recovery address, a link was just sent there. It works for one hour.',
+							'If this name or address belongs to an account whose email address is confirmed, a link was just sent there: it works for one hour. Look in your spam folder too.',
 						)}
 					</div>
 				) : (
 					<>
 						<p>
 							{t(
-								'Enter your username, or your recovery address: Feuillet sends a link to that address to choose a new password.',
+								'Enter your username or your account email: Feuillet sends a link to that address to choose a new password.',
 							)}
 						</p>
 						{error && (

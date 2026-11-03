@@ -16,8 +16,11 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 
 - changer de mot de passe; vos autres appareils devront se reconnecter, et
   les assistants comme Claude perdent leur accès;
-- **Adresse de récupération** et **Codes de récupération**, si vous oubliez
+- **Courriel du compte** et **Codes de récupération**, si vous oubliez
   votre mot de passe (voir plus bas);
+- **Courriel des commits Git** : l'adresse d'auteur de vos commits, que lit
+  quiconque voit le dépôt (sur GitHub, par exemple votre adresse noreply);
+  elle est distincte du courriel du compte;
 - **Appareils** : les appareils connectés à votre compte, avec leur
   navigateur et leur système, la date de connexion et la dernière
   utilisation. **Déconnecter** ferme la session d'un appareil, par exemple
@@ -33,13 +36,14 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 
 Deux moyens, à préparer dans votre profil, onglet **Compte** :
 
-- **Adresse de récupération** : comme sur Overleaf, donnez une adresse
-  courriel; un lien envoyé à cette adresse la confirme, pendant 24 heures.
-  Si vous oubliez votre mot de passe, **Mot de passe oublié?**, sur la page
-  de connexion, demande votre nom ou cette adresse, et y envoie un lien,
+- **Courriel du compte** : comme sur Overleaf, l'adresse donnée à
+  l'inscription, ou plus tard dans le profil, reçoit un lien qui la
+  confirme, valable 24 heures; elle ne sert qu'une fois confirmée. Si vous
+  oubliez votre mot de passe, **Mot de passe oublié?**, sur la page de
+  connexion, demande votre nom ou cette adresse, et y envoie un lien,
   valable une heure, pour choisir un nouveau mot de passe. L'adresse ne sert
-  qu'à cela et n'est montrée à personne. Ce moyen n'est offert que si le
-  serveur envoie des courriels.
+  qu'à cela : elle n'est montrée à personne, ni inscrite dans vos commits
+  Git. Ce moyen n'est offert que si le serveur envoie des courriels.
 - **Codes de récupération** : gardez-les en lieu sûr; ils ne sont affichés
   qu'une fois. **Mot de passe oublié?**, puis **J'ai un code de
   récupération**, demande votre nom, l'un de ces codes et un nouveau mot de
@@ -68,8 +72,8 @@ serveur de Feuillet, combien de temps, et ce qui part chez d'autres services
 (GitHub, Anthropic, TeXlyre…) quand vous les utilisez. En bref :
 
 - votre compte : nom, empreinte du mot de passe (jamais le mot de passe),
-  empreintes de vos codes de récupération, adresse de récupération si vous
-  en avez donné une, appareils connectés (navigateur et système), liste de
+  empreintes de vos codes de récupération, adresse courriel si vous en
+  avez donné une, appareils connectés (navigateur et système), liste de
   vos projets;
 - vos projets, leurs versions et leur partage, pour vos collaborateurs;
 - les journaux du serveur web, 14 jours; ceux du serveur de collaboration,

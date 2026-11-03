@@ -32,7 +32,10 @@ since the last commit, commits not yet on GitHub, changes on GitHub not yet
 in the project.
 
 - **Push to GitHub** makes a commit with your message and pushes it. If
-  GitHub received other changes in the meantime, they are merged first.
+  GitHub received other changes in the meantime, they are merged first. The
+  commit names you with the **Git commit email** of your profile; your
+  GitHub noreply address links it to your GitHub account without showing
+  your address.
 - **Pull from GitHub** merges GitHub's changes into the project. When the
   same lines changed on both sides, Feuillet shows the conflicts to resolve;
   you may also cancel the merge.
