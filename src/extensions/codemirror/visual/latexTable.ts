@@ -2,8 +2,10 @@
 // Tables of a LaTeX document, as the visual editor shows and edits them:
 // a tabular environment read into columns, rows and cells with their places
 // in the text, and the changes that edit them as Overleaf's table editor
-// does. Pure text in, positions and changes out, so that it can be tested
-// without an editor.
+// does: cells merged across a row (\multicolumn) and split again, and the
+// caption of the table environment around it, above, below or none. Pure
+// text in, positions and changes out, so that it can be tested without an
+// editor.
 
 import { matchBrace } from './visualTokens';
 
@@ -28,6 +30,9 @@ export interface TableCell {
 	span: number;
 	/** The alignment a \multicolumn gives the cell. */
 	align?: ColumnAlign;
+	/** The text of a \multicolumn's last argument, which the cell shows and
+	 * edits, when the \multicolumn is the whole cell. */
+	inner?: { from: number; to: number };
 }
 
 export interface TableRow {
@@ -167,6 +172,28 @@ export const columnSpecText = (
 		.map((column, index) => '|'.repeat(verticalRules[index] ?? 0) + column.spec)
 		.join('') + '|'.repeat(verticalRules[columns.length] ?? 0);
 
+// The three arguments of the \multicolumn that is the whole of
+// `from`..`to`, or null.
+const multicolumnArguments = (
+	text: string,
+	from: number,
+	to: number,
+): Array<{ from: number; to: number }> | null => {
+	const head = /^\\multicolumn(?![a-zA-Z@])/.exec(text.slice(from, from + 13));
+	if (!head) return null;
+	const args: Array<{ from: number; to: number }> = [];
+	let pos = from + head[0].length;
+	for (let k = 0; k < 3; k++) {
+		pos = skipBlank(text, pos, to);
+		if (text[pos] !== '{') return null;
+		const close = matchBrace(text, pos);
+		if (close === -1 || close >= to) return null;
+		args.push({ from: pos + 1, to: close });
+		pos = close + 1;
+	}
+	return skipBlank(text, pos, to) === to ? args : null;
+};
+
 // The cell starting at `from` and ending at `to`.
 const makeCell = (text: string, from: number, to: number): TableCell => {
 	let contentFrom = from;
@@ -180,6 +207,9 @@ const makeCell = (text: string, from: number, to: number): TableCell => {
 	const source = text.slice(contentFrom, contentTo);
 	const multi = /^\\multicolumn\s*\{\s*(\d+)\s*\}\s*\{([^}]*)\}/.exec(source);
 	const align = multi?.[2].replace(/[^lcr]/g, '')[0] as ColumnAlign | undefined;
+	const args = multi
+		? multicolumnArguments(text, contentFrom, contentTo)
+		: null;
 	return {
 		from,
 		to,
@@ -188,8 +218,20 @@ const makeCell = (text: string, from: number, to: number): TableCell => {
 		source,
 		span: multi ? Math.max(1, Number(multi[1])) : 1,
 		...(align ? { align } : {}),
+		...(args ? { inner: args[2] } : {}),
 	};
 };
+
+/** What a cell shows and edits: a \multicolumn's text, or the cell. */
+export const cellText = (cell: TableCell): string =>
+	cell.inner
+		? cell.source
+				.slice(
+					cell.inner.from - cell.contentFrom,
+					cell.inner.to - cell.contentFrom,
+				)
+				.trim()
+		: cell.source;
 
 /** Reads the tabular environment starting at `from`, or null. */
 export function parseLatexTable(text: string, from: number): LatexTable | null {
@@ -391,6 +433,10 @@ export function setCell(
 		];
 	}
 	const { cell } = found;
+	// A merged cell keeps its \multicolumn; only its text changes.
+	if (cell.inner) {
+		return [{ from: cell.inner.from, to: cell.inner.to, insert: clean }];
+	}
 	if (cell.contentFrom === cell.contentTo) {
 		if (!clean) return [];
 		// Spaced from the separator before it.
@@ -595,6 +641,252 @@ export function setBorders(
 			insert: `${lines.map((line) => `\n${indent}${line}`).join('')}\n${/^[ \t]*$/.test(endIndent) ? endIndent : ''}`,
 		},
 	];
+}
+
+/**
+ * Merges the cells of a row from column `fromCol` to `toCol` into one
+ * \multicolumn, as Overleaf's table editor does: it has the alignment of
+ * the first column and the rules at its edges, and the merged cells' text.
+ */
+export function mergeCells(
+	text: string,
+	table: LatexTable,
+	row: number,
+	fromCol: number,
+	toCol: number,
+): TableChange[] {
+	const target = table.rows[row];
+	if (!target) return [];
+	const first = cellAt(target, Math.min(fromCol, toCol));
+	const last = cellAt(target, Math.max(fromCol, toCol));
+	if (!first || !last || first.index === last.index) return [];
+	const merged = target.cells.slice(first.index, last.index + 1);
+	const span = merged.reduce((sum, cell) => sum + cell.span, 0);
+	const end = first.start + span;
+	const column = first.cell.align ?? table.columns[first.start]?.align ?? 'c';
+	const rules = (count: number | undefined) => '|'.repeat(count ?? 0);
+	const spec =
+		(first.start === 0 ? rules(table.verticalRules[0]) : '') +
+		(column === 'p' ? 'l' : column) +
+		rules(table.verticalRules[end]);
+	const content = merged.map(cellText).filter(Boolean).join(' ');
+	const from = first.cell.contentFrom;
+	const to = last.cell.contentTo;
+	return [
+		{
+			from,
+			to,
+			insert:
+				(text[from - 1] === '&' ? ' ' : '') +
+				`\\multicolumn{${span}}{${spec}}{${content}}` +
+				(text[to] === '&' || text[to] === '\\' ? ' ' : ''),
+		},
+	];
+}
+
+/** Splits a merged cell back into its columns, its text in the first. */
+export function splitCell(
+	table: LatexTable,
+	row: number,
+	col: number,
+): TableChange[] {
+	const target = table.rows[row];
+	const found = target && cellAt(target, col);
+	if (!found || found.cell.span < 2 || !found.cell.inner) return [];
+	const { cell } = found;
+	return [
+		{
+			from: cell.contentFrom,
+			to: cell.contentTo,
+			insert: cellText(cell) + ' &'.repeat(cell.span - 1),
+		},
+	];
+}
+
+/** The table environment around a tabular, with its caption and label. */
+export interface TableFloat {
+	env: string;
+	from: number;
+	to: number;
+	/** \caption{...}, with its optional short caption. */
+	caption: { from: number; to: number } | null;
+	/** The first \label outside the tabular and the caption. */
+	label: { from: number; to: number } | null;
+}
+
+export type CaptionPlace = 'none' | 'above' | 'below';
+
+const FLOAT_ENVS = /\\(begin|end)\s*\{(table\*?)\}/g;
+
+const inComment = (text: string, pos: number) =>
+	/(^|[^\\])(\\\\)*%/.test(text.slice(lineStart(text, pos), pos));
+
+// The command at `at` and its argument in braces, with an optional one in
+// brackets before it: its end, or -1.
+const commandEnd = (text: string, at: number, name: string, end: number) => {
+	let pos = skipBlank(text, at + name.length + 1, end);
+	if (text[pos] === '*') pos = skipBlank(text, pos + 1, end);
+	if (text[pos] === '[') {
+		const bracket = text.indexOf(']', pos);
+		if (bracket === -1 || bracket >= end) return -1;
+		pos = skipBlank(text, bracket + 1, end);
+	}
+	if (text[pos] !== '{') return -1;
+	const close = matchBrace(text, pos);
+	return close === -1 || close >= end ? -1 : close + 1;
+};
+
+/** The table environment the tabular is in, or null. */
+export function tableFloatOf(
+	text: string,
+	table: LatexTable,
+): TableFloat | null {
+	const windowFrom = Math.max(0, table.from - MAX_TABLE);
+	const open: Array<{ env: string; from: number }> = [];
+	FLOAT_ENVS.lastIndex = windowFrom;
+	for (;;) {
+		const match = FLOAT_ENVS.exec(text);
+		if (!match || match.index >= table.from) break;
+		if (inComment(text, match.index)) continue;
+		if (match[1] === 'begin') open.push({ env: match[2], from: match.index });
+		else if (open.at(-1)?.env === match[2]) open.pop();
+	}
+	const begin = open.at(-1);
+	if (!begin) return null;
+	const close = new RegExp(
+		`\\\\end\\s*\\{${begin.env.replace('*', '\\*')}\\}`,
+		'g',
+	);
+	close.lastIndex = table.to;
+	let ending: RegExpExecArray | null = close.exec(text);
+	while (ending && inComment(text, ending.index)) ending = close.exec(text);
+	if (!ending || ending.index - table.to > MAX_TABLE) return null;
+	const endAt = ending.index;
+	const to = endAt + ending[0].length;
+
+	// The caption and the label, outside the tabular.
+	const find = (name: string, skip: Array<{ from: number; to: number }>) => {
+		const pattern = new RegExp(`\\\\${name}(?![a-zA-Z@])`, 'g');
+		pattern.lastIndex = begin.from;
+		for (;;) {
+			const match = pattern.exec(text);
+			if (!match || match.index >= endAt) return null;
+			const at = match.index;
+			if (skip.some((span) => at >= span.from && at < span.to)) continue;
+			if (inComment(text, at)) continue;
+			const end = commandEnd(text, at, name, endAt);
+			if (end !== -1) return { from: at, to: end };
+		}
+	};
+	const caption = find('caption', [table]);
+	const label = find('label', caption ? [table, caption] : [table]);
+	return { env: begin.env, from: begin.from, to, caption, label };
+}
+
+/** Whether the table has a caption, above or below it. */
+export const captionPlace = (text: string, table: LatexTable): CaptionPlace => {
+	const caption = tableFloatOf(text, table)?.caption;
+	if (!caption) return 'none';
+	return caption.from < table.from ? 'above' : 'below';
+};
+
+/** A label for a new caption that no other has: tab:table1, tab:table2... */
+export const newTableLabel = (text: string): string => {
+	for (let n = 1; ; n++) {
+		if (!text.includes(`\\label{tab:table${n}}`)) return `tab:table${n}`;
+	}
+};
+
+/**
+ * Gives the table a caption above or below it, moves it there, or takes it
+ * away with its label, as Overleaf's caption options. A tabular without a
+ * table environment gets one, centred, as new tables have.
+ */
+export function setCaption(
+	text: string,
+	table: LatexTable,
+	where: CaptionPlace,
+	made: { caption: string; label: string },
+): TableChange[] {
+	const float = tableFloatOf(text, table);
+	const current: CaptionPlace = !float?.caption
+		? 'none'
+		: float.caption.from < table.from
+			? 'above'
+			: 'below';
+	if (where === current) return [];
+	const tableLine = lineStart(text, table.from);
+	const indentText = text.slice(tableLine, table.from);
+	const indent = /^[ \t]*$/.test(indentText) ? indentText : '';
+	const below = lineEnd(text, table.to);
+	const lines = (parts: string[]) =>
+		parts.map((part) => `${indent}${part}\n`).join('');
+
+	if (!float) {
+		if (where === 'none') return [];
+		const captioned = [`\\caption{${made.caption}}`, `\\label{${made.label}}`];
+		return [
+			{
+				from: tableLine,
+				to: tableLine,
+				insert: lines([
+					'\\begin{table}[h]',
+					'\\centering',
+					...(where === 'above' ? captioned : []),
+				]),
+			},
+			{
+				from: below,
+				to: below,
+				insert: `\n${lines([...(where === 'below' ? captioned : []), '\\end{table}']).slice(0, -1)}`,
+			},
+		];
+	}
+
+	const { caption, label } = float;
+	// A label that goes with the caption: inside it, on its line or on the
+	// line after.
+	const labelMoves =
+		caption !== null &&
+		label !== null &&
+		label.from > caption.from &&
+		(lineStart(text, label.from) === lineStart(text, caption.from) ||
+			lineStart(text, label.from) === lineEnd(text, caption.to) + 1);
+	const changes: TableChange[] = [];
+	if (caption) {
+		if (labelMoves && label) {
+			const sameLine =
+				lineStart(text, label.from) === lineStart(text, caption.from);
+			if (sameLine) changes.push(wholeLines(text, caption.from, label.to));
+			else {
+				changes.push(wholeLines(text, caption.from, caption.to));
+				changes.push(wholeLines(text, label.from, label.to));
+			}
+		} else {
+			changes.push(wholeLines(text, caption.from, caption.to));
+		}
+	}
+	if (where === 'none') return changes;
+
+	const parts = caption
+		? [
+				text.slice(caption.from, caption.to),
+				...(labelMoves && label ? [text.slice(label.from, label.to)] : []),
+			]
+		: [
+				`\\caption{${made.caption}}`,
+				...(label ? [] : [`\\label{${made.label}}`]),
+			];
+	changes.push(
+		where === 'above'
+			? { from: tableLine, to: tableLine, insert: lines(parts) }
+			: {
+					from: below,
+					to: below,
+					insert: `\n${lines(parts).slice(0, -1)}`,
+				},
+	);
+	return changes;
 }
 
 /** Applies changes made against the same text. */

@@ -2,9 +2,10 @@
 // Tables in the visual editor, as Overleaf's table editor shows them: a
 // grid whose cells are selected with a click, the arrows or Tab, edited with
 // a double click, Enter or by typing, and changed with a small toolbar
-// (rows, columns, alignment, borders). Each edit changes only the LaTeX it
-// concerns, read again from the document at that moment, so that the edits
-// of collaborators in the meantime are kept.
+// (rows, columns, alignment, borders, merging, caption). Shift with a click
+// or the arrows selects several cells of a row, to merge them. Each edit
+// changes only the LaTeX it concerns, read again from the document at that
+// moment, so that the edits of collaborators in the meantime are kept.
 import { isolateHistory } from '@codemirror/commands';
 import { StateEffect, StateField } from '@codemirror/state';
 import {
@@ -18,17 +19,23 @@ import { t } from '@/i18n';
 import { stripAnnotationTags } from '../../../utils/annotationTagUtils';
 import { separateUndoStep } from '../undoSteps';
 import {
+	type CaptionPlace,
 	type LatexTable,
 	type TableChange,
 	cellAt,
+	cellText,
 	deleteColumn,
 	deleteRow,
 	insertColumn,
 	insertRow,
+	mergeCells,
+	newTableLabel,
 	parseLatexTable,
 	setBorders,
+	setCaption,
 	setCell,
 	setColumnAlign,
+	splitCell,
 } from './latexTable';
 import { matchBrace } from './visualTokens';
 
@@ -40,7 +47,26 @@ export interface TableSelection {
 	editing: boolean;
 	/** What typing a key to start editing put in the cell. */
 	typed?: string;
+	/** The other end of the cells selected in the row, with Shift. */
+	anchorCol?: number;
 }
+
+// The columns of the selected cells of the row: from..to, inclusive.
+const selectedColumns = (selection: TableSelection) => ({
+	from: Math.min(selection.col, selection.anchorCol ?? selection.col),
+	to: Math.max(selection.col, selection.anchorCol ?? selection.col),
+});
+
+// Where `at` is once changes are made, when it is the start of the table:
+// after what is inserted at it.
+const startAfter = (changes: TableChange[], at: number) =>
+	changes.reduce(
+		(pos, change) =>
+			change.to <= at
+				? pos + change.insert.length - (change.to - change.from)
+				: pos,
+		at,
+	);
 
 export const selectTableCell = StateEffect.define<TableSelection | null>();
 
@@ -264,6 +290,11 @@ type Action =
 	| 'align-r'
 	| 'borders-all'
 	| 'borders-none'
+	| 'merge'
+	| 'split'
+	| 'caption-none'
+	| 'caption-above'
+	| 'caption-below'
 	| 'latex';
 
 const runAction = (
@@ -279,6 +310,7 @@ const runAction = (
 		...selection,
 		editing: false,
 		typed: undefined,
+		anchorCol: undefined,
 		...next,
 	});
 	switch (action) {
@@ -329,6 +361,33 @@ const runAction = (
 				setBorders(text, table, action === 'borders-all' ? 'all' : 'none'),
 				keep(),
 			);
+		case 'merge': {
+			const { from, to } = selectedColumns(selection);
+			const start = table.rows[row] && cellAt(table.rows[row], from);
+			return apply(
+				view,
+				mergeCells(text, table, row, from, to),
+				keep({ col: start ? start.start : from }),
+			);
+		}
+		case 'split':
+			return apply(view, splitCell(table, row, col), keep());
+		case 'caption-none':
+		case 'caption-above':
+		case 'caption-below': {
+			const changes = setCaption(
+				text,
+				table,
+				action.slice('caption-'.length) as CaptionPlace,
+				{ caption: t('Caption'), label: newTableLabel(text) },
+			);
+			// The table moves when lines go in before it.
+			return apply(
+				view,
+				changes,
+				keep({ at: startAfter(changes, table.from) }),
+			);
+		}
 		case 'latex': {
 			// The cursor in the cell shows the table's LaTeX.
 			const found = table.rows[row] && cellAt(table.rows[row], col);
@@ -386,6 +445,8 @@ export class TableWidget extends WidgetType {
 		readonly table: LatexTable,
 		readonly selection: TableSelection | null,
 		readonly editable: boolean,
+		/** Where the caption of the table environment around it is. */
+		readonly caption: CaptionPlace = 'none',
 	) {
 		super();
 	}
@@ -394,6 +455,7 @@ export class TableWidget extends WidgetType {
 		return (
 			other.source === this.source &&
 			other.editable === this.editable &&
+			other.caption === this.caption &&
 			JSON.stringify(other.selection) === JSON.stringify(this.selection)
 		);
 	}
@@ -421,12 +483,18 @@ export class TableWidget extends WidgetType {
 					selection?.row === rowIndex &&
 					selection.col >= col &&
 					selection.col < col + span;
+				const range = selection && selectedColumns(selection);
+				const inRange =
+					selection?.row === rowIndex &&
+					range !== null &&
+					col <= range.to &&
+					col + span > range.from;
 				if (selected && selection.editing && editable) {
-					this.editor(view, selection, cell.source, td);
+					this.editor(view, selection, cellText(cell), td);
 				} else {
 					renderCellContent(cell.source, td);
 				}
-				if (selected) td.classList.add('cm-visual-cell-selected');
+				if (selected || inRange) td.classList.add('cm-visual-cell-selected');
 				line.appendChild(td);
 				col += span;
 			}
@@ -591,6 +659,27 @@ export class TableWidget extends WidgetType {
 		bar.className = 'cm-visual-table-toolbar';
 		bar.dataset.role = 'visual-table-toolbar';
 		const align = table.columns[selection.col]?.align;
+		const row = table.rows[selection.row];
+		const { from, to } = selectedColumns(selection);
+		const first = row && cellAt(row, from);
+		const last = row && cellAt(row, to);
+		const merges = first && last && first.index !== last.index;
+		const current = row && cellAt(row, selection.col);
+		const splits =
+			!merges && current && current.cell.span > 1 && current.cell.inner;
+		const merge = splits
+			? button(t('Unmerge cells'), t('Unmerge cells'), 'split')
+			: button(
+					t('Merge cells'),
+					merges
+						? t('Merge cells')
+						: t('Select cells of a row with Shift to merge them'),
+					'merge',
+				);
+		merge.dataset.role = 'merge-cells';
+		if (!merges && !splits) merge.disabled = true;
+		const mark = (place: CaptionPlace, label: string) =>
+			this.caption === place ? `✓ ${label}` : label;
 		bar.append(
 			menu(t('Insert'), [
 				['row-above', t('Row above')],
@@ -608,6 +697,12 @@ export class TableWidget extends WidgetType {
 			menu(t('Borders'), [
 				['borders-all', t('All borders')],
 				['borders-none', t('No borders')],
+			]),
+			merge,
+			menu(t('Caption'), [
+				['caption-none', mark('none', t('No caption'))],
+				['caption-above', mark('above', t('Caption above'))],
+				['caption-below', mark('below', t('Caption below'))],
 			]),
 			button(t('LaTeX'), t('Edit the LaTeX of the table'), 'latex'),
 		);
@@ -646,7 +741,15 @@ export class TableWidget extends WidgetType {
 			event.preventDefault();
 			grid.focus({ preventScroll: true });
 			if (!editable) return;
-			choose({ row: Number(td.dataset.row), col: Number(td.dataset.col) });
+			const row = Number(td.dataset.row);
+			const col = Number(td.dataset.col);
+			const current = this.selection;
+			// Shift: from the selected cell to this one, in its row.
+			if (event.shiftKey && current && current.row === row) {
+				choose({ row, col, anchorCol: current.anchorCol ?? current.col });
+				return;
+			}
+			choose({ row, col });
 		});
 		grid.addEventListener('dblclick', (event) => {
 			const td = (event.target as HTMLElement).closest('td');
@@ -677,6 +780,29 @@ export class TableWidget extends WidgetType {
 			if (mod || event.altKey) {
 				// Undo, compile and the other shortcuts, as in the text.
 				if (runScopeHandlers(view, event, 'editor')) event.preventDefault();
+				return;
+			}
+			// Shift and the arrows: more or fewer cells of the row.
+			if (
+				event.shiftKey &&
+				(event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+			) {
+				event.preventDefault();
+				const row = this.table.rows[selection.row];
+				const here = cellAt(row, selection.col);
+				const next =
+					event.key === 'ArrowLeft'
+						? (here?.start ?? selection.col) - 1
+						: here
+							? here.start + here.cell.span
+							: selection.col + 1;
+				if (next < 0 || next >= this.table.columns.length) return;
+				const target = cellAt(row, next);
+				choose({
+					row: selection.row,
+					col: target ? target.start : next,
+					anchorCol: selection.anchorCol ?? selection.col,
+				});
 				return;
 			}
 			switch (event.key) {

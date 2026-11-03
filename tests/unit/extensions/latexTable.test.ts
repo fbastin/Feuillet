@@ -1,16 +1,23 @@
 import {
 	applyChanges,
+	captionPlace,
 	cellAt,
+	cellText,
 	deleteColumn,
 	deleteRow,
 	findLatexTables,
 	insertColumn,
 	insertRow,
+	mergeCells,
+	newTableLabel,
 	parseColumnSpec,
 	parseLatexTable,
 	setBorders,
+	setCaption,
 	setCell,
 	setColumnAlign,
+	splitCell,
+	tableFloatOf,
 } from '@src/extensions/codemirror/visual/latexTable';
 
 const RULED = [
@@ -206,5 +213,150 @@ describe('editing tables', () => {
 		expect(cells(none)).toEqual(cells(RULED));
 		expect(none).toContain('\t\t\\begin{tabular}'.slice(2));
 		expect(none).toMatch(/\n\t\\end\{tabular\}/);
+	});
+});
+
+describe('merging cells', () => {
+	const RULED3 = [
+		'\\begin{tabular}{|c|c|c|}',
+		'\\hline',
+		'A & B & C \\\\',
+		'\\hline',
+		'\\end{tabular}',
+	].join('\n');
+
+	it('merges the first cells, with the rules at their edges', () => {
+		const merged = edit(RULED3, (table) => mergeCells(RULED3, table, 0, 0, 1));
+		expect(merged).toContain('\\multicolumn{2}{|c|}{A B} & C \\\\');
+		const table = only(merged);
+		expect(table.rows[0].cells.map((cell) => cell.span)).toEqual([2, 1]);
+		expect(cellText(table.rows[0].cells[0])).toBe('A B');
+	});
+
+	it('merges cells in the middle: the rule on their right only', () => {
+		const merged = edit(RULED3, (table) => mergeCells(RULED3, table, 0, 2, 1));
+		expect(merged).toContain('A & \\multicolumn{2}{c|}{B C} \\\\');
+	});
+
+	it('merges an empty last cell, before \\\\', () => {
+		const merged = edit(BOOKTABS, (table) => mergeCells(BOOKTABS, table, 2, 0, 1));
+		expect(merged).toContain('  \\multicolumn{2}{l}{Poire} \\\\');
+		expect(cells(merged)[2]).toEqual(['\\multicolumn{2}{l}{Poire}']);
+	});
+
+	it('merges a merged cell with the next', () => {
+		const text = '\\begin{tabular}{ccc}\n\\multicolumn{2}{r}{X} & Y \\\\\n\\end{tabular}';
+		const merged = edit(text, (table) => mergeCells(text, table, 0, 1, 2));
+		expect(merged).toContain('\\multicolumn{3}{r}{X Y} \\\\');
+	});
+
+	it('does nothing for one cell', () => {
+		expect(mergeCells(RULED3, only(RULED3), 0, 1, 1)).toEqual([]);
+	});
+
+	it('edits the text of a merged cell, not its \\multicolumn', () => {
+		const merged = edit(RULED3, (table) => mergeCells(RULED3, table, 0, 0, 1));
+		const edited = edit(merged, (table) => setCell(merged, table, 0, 1, 'Titre'));
+		expect(edited).toContain('\\multicolumn{2}{|c|}{Titre} & C \\\\');
+	});
+
+	it('splits a merged cell, its text in the first column', () => {
+		const merged = edit(RULED3, (table) => mergeCells(RULED3, table, 0, 0, 1));
+		const split = edit(merged, (table) => splitCell(table, 0, 1));
+		expect(cells(split)[0]).toEqual(['A B', '', 'C']);
+		expect(splitCell(only(RULED3), 0, 0)).toEqual([]);
+	});
+});
+
+describe('captions', () => {
+	const made = { caption: 'Légende', label: 'tab:table1' };
+
+	it('finds the table environment, its caption and its label', () => {
+		const text = RULED.replace('\\caption{Résultats}', '\\caption{Résultats}\\label{tab:r}');
+		const float = tableFloatOf(text, only(text));
+		expect(float?.env).toBe('table');
+		expect(text.slice(float?.caption?.from, float?.caption?.to)).toBe('\\caption{Résultats}');
+		expect(text.slice(float?.label?.from, float?.label?.to)).toBe('\\label{tab:r}');
+		expect(captionPlace(RULED, only(RULED))).toBe('below');
+		expect(captionPlace(BOOKTABS, only(BOOKTABS))).toBe('none');
+	});
+
+	it('moves a caption above the table, and back below', () => {
+		const above = edit(RULED, (table) => setCaption(RULED, table, 'above', made));
+		expect(above).toBe(
+			[
+				'\\begin{table}[h]',
+				'\t\\centering',
+				'\t\\caption{Résultats}',
+				'\t\\begin{tabular}{|c|c|}',
+				'\t\t\\hline',
+				'\t\tNom & Valeur \\\\',
+				'\t\t\\hline',
+				'\t\tA & 1 \\\\',
+				'\t\t\\hline',
+				'\t\\end{tabular}',
+				'\\end{table}',
+			].join('\n'),
+		);
+		expect(captionPlace(above, only(above))).toBe('above');
+		expect(edit(above, (table) => setCaption(above, table, 'below', made))).toBe(RULED);
+	});
+
+	it('takes a caption away, with its label', () => {
+		const text = RULED.replace('\t\\caption{Résultats}', '\t\\caption{Résultats}\n\t\\label{tab:r}');
+		const none = edit(text, (table) => setCaption(text, table, 'none', made));
+		expect(none).not.toContain('\\caption');
+		expect(none).not.toContain('\\label');
+		expect(none).toContain('\t\\end{tabular}\n\\end{table}');
+	});
+
+	it('moves the label with the caption, from the line after', () => {
+		const text = RULED.replace('\t\\caption{Résultats}', '\t\\caption{Résultats}\n\t\\label{tab:r}');
+		const above = edit(text, (table) => setCaption(text, table, 'above', made));
+		expect(above).toContain('\t\\centering\n\t\\caption{Résultats}\n\t\\label{tab:r}\n\t\\begin{tabular}');
+		expect(above).toContain('\t\\end{tabular}\n\\end{table}');
+	});
+
+	it('gives a tabular alone a table environment, centred, with a caption', () => {
+		const below = edit(BOOKTABS, (table) => setCaption(BOOKTABS, table, 'below', made));
+		expect(below).toBe(
+			[
+				'\\begin{table}[h]',
+				'\\centering',
+				BOOKTABS,
+				'\\caption{Légende}',
+				'\\label{tab:table1}',
+				'\\end{table}',
+			].join('\n'),
+		);
+		const above = edit(BOOKTABS, (table) => setCaption(BOOKTABS, table, 'above', made));
+		expect(above.startsWith('\\begin{table}[h]\n\\centering\n\\caption{Légende}\n\\label{tab:table1}\n\\begin{tabular}{lr}')).toBe(true);
+		expect(above.endsWith('\\end{tabular}\n\\end{table}')).toBe(true);
+		expect(setCaption(BOOKTABS, only(BOOKTABS), 'none', made)).toEqual([]);
+	});
+
+	it('adds a caption to a table environment, keeping its label', () => {
+		const text = RULED.replace('\t\\caption{Résultats}', '\t\\label{tab:r}');
+		const above = edit(text, (table) => setCaption(text, table, 'above', made));
+		expect(above).toContain('\t\\centering\n\t\\caption{Légende}\n\t\\begin{tabular}');
+		expect(above.match(/\\label/g)).toHaveLength(1);
+	});
+
+	it('moves a caption with its label inside, and ignores comments', () => {
+		const text = RULED.replace('\t\\caption{Résultats}', '\t% \\caption{Ancienne}\n\t\\caption[Court]{Résultats\\label{tab:r}}');
+		expect(captionPlace(text, only(text))).toBe('below');
+		const above = edit(text, (table) => setCaption(text, table, 'above', made));
+		expect(above).toContain('\t\\caption[Court]{Résultats\\label{tab:r}}\n\t\\begin{tabular}');
+		expect(above).toContain('% \\caption{Ancienne}');
+	});
+
+	it('makes labels no other table has', () => {
+		expect(newTableLabel(BOOKTABS)).toBe('tab:table1');
+		expect(newTableLabel('\\label{tab:table1}')).toBe('tab:table2');
+	});
+
+	it('leaves a tabular in another environment alone', () => {
+		const text = `\\begin{figure}\n${BOOKTABS}\n\\end{figure}`;
+		expect(tableFloatOf(text, only(text))).toBeNull();
 	});
 });

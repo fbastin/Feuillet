@@ -58,6 +58,15 @@ avec TeX Live dès sa création.
   dans le document; une barre d'outils sert à la mise en forme.
 - À droite, la sortie : le **Journal** de compilation et le PDF.
 
+En mode visuel, comme dans l'éditeur de tableaux d'Overleaf, un clic dans un
+tableau sélectionne une cellule et montre sa barre d'outils : lignes,
+colonnes, alignement, bordures, fusion et légende. Un double clic édite la
+cellule. **Maj** avec un clic ou les flèches sélectionne plusieurs cellules
+d'une ligne; **Fusionner les cellules** les réunit (`\multicolumn`), et
+**Séparer les cellules** les défait. Le menu **Légende** met la légende
+au-dessus ou en dessous du tableau, ou la retire avec son étiquette; un
+tableau sans environnement `table` en reçoit un, centré.
+
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX; un clic
 droit propose des corrections. La langue suit celle du document.
 

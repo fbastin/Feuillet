@@ -27,7 +27,11 @@ import {
 	selectFigure,
 	setFigureState,
 } from './visual/figureWidget';
-import { type LatexTable, findLatexTables } from './visual/latexTable';
+import {
+	type LatexTable,
+	captionPlace,
+	findLatexTables,
+} from './visual/latexTable';
 import {
 	TableWidget,
 	selectTableCell,
@@ -392,6 +396,7 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 	// Tables on lines of their own show as grids, unless the cursor is in
 	// their LaTeX.
 	const tableSelection = state.field(tableSelectionField, false) ?? null;
+	let text: string | null = null;
 	for (const table of state.field(tablesField)) {
 		const first = doc.lineAt(table.from);
 		const last = doc.lineAt(table.to);
@@ -402,6 +407,7 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 		) {
 			continue;
 		}
+		if (text === null) text = doc.toString();
 		replace(
 			first.from,
 			last.to,
@@ -411,6 +417,7 @@ const buildDecorations = (state: EditorState): DecorationSet => {
 					table,
 					tableSelection?.at === table.from ? tableSelection : null,
 					!state.readOnly,
+					captionPlace(text, table),
 				),
 				block: true,
 			}),

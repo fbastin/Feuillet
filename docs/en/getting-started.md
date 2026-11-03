@@ -57,6 +57,14 @@ with TeX Live from the start.
   toolbar helps with formatting.
 - On the right, the output: the compile **Log** and the PDF.
 
+In visual mode, as in Overleaf's table editor, a click in a table selects a
+cell and shows its toolbar: rows, columns, alignment, borders, merging and
+caption. A double click edits the cell. **Shift** with a click or the arrows
+selects several cells of a row; **Merge cells** joins them (`\multicolumn`),
+and **Unmerge cells** splits them again. The **Caption** menu puts the
+caption above or below the table, or takes it away with its label; a table
+without a `table` environment gets one, centred.
+
 The spell checker underlines mistakes in LaTeX text; a right click offers
 corrections. Its language follows the document's.
 
