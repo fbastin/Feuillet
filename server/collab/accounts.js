@@ -678,14 +678,17 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		const name = normalizeUsername(username);
 		const key = validUsername(name) ? keyOf(name) : null;
 		if (key) refuseAfter(`git-failures:${key}`, MAX_GIT_FAILURES_PER_ACCOUNT);
-		const fail = () => {
+		// not_a_token: what Git gave is no Git token at all, most likely the
+		// account's password, which Git asks for as "Password".
+		const fail = (code = 'wrong_token') => {
 			noteFailure(`git-ip:${ip}`);
 			if (key) noteFailure(`git-failures:${key}`);
-			return new HttpError(401, 'wrong_token');
+			return new HttpError(401, code);
 		};
-		if (!key || typeof token !== 'string' || !GIT_TOKEN.test(token)) {
-			throw fail();
+		if (typeof token !== 'string' || !GIT_TOKEN.test(token)) {
+			throw fail('not_a_token');
 		}
+		if (!key) throw fail();
 		const hash = sha256(`git:${token}`);
 		const found = await withAccount(key, (account) => {
 			if (!account) return null;

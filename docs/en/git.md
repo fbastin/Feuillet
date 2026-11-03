@@ -31,7 +31,9 @@ them all. An account has ten at most.
 
 The **Git** button, at the top of the editor, gives the project's
 `git clone` command, with your account name in the address. Run it in a
-terminal; when Git asks for a password, give your Git token.
+terminal. When Git asks "Password for …", paste your Git token, which starts
+with `fgt_`: your Feuillet password does not work there, and Feuillet tells
+Git so ("This is not a Git token").
 
 ```
 git clone -c user.name="alice" -c user.email="alice@example.org" https://alice@feuillet.slashbin.net/collab/git/<project> "Thesis"

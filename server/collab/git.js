@@ -522,6 +522,10 @@ const createGitBridge = ({
 
 	const SIGN_IN =
 		"Feuillet asks for your account's name and a Git token, which you make in Feuillet under Profile Settings, Git; your password does not work here.";
+	// What Git gave as the password is no Git token: most likely the
+	// account's password, since Git asks for "Password".
+	const NOT_A_TOKEN =
+		'This is not a Git token. When Git asks for a password, give a Git token, which starts with fgt_, not your Feuillet password: make one in Feuillet under Profile Settings, Git.';
 
 	// The account Git signed in as, or null once it was told why not.
 	const signIn = async (req, res) => {
@@ -550,7 +554,11 @@ const createGitBridge = ({
 					'Too many wrong Git tokens: try again in a quarter of an hour.',
 				);
 			} else {
-				send(res, 401, `Wrong account name or Git token. ${SIGN_IN}`, {
+				const message =
+					error?.code === 'not_a_token'
+						? NOT_A_TOKEN
+						: `Wrong account name or Git token. ${SIGN_IN}`;
+				send(res, 401, message, {
 					'WWW-Authenticate': 'Basic realm="Feuillet", charset="UTF-8"',
 				});
 			}

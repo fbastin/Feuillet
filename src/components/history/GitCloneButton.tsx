@@ -60,6 +60,8 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 	const [access, setAccess] = useState<ProjectAccess | null | undefined>();
 	const [error, setError] = useState<string | null>(null);
 	const [linked, setLinked] = useState(accountSyncService.isLinked());
+	// Whether the account has a Git token yet; null when unknown.
+	const [hasToken, setHasToken] = useState<boolean | null>(null);
 
 	useEffect(() => {
 		const open = () => setIsOpen(true);
@@ -72,6 +74,13 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 		let current = true;
 		setAccess(undefined);
 		setError(null);
+		setHasToken(null);
+		accountSyncService
+			.gitTokens()
+			.then((tokens) => {
+				if (current && tokens) setHasToken(tokens.length > 0);
+			})
+			.catch(() => {});
 		accountSyncService
 			.projectAccess(projectId)
 			.then((found) => {
@@ -171,20 +180,36 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 												'Clone this project with Git and pull its changes. Your role lets you read it, not push to it.',
 											)}
 								</p>
-								<CopyField id='git-clone-command' value={command} mono />
-								<p className='ui-meta'>
-									{t(
-										'When Git asks for a password, give a Git token, which you make in your profile; your password does not work there.',
-									)}{' '}
-									<button
-										type='button'
-										className='link-button'
-										data-action='open-git-tokens'
-										onClick={openTokens}
-									>
-										{t('Make a Git token')}
-									</button>
-								</p>
+								<ol className='git-clone-steps'>
+									<li data-role='git-step-token'>
+										{hasToken === false
+											? t(
+													'Make a Git token first, in your profile: Git asks for one instead of your password.',
+												)
+											: t(
+													'Have one of your Git tokens at hand, or make another in your profile.',
+												)}{' '}
+										<button
+											type='button'
+											className='link-button'
+											data-action='open-git-tokens'
+											onClick={openTokens}
+										>
+											{t('Make a Git token')}
+										</button>
+									</li>
+									<li>
+										{t('Run this command in a terminal:')}
+										<CopyField id='git-clone-command' value={command} mono />
+									</li>
+									<li data-role='git-step-password'>
+										<strong>
+											{t(
+												'When Git asks “Password for …”, paste your Git token, which starts with fgt_: your Feuillet password does not work there.',
+											)}
+										</strong>
+									</li>
+								</ol>
 								<ul className='ui-meta git-clone-notes'>
 									<li>
 										{t(

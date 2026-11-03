@@ -33,7 +33,9 @@ Changer votre mot de passe les supprime tous. Un compte en a dix au plus.
 
 Le bouton **Git**, en haut de l'éditeur, donne la commande `git clone` du
 projet, avec votre nom de compte dans l'adresse. Lancez-la dans un
-terminal; quand Git demande un mot de passe, donnez votre jeton Git.
+terminal. Quand Git demande « Password for … », collez votre jeton Git, qui
+commence par `fgt_` : votre mot de passe Feuillet n'y fonctionne pas, et
+Feuillet le dit à Git (« This is not a Git token »).
 
 ```
 git clone -c user.name="alice" -c user.email="alice@example.org" https://alice@feuillet.slashbin.net/collab/git/<projet> "Thèse"
