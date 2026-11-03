@@ -30,7 +30,9 @@
 //    agrees (/mcp, mcp.js; /oauth/..., oauth.js);
 //  - shows its administrators the server's state and its accounts, which
 //    they may delete (/admin/..., admin.js), as Overleaf Server's admin
-//    panel.
+//    panel;
+//  - lets the owner and collaborators of a project clone it with Git, pull
+//    and push (/git/..., git.js), as Overleaf's Git integration.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:1234)
@@ -71,6 +73,8 @@
 //                       administration page; unset, none does
 //   BACKUP_STATUS_DIR   where deploy/backup.sh tells how the last backup
 //                       went, for that page
+//   GIT_BRIDGE_DIR      directory for the projects' Git repositories
+//                       (default ./git)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
 //   MAX_FILE_BYTES      largest accepted file (default 100 MiB)
 
@@ -86,6 +90,7 @@ const { createMailer } = require('./mail');
 const { createCompiler } = require('./compile');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
+const { createGitBridge } = require('./git');
 const { createGitHub } = require('./github');
 const { createHistory } = require('./history');
 const { createMcp } = require('./mcp');
@@ -113,6 +118,7 @@ const accountsDir = path.resolve(process.env.ACCOUNTS_DIR || 'accounts');
 const sharesDir = path.resolve(process.env.SHARES_DIR || 'shares');
 const historyDir = path.resolve(process.env.HISTORY_DIR || 'history');
 const mcpDir = path.resolve(process.env.MCP_DIR || 'mcp');
+const gitDir = path.resolve(process.env.GIT_BRIDGE_DIR || 'git');
 
 // LevelDB does not create parent directories, and y-websocket opens it as
 // soon as its module loads.
@@ -218,6 +224,7 @@ const eraseProject = async (project) => {
 	}
 	fs.rmSync(path.join(filesDir, project), { recursive: true, force: true });
 	await history.erase(project);
+	await gitBridge.erase(project);
 };
 
 const github = createGitHub({
@@ -253,6 +260,7 @@ const admin = createAdmin({
 		files: filesDir,
 		history: historyDir,
 		accounts: accountsDir,
+		git: gitDir,
 	},
 	backupStatusDir: process.env.BACKUP_STATUS_DIR
 		? path.resolve(process.env.BACKUP_STATUS_DIR)
@@ -277,21 +285,32 @@ const oauth = createOAuth({
 		.map((uri) => uri.trim())
 		.filter(Boolean),
 });
+const projectFiles = createProjectFiles({
+	docs,
+	persistence: getPersistence(),
+	getYDoc,
+	filesDir,
+});
 const mcp = createMcp({
 	oauth,
 	shares,
-	files: createProjectFiles({
-		docs,
-		persistence: getPersistence(),
-		getYDoc,
-		filesDir,
-	}),
+	files: projectFiles,
 	history,
 	compiler: createCompiler({
 		url: process.env.TEXLIVE_URL,
 		origin: process.env.TEXLIVE_ORIGIN || allowedOrigins[0],
 	}),
 	log,
+});
+
+const gitBridge = createGitBridge({
+	dir: gitDir,
+	accounts,
+	shares,
+	files: projectFiles,
+	history,
+	log,
+	maxFileBytes,
 });
 
 const reviewGuard = createReviewGuard({
@@ -432,6 +451,11 @@ const server = http.createServer((req, res) => {
 	}
 	if (oauth.handles(url)) {
 		void oauth.handle(req, res, url);
+		return;
+	}
+	// Git, with an account's Git token.
+	if (gitBridge.handles(url)) {
+		void gitBridge.handle(req, res, url);
 		return;
 	}
 
@@ -633,6 +657,7 @@ server.listen(port, host, () => {
 		`project links in ${sharesDir};`,
 		`versions in ${historyDir};`,
 		`assistant connections in ${mcpDir};`,
+		`Git repositories in ${gitDir};`,
 		process.env.TEXLIVE_URL ? 'assistants compile;' : 'assistants do not compile;',
 		github.enabled ? 'GitHub sign-in on;' : 'GitHub sign-in off;',
 		mailer ? 'recovery by email on;' : 'recovery by email off;',

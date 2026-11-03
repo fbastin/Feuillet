@@ -40,6 +40,8 @@ services:
       - collab-shares:/shares
       - collab-history:/history
       - collab-mcp:/mcp
+      # The projects' Git repositories (server/collab/git.js).
+      - collab-git:/git
       - /var/lib/feuillet/backup-status:/backup-status:ro
 
   # Compiles documents written by anyone who can open Feuillet: each
@@ -83,3 +85,4 @@ volumes:
   collab-shares:
   collab-history:
   collab-mcp:
+  collab-git:

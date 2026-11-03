@@ -39,6 +39,7 @@ import BackupStatusIndicator from '../backup/BackupStatusIndicator';
 import ChatPanel from '../chat/ChatPanel';
 import CollabStatusIndicator from '../collab/CollabStatusIndicator';
 import CollaboratorAvatars from '../common/CollaboratorAvatars';
+import GitCloneButton from '../history/GitCloneButton';
 import GitHubSyncButton from '../history/GitHubSyncButton';
 import { EditIcon, ProjectsIcon } from '../common/Icons';
 import Modal from '../common/Modal';
@@ -828,6 +829,14 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 						className='header-share-button'
 						onOpenShareModal={() => setShowShareModal(true)}
 					/>
+
+					{!isGuestUser(user) && !isOfflineMode && (
+						<GitCloneButton
+							className='header-git-clone'
+							docUrl={docUrl}
+							projectName={projectName}
+						/>
+					)}
 
 					{!isGuestUser(user) && !readOnly && (
 						<GitHubSyncButton

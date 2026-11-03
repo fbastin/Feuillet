@@ -210,6 +210,12 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 									<dd>{sizeOf(server.disk.versions)}</dd>
 									<dt>{t('Accounts')}</dt>
 									<dd>{sizeOf(server.disk.accounts)}</dd>
+									{server.disk.git !== undefined && (
+										<>
+											<dt>{t('Git repositories')}</dt>
+											<dd>{sizeOf(server.disk.git)}</dd>
+										</>
+									)}
 									{server.disk.free !== undefined && (
 										<>
 											<dt>{t('Free space')}</dt>

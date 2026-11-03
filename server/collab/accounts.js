@@ -39,6 +39,16 @@
 //   POST   /account/email/confirm {token}                -> {address}
 //   POST   /account/forgot    {login, language}          -> {sent: true}
 //   POST   /account/reset     {token, newPassword}       -> {username}
+//   GET    /account/git-tokens                           (token) -> {tokens}
+//   POST   /account/git-tokens {password, label}         (token) -> {token,
+//                                                        tokens}: a new Git
+//                                                        token, shown once
+//   POST   /account/git-tokens {revoke: id}              (token) -> {tokens}
+//
+// Git tokens, as Overleaf's Git authentication tokens: Git gives one, with
+// the account's name, to clone, pull and push its projects (git.js), never
+// the password. Only their hashes are kept; changing the password ends them,
+// as it signs the other devices out.
 //
 // Recovery by email, as on Overleaf, when the server can send mail
 // (mail.js): an account may give an address, kept once confirmed through a
@@ -68,6 +78,14 @@ const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS_PER_IP = 30;
 const MAX_FAILURES_PER_ACCOUNT = 10;
 const RECOVERY_CODES = 10;
+const MAX_GIT_TOKENS = 10;
+// Wrong Git tokens let through in 15 minutes, by address and by account;
+// right ones are not counted, as Git sends one with each request.
+const MAX_GIT_FAILURES_PER_IP = 30;
+const MAX_GIT_FAILURES_PER_ACCOUNT = 10;
+const GIT_TOKEN = /^fgt_[A-Za-z0-9_-]{43}$/;
+// Writing when a token was last used, at most this often.
+const GIT_TOUCH_MS = 60 * 60 * 1000;
 const EMAIL_CONFIRM_MS = 24 * 60 * 60 * 1000;
 const RESET_MS = 60 * 60 * 1000;
 // Emails one account may be sent in ATTEMPT_WINDOW_MS.
@@ -354,6 +372,19 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 
 	const clearFailures = (key) => attempts.delete(`failures:${key}`);
 
+	// Failures only: refused once there were `max` in the window.
+	const refuseAfter = (bucket, max) => {
+		const now = Date.now();
+		const recent = (attempts.get(bucket) ?? []).filter(
+			(time) => now - time < ATTEMPT_WINDOW_MS,
+		);
+		attempts.set(bucket, recent);
+		if (recent.length >= max) throw new HttpError(429, 'too_many_attempts');
+	};
+	const noteFailure = (bucket) => {
+		attempts.set(bucket, [...(attempts.get(bucket) ?? []), Date.now()]);
+	};
+
 	setInterval(() => {
 		const now = Date.now();
 		for (const [bucket, times] of attempts) {
@@ -572,6 +603,107 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 			log('recovery codes made');
 			return { changed: true, body: { codes, createdAt } };
 		});
+
+	// The account's Git tokens that still work: made with its password.
+	const gitTokensOf = (account) =>
+		(account.gitTokens ?? []).filter(
+			(entry) => entry.stamp === stampOf(account),
+		);
+	const listGitTokens = (account) =>
+		gitTokensOf(account)
+			.map(({ id, label, hint, createdAt, lastUsedAt }) => ({
+				id,
+				label,
+				hint,
+				createdAt,
+				...(lastUsedAt ? { lastUsedAt } : {}),
+			}))
+			.sort((a, b) => b.createdAt - a.createdAt);
+
+	const getGitTokens = (req) =>
+		authenticate(req, (account) => ({
+			body: { tokens: listGitTokens(account) },
+		}));
+
+	// A new Git token, shown only now; or one taken back.
+	const changeGitTokens = (req, body) =>
+		authenticate(req, async (account) => {
+			if (typeof body.revoke === 'string') {
+				const kept = gitTokensOf(account).filter(
+					(entry) => entry.id !== body.revoke,
+				);
+				const changed = kept.length !== (account.gitTokens ?? []).length;
+				account.gitTokens = kept;
+				if (changed) log('git token revoked');
+				return { changed, body: { tokens: listGitTokens(account) } };
+			}
+			if (!(await checkPassword(String(body.password), account.passwordHash))) {
+				throw new HttpError(401, 'wrong_password');
+			}
+			const label =
+				typeof body.label === 'string'
+					? body.label
+							// biome-ignore lint/suspicious/noControlCharactersInRegex: removes them.
+							.replace(/[\u0000-\u001f\u007f]/g, ' ')
+							.trim()
+							.slice(0, 60)
+					: '';
+			const kept = gitTokensOf(account);
+			if (kept.length >= MAX_GIT_TOKENS) {
+				throw new HttpError(409, 'too_many_tokens');
+			}
+			const token = `fgt_${crypto.randomBytes(32).toString('base64url')}`;
+			account.gitTokens = [
+				...kept,
+				{
+					id: crypto.randomBytes(8).toString('hex'),
+					label,
+					hint: token.slice(0, 8),
+					hash: sha256(`git:${token}`),
+					stamp: stampOf(account),
+					createdAt: Date.now(),
+				},
+			];
+			log('git token made');
+			return {
+				changed: true,
+				body: { token, tokens: listGitTokens(account) },
+			};
+		});
+
+	// Checks the account name and Git token that Git sends (git.js):
+	// {id, username}; wrong ones, counted, are refused for a while.
+	const verifyGitToken = async (username, token, ip) => {
+		refuseAfter(`git-ip:${ip}`, MAX_GIT_FAILURES_PER_IP);
+		const name = normalizeUsername(username);
+		const key = validUsername(name) ? keyOf(name) : null;
+		if (key) refuseAfter(`git-failures:${key}`, MAX_GIT_FAILURES_PER_ACCOUNT);
+		const fail = () => {
+			noteFailure(`git-ip:${ip}`);
+			if (key) noteFailure(`git-failures:${key}`);
+			return new HttpError(401, 'wrong_token');
+		};
+		if (!key || typeof token !== 'string' || !GIT_TOKEN.test(token)) {
+			throw fail();
+		}
+		const hash = sha256(`git:${token}`);
+		const found = await withAccount(key, (account) => {
+			if (!account) return null;
+			const entry = gitTokensOf(account).find((candidate) =>
+				sameHash(candidate.hash, hash),
+			);
+			if (!entry) return null;
+			const now = Date.now();
+			if (now - (entry.lastUsedAt ?? 0) >= GIT_TOUCH_MS) {
+				entry.lastUsedAt = now;
+				account.lastUsedAt = Math.max(account.lastUsedAt ?? 0, now);
+				write(key, account);
+			}
+			return { id: idOf(account), username: account.username };
+		});
+		if (!found) throw fail();
+		return found;
+	};
 
 	// A forgotten password: a recovery code, used up, lets the account
 	// choose a new one. Every device signs in again, and what was granted
@@ -1086,6 +1218,8 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		'POST /account/projects': (req, body) => syncProjects(req, body),
 		'GET /account/dictionary': (req) => getDictionary(req),
 		'POST /account/dictionary': (req, body) => syncDictionary(req, body),
+		'GET /account/git-tokens': (req) => getGitTokens(req),
+		'POST /account/git-tokens': (req, body) => changeGitTokens(req, body),
 		'GET /account/recovery': (req) => getRecovery(req),
 		'POST /account/recovery': (req, body) => createRecovery(req, body),
 		'POST /account/recover': (req, body) => recover(body, clientAddress(req)),
@@ -1142,6 +1276,8 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		hasConfirmedEmail,
 		summaries,
 		listedEntries,
+		verifyGitToken,
+		clientAddress,
 		removeAccount,
 		shareProject,
 		unshareProject,

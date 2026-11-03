@@ -1,6 +1,6 @@
 // server/collab/projectFiles.js
 // A project's files as the server holds them, for the assistants that work
-// on projects through mcp.js:
+// on projects through mcp.js and for Git (git.js):
 //
 //  - `<project>-file_sync`: the shared manifest, a Y.Map 'files' from path
 //    to {path, checksum, size, lastModified, documentId?, deleted,
@@ -170,8 +170,7 @@ const createProjectFiles = ({ docs, persistence, getYDoc, filesDir }) => {
 	 * Stores new contents for a file that is not open in the editor, or a new
 	 * file; collaborators' editors download it.
 	 */
-	const writeFile = async (project, filePath, text, updatedBy) => {
-		const bytes = Buffer.from(text, 'utf8');
+	const writeBytes = async (project, filePath, bytes, updatedBy) => {
 		const checksum = storeBytes(project, bytes);
 		await change(`${project}-file_sync`, (doc) => {
 			const files = doc.getMap('files');
@@ -189,7 +188,34 @@ const createProjectFiles = ({ docs, persistence, getYDoc, filesDir }) => {
 		return checksum;
 	};
 
-	return { manifest, settings, read, changeDocument, writeFile, storedBytes };
+	const writeFile = (project, filePath, text, updatedBy) =>
+		writeBytes(project, filePath, Buffer.from(text, 'utf8'), updatedBy);
+
+	/** Deletes a file; collaborators' editors delete it too. */
+	const removeFile = (project, filePath, updatedBy) =>
+		change(`${project}-file_sync`, (doc) => {
+			const files = doc.getMap('files');
+			const current = files.get(filePath);
+			if (!current || current.deleted) return false;
+			files.set(filePath, {
+				...current,
+				deleted: true,
+				lastModified: Math.max(Date.now(), (current.lastModified ?? 0) + 1),
+				updatedBy,
+			});
+			return true;
+		});
+
+	return {
+		manifest,
+		settings,
+		read,
+		changeDocument,
+		writeFile,
+		writeBytes,
+		removeFile,
+		storedBytes,
+	};
 };
 
 module.exports = { createProjectFiles, textOf, ORIGIN };

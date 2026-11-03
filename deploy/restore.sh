@@ -11,6 +11,9 @@ set -euo pipefail
 DOCKER=${FEUILLET_DOCKER:-docker}
 CONTAINER=feuillet-collab
 VOLUMES=(data files accounts shares history mcp)
+# In backups made since these volumes exist; one a backup does not hold
+# stays as it is (the Git repositories catch up with the projects).
+OPTIONAL_VOLUMES=(git)
 HERE=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 if [ -x "$HERE/feuillet-backup" ]; then
 	BACKUP=$HERE/feuillet-backup
@@ -38,6 +41,16 @@ for volume in "${VOLUMES[@]}"; do
 		exit 1
 	}
 done
+RESTORED=("${VOLUMES[@]}")
+for volume in "${OPTIONAL_VOLUMES[@]}"; do
+	archive=$source/$volume.tar.gz
+	[ -f "$archive" ] || continue
+	gzip -t "$archive" || {
+		echo "$archive is damaged." >&2
+		exit 1
+	}
+	RESTORED+=("$volume")
+done
 [ -f "$source/info.txt" ] && cat "$source/info.txt"
 
 if [ "$answer" != --yes ]; then
@@ -54,7 +67,7 @@ FEUILLET_BACKUP_KEEP=0 FEUILLET_BACKUP_NO_COPY=1 "$BACKUP"
 
 echo "== Restoring $source"
 $DOCKER stop "$CONTAINER" >/dev/null
-for volume in "${VOLUMES[@]}"; do
+for volume in "${RESTORED[@]}"; do
 	mount=$($DOCKER volume inspect --format '{{ .Mountpoint }}' "feuillet_collab-$volume")
 	[ -d "$mount" ] || {
 		echo "Volume feuillet_collab-$volume not found; $CONTAINER stays stopped." >&2

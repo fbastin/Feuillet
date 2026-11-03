@@ -38,6 +38,9 @@ BACKUP_STATUS_DIR=${BACKUP_STATUS_DIR:-/var/lib/feuillet/backup-status}
 DOCKER=${FEUILLET_DOCKER:-docker}
 CONTAINER=feuillet-collab
 VOLUMES=(data files accounts shares history mcp)
+# Volumes newer servers make (git: the projects' Git repositories), backed
+# up once they exist.
+OPTIONAL_VOLUMES=(git)
 STAMP_PATTERN='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}$'
 
 log() { echo "$(date -Is) $*"; }
@@ -77,13 +80,23 @@ chmod 700 "$BACKUP_DIR"
 
 # Where each volume is, and whether the backup fits.
 declare -A MOUNT
+TAKEN=()
 needed=0
 for volume in "${VOLUMES[@]}"; do
 	mount=$($DOCKER volume inspect --format '{{ .Mountpoint }}' "feuillet_collab-$volume") ||
 		fail "no volume feuillet_collab-$volume"
 	[ -d "$mount" ] || fail "volume feuillet_collab-$volume not found at $mount"
 	MOUNT[$volume]=$mount
-	size=$(du -sk "$mount" | cut -f1) || fail "cannot read $mount"
+	TAKEN+=("$volume")
+done
+for volume in "${OPTIONAL_VOLUMES[@]}"; do
+	mount=$($DOCKER volume inspect --format '{{ .Mountpoint }}' "feuillet_collab-$volume" 2>/dev/null) || continue
+	[ -d "$mount" ] || continue
+	MOUNT[$volume]=$mount
+	TAKEN+=("$volume")
+done
+for volume in "${TAKEN[@]}"; do
+	size=$(du -sk "${MOUNT[$volume]}" | cut -f1) || fail "cannot read ${MOUNT[$volume]}"
 	needed=$((needed + size))
 done
 free=$(df -Pk "$BACKUP_DIR" | awk 'NR == 2 { print $4 }')
@@ -113,7 +126,7 @@ if [ "$($DOCKER inspect --format '{{ .State.Running }}' "$CONTAINER" 2>/dev/null
 	paused=1
 fi
 # Read while paused, compressed after.
-for volume in "${VOLUMES[@]}"; do
+for volume in "${TAKEN[@]}"; do
 	tar -C "${MOUNT[$volume]}" -cf "$partial/$volume.tar" . || fail "could not read $volume"
 done
 resume
@@ -121,11 +134,11 @@ pause_seconds=$(($(date +%s) - started))
 
 {
 	echo "Feuillet backup of $(date -Is), server paused ${pause_seconds} s"
-	for volume in "${VOLUMES[@]}"; do
+	for volume in "${TAKEN[@]}"; do
 		echo "$volume: feuillet_collab-$volume, $(du -sk "${MOUNT[$volume]}" | cut -f1) KB, $(find "${MOUNT[$volume]}" -type f | wc -l) files"
 	done
 } >"$partial/info.txt"
-for volume in "${VOLUMES[@]}"; do
+for volume in "${TAKEN[@]}"; do
 	gzip "$partial/$volume.tar"
 	gzip -t "$partial/$volume.tar.gz" || fail "$volume.tar.gz is damaged"
 done

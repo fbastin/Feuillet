@@ -9,13 +9,19 @@ import { UserIcon } from '../common/Icons';
 import ProfileAccountIdentitySection from './ProfileAccountIdentitySection';
 import ProfileAssistantsSection from './ProfileAssistantsSection';
 import ProfileDevicesSection from './ProfileDevicesSection';
+import ProfileGitSection from './ProfileGitSection';
 import ProfileRecoveryEmailSection from './ProfileRecoveryEmailSection';
 import ProfileRecoverySection from './ProfileRecoverySection';
 import ProfileServerAccountSection from './ProfileServerAccountSection';
 import BrowserStorageSection from './ProfileBrowserStorageSection';
 import LocalStorageDataSection from './ProfileLocalStorageDataSection';
 
-export type ProfileSettingsTab = 'account' | 'devices' | 'data' | 'assistants';
+export type ProfileSettingsTab =
+	| 'account'
+	| 'devices'
+	| 'data'
+	| 'assistants'
+	| 'git';
 
 /** Opens the profile at a tab: {detail: {tab}}, from anywhere in the app. */
 export const OPEN_PROFILE_EVENT = 'open-profile-settings';
@@ -80,6 +86,14 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 				>
 					{t('Assistants')}
 				</button>
+				<button
+					type='button'
+					className={`ui-tab ${tab === 'git' ? 'active' : ''}`}
+					data-tab='git'
+					onClick={() => setTab('git')}
+				>
+					{t('Git')}
+				</button>
 			</div>
 
 			<br />
@@ -116,6 +130,8 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 				</>
 			) : tab === 'assistants' ? (
 				<ProfileAssistantsSection />
+			) : tab === 'git' ? (
+				<ProfileGitSection />
 			) : tab === 'devices' ? (
 				<ProfileDevicesSection />
 			) : (

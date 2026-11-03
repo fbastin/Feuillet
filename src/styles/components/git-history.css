@@ -713,9 +713,24 @@
 }
 
 @media (max-width: 760px) {
-	.github-sync-button-label {
+	.github-sync-button-label,
+	.git-clone-button-label {
 		display: none;
 	}
+}
+
+/* The project's Git address (src/components/history/GitCloneButton.tsx). */
+.git-clone-button {
+	white-space: nowrap;
+}
+
+.git-clone p {
+	margin: 0;
+}
+
+.git-clone-notes {
+	margin: 0;
+	padding-left: 1.2rem;
 }
 
 .github-sync-modal > section {

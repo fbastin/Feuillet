@@ -85,6 +85,27 @@ export interface AssistantConnection {
 	lastUsedAt: number;
 }
 
+/**
+ * A Git token, as the profile lists it: never the token itself, shown only
+ * when it is made (server/collab/accounts.js).
+ */
+export interface GitToken {
+	id: string;
+	label: string;
+	/** Its first characters, to tell it apart. */
+	hint: string;
+	createdAt: number;
+	lastUsedAt?: number;
+}
+
+const gitTokensOf = (result: { tokens?: unknown } | null): GitToken[] =>
+	Array.isArray(result?.tokens)
+		? (result.tokens as GitToken[]).filter(
+				(entry) =>
+					typeof entry?.id === 'string' && typeof entry.createdAt === 'number',
+			)
+		: [];
+
 // A device signed in to the account, as Overleaf's sessions list them.
 export interface AccountDevice {
 	id: string;
@@ -189,6 +210,8 @@ export interface AdminOverview {
 			files: number;
 			versions: number;
 			accounts: number;
+			/** The projects' Git repositories. */
+			git?: number;
 			free?: number;
 		};
 	};
@@ -793,6 +816,63 @@ class AccountSyncService {
 	 * New recovery codes for the account, replacing those it had, as
 	 * GitHub's: the server shows them only now and keeps their hashes.
 	 */
+	/**
+	 * The address Git clones a project from (server/collab/git.js), with the
+	 * account's name; null without a server account.
+	 */
+	gitCloneUrl(projectId: string): string | null {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session?.server) return null;
+		const url = new URL(
+			`${session.server.replace(/\/+$/, '')}/git/${projectLinkService.serverId(projectId)}`,
+		);
+		url.username = encodeURIComponent(session.username);
+		return url.toString();
+	}
+
+	/** The account's Git tokens; null without a server account. */
+	async gitTokens(): Promise<GitToken[] | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session) return null;
+		return gitTokensOf(
+			await this.request(session.server, 'GET', '/account/git-tokens', {
+				token: session.token,
+			}),
+		);
+	}
+
+	/** A new Git token, shown only now, and the tokens there are. */
+	async createGitToken(
+		password: string,
+		label: string,
+	): Promise<{ token: string; tokens: GitToken[] }> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session) throw new AccountServerError('signed_out', 401);
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/account/git-tokens',
+			{ token: session.token, body: { password, label } },
+		);
+		return { token: String(result?.token ?? ''), tokens: gitTokensOf(result) };
+	}
+
+	/** Takes a Git token back: Git can no longer use it. */
+	async revokeGitToken(id: string): Promise<GitToken[]> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session) throw new AccountServerError('signed_out', 401);
+		return gitTokensOf(
+			await this.request(session.server, 'POST', '/account/git-tokens', {
+				token: session.token,
+				body: { revoke: id },
+			}),
+		);
+	}
+
 	async createRecoveryCodes(
 		password: string,
 	): Promise<{ codes: string[]; createdAt: number } | null> {

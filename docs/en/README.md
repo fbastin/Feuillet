@@ -8,7 +8,7 @@ linked to GitHub. It runs at <https://feuillet.slashbin.net>.
 It comes from [TeXlyre](https://texlyre.org) and keeps its editor: LaTeX
 and Typst, a visual editor, spell checking, formulas, diagrams. It adds a
 server that keeps projects and accounts, with sharing, review, versions,
-compiling with TeX Live, GitHub sync and working with Claude.
+compiling with TeX Live, GitHub sync, Git and working with Claude.
 
 The interface is in French or English, as chosen in the settings; this
 guide names the buttons as they read in English.
@@ -24,9 +24,11 @@ guide names the buttons as they read in English.
    restoring.
 5. [GitHub](github.md): linking a project to a repository, pushing, pulling,
    working on your computer.
-6. [Claude](claude.md): letting Claude read, compile, comment on and suggest
+6. [Git](git.md): cloning a project with Git, pulling and pushing, without
+   GitHub.
+7. [Claude](claude.md): letting Claude read, compile, comment on and suggest
    changes to your projects.
-7. [Account and privacy](account.md): devices, password, deleting, what the
+8. [Account and privacy](account.md): devices, password, deleting, what the
    server keeps.
 
 ## What comes from TeXlyre

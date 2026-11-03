@@ -170,13 +170,38 @@ Assistants tab; changing the password ends them too.
 back only to Claude or to a program on the same computer; `MCP_REDIRECT_URIS`
 in `/etc/feuillet/collab.env` adds other addresses.
 
+## Git
+
+As Overleaf's Git integration, the collaboration server lets a project's
+owner and editors clone it with Git, pull and push, and its reviewers and
+readers clone and pull it (server/collab/git.js):
+
+```
+git clone https://alice@feuillet.slashbin.net/collab/git/<project>
+```
+
+Nothing needs setting up: the `/collab/` route carries it, and the image
+installs `git`. Git signs in with the account's name and a Git token, made
+in the profile's Git tab (never the password); only their hashes are kept,
+and changing the password ends them. Thirty wrong tokens from one address,
+or ten for one account, in a quarter of an hour, are refused for a while.
+
+Each project cloned has a bare repository in the `collab-git` volume
+(`GIT_BRIDGE_DIR`), whose `master` follows the project: before each clone,
+pull and push, the project as it is now becomes a commit "Update from
+Feuillet" when it changed, texts without their comments and tracked changes.
+A push must start from the latest commit; its changes go into the project at
+once, into open documents too, keeping comments and tracked changes on the
+text left. Other branches, tags, forced pushes, symbolic links and
+submodules are refused. Deleting a project deletes its repository.
+
 ## Backups
 
 `install.sh` sets up a backup of the collaboration server's data each night
 at 4:30 (`/etc/cron.d/feuillet-backup`, running `deploy/backup.sh` as
 `/usr/local/sbin/feuillet-backup`), and makes one before each update. It
-copies the six Docker volumes (documents, files, accounts, project links,
-versions, assistant connections), one archive each, into
+copies the Docker volumes (documents, files, accounts, project links,
+versions, assistant connections, Git repositories), one archive each, into
 `/var/backups/feuillet/<date>/`, readable by root only: they hold the
 accounts' password hashes. The latest 14 are kept, and
 `/var/log/feuillet-backup.log` tells how each went.
@@ -203,7 +228,8 @@ weeks at most.
 
 To put a backup back: everything changed since is lost from the server,
 but the current data is backed up first, so a restore can be undone the
-same way.
+same way. A backup made before the Git repositories existed leaves them as
+they are: their next commit brings them back to the projects restored.
 
 ```
 sudo ls /var/backups/feuillet

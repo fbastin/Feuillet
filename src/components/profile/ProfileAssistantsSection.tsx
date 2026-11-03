@@ -101,7 +101,7 @@ const ProfileAssistantsSection: React.FC = () => {
 					/>
 					<p className='ui-meta'>
 						{t(
-							'To have Claude Code work on a copy on your computer instead, link the project to a GitHub repository, clone it, and push its changes; then pull them in Feuillet.',
+							'To have Claude Code work on a copy on your computer instead, clone the project with Git (Git, at the top of the editor), then push its changes: they appear in Feuillet at once.',
 						)}
 					</p>
 

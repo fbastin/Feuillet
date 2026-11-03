@@ -256,12 +256,13 @@ const createAdmin = ({
 
 	const overview = async (req) => {
 		const caller = await requireAdmin(req);
-		const [files, versions, documents, accountBytes, freeBytes] =
+		const [files, versions, documents, accountBytes, gitBytes, freeBytes] =
 			await Promise.all([
 				sizesIn(dirs.files),
 				sizesIn(dirs.history),
 				dirs.documents ? sizeOf(dirs.documents) : Promise.resolve(0),
 				sizeOf(dirs.accounts),
+				dirs.git ? sizeOf(dirs.git) : Promise.resolve(0),
 				free(),
 			]);
 		const records = shares.census();
@@ -289,6 +290,7 @@ const createAdmin = ({
 					files: sum(files),
 					versions: sum(versions),
 					accounts: accountBytes,
+					git: gitBytes,
 					...(freeBytes !== null ? { free: freeBytes } : {}),
 				},
 			},
