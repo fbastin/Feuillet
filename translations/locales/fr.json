@@ -2998,6 +2998,7 @@
   "The server does not offer recovery codes yet.": "Le serveur n'offre pas encore de codes de récupération.",
   "The server is busy; try again in a moment.": "Le serveur est occupé; réessayez dans un instant.",
   "The server refused a change that was not tracked: as a reviewer, only tracked changes and comments go through. Reload to see the document as it is on the server.": "Le serveur a refusé une modification qui n'était pas suivie : en révision, seuls les modifications suivies et les commentaires sont acceptés. Rechargez pour retrouver le document tel qu'il est sur le serveur.",
+  "The server's backups, made each night, keep what was erased for two weeks at most; only the server's administrator can read them.": "Les sauvegardes du serveur, faites chaque nuit, gardent au plus deux semaines ce qui a été effacé; seul l'administrateur du serveur peut les lire.",
   "The site answered with error {status}.": "Le site a répondu par l'erreur {{status}}.",
   "The site did not send the file.": "Le site n'a pas envoyé le fichier.",
   "The site took too long to send the file.": "Le site a mis trop de temps à envoyer le fichier.",

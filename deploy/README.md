@@ -170,6 +170,50 @@ Assistants tab; changing the password ends them too.
 back only to Claude or to a program on the same computer; `MCP_REDIRECT_URIS`
 in `/etc/feuillet/collab.env` adds other addresses.
 
+## Backups
+
+`install.sh` sets up a backup of the collaboration server's data each night
+at 4:30 (`/etc/cron.d/feuillet-backup`, running `deploy/backup.sh` as
+`/usr/local/sbin/feuillet-backup`), and makes one before each update. It
+copies the six Docker volumes (documents, files, accounts, project links,
+versions, assistant connections), one archive each, into
+`/var/backups/feuillet/<date>/`, readable by root only: they hold the
+accounts' password hashes. The latest 14 are kept, and
+`/var/log/feuillet-backup.log` tells how each went.
+
+The collaboration server is paused while the volumes are read, usually a
+few seconds; open connections wait. The TeX Live server keeps nothing, and
+everything else comes from this repository, except
+`/etc/feuillet/collab.env`, whose secrets are best kept elsewhere, such as
+in a password manager.
+
+These backups are on the server's own disk: if it fails, they go with it.
+To also copy each one off this machine, with rsync over SSH (root's SSH key
+must open that account), and keep another number of them:
+
+```
+# /etc/feuillet/backup.env
+BACKUP_COPY_TO=user@other-host:feuillet-backups/
+BACKUP_KEEP=14
+```
+
+The copies there are not removed by `backup.sh`: remove the old ones there
+too, since the privacy page says that backups keep what was erased for two
+weeks at most.
+
+To put a backup back: everything changed since is lost from the server,
+but the current data is backed up first, so a restore can be undone the
+same way.
+
+```
+sudo ls /var/backups/feuillet
+sudo feuillet-restore /var/backups/feuillet/2026-11-03T043000
+```
+
+A backup can be looked at without restoring it:
+`sudo cat /var/backups/feuillet/<date>/info.txt`, or
+`sudo tar -tzf /var/backups/feuillet/<date>/accounts.tar.gz`.
+
 ## Updating
 
 - Servers and Apache routes: `sudo deploy/install.sh` again. It adds any
@@ -210,9 +254,9 @@ logrotate (14 days).
   (`ALLOWED_ORIGINS` in `docker-compose.yml`).
 - Files larger than 100 MiB are refused (`MAX_FILE_BYTES`).
 - `sudo docker logs feuillet-collab` shows each account created or deleted.
-  There is no e-mail, so a forgotten password cannot be reset; removing the
-  account file by hand frees its name (the projects themselves are kept,
-  unlike when the person deletes their account):
+  An account without a confirmed email address nor recovery codes cannot be
+  recovered; removing the account file by hand frees its name (the projects
+  themselves are kept, unlike when the person deletes their account):
   ```
   name=$(printf %s 'alice' | tr '[:upper:]' '[:lower:]' | sha256sum | cut -d' ' -f1)
   sudo docker exec feuillet-collab rm "/accounts/$name.json"

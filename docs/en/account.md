@@ -62,6 +62,9 @@ such as Claude lose their access.
 - **Delete Account** erases your account on the server and the projects you
   own, in the same way; you leave the others' projects.
 
+The server's backups, made each night, keep what was erased for two weeks
+at most; only the server's administrator can read them.
+
 ## What the server keeps
 
 The **Privacy** link, at the bottom of the page, says in detail what

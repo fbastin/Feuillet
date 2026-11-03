@@ -106,6 +106,9 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 				<p>
 					{t(
 						'In the project list, deleting one of your projects for good erases it from the server, with its documents, files and versions, for its collaborators as well; you may also leave a project shared with you. In your profile, you may disconnect an assistant, export your data and delete your account, which erases the projects you own from the server.',
+					)}{' '}
+					{t(
+						"The server's backups, made each night, keep what was erased for two weeks at most; only the server's administrator can read them.",
 					)}
 				</p>
 

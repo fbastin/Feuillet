@@ -2998,6 +2998,7 @@
   "The server does not offer recovery codes yet.": "The server does not offer recovery codes yet.",
   "The server is busy; try again in a moment.": "The server is busy; try again in a moment.",
   "The server refused a change that was not tracked: as a reviewer, only tracked changes and comments go through. Reload to see the document as it is on the server.": "The server refused a change that was not tracked: as a reviewer, only tracked changes and comments go through. Reload to see the document as it is on the server.",
+  "The server's backups, made each night, keep what was erased for two weeks at most; only the server's administrator can read them.": "The server's backups, made each night, keep what was erased for two weeks at most; only the server's administrator can read them.",
   "The site answered with error {status}.": "The site answered with error {{status}}.",
   "The site did not send the file.": "The site did not send the file.",
   "The site took too long to send the file.": "The site took too long to send the file.",

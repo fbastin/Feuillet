@@ -67,6 +67,9 @@ assistants comme Claude perdent leur accès.
   dont vous êtes propriétaire, de la même façon; vous quittez les projets des
   autres.
 
+Les sauvegardes du serveur, faites chaque nuit, gardent au plus deux
+semaines ce qui a été effacé; seul l'administrateur du serveur peut les lire.
+
 ## Ce que garde le serveur
 
 Le lien **Confidentialité**, en bas de la page, dit en détail ce que garde le
