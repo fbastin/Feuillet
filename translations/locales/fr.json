@@ -2228,7 +2228,7 @@
   "On no list, not even its owner's": "Sur aucune liste, pas même celle de son propriétaire",
   "Online": "En ligne",
   "Only non-linked files (files not connected to documents) are synchronized": "Seuls les fichiers non liés (fichiers non connectés à des documents) sont synchronisés",
-  "Only the master branch is kept. Your commits keep the name and address Git gives them, which collaborators who clone the project see.": "Seule la branche master est gardée. Vos commits gardent le nom et l'adresse que Git leur donne, que voient les collaborateurs qui clonent le projet.",
+  "Only the master branch is kept. With this command, the clone signs your commits with your name in Feuillet; they keep the address your Git gives them, which collaborators who clone the project see.": "Seule la branche master est gardée. Avec cette commande, le clone signe vos commits de votre nom dans Feuillet; ils gardent l'adresse que leur donne votre Git, que voient les collaborateurs qui clonent le projet.",
   "Only the project's editors can change this": "Seuls les éditeurs du projet peuvent modifier ce réglage",
   "Only the project's owner can replace the editing link.": "Seul le propriétaire du projet peut remplacer le lien de modification.",
   "Only the project's owner invites collaborators. Send someone a link below, or ask the owner to invite them.": "Seul le propriétaire du projet invite des collaborateurs. Envoyez à quelqu'un l'un des liens ci-dessous, ou demandez au propriétaire de l'inviter.",

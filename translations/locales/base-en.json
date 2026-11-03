@@ -2405,7 +2405,7 @@
   "On no list, not even its owner's": "On no list, not even its owner's",
   "Online": "Online",
   "Only non-linked files (files not connected to documents) are synchronized": "Only non-linked files (files not connected to documents) are synchronized",
-  "Only the master branch is kept. Your commits keep the name and address Git gives them, which collaborators who clone the project see.": "Only the master branch is kept. Your commits keep the name and address Git gives them, which collaborators who clone the project see.",
+  "Only the master branch is kept. With this command, the clone signs your commits with your name in Feuillet; they keep the address your Git gives them, which collaborators who clone the project see.": "Only the master branch is kept. With this command, the clone signs your commits with your name in Feuillet; they keep the address your Git gives them, which collaborators who clone the project see.",
   "Only the project's editors can change this": "Only the project's editors can change this",
   "Only the project's owner can replace the editing link.": "Only the project's owner can replace the editing link.",
   "Only the project's owner invites collaborators. Send someone a link below, or ask the owner to invite them.": "Only the project's owner invites collaborators. Send someone a link below, or ask the owner to invite them.",

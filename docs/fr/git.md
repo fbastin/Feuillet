@@ -36,7 +36,7 @@ projet, avec votre nom de compte dans l'adresse. Lancez-la dans un
 terminal; quand Git demande un mot de passe, donnez votre jeton Git.
 
 ```
-git clone https://alice@feuillet.slashbin.net/collab/git/<projet> "Thèse"
+git clone -c user.name="alice" https://alice@feuillet.slashbin.net/collab/git/<projet> "Thèse"
 ```
 
 Le propriétaire du projet et ses éditeurs le clonent, tirent et poussent;
@@ -66,6 +66,19 @@ document, les commentaires et les modifications suivies du texte que vous
 n'avez pas touché restent où ils étaient. Un fichier que vous supprimez,
 renommez ou ajoutez dans Git est supprimé, renommé ou ajouté dans Feuillet.
 
-Vos commits gardent le nom et l'adresse que Git leur donne (`git config
-user.name` et `user.email`), que voient les collaborateurs qui clonent le
-projet.
+Votre nom dans Feuillet et l'auteur de vos commits sont deux choses
+distinctes. Pour vous connecter, Git envoie le nom de compte qui est dans
+l'adresse, avec votre jeton; c'est lui que Feuillet vérifie, et l'historique
+du projet note **Git (votre nom de compte)**. L'auteur d'un commit, lui, est
+le nom et l'adresse que Git lui donne (`user.name` et `user.email`), que
+voient les collaborateurs qui clonent le projet; Feuillet ne s'en sert pas.
+
+La commande du bouton **Git** règle `user.name` du clone sur votre nom dans
+Feuillet (`-c user.name=…`), celui que portent aussi les commits **Update
+from Feuillet** : vous apparaissez sous un seul nom. Vos autres dépôts n'en
+sont pas touchés. L'adresse reste celle de votre configuration Git; pour en
+donner une autre à ce clone seulement, lancez dans son dossier :
+
+```
+git config user.email "adresse que vos collaborateurs peuvent voir"
+```

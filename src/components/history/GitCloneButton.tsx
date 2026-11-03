@@ -2,9 +2,12 @@
 // The project's Git address, as Overleaf's Menu > Git: its owner and
 // editors clone it, pull and push; its reviewers and readers clone and pull
 // it (server/collab/git.js). Git signs in with a Git token from the profile.
+// The clone signs its commits with the name the editor shows, as the
+// commits Update from Feuillet do.
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
+import { useAuth } from '@/hooks/useAuth';
 import { t } from '@/i18n';
 import {
 	AccountServerError,
@@ -28,6 +31,14 @@ const folderOf = (name: string) =>
 		.replace(/^\.+/, '')
 		.slice(0, 80);
 
+// A value for the shell, in Unix shells, PowerShell and the Windows command
+// prompt alike when it holds only letters, digits, spaces and . _ @ + -;
+// otherwise in a Unix shell's single quotes.
+const quoted = (value: string) =>
+	/^[\p{L}\p{N} ._@+-]+$/u.test(value)
+		? `"${value}"`
+		: `'${value.replace(/'/g, "'\\''")}'`;
+
 interface GitCloneButtonProps {
 	className?: string;
 	docUrl: string;
@@ -40,6 +51,7 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 	projectName,
 }) => {
 	const projectId = docUrl.startsWith('yjs:') ? docUrl.slice(4) : '';
+	const { user } = useAuth();
 	const [isOpen, setIsOpen] = useState(false);
 	const [access, setAccess] = useState<ProjectAccess | null | undefined>();
 	const [error, setError] = useState<string | null>(null);
@@ -73,7 +85,10 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 
 	const url = linked ? accountSyncService.gitCloneUrl(projectId) : null;
 	const folder = folderOf(projectName);
-	const command = url ? `git clone ${url}${folder ? ` "${folder}"` : ''}` : '';
+	const author = user?.username ? ` -c user.name=${quoted(user.username)}` : '';
+	const command = url
+		? `git clone${author} ${url}${folder ? ` "${folder}"` : ''}`
+		: '';
 	const pushes = access?.role === 'owner' || access?.role === 'editor';
 
 	const openTokens = () => {
@@ -172,7 +187,7 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 											</li>
 											<li>
 												{t(
-													'Only the master branch is kept. Your commits keep the name and address Git gives them, which collaborators who clone the project see.',
+													'Only the master branch is kept. With this command, the clone signs your commits with your name in Feuillet; they keep the address your Git gives them, which collaborators who clone the project see.',
 												)}
 											</li>
 										</>

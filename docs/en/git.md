@@ -34,7 +34,7 @@ The **Git** button, at the top of the editor, gives the project's
 terminal; when Git asks for a password, give your Git token.
 
 ```
-git clone https://alice@feuillet.slashbin.net/collab/git/<project> "Thesis"
+git clone -c user.name="alice" https://alice@feuillet.slashbin.net/collab/git/<project> "Thesis"
 ```
 
 The project's owner and its editors clone, pull and push; its reviewers and
@@ -62,6 +62,19 @@ a document, the comments and tracked changes on the text you left stay where
 they were. A file you delete, rename or add in Git is deleted, renamed or
 added in Feuillet.
 
-Your commits keep the name and address Git gives them (`git config
-user.name` and `user.email`), which the collaborators who clone the project
-see.
+Your name in Feuillet and the author of your commits are two things. To
+sign in, Git sends the account name in the address, with your token; that
+is what Feuillet checks, and the project's history says **Git (your account
+name)**. A commit's author is the name and address Git gives it
+(`user.name` and `user.email`), which the collaborators who clone the
+project see; Feuillet does not use it.
+
+The **Git** button's command sets the clone's `user.name` to your name in
+Feuillet (`-c user.name=…`), the one the commits **Update from Feuillet**
+carry too: you appear under one name. Your other repositories are left as
+they are. The address stays your Git settings' one; to give this clone
+another, run in its folder:
+
+```
+git config user.email "address your collaborators may see"
+```
