@@ -1,9 +1,10 @@
 // src/components/profile/AdminModal.tsx
 // The administration page, as Overleaf Server's admin panel, for the
 // accounts named in the server's ADMIN_ACCOUNTS: the server's state, its
-// emails and its backups, and every account, which may be deleted with the
-// projects it owns. It shows neither email addresses nor projects, only how
-// each account uses the server.
+// emails and its backups, every account, which may be deleted with the
+// projects it owns, and the orphan projects, which may be deleted
+// (AdminOrphans). It shows neither email addresses nor projects' names or
+// contents, only how each account uses the server.
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -17,6 +18,7 @@ import {
 import { formatFileSize } from '../../utils/fileUtils';
 import { RefreshIcon, SettingsIcon } from '../common/Icons';
 import Modal from '../common/Modal';
+import AdminOrphans from './AdminOrphans';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // A backup each night: one older than this one was missed.
@@ -516,6 +518,12 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 								</div>
 							)}
 						</section>
+
+						<AdminOrphans
+							orphans={overview.orphans}
+							dayOf={dayOf}
+							onChanged={load}
+						/>
 
 						<p className='ui-meta'>
 							{t(

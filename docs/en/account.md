@@ -69,7 +69,9 @@ The server's administrator sees, on an administration page, each account's
 name, when it was made and last used, how many devices and projects it has,
 the space its projects take and whether its email address is confirmed, but
 neither the address nor the projects; they may delete an account, with the
-projects it owns.
+projects it owns, and the projects no one can find any more: those on no
+account's list, a guest's among them, and those whose owner's account was
+deleted.
 
 ## What the server keeps
 

@@ -385,14 +385,21 @@ const createShares = ({
 
 	// Whether an entry of an account's list names this project, by any of
 	// the links it keeps (mcp.js reads them the same way).
-	const names = (project) => (entry) =>
+	const linksOf = (entry) =>
 		[
 			entry.editId,
 			/^yjs:([A-Za-z0-9_-]+)/.exec(String(entry.docUrl ?? ''))?.[1],
 			entry.id,
-		].some(
-			// Deleted projects too, whose links no longer open them.
-			(id) => typeof id === 'string' && lookupLink(id)?.project === project,
+		].filter((id) => typeof id === 'string');
+	const names = (project) => (entry) =>
+		// Deleted projects too, whose links no longer open them.
+		linksOf(entry).some((id) => lookupLink(id)?.project === project);
+	// The projects an entry of an account's list names.
+	const projectsNamedBy = (entry) =>
+		new Set(
+			linksOf(entry)
+				.map((id) => lookupLink(id)?.project)
+				.filter(Boolean),
 		);
 
 	// A member gone, removed by the owner or leaving: the link of their role
@@ -577,8 +584,16 @@ const createShares = ({
 		}
 	};
 
-	// Every project not deleted, with its owner and members, for the
-	// administration page (admin.js).
+	// For the administration page (admin.js): deletes a project for good,
+	// or erases what remains of one deleted.
+	const purge = async (project) => {
+		if (!isProjectId(project)) return;
+		if (readProject(project).deleted) await eraseProject(project);
+		else await deleteProject(project);
+	};
+
+	// Every project, with its owner and members, and whether it was
+	// deleted, for the administration page (admin.js).
 	const census = () => {
 		const projects = [];
 		for (const file of fs.readdirSync(projectsDir)) {
@@ -591,11 +606,11 @@ const createShares = ({
 			} catch {
 				continue;
 			}
-			if (record.deleted) continue;
 			projects.push({
 				project,
 				owner: record.owner ?? null,
 				members: Object.keys(record.members ?? {}),
+				deleted: record.deleted === true,
 			});
 		}
 		return projects;
@@ -914,6 +929,8 @@ const createShares = ({
 		accessOf,
 		forgetAccount,
 		census,
+		projectsNamedBy,
+		purge,
 	};
 };
 

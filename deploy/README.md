@@ -242,11 +242,21 @@ the top right. It shows:
   how many projects it owns and is a member of, the space the projects it
   owns take, and whether its email address is confirmed. Neither the
   address nor the projects' names or contents are shown, as the privacy
-  page says.
+  page says;
+- the orphan projects, which no one can find any more: on no account's list
+  and owned by none ("No owner, on no list": a project made without an
+  account on the server, such as a guest's, is one),
+  owned by an account whose list no longer names them, left by an account
+  deleted before its projects went with it, or deleted but with contents
+  left on the disk. Of each it shows why, when it last changed, its members
+  and its space, and whether it is open now, under a key rather than its id.
 
 An account may be deleted there, once its name is typed, as its owner would
 from the profile: with the projects it owns, for their collaborators too.
 Neither one's own account nor another administrator's is deleted there.
+Orphan projects may be deleted there too, those checked at once, as their
+owner would: their documents, files and versions are erased, and none of
+their links opens them again. One claimed or listed meanwhile stays.
 
 The names are taken as they are: before deleting an account named in
 `ADMIN_ACCOUNTS`, take its name out, or someone could make an account with

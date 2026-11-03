@@ -848,6 +848,31 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		return list;
 	};
 
+	// The entries of every account's list, by the links they keep only
+	// (shares.js reads them), for the administration page to tell the
+	// projects no list names.
+	const listedEntries = () => {
+		const entries = [];
+		for (const file of fs.readdirSync(dir)) {
+			if (!/^[0-9a-f]{64}\.json$/.test(file)) continue;
+			let account;
+			try {
+				account = read(file.slice(0, -5));
+			} catch {
+				continue;
+			}
+			for (const entry of Object.values(account?.projects ?? {})) {
+				if (entry.deleted) continue;
+				entries.push({
+					id: entry.id,
+					editId: entry.editId,
+					docUrl: entry.docUrl,
+				});
+			}
+		}
+		return entries;
+	};
+
 	// An id for an account that a new account with the same name will not
 	// have.
 	const idOf = (account) => `${keyOf(account.username)}.${account.createdAt}`;
@@ -1116,6 +1141,7 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		usernameOf,
 		hasConfirmedEmail,
 		summaries,
+		listedEntries,
 		removeAccount,
 		shareProject,
 		unshareProject,

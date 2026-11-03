@@ -156,6 +156,25 @@ export interface AdminAccount {
 	admin: boolean;
 }
 
+/**
+ * A project no one can find any more, as the administration page shows it:
+ * under a key, never its id or name. "none": no account owns or lists it;
+ * "gone": the account that owned it was deleted; "unlisted": its owner's
+ * list no longer names it; "deleted": deleted, but its contents remain.
+ */
+export interface AdminOrphan {
+	key: string;
+	reason: 'none' | 'gone' | 'unlisted' | 'deleted';
+	members: number;
+	/** Its files and versions. */
+	bytes: number;
+	changedAt?: number;
+	/** Someone has it open now. */
+	open: boolean;
+}
+
+const ORPHAN_REASONS = ['none', 'gone', 'unlisted', 'deleted'];
+
 export interface AdminOverview {
 	/** The id of the account asking. */
 	you: string;
@@ -193,6 +212,7 @@ export interface AdminOverview {
 		failed?: { time: number; error: string };
 	} | null;
 	accounts: AdminAccount[];
+	orphans: AdminOrphan[];
 }
 
 export interface MembersChange {
@@ -698,6 +718,35 @@ class AccountSyncService {
 							typeof entry.username === 'string',
 					)
 				: [],
+			orphans: Array.isArray(result?.orphans)
+				? result.orphans.filter(
+						(entry: AdminOrphan) =>
+							typeof entry?.key === 'string' &&
+							ORPHAN_REASONS.includes(entry.reason),
+					)
+				: [],
+		};
+	}
+
+	/**
+	 * Deletes orphan projects for good from the administration page, by
+	 * their keys; those no longer orphans are skipped.
+	 */
+	async adminDeleteProjects(
+		keys: string[],
+	): Promise<{ deleted: number; skipped: number }> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!session) throw new AccountServerError('signed_out', 401);
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/admin/delete-projects',
+			{ token: session.token, body: { projects: keys } },
+		);
+		return {
+			deleted: Number(result?.deleted) || 0,
+			skipped: Number(result?.skipped) || 0,
 		};
 	}
 

@@ -10,21 +10,48 @@
 //                        true}: the account with this id, if it still has
 //                        this name; neither one's own nor another
 //                        administrator's
+//   POST /admin/delete-projects {projects: [key]} (token, admin) ->
+//                        {deleted, skipped}: the orphan projects with these
+//                        keys, deleted for good; those no longer orphans
+//                        are skipped
 //
 // Of each account it shows the name, when it was made and last used, its
 // signed-in devices, how many projects it owns and is a member of, the space
 // the projects it owns take, and whether its email address is confirmed;
 // never the address, the password, nor the projects' names or contents.
 //
+// Orphan projects are those no one can find any more: no account owns
+// them and none lists them ("none"), the account that owned them was
+// deleted ("gone"), their owner's list no longer names them ("unlisted"),
+// or they were deleted but their contents remain ("deleted"). Of each it
+// shows why, its members, its space, when it last changed and whether it is
+// open now, under a key made from its id, which is never shown: knowing an
+// id may let one edit the project.
+//
 // The backups' state comes from the files deploy/backup.sh writes in
 // BACKUP_STATUS_DIR: backup.json, the last backup made, and
 // backup-failed.json, the last that failed since.
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const MAX_BODY_BYTES = 4096;
+// Room for a thousand project keys.
+const MAX_BODY_BYTES = 64 * 1024;
+const MAX_PROJECTS = 1000;
 const ACCOUNT_ID = /^[0-9a-f]{64}\.[0-9]{1,16}$/;
+const PROJECT_KEY = /^[0-9a-f]{24}$/;
+// As shares.js: project ids, but not its read-only and review links.
+const PROJECT_ID =
+	/^(?!view[0-9a-f]{32}$)(?!review[0-9a-f]{32}$)[A-Za-z0-9_-]{1,100}$/;
+
+// What stands for a project on the page, in place of its id.
+const keyOf = (project) =>
+	crypto
+		.createHash('sha256')
+		.update(`project:${project}`)
+		.digest('hex')
+		.slice(0, 24);
 
 class HttpError extends Error {
 	constructor(status, code) {
@@ -74,6 +101,15 @@ const sizesIn = async (folder) => {
 };
 
 const sum = (sizes) => [...sizes.values()].reduce((a, b) => a + b, 0);
+
+// When a file or folder last changed; 0 when there is none.
+const mtimeOf = async (file) => {
+	try {
+		return (await fs.promises.stat(file)).mtimeMs;
+	} catch {
+		return 0;
+	}
+};
 
 const readStatus = (file) => {
 	try {
@@ -129,6 +165,8 @@ const createAdmin = ({
 	dirs = {},
 	backupStatusDir = '',
 	activity = () => ({ documents: 0, connections: 0 }),
+	openProjects = () => new Set(),
+	storedProjects = async () => new Set(),
 	startedAt = Date.now(),
 	log,
 }) => {
@@ -159,6 +197,63 @@ const createAdmin = ({
 		}
 	};
 
+	// When a project last changed: its last version, or the last file it
+	// was given.
+	const changedAt = async (project) =>
+		Math.max(
+			await mtimeOf(path.join(dirs.history ?? '', project, 'index.json')),
+			await mtimeOf(path.join(dirs.files ?? '', project)),
+		);
+
+	// The projects no one can find any more (see above), with their ids.
+	const orphansOf = async ({ records, files, versions }) => {
+		const stored = await storedProjects();
+		const open = openProjects();
+		const listed = new Set();
+		for (const entry of accounts.listedEntries()) {
+			for (const project of shares.projectsNamedBy(entry)) {
+				listed.add(project);
+			}
+		}
+		const recordOf = new Map(records.map((record) => [record.project, record]));
+		const ids = new Set([
+			...recordOf.keys(),
+			...files.keys(),
+			...versions.keys(),
+			...stored,
+		]);
+		const orphans = [];
+		for (const project of ids) {
+			if (!PROJECT_ID.test(project)) continue;
+			const record = recordOf.get(project);
+			const stays =
+				files.has(project) || versions.has(project) || stored.has(project);
+			const reason = record?.deleted
+				? stays
+					? 'deleted'
+					: null
+				: record?.owner && !accounts.usernameOf(record.owner)
+					? 'gone'
+					: listed.has(project)
+						? null
+						: record?.owner
+							? 'unlisted'
+							: 'none';
+			if (!reason) continue;
+			const time = await changedAt(project);
+			orphans.push({
+				project,
+				key: keyOf(project),
+				reason,
+				members: record && !record.deleted ? record.members.length : 0,
+				bytes: (files.get(project) ?? 0) + (versions.get(project) ?? 0),
+				...(time > 0 ? { changedAt: Math.round(time) } : {}),
+				open: open.has(project),
+			});
+		}
+		return orphans;
+	};
+
 	const overview = async (req) => {
 		const caller = await requireAdmin(req);
 		const [files, versions, documents, accountBytes, freeBytes] =
@@ -169,7 +264,9 @@ const createAdmin = ({
 				sizeOf(dirs.accounts),
 				free(),
 			]);
-		const projects = shares.census();
+		const records = shares.census();
+		const projects = records.filter((record) => !record.deleted);
+		const orphans = await orphansOf({ records, files, versions });
 		const owned = new Map();
 		const memberOf = new Map();
 		for (const { project, owner, members } of projects) {
@@ -197,6 +294,8 @@ const createAdmin = ({
 			},
 			mail: mailer ? mailer.stats() : null,
 			backup: backupState(backupStatusDir),
+			// Never their ids.
+			orphans: orphans.map(({ project, ...orphan }) => orphan),
 			accounts: accounts.summaries().map((account) => {
 				const theirs = owned.get(account.id) ?? [];
 				return {
@@ -231,6 +330,43 @@ const createAdmin = ({
 		return { deleted: true };
 	};
 
+	const removeProjects = async (req, body) => {
+		const caller = await requireAdmin(req);
+		const keys = Array.isArray(body.projects) ? body.projects : null;
+		if (
+			!keys ||
+			keys.length === 0 ||
+			keys.length > MAX_PROJECTS ||
+			!keys.every((key) => typeof key === 'string' && PROJECT_KEY.test(key))
+		) {
+			throw new HttpError(400, 'invalid_projects');
+		}
+		const wanted = new Set(keys);
+		// Orphans as they are now: one claimed or listed since stays.
+		const [files, versions] = await Promise.all([
+			sizesIn(dirs.files),
+			sizesIn(dirs.history),
+		]);
+		const orphans = await orphansOf({
+			records: shares.census(),
+			files,
+			versions,
+		});
+		let deleted = 0;
+		for (const { project, key } of orphans) {
+			if (!wanted.has(key)) continue;
+			await shares.purge(project);
+			deleted++;
+		}
+		log(
+			'orphan projects deleted by an administrator:',
+			deleted,
+			'by',
+			JSON.stringify(caller.username),
+		);
+		return { deleted, skipped: wanted.size - deleted };
+	};
+
 	const readBody = (req) =>
 		new Promise((done, fail) => {
 			let size = 0;
@@ -259,6 +395,8 @@ const createAdmin = ({
 		'GET /admin': async (req) => ({ admin: (await who(req)).admin }),
 		'GET /admin/overview': (req) => overview(req),
 		'POST /admin/delete': async (req) => remove(req, await readBody(req)),
+		'POST /admin/delete-projects': async (req) =>
+			removeProjects(req, await readBody(req)),
 	};
 
 	const handles = (url) => url === '/admin' || url.startsWith('/admin/');
@@ -294,4 +432,4 @@ const createAdmin = ({
 	return { handles, handle, enabled: names.size > 0 };
 };
 
-module.exports = { createAdmin, backupState };
+module.exports = { createAdmin, backupState, keyOf };

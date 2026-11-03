@@ -74,7 +74,10 @@ L'administrateur du serveur voit, sur une page d'administration, le nom de
 chaque compte, quand il a été créé et utilisé pour la dernière fois, son
 nombre d'appareils et de projets, l'espace qu'occupent ses projets et si son
 adresse courriel est confirmée, mais ni l'adresse ni les projets; il peut
-supprimer un compte, avec les projets dont celui-ci est propriétaire.
+supprimer un compte, avec les projets dont celui-ci est propriétaire, ainsi
+que les projets que plus personne ne peut retrouver : ceux qui ne sont sur la
+liste d'aucun compte, dont ceux des invités, et ceux dont le compte
+propriétaire a été supprimé.
 
 ## Ce que garde le serveur
 

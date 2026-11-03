@@ -182,6 +182,16 @@ const shares = createShares({
 accounts.setProjectDescriber(shares.describe);
 accounts.setAccountDeleted((account) => shares.forgetAccount(account));
 
+// The projects these rooms belong to.
+const projectsOf = (rooms) => {
+	const projects = new Set();
+	for (const room of rooms) {
+		const project = room.match(PROJECT_ROOM)?.[1];
+		if (project) projects.add(project);
+	}
+	return projects;
+};
+
 // Erases a project deleted for good: its documents, open or stored, its
 // files and its versions. shares.js has already cut off its connections.
 const eraseProject = async (project) => {
@@ -248,6 +258,12 @@ const admin = createAdmin({
 		? path.resolve(process.env.BACKUP_STATUS_DIR)
 		: '',
 	activity: () => ({ documents: docs.size, connections: wss.clients.size }),
+	// The projects whose documents are open now, and stored.
+	openProjects: () => projectsOf(docs.keys()),
+	storedProjects: async () => {
+		const stored = getPersistence()?.provider;
+		return stored ? projectsOf(await stored.getAllDocNames()) : new Set();
+	},
 	log,
 });
 

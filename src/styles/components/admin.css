@@ -1,5 +1,5 @@
 /* The administration page (src/components/profile/AdminModal.tsx), wider
-   than other dialogs for its table of accounts. */
+   than other dialogs for its tables of accounts and orphan projects. */
 .ui-panel[data-role="modal"]:has(.admin-page) {
 	--ui-modal-width: min(1100px, calc(100vw - 2rem));
 }
@@ -55,14 +55,14 @@
 	overflow-x: auto;
 }
 
-.admin-accounts {
+.admin-table table {
 	width: 100%;
 	margin: 0;
 	border-collapse: collapse;
 }
 
-.admin-accounts th,
-.admin-accounts td {
+.admin-table th,
+.admin-table td {
 	padding: 4px var(--space-sm);
 	border-bottom: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
 	background: transparent;
@@ -72,24 +72,32 @@
 	vertical-align: middle;
 }
 
-.admin-accounts th {
+.admin-table th {
 	color: var(--pico-secondary);
 	font-weight: 600;
 	white-space: normal;
 	vertical-align: bottom;
 }
 
-.admin-accounts [data-align="end"] {
+.admin-table [data-align="end"] {
 	text-align: right;
 	font-variant-numeric: tabular-nums;
 }
 
-.admin-accounts .ui-badge {
+.admin-table .ui-badge {
 	margin-left: var(--space-xs);
 	font-size: var(--font-size-tiny);
 }
 
-.admin-accounts .button {
+.admin-table .button {
 	margin: 0;
 	padding: 2px var(--space-sm);
+}
+
+.admin-table input[type="checkbox"] {
+	margin: 0;
+}
+
+.admin-table code {
+	font-size: var(--font-size-tiny);
 }
