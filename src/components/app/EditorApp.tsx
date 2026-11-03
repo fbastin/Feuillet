@@ -844,6 +844,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 							projectId={sessionStorage.getItem('currentProjectId')}
 							projectName={projectName}
 							projectDescription={projectDescription}
+							offersGit={!isOfflineMode && docUrl.startsWith('yjs:')}
 						/>
 					)}
 

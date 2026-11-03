@@ -34,7 +34,7 @@ The **Git** button, at the top of the editor, gives the project's
 terminal; when Git asks for a password, give your Git token.
 
 ```
-git clone -c user.name="alice" https://alice@feuillet.slashbin.net/collab/git/<project> "Thesis"
+git clone -c user.name="alice" -c user.email="alice@example.org" https://alice@feuillet.slashbin.net/collab/git/<project> "Thesis"
 ```
 
 The project's owner and its editors clone, pull and push; its reviewers and
@@ -69,11 +69,13 @@ name)**. A commit's author is the name and address Git gives it
 (`user.name` and `user.email`), which the collaborators who clone the
 project see; Feuillet does not use it.
 
-The **Git** button's command sets the clone's `user.name` to your name in
-Feuillet (`-c user.name=…`), the one the commits **Update from Feuillet**
-carry too: you appear under one name. Your other repositories are left as
-they are. The address stays your Git settings' one; to give this clone
-another, run in its folder:
+The **Git** button's command sets the clone's author: `user.name` to your
+name in Feuillet, the one the commits **Update from Feuillet** carry too,
+and `user.email` to your profile's **Git commit email**, if it has one, the
+one pushes to [GitHub](github.md) use. You thus appear under one name and
+one address. Your other repositories are left as they are. Without a Git
+commit email in the profile, the address stays your Git settings' one. To
+change the address of a clone already made, run in its folder:
 
 ```
 git config user.email "address your collaborators may see"

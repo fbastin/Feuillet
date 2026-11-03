@@ -51,7 +51,18 @@ différences. **Délier le dépôt** défait le lien sans toucher ni au projet n
 
 ## Travailler sur son ordinateur
 
-Sous **Y travailler dans votre ordinateur, avec Claude Code**, la fenêtre
-donne la commande `git clone` du dépôt. Clonez-le, modifiez-le avec vos
-outils habituels ou avec [Claude Code](claude.md), poussez vos commits, puis
-**Récupérer depuis GitHub** dans Feuillet.
+Pour travailler sur votre ordinateur, avec vos outils habituels ou avec
+[Claude Code](claude.md), clonez le projet lui-même avec [Git](git.md) :
+le bouton **Git**, en haut de l'éditeur, en donne la commande, et la fenêtre
+GitHub y mène aussi (**Y travailler sur votre ordinateur**, **Cloner avec
+Git**). Vos push vont directement dans le projet; **Envoyer vers GitHub**
+les envoie ensuite vers GitHub, comme toute autre modification.
+
+Les deux sont indépendants : le dépôt GitHub et le dépôt Git de Feuillet ont
+chacun leur historique. Un clone pousse donc vers l'endroit d'où il vient;
+Feuillet refuse les push d'un clone du dépôt GitHub.
+
+Pour un projet qui n'est que dans votre navigateur, sans le serveur, la
+fenêtre donne plutôt la commande `git clone` du dépôt GitHub : clonez-le,
+poussez vos commits vers GitHub, puis **Récupérer depuis GitHub** dans
+Feuillet.

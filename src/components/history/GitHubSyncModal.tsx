@@ -15,6 +15,7 @@ import { useSettings } from '@/hooks/useSettings';
 import {
 	DownloadIcon,
 	ExternalLinkIcon,
+	GitBranchIcon,
 	GitPushIcon,
 	UnlinkIcon,
 } from '@/components/common/Icons';
@@ -42,6 +43,7 @@ import type { SharedGitRemote } from '@/types/documents';
 import type { PendingGitImport } from '@/utils/gitPendingImport';
 import { ensureGitRemoteBranch, isRejectedToken } from '@/utils/gitUtils';
 import GitAccountTokenForm from './GitAccountTokenForm';
+import { OPEN_GIT_CLONE_EVENT } from './GitCloneButton';
 import GitRepositoryPicker, {
 	type GitRepositorySelection,
 } from './GitRepositoryPicker';
@@ -62,6 +64,10 @@ interface GitHubSyncModalProps {
 	pendingImport?: PendingGitImport | null;
 	// The repository a collaborator linked the project to.
 	sharedRemote?: SharedGitRemote;
+	// Whether the project's own Git address (GitCloneButton) is offered:
+	// the way to work on it on a computer, rather than a clone of the
+	// repository, whose history is another.
+	offersGit?: boolean;
 }
 
 type LinkMode = 'create' | 'existing';
@@ -96,6 +102,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	icon: ProviderIcon,
 	pendingImport,
 	sharedRemote,
+	offersGit = false,
 }) => {
 	const { user } = useAuth();
 	const { removeSecret } = useSecrets();
@@ -801,7 +808,35 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 					</span>
 				</div>
 				{renderStatus()}
-				{repositoryUrl ? (
+				{offersGit ? (
+					<details className='github-sync-clone' data-role='clone-with-git'>
+						<summary>{t('Work on it on your computer')}</summary>
+						<p className='ui-meta'>
+							{t(
+								'Clone the project itself with Git, from Git at the top of the editor: your pushes go straight into it, for your collaborators too, and “{action}” then sends them to {provider} like any other change. A clone of the {provider} repository has another history: {app} refuses its pushes.',
+								{
+									action: t('Push to {provider}', { provider: remoteName }),
+									provider: remoteName,
+									app: APP_NAME,
+								},
+							)}
+						</p>
+						<div className='ui-actions'>
+							<button
+								type='button'
+								className='button secondary'
+								data-action='open-git-from-remote'
+								onClick={() => {
+									onClose();
+									document.dispatchEvent(new CustomEvent(OPEN_GIT_CLONE_EVENT));
+								}}
+							>
+								<GitBranchIcon />
+								<span>{t('Clone with Git')}</span>
+							</button>
+						</div>
+					</details>
+				) : repositoryUrl ? (
 					<details className='github-sync-clone' data-role='clone-repository'>
 						<summary>
 							{t('Work on it on your computer, with Claude Code')}

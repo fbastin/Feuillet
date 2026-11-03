@@ -47,6 +47,8 @@ interface GitHubSyncButtonProps {
 	projectId: string | null;
 	projectName: string;
 	projectDescription: string;
+	// Whether the project's own Git address (GitCloneButton) is offered.
+	offersGit?: boolean;
 }
 
 const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
@@ -54,6 +56,7 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 	projectId,
 	projectName,
 	projectDescription,
+	offersGit = false,
 }) => {
 	const plugin = useMemo(findGitHubPlugin, []);
 	const [isOpen, setIsOpen] = useState(false);
@@ -190,6 +193,7 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 					icon={Icon}
 					pendingImport={pendingImport}
 					sharedRemote={remote ? undefined : shared}
+					offersGit={offersGit}
 				/>
 			) : null}
 		</>

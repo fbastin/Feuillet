@@ -3,7 +3,9 @@
 // editors clone it, pull and push; its reviewers and readers clone and pull
 // it (server/collab/git.js). Git signs in with a Git token from the profile.
 // The clone signs its commits with the name the editor shows, as the
-// commits Update from Feuillet do.
+// commits Update from Feuillet do, and the profile's Git commit email, as
+// pushes to GitHub do. OPEN_GIT_CLONE_EVENT opens it from elsewhere (the
+// GitHub window).
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
@@ -19,6 +21,8 @@ import { GitBranchIcon } from '../common/Icons';
 import Modal from '../common/Modal';
 import { OPEN_PROFILE_EVENT } from '../profile/ProfileSettingsModal';
 import ServerAccountLinkForm from '../profile/ServerAccountLinkForm';
+
+export const OPEN_GIT_CLONE_EVENT = 'open-git-clone';
 
 // A folder name for `git clone` from the project's name: letters, digits,
 // spaces, dots, dashes and underscores.
@@ -58,6 +62,12 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 	const [linked, setLinked] = useState(accountSyncService.isLinked());
 
 	useEffect(() => {
+		const open = () => setIsOpen(true);
+		document.addEventListener(OPEN_GIT_CLONE_EVENT, open);
+		return () => document.removeEventListener(OPEN_GIT_CLONE_EVENT, open);
+	}, []);
+
+	useEffect(() => {
 		if (!isOpen || !projectId || !linked) return;
 		let current = true;
 		setAccess(undefined);
@@ -85,7 +95,10 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 
 	const url = linked ? accountSyncService.gitCloneUrl(projectId) : null;
 	const folder = folderOf(projectName);
-	const author = user?.username ? ` -c user.name=${quoted(user.username)}` : '';
+	const email = user?.gitEmail?.trim() ?? '';
+	const author =
+		(user?.username ? ` -c user.name=${quoted(user.username)}` : '') +
+		(email ? ` -c user.email=${quoted(email)}` : '');
 	const command = url
 		? `git clone${author} ${url}${folder ? ` "${folder}"` : ''}`
 		: '';
@@ -186,9 +199,13 @@ const GitCloneButton: React.FC<GitCloneButtonProps> = ({
 												)}
 											</li>
 											<li>
-												{t(
-													'Only the master branch is kept. With this command, the clone signs your commits with your name in Feuillet; they keep the address your Git gives them, which collaborators who clone the project see.',
-												)}
+												{email
+													? t(
+															'Only the master branch is kept. With this command, the clone signs your commits with your name in Feuillet and the Git commit email of your profile, as pushes to GitHub do; collaborators who clone the project see them.',
+														)
+													: t(
+															'Only the master branch is kept. With this command, the clone signs your commits with your name in Feuillet, and with the address your Git gives them unless your profile has a Git commit email; collaborators who clone the project see them.',
+														)}
 											</li>
 										</>
 									)}

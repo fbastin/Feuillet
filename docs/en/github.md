@@ -49,7 +49,17 @@ project or its history.
 
 ## Working on your computer
 
-Under **Work on it on your computer, with Claude Code**, the window gives
-the repository's `git clone` command. Clone it, change it with your usual
-tools or with [Claude Code](claude.md), push your commits, then **Pull from
-GitHub** in Feuillet.
+To work on your computer, with your usual tools or with
+[Claude Code](claude.md), clone the project itself with [Git](git.md): the
+**Git** button, at the top of the editor, gives its command, and the GitHub
+window leads there too (**Work on it on your computer**, **Clone with
+Git**). Your pushes go straight into the project; **Push to GitHub** then
+sends them to GitHub, like any other change.
+
+The two are separate: the GitHub repository and Feuillet's Git repository
+each have their own history. A clone therefore pushes to where it came
+from; Feuillet refuses the pushes of a clone of the GitHub repository.
+
+For a project kept only in your browser, without the server, the window
+gives the GitHub repository's `git clone` command instead: clone it, push
+your commits to GitHub, then **Pull from GitHub** in Feuillet.
