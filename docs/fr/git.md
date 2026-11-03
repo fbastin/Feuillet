@@ -13,8 +13,17 @@ Git ne prend pas votre mot de passe Feuillet : il demande un jeton Git. Dans
 votre profil (**Paramètres du profil**, dans le menu de votre compte),
 l'onglet **Git** en crée un : dites à quoi il sert si vous le voulez
 (*Mon portable*), donnez votre mot de passe, puis **Créer un jeton Git**.
-Copiez-le aussitôt, dans votre gestionnaire de mots de passe ou dans celui
-de Git : il n'est affiché qu'une fois.
+Copiez-le aussitôt : il n'est affiché qu'une fois.
+
+Git le demande comme mot de passe, la première fois que vous clonez, tirez
+ou poussez. Git pour Windows et Git sur macOS le gardent ensuite pour vous.
+Ailleurs, gardez-le dans votre gestionnaire de mots de passe, ou lancez une
+fois cette commande pour que Git le garde, non chiffré, dans
+`~/.git-credentials` :
+
+```
+git config --global credential.helper store
+```
 
 L'onglet liste vos jetons, avec leur date de création et de dernière
 utilisation; **Supprimer** en retire un, que Git ne peut plus utiliser.

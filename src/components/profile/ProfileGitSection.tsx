@@ -127,11 +127,19 @@ const ProfileGitSection: React.FC = () => {
 							data-role='git-token-made'
 						>
 							<strong>
-								{t(
-									'Copy this token now, into your password manager or Git: it will not be shown again.',
-								)}
+								{t('Copy this token now: it will not be shown again.')}
 							</strong>
 							<CopyField id='git-token' value={made} mono />
+							<p className='ui-meta'>
+								{t(
+									'Git asks for it as the password, the first time you clone, pull or push. Git for Windows and Git on macOS then keep it for you. Elsewhere, keep it in your password manager, or run this command once so that Git keeps it, unencrypted, in ~/.git-credentials:',
+								)}
+							</p>
+							<CopyField
+								id='git-credential-store'
+								value='git config --global credential.helper store'
+								mono
+							/>
 						</div>
 					)}
 

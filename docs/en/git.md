@@ -12,8 +12,16 @@ once, for your collaborators too.
 Git does not take your Feuillet password: it asks for a Git token. In your
 profile (**Profile Settings**, in your account menu), the **Git** tab makes
 one: say what it is for if you wish (*My laptop*), give your password, then
-**Make a Git token**. Copy it at once, into your password manager or Git's:
-it is shown only once.
+**Make a Git token**. Copy it at once: it is shown only once.
+
+Git asks for it as the password, the first time you clone, pull or push.
+Git for Windows and Git on macOS then keep it for you. Elsewhere, keep it in
+your password manager, or run this command once so that Git keeps it,
+unencrypted, in `~/.git-credentials`:
+
+```
+git config --global credential.helper store
+```
 
 The tab lists your tokens, with when they were made and last used; **Delete**
 takes one back, and Git can no longer use it. Changing your password deletes
