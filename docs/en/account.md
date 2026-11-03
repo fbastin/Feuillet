@@ -39,9 +39,11 @@ Two ways, to prepare in your profile, **Account** tab:
   later in the profile, receives a link that confirms it, for 24 hours; it
   serves only once confirmed. If you forget your password, **Forgot your
   password?**, on the sign-in page, asks for your name or that address, and
-  sends a link there, valid one hour, to choose a new password. The address
-  serves only for that: it is shown to no one, nor written in your Git
-  commits. This is offered only if the server sends email.
+  sends a link there, valid one hour, to choose a new password. A confirmed
+  address also lets Feuillet send your invitations itself (see
+  [Collaborating](collaborating.md)). It is shown to no one, not even the
+  people you invite, nor written in your Git commits. This is offered only
+  if the server sends email.
 - **Recovery codes**: keep them somewhere safe; they are shown only once.
   **Forgot your password?**, then **I have a recovery code**, asks for your
   name, one of these codes and a new password. Each code works once; new

@@ -149,7 +149,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 
 					<li>
 						<Trans
-							i18nKey='<strong>Google (Gmail):</strong> the emails that confirm a recovery address, or send a link for a forgotten password, go through Gmail, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
+							i18nKey='<strong>Google (Gmail):</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through Gmail, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
 							components={{
 								strong: <strong />,
 								privacy: (

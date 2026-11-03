@@ -44,10 +44,18 @@
 //                                    deletes the project for good
 //   POST /share/copy {project, name} (token) -> {project}, a copy of the
 //                                               project the account owns
-//   POST /share/invites {project}    (token) -> {invites}, for the owner
+//   POST /share/invites {project}    (token) -> {invites, sends}, for the
+//                                    owner; `sends` tells whether Feuillet
+//                                    mails invitations: "yes", "unconfirmed"
+//                                    (not until the owner's email address is
+//                                    confirmed) or "no" (no mail server)
 //   POST /share/invites {project, create: {role}, name, type, email} ->
 //                                    {invite, invites}: a personal invitation
 //                                    link, and the address it is mailed to
+//   ... with send: true, language    and Feuillet mails it there: {mailed:
+//                                    true}, or {mailError} when it could not
+//   POST /share/invites {project, resend: invite, language} -> {mailed} or
+//                                    {mailError}: the invitation mailed again
 //   POST /share/invites {project, revoke: invite} -> {invites}
 //   POST /share/accept {invite}      (token) -> {project, role, name, type}:
 //                                    the account becomes a member
@@ -64,10 +72,13 @@
 // account copy it (copy.js); the copy is a new project the account owns.
 // Account lists tell who owns each project (`describe`).
 //
-// Invitations, as Overleaf's by email but without one: the owner makes a
-// link for a role and sends it; whoever opens it signed in, with an account
-// made then if need be, becomes a member with that role. A link works once,
-// for 30 days, and its owner may take it back before.
+// Invitations, as Overleaf's by email: the owner makes a link for a role,
+// and Feuillet mails it to the address given, or the owner sends it; whoever
+// opens it signed in, with an account made then if need be, becomes a member
+// with that role. A link works once, for 30 days, and its owner may take it
+// back before. Feuillet mails invitations only for an owner whose own email
+// address is confirmed, at most MAX_INVITE_MAILS a day for each owner (and
+// within mail.js's limits), and never says to whom an address belongs.
 //
 // Deleting a project for good, as on Overleaf, erases its documents, files
 // and versions (`eraseProject`, given by the server), takes it off every
@@ -97,6 +108,10 @@ const ROLES = ['editor', 'reviewer', 'reader'];
 const INVITE_ID = /^[0-9a-f]{48}$/;
 const INVITE_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_INVITES = 50;
+// Invitations one owner may have mailed in 24 hours.
+const MAX_INVITE_MAILS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const PROJECT_TYPES = ['latex', 'typst'];
 
 class HttpError extends Error {
@@ -122,7 +137,12 @@ const createShares = ({
 	onRevoke = () => {},
 	copyProject = null,
 	eraseProject = async () => {},
+	mailer = null,
+	appUrl = '',
 }) => {
+	const appBase = String(appUrl).replace(/\/+$/, '');
+	// When each owner had an invitation mailed, these 24 hours.
+	const inviteMails = new Map();
 	const projectsDir = path.join(dir, 'projects');
 	const viewsDir = path.join(dir, 'views');
 	const reviewsDir = path.join(dir, 'reviews');
@@ -589,6 +609,38 @@ const createShares = ({
 		return pending;
 	};
 
+	// Whether Feuillet mails this owner's invitations.
+	const sendsFor = (account) =>
+		!mailer ? 'no' : accounts.hasConfirmedEmail(account) ? 'yes' : 'unconfirmed';
+
+	// Mails an invitation; the reason when it cannot.
+	const mailInvite = async (account, invite, entry, language) => {
+		const sends = sendsFor(account);
+		if (sends !== 'yes') {
+			return { mailError: sends === 'no' ? 'mail_disabled' : 'email_unconfirmed' };
+		}
+		const since = Date.now() - DAY_MS;
+		const recent = (inviteMails.get(account) ?? []).filter((at) => at > since);
+		if (recent.length >= MAX_INVITE_MAILS) return { mailError: 'mail_quota' };
+		inviteMails.set(account, [...recent, Date.now()]);
+		try {
+			await mailer.send('invite', {
+				to: entry.email,
+				language,
+				inviter: accounts.usernameOf(account) ?? '',
+				project: entry.name,
+				type: entry.type,
+				role: entry.role,
+				link: `${appBase}/#invite:${invite}`,
+			});
+			return { mailed: true };
+		} catch (error) {
+			return {
+				mailError: error?.code === 'mail_quota' ? 'mail_quota' : 'mail_failed',
+			};
+		}
+	};
+
 	const shareInvites = async (req, body) => {
 		const found = isProjectId(body.project) ? lookup(body.project) : null;
 		if (!found) throw new HttpError(400, 'invalid_project');
@@ -597,8 +649,10 @@ const createShares = ({
 		if (roleOf(readProject(project), account) !== 'owner') {
 			throw new HttpError(403, 'not_owner');
 		}
+		const language = /^fr\b/i.test(String(body.language ?? '')) ? 'fr' : 'en';
 
 		let created = null;
+		let mailing = {};
 		if (body.create && typeof body.create === 'object') {
 			const { role } = body.create;
 			if (!ROLES.includes(role)) throw new HttpError(400, 'invalid_role');
@@ -615,7 +669,7 @@ const createShares = ({
 				/^[^\s@]+@[^\s@]+$/.test(body.email)
 					? body.email
 					: undefined;
-			writeJson(invitePath(invite), {
+			const entry = {
 				project,
 				role,
 				...(email ? { email } : {}),
@@ -623,7 +677,8 @@ const createShares = ({
 				type: PROJECT_TYPES.includes(body.type) ? body.type : 'latex',
 				createdAt,
 				expiresAt,
-			});
+			};
+			writeJson(invitePath(invite), entry);
 			const record = readProject(project);
 			writeProject(project, {
 				...record,
@@ -637,6 +692,26 @@ const createShares = ({
 				...(email ? { email } : {}),
 			};
 			log('invitation made');
+			if (body.send === true) {
+				mailing = EMAIL.test(email ?? '')
+					? await mailInvite(account, invite, entry, language)
+					: { mailError: 'invalid_email' };
+			}
+		} else if (typeof body.resend === 'string') {
+			if (!INVITE_ID.test(body.resend)) {
+				throw new HttpError(400, 'invalid_invite');
+			}
+			const entry = readJson(invitePath(body.resend));
+			if (
+				entry?.project !== project ||
+				!(entry.expiresAt > Date.now()) ||
+				!(readProject(project).invites ?? []).includes(body.resend)
+			) {
+				throw new HttpError(404, 'unknown_invite');
+			}
+			mailing = EMAIL.test(entry.email ?? '')
+				? await mailInvite(account, body.resend, entry, language)
+				: { mailError: 'invalid_email' };
 		} else if (typeof body.revoke === 'string') {
 			if (!INVITE_ID.test(body.revoke)) {
 				throw new HttpError(400, 'invalid_invite');
@@ -646,7 +721,9 @@ const createShares = ({
 		}
 		return {
 			...(created ? { invite: created } : {}),
+			...mailing,
 			invites: pendingInvites(project),
+			sends: sendsFor(account),
 		};
 	};
 

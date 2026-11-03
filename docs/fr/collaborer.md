@@ -21,9 +21,11 @@ une adresse courriel, et choisissez un rôle :
 - **Lecture seule** : lit et compile le projet, sans le modifier.
 
 Un compte invité par son nom voit le projet apparaître dans sa liste. Pour
-une adresse courriel, Feuillet prépare une invitation personnelle et ouvre
-votre logiciel de courriel; le lien sert une seule fois, pendant 30 jours,
-et vous pouvez le reprendre avant.
+une adresse courriel, Feuillet envoie lui-même une invitation personnelle,
+comme Overleaf, si le courriel de votre compte est confirmé (voir
+[Compte](compte.md)); sinon, il ouvre votre logiciel de courriel avec
+l'invitation. Le lien sert une seule fois, pendant 30 jours, et vous pouvez
+le reprendre avant; **Renvoyer** l'envoie de nouveau.
 
 Seul le propriétaire du projet invite. Le projet appartient à qui l'a créé;
 pour un projet plus ancien, **Devenir propriétaire** le réclame.

@@ -56,10 +56,12 @@
 //                       (e.g. ws://texlive:7045); unset turns that off
 //   TEXLIVE_ORIGIN      the Origin to show it (default: the first of
 //                       ALLOWED_ORIGINS)
-//   SMTP_URL            the SMTP server for recovery emails (mail.js), such
-//                       as smtps://user:password@smtp.example.org; with
+//   SMTP_URL            the SMTP server for recovery emails and invitations
+//                       (mail.js), such as smtps://user:password@smtp.example.org;
+//                       with
 //   MAIL_FROM           their sender, such as "Feuillet <noreply@example.org>";
-//                       either unset turns recovery by email off
+//                       either unset turns emails off
+//   MAIL_DAILY_LIMIT    most emails sent in 24 hours (default 200)
 //   APP_URL             the application's address, for the links in emails
 //                       (default: the first of ALLOWED_ORIGINS)
 //   MAX_MESSAGE_BYTES   largest accepted WebSocket message (default 64 MiB)
@@ -133,12 +135,12 @@ const log = (...parts) =>
 const isAllowedOrigin = (origin) =>
 	allowedOrigins.length === 0 || allowedOrigins.includes(origin);
 
-// Recovery emails link to the application, never to an address a request
-// names.
+// Emails link to the application, never to an address a request names.
 const mailer = createMailer({
 	url: process.env.SMTP_URL,
 	from: process.env.MAIL_FROM,
 	log,
+	dailyLimit: Number(process.env.MAIL_DAILY_LIMIT) || undefined,
 });
 const accounts = createAccounts({
 	dir: accountsDir,
@@ -154,6 +156,8 @@ const shares = createShares({
 	dir: sharesDir,
 	log,
 	accounts,
+	mailer,
+	appUrl: process.env.APP_URL || allowedOrigins[0] || '',
 	onRevoke: (id) => {
 		for (const conn of connections.get(id) ?? []) {
 			conn.close(4403, 'Link replaced');

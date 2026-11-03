@@ -837,6 +837,20 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 			: null;
 	};
 
+	// Whether an account's email address is confirmed: Feuillet mails its
+	// invitations only then, so that whoever makes accounts cannot have it
+	// mail anyone.
+	const hasConfirmedEmail = (id) => {
+		const [key, createdAt] = String(id).split('.');
+		if (!/^[0-9a-f]{64}$/.test(key ?? '')) return false;
+		const account = read(key);
+		return Boolean(
+			account &&
+				String(account.createdAt) === createdAt &&
+				account.email?.address,
+		);
+	};
+
 	// The account with this username, or null.
 	const findAccount = (username) => {
 		const name = normalizeUsername(username);
@@ -1029,6 +1043,7 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		clientAddress,
 		findAccount,
 		usernameOf,
+		hasConfirmedEmail,
 		shareProject,
 		unshareProject,
 		setProjectDescriber,

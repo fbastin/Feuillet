@@ -2,12 +2,14 @@
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { t } from '@/i18n';
+import i18next, { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
 import {
 	AccountServerError,
+	type InviteMailing,
 	type MembersChange,
 	type ProjectInvite,
+	type ProjectInvites,
 	type ProjectMember,
 	accountSyncService,
 } from '../../services/AccountSyncService';
@@ -40,8 +42,8 @@ const errorMessage = (error: unknown): string => {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// The message an invitation by email opens in one's mail program, as
-// Feuillet sends no email itself.
+// The message an invitation by email opens in one's mail program, when
+// Feuillet does not send it itself.
 const mailtoInvitation = (
 	email: string,
 	link: string,
@@ -62,6 +64,15 @@ const mailtoInvitation = (
 	].join('\n\n');
 	return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 };
+
+// An invitation sent to an address: by Feuillet, or by one's mail program.
+interface Mailing {
+	email: string;
+	invite: string;
+	by: 'feuillet' | 'program';
+	/** Why Feuillet could not send it. */
+	error?: string;
+}
 
 const roleLabel = (role: ProjectMember['role']): string => {
 	if (role === 'editor') return t('Can edit');
@@ -88,8 +99,11 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 	const [invites, setInvites] = useState<ProjectInvite[] | null>(null);
 	const [inviteRole, setInviteRole] = useState<ProjectMember['role']>('editor');
 	const [newInvite, setNewInvite] = useState<string | null>(null);
-	// The address the newest invitation went to, to open the mail again.
-	const [mailedTo, setMailedTo] = useState<string | null>(null);
+	// Whether the server mails invitations, as Overleaf does.
+	const [sends, setSends] = useState<InviteMailing | null>(null);
+	// The newest invitation sent to an address.
+	const [mailing, setMailing] = useState<Mailing | null>(null);
+	const [sending, setSending] = useState(false);
 	// The member about to be made the owner, once confirmed.
 	const [newOwner, setNewOwner] = useState<string | null>(null);
 	const { user } = useAuth();
@@ -119,19 +133,25 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		async (update: {
 			create?: { role: ProjectMember['role'] };
 			revoke?: string;
+			resend?: string;
 			email?: string;
-		}): Promise<string | null> => {
+			send?: boolean;
+		}): Promise<ProjectInvites | null> => {
 			setError(null);
 			setBusy(true);
 			try {
 				const result = await accountSyncService.projectInvites(projectId, {
 					...update,
 					...(update.create ? { name: projectName, type: projectType } : {}),
+					...(update.send || update.resend
+						? { language: i18next.language }
+						: {}),
 				});
 				if (!result) return null;
 				setInvites(result.invites);
+				setSends(result.sends);
 				if (result.invite) setNewInvite(result.invite.invite);
-				return result.invite?.invite ?? null;
+				return result;
 			} catch (caught) {
 				setError(errorMessage(caught));
 				return null;
@@ -147,7 +167,9 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		accountSyncService
 			.projectInvites(projectId)
 			.then((result) => {
-				if (current) setInvites(result?.invites ?? null);
+				if (!current) return;
+				setInvites(result?.invites ?? null);
+				setSends(result?.sends ?? null);
 			})
 			.catch(() => {
 				if (current) setInvites(null);
@@ -177,12 +199,33 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		event.preventDefault();
 		const name = username.trim();
 		if (!name) return;
-		// An address, as on Overleaf: a personal invitation, mailed.
+		setMailing(null);
+		// An address, as on Overleaf: a personal invitation, mailed by
+		// Feuillet, or else by one's mail program.
 		if (EMAIL.test(name)) {
-			const created = await changeInvites({ create: { role }, email: name });
+			const byFeuillet = sends === 'yes';
+			setSending(byFeuillet);
+			const result = await changeInvites({
+				create: { role },
+				email: name,
+				...(byFeuillet ? { send: true } : {}),
+			});
+			setSending(false);
+			const created = result?.invite?.invite;
 			if (!created) return;
-			setMailedTo(name);
 			setUsername('');
+			if (byFeuillet) {
+				setMailing({
+					email: name,
+					invite: created,
+					by: 'feuillet',
+					...(result.mailed
+						? {}
+						: { error: result.mailError ?? 'mail_failed' }),
+				});
+				return;
+			}
+			setMailing({ email: name, invite: created, by: 'program' });
 			openMail(name, created);
 			return;
 		}
@@ -193,6 +236,31 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		});
 		if (added) setUsername('');
 	};
+
+	// As Overleaf's "Resend": the invitation mailed again.
+	const resend = async (invite: ProjectInvite) => {
+		if (!invite.email) return;
+		const result = await changeInvites({ resend: invite.invite });
+		if (!result) return;
+		setMailing({
+			email: invite.email,
+			invite: invite.invite,
+			by: 'feuillet',
+			...(result.mailed ? {} : { error: result.mailError ?? 'mail_failed' }),
+		});
+	};
+
+	const notSent = (mail: Mailing): string =>
+		mail.error === 'mail_quota'
+			? t(
+					'Feuillet has sent too many emails today, so the invitation to {email} was not sent: copy its link and send it yourself.',
+					{ email: mail.email },
+				)
+			: t(
+					'The invitation could not be sent to {email}: copy its link and send it yourself.',
+					{ email: mail.email },
+				);
+	const sentByFeuillet = mailing?.by === 'feuillet' && !mailing.error;
 
 	// As Overleaf's "Make owner": the member owns the project, and one stays
 	// on as an editor.
@@ -236,19 +304,65 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 				<button
 					type='submit'
 					className='button primary'
+					data-state={sending ? 'loading' : undefined}
 					disabled={busy || !username.trim()}
 				>
-					{t('Invite')}
+					{/* Sending may take some seconds. */}
+					{sending ? t('Sending…') : t('Invite')}
 				</button>
 			</form>
 			<p className='ui-meta'>
-				{t(
-					'Enter the name of their account on this server: they find the project in their list. Or enter their email address: your mail program opens with an invitation link to send them.',
-				)}{' '}
+				{sends === 'yes'
+					? t(
+							'Enter the name of their account on this server: they find the project in their list. Or enter their email address: Feuillet sends them an invitation.',
+						)
+					: t(
+							'Enter the name of their account on this server: they find the project in their list. Or enter their email address: your mail program opens with an invitation link to send them.',
+						)}{' '}
 				{t(
 					'Reviewers comment and suggest changes, which editors accept or reject.',
 				)}
+				{sends === 'unconfirmed' && (
+					<>
+						{' '}
+						<span data-role='invite-confirm-email'>
+							{t(
+								'For Feuillet to send invitations itself, confirm your account email in your profile.',
+							)}
+						</span>
+					</>
+				)}
 			</p>
+			{mailing?.by === 'feuillet' &&
+				(mailing.error ? (
+					<div
+						className='ui-message'
+						data-tone='warning'
+						data-role='invite-not-sent'
+					>
+						{notSent(mailing)}{' '}
+						<a
+							href={mailtoInvitation(
+								mailing.email,
+								inviteUrl(mailing.invite),
+								projectName,
+								user?.username ?? '',
+							)}
+						>
+							{t('Open it in my mail program')}
+						</a>
+					</div>
+				) : (
+					<div
+						className='ui-message'
+						data-tone='success'
+						data-role='invite-sent'
+					>
+						{t('The invitation was sent to {email}.', {
+							email: mailing.email,
+						})}
+					</div>
+				))}
 			{invites && (
 				<div className='ui-stack' data-gap='xs' data-role='share-invitations'>
 					<p className='ui-meta'>
@@ -276,40 +390,42 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 							data-action='create-invite'
 							disabled={busy}
 							onClick={() => {
-								setMailedTo(null);
+								setMailing(null);
 								void changeInvites({ create: { role: inviteRole } });
 							}}
 						>
 							{t('Make an invitation link')}
 						</button>
 					</div>
-					{newInvite && invites.some((entry) => entry.invite === newInvite) && (
-						<>
-							<CopyField
-								id='share-invite-url'
-								label={t('Send this link to the person you invite')}
-								value={inviteUrl(newInvite)}
-							/>
-							{mailedTo && (
-								<p className='ui-meta' data-role='invite-mailed'>
-									{t(
-										'Your mail program opened with the invitation for {email}. If not, copy the link and send it.',
-										{ email: mailedTo },
-									)}{' '}
-									<a
-										href={mailtoInvitation(
-											mailedTo,
-											inviteUrl(newInvite),
-											projectName,
-											user?.username ?? '',
-										)}
-									>
-										{t('Open the email again')}
-									</a>
-								</p>
-							)}
-						</>
-					)}
+					{newInvite &&
+						invites.some((entry) => entry.invite === newInvite) &&
+						!(sentByFeuillet && mailing?.invite === newInvite) && (
+							<>
+								<CopyField
+									id='share-invite-url'
+									label={t('Send this link to the person you invite')}
+									value={inviteUrl(newInvite)}
+								/>
+								{mailing?.by === 'program' && mailing.invite === newInvite && (
+									<p className='ui-meta' data-role='invite-mailed'>
+										{t(
+											'Your mail program opened with the invitation for {email}. If not, copy the link and send it.',
+											{ email: mailing.email },
+										)}{' '}
+										<a
+											href={mailtoInvitation(
+												mailing.email,
+												inviteUrl(newInvite),
+												projectName,
+												user?.username ?? '',
+											)}
+										>
+											{t('Open the email again')}
+										</a>
+									</p>
+								)}
+							</>
+						)}
 					{invites.length > 0 && (
 						<ul className='project-share-members' id='share-invites'>
 							{invites.map((invite) => (
@@ -331,6 +447,17 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 									<span className='ui-meta'>
 										{t('until {date}', { date: expiry(invite) })}
 									</span>
+									{invite.email && sends === 'yes' && (
+										<button
+											type='button'
+											className='button secondary'
+											data-action='resend-invite'
+											disabled={busy}
+											onClick={() => void resend(invite)}
+										>
+											{t('Resend')}
+										</button>
+									)}
 									<button
 										type='button'
 										className='button secondary'

@@ -41,9 +41,11 @@ Deux moyens, à préparer dans votre profil, onglet **Compte** :
   confirme, valable 24 heures; elle ne sert qu'une fois confirmée. Si vous
   oubliez votre mot de passe, **Mot de passe oublié?**, sur la page de
   connexion, demande votre nom ou cette adresse, et y envoie un lien,
-  valable une heure, pour choisir un nouveau mot de passe. L'adresse ne sert
-  qu'à cela : elle n'est montrée à personne, ni inscrite dans vos commits
-  Git. Ce moyen n'est offert que si le serveur envoie des courriels.
+  valable une heure, pour choisir un nouveau mot de passe. Une adresse
+  confirmée permet aussi à Feuillet d'envoyer lui-même vos invitations (voir
+  [Collaborer](collaborer.md)). Elle n'est montrée à personne, pas même aux
+  personnes invitées, ni inscrite dans vos commits Git. Ce moyen n'est
+  offert que si le serveur envoie des courriels.
 - **Codes de récupération** : gardez-les en lieu sûr; ils ne sont affichés
   qu'une fois. **Mot de passe oublié?**, puis **J'ai un code de
   récupération**, demande votre nom, l'un de ces codes et un nouveau mot de

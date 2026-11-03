@@ -97,13 +97,15 @@ The sign-in asks for the `repo` scope, as the personal access token does, so
 that private repositories can be synced. Leaving the file empty turns the
 button off; pasting a token keeps working either way.
 
-## Recovering accounts by email
+## Email: recovering accounts and invitations
 
-Accounts may give a recovery address, which a link mailed to it confirms; a
+Accounts may give an email address, which a link mailed to it confirms; a
 forgotten password then sends a link there, valid one hour, as on Overleaf
-(server/collab/mail.js). Without mail settings, this stays off and accounts
-recover with recovery codes only. The collaboration server sends through an
-SMTP server set in `/etc/feuillet/collab.env`:
+(server/collab/mail.js). Owners whose address is confirmed also have
+Feuillet mail their invitations to a project. Without mail settings, this
+stays off: accounts recover with recovery codes only, and invitations open
+the owner's mail program. The collaboration server sends through an SMTP
+server set in `/etc/feuillet/collab.env`:
 
 ```
 SMTP_URL=smtps://USER:PASSWORD@smtp.example.org:465
@@ -130,9 +132,18 @@ Docker network send through it (Postfix's `mynetworks`); the TeX Live
 container shares that network and runs anyone's documents, so it would be
 able to send mail too.
 
+So that whoever makes accounts cannot have the server mail anyone, and the
+mail provider close the sending account, the server sends at most 200
+emails in any 24 hours (`MAIL_DAILY_LIMIT` in `collab.env` changes it),
+invitations three quarters of them so that recovering accounts still
+works, 10 to one address, and 30 invitations for one owner. A refused
+invitation is still made: its owner copies the link or opens it in their
+mail program. These counts restart with the server.
+
 After `sudo deploy/install.sh`, the start line in
 `sudo docker logs feuillet-collab` says "recovery by email on". The server
-logs that a message was sent or not, never to which address.
+logs that a message was sent or not, or that a limit was reached, never to
+which address.
 
 ## Claude (MCP connector)
 

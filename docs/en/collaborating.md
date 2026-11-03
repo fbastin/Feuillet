@@ -21,8 +21,10 @@ email address, and choose a role:
 - **Read-only**: reads and compiles the project, without changing it.
 
 An account invited by name sees the project appear in its list. For an
-email address, Feuillet prepares a personal invitation and opens your email
-program; the link works once, for 30 days, and you may take it back before.
+email address, Feuillet sends a personal invitation itself, as Overleaf does,
+if your account email is confirmed (see [Account](account.md)); otherwise it
+opens your email program with the invitation. The link works once, for 30
+days, and you may take it back before; **Resend** sends it again.
 
 Only the project's owner invites. A project belongs to whoever created it;
 for an older project, **Become the owner** claims it.

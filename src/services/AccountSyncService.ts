@@ -104,6 +104,22 @@ export interface ProjectInvite {
 	email?: string;
 }
 
+/**
+ * Whether the server mails invitations: "yes", "unconfirmed" (not until the
+ * owner's account email is confirmed) or "no". Null from an older server.
+ */
+export type InviteMailing = 'yes' | 'unconfirmed' | 'no';
+
+export interface ProjectInvites {
+	invite?: ProjectInvite;
+	invites: ProjectInvite[];
+	sends: InviteMailing | null;
+	/** The invitation was mailed. */
+	mailed?: boolean;
+	/** Why it was not: mail_quota, mail_failed, email_unconfirmed... */
+	mailError?: string;
+}
+
 export interface RecoveryEmailStatus {
 	/** Whether the server sends mail at all. */
 	enabled: boolean;
@@ -474,11 +490,15 @@ class AccountSyncService {
 		change: {
 			create?: { role: ProjectMember['role'] };
 			revoke?: string;
+			resend?: string;
 			name?: string;
 			type?: string;
 			email?: string;
+			/** Have the server mail it, in this language. */
+			send?: boolean;
+			language?: string;
 		} = {},
-	): Promise<{ invite?: ProjectInvite; invites: ProjectInvite[] } | null> {
+	): Promise<ProjectInvites | null> {
 		const userId = this.userId;
 		const session = userId ? this.getSession(userId) : null;
 		if (!userId || !session) return null;
@@ -493,11 +513,21 @@ class AccountSyncService {
 		);
 		const valid = (entry: ProjectInvite) =>
 			typeof entry?.invite === 'string' && MEMBER_ROLES.includes(entry.role);
+		const sends: InviteMailing | null = ['yes', 'unconfirmed', 'no'].includes(
+			result?.sends,
+		)
+			? result.sends
+			: null;
 		return {
 			...(valid(result?.invite) ? { invite: result.invite } : {}),
 			invites: Array.isArray(result?.invites)
 				? result.invites.filter(valid)
 				: [],
+			sends,
+			...(result?.mailed === true ? { mailed: true } : {}),
+			...(typeof result?.mailError === 'string'
+				? { mailError: result.mailError }
+				: {}),
 		};
 	}
 
