@@ -110,9 +110,25 @@ formatted bibliography (`.bbl`), the BibTeX or Biber log (`.blg`), the
 `.aux`, and so on. A click downloads the file. The server keeps them while
 the editor stays open: after a long pause, compile again to get them.
 
-arXiv asks for the `.bbl` with the sources. Export the project (**Export
-Current Project** button of the files bar, **Files Only** format), then add
-the `.bbl` downloaded from this menu.
+### Submitting to arXiv
+
+In the export menu (the arrow next to the download button), **Package for
+arXiv (.zip)** compiles the project, then downloads an archive ready to
+upload to arXiv:
+
+- the project's sources, without what compiling writes (`.aux`, `.log`, the
+  document's PDF…) or hidden files;
+- the `.bbl` of that compile, named after the main document as arXiv asks,
+  since arXiv runs neither BibTeX nor Biber (and `.ind`, `.gls` or `.nls`
+  when there are some);
+- a `00README.json` file telling arXiv the main document, the compiler
+  (pdfLaTeX or XeLaTeX) and the TeX Live year. If the project has its own
+  `00README`, that one goes.
+
+The menu then says what the archive holds and what arXiv may refuse:
+LuaLaTeX, which arXiv does not offer; a main document outside the root,
+since arXiv compiles from the root; a bibliography without a `.bbl`; a
+biblatex `.bbl` in another format than arXiv's; compile errors.
 
 ### From text to PDF, and back
 

@@ -117,9 +117,26 @@ journal de BibTeX ou de Biber (`.blg`), le `.aux`, etc. Un clic télécharge le
 fichier. Le serveur les garde tant que l'éditeur reste ouvert : après une
 longue pause, compilez de nouveau pour les obtenir.
 
-arXiv demande le `.bbl` avec les sources. Exportez le projet (bouton
-**Exporter le projet actuel** de la barre des fichiers, format **Fichiers
-seulement**), puis ajoutez-y le `.bbl` téléchargé depuis ce menu.
+### Soumettre à arXiv
+
+Dans le menu d'exportation (la flèche à côté du bouton de téléchargement),
+**Paquet pour arXiv (.zip)** compile le projet puis télécharge une archive
+prête à téléverser sur arXiv :
+
+- les sources du projet, sans ce qu'écrit la compilation (`.aux`, `.log`,
+  le PDF du document…) ni les fichiers cachés;
+- le `.bbl` de cette compilation, au nom du document principal comme arXiv
+  le demande, car arXiv ne lance ni BibTeX ni Biber (et aussi `.ind`, `.gls`
+  ou `.nls` s'il y en a);
+- un fichier `00README.json` qui indique à arXiv le document principal, le
+  compilateur (pdfLaTeX ou XeLaTeX) et l'année de TeX Live. Si le projet a
+  déjà son propre `00README`, c'est le sien qui part.
+
+Le menu dit ensuite ce que contient l'archive et ce qu'arXiv pourrait
+refuser : LuaLaTeX, qu'arXiv n'offre pas; un document principal hors de la
+racine, car arXiv compile depuis la racine; une bibliographie sans `.bbl`;
+un `.bbl` de biblatex d'un autre format que celui d'arXiv; des erreurs de
+compilation.
 
 ### Du texte au PDF, et retour
 

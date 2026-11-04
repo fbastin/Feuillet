@@ -27,7 +27,15 @@ import {
 	type TypesetterFile,
 } from '../services/GenericTypesetterService';
 import {
+	type ArxivPackage,
+	arxivGeneratedPaths,
+	buildArxivPackage,
+	mainFileParts,
+} from '../utils/arxivPackage';
+import {
 	type DownloadableFile,
+	createArchiveFromFiles,
+	downloadArchiveFile,
 	downloadFile,
 	downloadFiles,
 } from '../utils/archiveUtils';
@@ -79,6 +87,15 @@ interface ExternalTypesetterContextType {
 	outputFiles: OutputFileEntry[];
 	/** Downloads one of them; false when the server no longer has it. */
 	downloadOutputFile: (providerId: string, path: string) => Promise<boolean>;
+	/**
+	 * Compiles, then downloads the project as arXiv takes it: its sources,
+	 * the .bbl, a 00README.json. Null when nothing could be made.
+	 */
+	exportArxivPackage: (
+		providerId: string,
+		mainFileName: string,
+		options?: Record<string, string | number | boolean>,
+	) => Promise<(ArxivPackage & { fileName: string }) | null>;
 }
 
 export const ExternalTypesetterContext =
@@ -375,6 +392,66 @@ export const ExternalTypesetterProvider: React.FC<
 		[loadFiles],
 	);
 
+	const exportArxivPackage = useCallback(
+		async (
+			providerId: string,
+			mainFileName: string,
+			options: Record<string, string | number | boolean> = {},
+		): Promise<(ArxivPackage & { fileName: string }) | null> => {
+			setIsExporting(true);
+			setCompileError(null);
+			try {
+				const files = await loadFiles();
+				const result = await genericTypesetterService.compile(providerId, {
+					mainFile: mainFileName,
+					format: 'pdf',
+					files,
+					options: { ...options, export: true },
+				});
+				setCompileLog(result.log);
+				const listed = outputFilesOf(result.artifacts);
+				setOutputFiles(listed);
+				const available = new Set(listed.map((file) => file.path));
+				const generated = [];
+				for (const path of arxivGeneratedPaths(mainFileName)) {
+					if (!available.has(path)) continue;
+					const content = await genericTypesetterService.fetchOutputFile(
+						providerId,
+						path,
+					);
+					if (content) generated.push({ path, content });
+				}
+				const made = buildArxivPackage({
+					mainFile: mainFileName,
+					engine: String(options.engine ?? 'pdflatex'),
+					files,
+					generated,
+					log: result.log,
+					status: result.status,
+				});
+				const fileName = `${mainFileParts(mainFileName).job}-arxiv.zip`;
+				const archive = await createArchiveFromFiles(
+					made.files.map((file) => ({
+						name: file.path,
+						content: file.content,
+						mimeType: 'application/octet-stream',
+					})),
+				);
+				downloadArchiveFile(archive, fileName);
+				setLogIndicator(result.status === 0 ? 'success' : 'error');
+				return { ...made, fileName };
+			} catch (error) {
+				setCompileError(error instanceof Error ? error.message : String(error));
+				setLogIndicator('error');
+				setCurrentView('log');
+				return null;
+			} finally {
+				setIsExporting(false);
+			}
+		},
+		[loadFiles],
+	);
+
 	const downloadOutputFile = useCallback(
 		async (providerId: string, path: string): Promise<boolean> => {
 			const content = await genericTypesetterService.fetchOutputFile(
@@ -430,6 +507,7 @@ export const ExternalTypesetterProvider: React.FC<
 				stopCompilation,
 				outputFiles,
 				downloadOutputFile,
+				exportArxivPackage,
 			}}
 		>
 			{children}

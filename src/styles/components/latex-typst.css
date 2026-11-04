@@ -247,3 +247,19 @@ embed {
 	padding-left: var(--space-md);
 	white-space: nowrap;
 }
+
+/* What the package for arXiv holds, and what to check. */
+.arxiv-made {
+	max-width: 22rem;
+	font-size: var(--font-size-small);
+	white-space: normal;
+}
+
+.arxiv-made ul {
+	margin: var(--space-xs) 0 0;
+	padding-left: 1.2rem;
+}
+
+.arxiv-made li {
+	margin-bottom: var(--space-xs);
+}

@@ -20,7 +20,9 @@ import {
 	GlobeIcon,
 	OptionsIcon,
 } from '../common/Icons';
+import type { ArxivPackage, ArxivWarning } from '../../utils/arxivPackage';
 import { getFilenameFromPath } from '../../utils/fileUtils';
+import { TEXLIVE_TYPESETTER_ID } from '../../utils/texliveTypesetter';
 import {
 	chooseLatexMainFile,
 	collectValues,
@@ -40,12 +42,45 @@ interface ExternalExportButtonProps {
 
 const LOG_FIELD_KEY = 'includeLog';
 
+// What arXiv may refuse or compile otherwise.
+const arxivWarningText = (warning: ArxivWarning): string => {
+	switch (warning) {
+		case 'lualatex':
+			return t(
+				'arXiv does not compile with LuaLaTeX: choose pdfLaTeX or XeLaTeX as the compiler.',
+			);
+		case 'not-at-root':
+			return t(
+				'arXiv compiles from the root of the archive: put the main document at the root of the project.',
+			);
+		case 'no-bbl':
+			return t(
+				'The compile made no .bbl, and arXiv runs neither BibTeX nor Biber: check the log.',
+			);
+		case 'biblatex-format':
+			return t(
+				'The .bbl of biblatex is not in the format of the TeX Live arXiv offers: arXiv may refuse it.',
+			);
+		case 'compile-errors':
+			return t(
+				'The compile had errors: arXiv may not compile the archive either.',
+			);
+	}
+};
+
 const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 	provider,
 	className = '',
 	linkedFileInfo,
 }) => {
-	const { isCompiling, isExporting, exportDocument } = useExternalTypesetter();
+	const { isCompiling, isExporting, exportDocument, exportArxivPackage } =
+		useExternalTypesetter();
+	const [arxivMade, setArxivMade] = useState<
+		(ArxivPackage & { fileName: string }) | null
+	>(null);
+	const [arxivBusy, setArxivBusy] = useState(false);
+	// arXiv needs the files TeX Live writes, which this server gives.
+	const offersArxiv = provider.id === TEXLIVE_TYPESETTER_ID;
 	const { selectedFileId, getFile, fileTree } = useFileTree();
 	const { getProperty, setProperty, registerProperty } = useProperties();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -169,8 +204,24 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 		setIsDropdownOpen(false);
 	}, [effectiveMainFile, fields, readValue, provider, exportDocument]);
 
+	const handleArxiv = useCallback(async () => {
+		if (!effectiveMainFile) return;
+		setArxivMade(null);
+		setArxivBusy(true);
+		const { options } = collectValues(fields, readValue);
+		delete options[LOG_FIELD_KEY];
+		try {
+			setArxivMade(
+				await exportArxivPackage(provider.id, effectiveMainFile, options),
+			);
+		} finally {
+			setArxivBusy(false);
+		}
+	}, [effectiveMainFile, fields, readValue, provider.id, exportArxivPackage]);
+
 	const toggleDropdown = (e: React.MouseEvent) => {
 		e.stopPropagation();
+		setArxivMade(null);
 		setIsDropdownOpen(!isDropdownOpen);
 	};
 
@@ -377,7 +428,57 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 						<ExportIcon />
 						{exportLabel}
 					</button>
+					{offersArxiv && (
+						<button
+							type='button'
+							className='button secondary'
+							data-action='export-arxiv'
+							onClick={() => void handleArxiv()}
+							disabled={isDisabled}
+							title={t(
+								'The sources with the .bbl and a 00README.json, as arXiv takes them',
+							)}
+						>
+							<ExportIcon />
+							{arxivBusy ? t('Exporting...') : t('Package for arXiv (.zip)')}
+						</button>
+					)}
 				</div>
+
+				{arxivMade && (
+					<div
+						className='ui-menu-section arxiv-made'
+						data-variant='control'
+						data-role='arxiv-made'
+						role='status'
+					>
+						<div>
+							{t(
+								'{name} downloaded: {files} files, for {compiler} and TeX Live {year}.',
+								{
+									name: arxivMade.fileName,
+									files: arxivMade.files.length,
+									compiler:
+										arxivMade.compiler === 'xelatex'
+											? 'XeLaTeX'
+											: arxivMade.compiler === 'pdflatex'
+												? 'pdfLaTeX'
+												: 'LuaLaTeX',
+									year: arxivMade.texLiveVersion,
+								},
+							)}
+						</div>
+						{arxivMade.warnings.length > 0 && (
+							<ul data-role='arxiv-warnings'>
+								{arxivMade.warnings.map((warning) => (
+									<li key={warning} data-warning={warning}>
+										{arxivWarningText(warning)}
+									</li>
+								))}
+							</ul>
+						)}
+					</div>
+				)}
 			</PositionedDropdown>
 		</div>
 	);
