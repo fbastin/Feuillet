@@ -213,18 +213,29 @@ everything else comes from this repository, except
 in a password manager.
 
 These backups are on the server's own disk: if it fails, they go with it.
-To also copy each one off this machine, with rsync over SSH (root's SSH key
-must open that account), and keep another number of them:
+`BACKUP_COPY_TO` also copies them elsewhere, each night bringing the
+backups the last ones missed, as when the other disk was away:
+
+- to a folder of another disk of this machine, such as a USB one, which
+  must exist (`sudo install -d -m 700 /media/usb/feuillet-backups`). A copy
+  is refused when the folder is missing or on the same disk as the backups,
+  as a mount point is when its disk is not there. It keeps the latest
+  `BACKUP_KEEP`, as here;
+- or off this machine, with rsync over SSH (root's SSH key must open that
+  account). The copies there are not removed by `backup.sh`: remove the old
+  ones there too, since the privacy page says that backups keep what was
+  erased for two weeks at most.
 
 ```
 # /etc/feuillet/backup.env
-BACKUP_COPY_TO=user@other-host:feuillet-backups/
+BACKUP_COPY_TO=/media/usb/feuillet-backups
+# or BACKUP_COPY_TO=user@other-host:feuillet-backups/
 BACKUP_KEEP=14
 ```
 
-The copies there are not removed by `backup.sh`: remove the old ones there
-too, since the privacy page says that backups keep what was erased for two
-weeks at most.
+A copy that fails leaves the backup made and shows on the administration
+page; `/var/log/feuillet-backup.log` says why. A copy restores as a backup
+does: `sudo feuillet-restore /media/usb/feuillet-backups/<date>`.
 
 To put a backup back: everything changed since is lost from the server,
 but the current data is backed up first, so a restore can be undone the

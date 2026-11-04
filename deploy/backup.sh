@@ -15,8 +15,13 @@
 # Optional settings, in /etc/feuillet/backup.env:
 #   BACKUP_DIR=/var/backups/feuillet   where backups go
 #   BACKUP_KEEP=14                     how many to keep (0: all)
-#   BACKUP_COPY_TO=user@host:feuillet/ also copy each one there with rsync,
-#                                      off this machine, whose disk could fail
+#   BACKUP_COPY_TO=user@host:feuillet/ also copy them there with rsync, off
+#                                      this machine, whose disk could fail;
+#                                      or to a folder of another disk, such
+#                                      as /media/usb/feuillet-backups, which
+#                                      must exist and keeps the latest
+#                                      BACKUP_KEEP too. Each copy brings the
+#                                      backups the last ones missed.
 #   BACKUP_STATUS_DIR=/var/lib/feuillet/backup-status
 #                                      where it tells how it went, for the
 #                                      administration page (server/collab/
@@ -144,25 +149,59 @@ for volume in "${TAKEN[@]}"; do
 done
 mv "$partial" "$target"
 
-# The latest BACKUP_KEEP; only folders this script made.
-removed=0
-if [ "$BACKUP_KEEP" -gt 0 ]; then
-	mapfile -t backups < <(find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | grep -E "$STAMP_PATTERN" | sort)
-	while [ "${#backups[@]}" -gt "$BACKUP_KEEP" ]; do
-		rm -rf "${BACKUP_DIR:?}/${backups[0]}"
-		backups=("${backups[@]:1}")
-		removed=$((removed + 1))
-	done
-fi
+# The backups of a folder, oldest first: only folders this script made.
+backups_in() {
+	find "$1" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | grep -E "$STAMP_PATTERN" | sort || true
+}
+# Keeps the latest BACKUP_KEEP of a folder; says how many went.
+keep_latest() {
+	local dir=$1 gone=0
+	if [ "$BACKUP_KEEP" -gt 0 ]; then
+		mapfile -t backups < <(backups_in "$dir")
+		while [ "${#backups[@]}" -gt "$BACKUP_KEEP" ]; do
+			rm -rf "${dir:?}/${backups[0]}"
+			backups=("${backups[@]:1}")
+			gone=$((gone + 1))
+		done
+	fi
+	echo "$gone"
+}
+removed=$(keep_latest "$BACKUP_DIR")
+
+# Copies every backup kept here that is not there yet, so that a night the
+# other disk or host was away is made up for; why not, when it cannot.
+copy_backups() {
+	local dest=$BACKUP_COPY_TO
+	mapfile -t backups < <(backups_in "$BACKUP_DIR")
+	local sources=("${backups[@]/#/$BACKUP_DIR/}")
+	if [[ $dest != /* ]]; then
+		# Another host, whose old copies are its own to remove.
+		rsync -a "${sources[@]}" "$dest" || { echo "rsync failed"; return 1; }
+		return 0
+	fi
+	dest=${dest%/}
+	# A disk that is not there leaves its mount point, an empty folder of
+	# the system's disk: the copies would not be on another disk.
+	[ -d "$dest" ] || { echo "$dest is missing: is its disk there?"; return 1; }
+	if [ -z "${FEUILLET_BACKUP_ANY_DISK:-}" ] &&
+		[ "$(stat -c %d "$dest")" = "$(stat -c %d "$BACKUP_DIR")" ]; then
+		echo "$dest is on the same disk as $BACKUP_DIR"
+		return 1
+	fi
+	rsync -a "${sources[@]}" "$dest/" || { echo "rsync failed"; return 1; }
+	# As many as here: the privacy page says backups keep what was erased
+	# for two weeks at most.
+	keep_latest "$dest" >/dev/null
+}
 
 status=0
 copy=none
 if [ -n "$BACKUP_COPY_TO" ]; then
-	if rsync -a "$target" "$BACKUP_COPY_TO"; then
+	if why=$(copy_backups 2>&1); then
 		log "copied $stamp to $BACKUP_COPY_TO"
 		copy=done
 	else
-		log "could not copy $stamp to $BACKUP_COPY_TO"
+		log "could not copy $stamp to $BACKUP_COPY_TO: ${why:-rsync failed}"
 		status=1
 		copy=failed
 	fi
