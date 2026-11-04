@@ -18,12 +18,32 @@ at their next sync, within a few minutes or on reloading the page. The
 servers' addresses and what belongs to the device (theme layout, storage,
 offline mode) stay with each browser.
 
+## Sign in with Google
+
+As on Overleaf, **Sign in with Google** opens your account in one click, on
+any device, once your account is linked to a Google account:
+
+- from the sign-in page: if that Google account is linked to no Feuillet
+  account yet, Feuillet offers to create one, linked to it. Choose a name
+  and a password: the password encrypts what the browser keeps (your GitHub
+  tokens, for example) and confirms important changes, as on any account;
+- from the profile, for an account that already exists: **Link a Google
+  account**, with your password. **Unlink Google** takes the link away;
+  your password still opens your account.
+
+Feuillet asks Google only for what recognizes your Google account, not its
+address, nor your name, nor your picture, and keeps only a hash of it. On a
+device where you signed in with Google, Feuillet asks for your password the
+first time it needs it.
+
 ## The profile
 
 Your account menu, at the top right, opens the profile:
 
 - changing your password; your other devices will have to sign in again,
   and assistants such as Claude lose their access;
+- **Sign in with Google**: linking a Google account, or unlinking it (see
+  above);
 - **Account email** and **Recovery codes**, in case you forget your
   password (see below);
 - **Git commit email**: the author address of your commits, which anyone
@@ -88,9 +108,10 @@ Feuillet's server keeps, for how long, and what goes to other services
 (GitHub, Anthropic, TeXlyre…) when you use them. In short:
 
 - your account: name, a hash of the password (never the password), hashes
-  of your recovery codes, your email address if you gave one, the
-  signed-in devices (browser and system), the list of your projects, the
-  words of your dictionary and your preferences;
+  of your recovery codes, your email address if you gave one, a hash of
+  the linked Google account's identifier if there is one, the signed-in
+  devices (browser and system), the list of your projects, the words of
+  your dictionary and your preferences;
 - your projects, their versions and their sharing, for your collaborators;
 - the web server's logs, 14 days; the collaboration server's, 30 MB at
   most;

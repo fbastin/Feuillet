@@ -18,6 +18,9 @@ export const AuthContext = createContext<AuthContextType>({
 	login: async () => {
 		throw new Error('Not implemented');
 	},
+	loginWithGoogle: async () => {
+		throw new Error('Not implemented');
+	},
 	register: async () => {
 		throw new Error('Not implemented');
 	},
@@ -112,12 +115,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		return loggedInUser;
 	};
 
+	const loginWithGoogle = async (
+		ticket: string,
+	): Promise<User | 'not-linked'> => {
+		const result = await authService.loginWithGoogle(ticket);
+		if (result !== 'not-linked') setUser(result);
+		return result;
+	};
+
 	const register = async (
 		username: string,
 		password: string,
 		email?: string,
+		googleTicket?: string,
 	): Promise<User> => {
-		const newUser = await authService.register(username, password, email);
+		const newUser = await authService.register(
+			username,
+			password,
+			email,
+			googleTicket,
+		);
 		setUser(newUser);
 		return newUser;
 	};
@@ -247,6 +264,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				isAuthenticated: !!user,
 				isInitializing,
 				login,
+				loginWithGoogle,
 				register,
 				createGuestAccount,
 				upgradeGuestAccount,

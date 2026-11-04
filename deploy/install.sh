@@ -113,6 +113,10 @@ if [ ! -e /etc/feuillet/collab.env ]; then
 # fill in its client id and secret, then run deploy/install.sh again.
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+# "Sign in with Google": create a Google OAuth client (see deploy/README.md),
+# fill in its client id and secret, then run deploy/install.sh again.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 # Emails (recovering accounts, invitations): an SMTP server and a sender (see
 # deploy/README.md); empty keeps it off.
 SMTP_URL=
@@ -121,9 +125,15 @@ MAIL_FROM=
 ADMIN_ACCOUNTS=
 SETTINGS
 	echo "Created /etc/feuillet/collab.env (GitHub sign-in stays off until it is filled in)."
-elif ! grep -q '^ADMIN_ACCOUNTS=' /etc/feuillet/collab.env; then
-	printf '\n# The accounts that see the administration page, by name, comma-separated.\nADMIN_ACCOUNTS=\n' >>/etc/feuillet/collab.env
-	echo "Added ADMIN_ACCOUNTS= to /etc/feuillet/collab.env: name there the accounts that administer Feuillet, then run deploy/install.sh again."
+else
+	if ! grep -q '^ADMIN_ACCOUNTS=' /etc/feuillet/collab.env; then
+		printf '\n# The accounts that see the administration page, by name, comma-separated.\nADMIN_ACCOUNTS=\n' >>/etc/feuillet/collab.env
+		echo "Added ADMIN_ACCOUNTS= to /etc/feuillet/collab.env: name there the accounts that administer Feuillet, then run deploy/install.sh again."
+	fi
+	if ! grep -q '^GOOGLE_CLIENT_ID=' /etc/feuillet/collab.env; then
+		printf '\n# "Sign in with Google": create a Google OAuth client (see deploy/README.md),\n# fill in its client id and secret, then run deploy/install.sh again.\nGOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\n' >>/etc/feuillet/collab.env
+		echo "Added GOOGLE_CLIENT_ID= and GOOGLE_CLIENT_SECRET= to /etc/feuillet/collab.env: see deploy/README.md to sign in with Google."
+	fi
 fi
 
 echo "== Backups (deploy/backup.sh, each night at 4:30, in /var/backups/feuillet)"

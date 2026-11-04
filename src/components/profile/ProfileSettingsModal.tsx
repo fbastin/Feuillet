@@ -10,6 +10,7 @@ import ProfileAccountIdentitySection from './ProfileAccountIdentitySection';
 import ProfileAssistantsSection from './ProfileAssistantsSection';
 import ProfileDevicesSection from './ProfileDevicesSection';
 import ProfileGitSection from './ProfileGitSection';
+import ProfileGoogleSection from './ProfileGoogleSection';
 import ProfileRecoveryEmailSection from './ProfileRecoveryEmailSection';
 import ProfileRecoverySection from './ProfileRecoverySection';
 import ProfileServerAccountSection from './ProfileServerAccountSection';
@@ -125,6 +126,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 						onError={setError}
 						onSuccess={setSuccessMessage}
 					/>
+					<ProfileGoogleSection />
 					<ProfileRecoveryEmailSection />
 					<ProfileRecoverySection />
 				</>

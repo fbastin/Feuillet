@@ -19,6 +19,7 @@ import {
 } from '../../utils/authUtils';
 import CopyField from '../common/CopyField';
 import { PasskeyIcon } from '../common/Icons';
+import GoogleSignInButton from './GoogleSignInButton';
 
 // The address given becomes the account's once the link mailed to it
 // confirms it, as on Overleaf. Mailing takes some seconds: the sign-up does
@@ -65,6 +66,12 @@ interface RegisterProps {
 		password: string,
 		email?: string,
 	) => Promise<any>;
+	/**
+	 * Google's sign-in for a Google account linked to no account: the
+	 * account created here is linked to it.
+	 */
+	googleTicket?: string | null;
+	onGoogleTicket?: (ticket: string | null) => void;
 }
 
 const Register: React.FC<RegisterProps> = ({
@@ -73,8 +80,10 @@ const Register: React.FC<RegisterProps> = ({
 	onShowPrivacy,
 	isUpgrade = false,
 	upgradeFunction,
+	googleTicket = null,
+	onGoogleTicket,
 }) => {
-	const { register } = useAuth();
+	const { register, loginWithGoogle } = useAuth();
 	const { chelysRegister } = useChelys();
 
 	const [username, setUsername] = useState('');
@@ -115,7 +124,12 @@ const Register: React.FC<RegisterProps> = ({
 			if (isUpgrade && upgradeFunction) {
 				await upgradeFunction(username, password, address || undefined);
 			} else {
-				await register(username, password, address || undefined);
+				await register(
+					username,
+					password,
+					address || undefined,
+					googleTicket ?? undefined,
+				);
 			}
 			if (address) confirmEmailLater(address, password);
 			onRegisterSuccess();
@@ -191,6 +205,55 @@ const Register: React.FC<RegisterProps> = ({
 					{error}
 				</div>
 			)}
+
+			{!isUpgrade &&
+				(googleTicket ? (
+					<div
+						className='ui-message'
+						data-tone='info'
+						data-role='google-sign-up-notice'
+					>
+						<p>
+							{t(
+								'Google confirmed your Google account, which is not linked to a Feuillet account yet. Choose a name and a password: the account is linked to it, and Google then signs you in.',
+							)}
+						</p>
+						<button
+							type='button'
+							className='button'
+							data-variant='text'
+							data-action='forget-google-sign-up'
+							onClick={() => onGoogleTicket?.(null)}
+							disabled={isLoading}
+						>
+							{t('Do not link Google')}
+						</button>
+					</div>
+				) : (
+					<div className='ui-stack' data-gap='xs'>
+						<GoogleSignInButton
+							label={t('Sign up with Google')}
+							disabled={isLoading}
+							onStart={() => setError(null)}
+							onTicket={async (ticket) => {
+								// Already linked: that account opens.
+								const result = await loginWithGoogle(ticket);
+								if (result === 'not-linked') {
+									onGoogleTicket?.(ticket);
+									return;
+								}
+								onRegisterSuccess();
+								window.location.reload();
+							}}
+							onError={setError}
+							after={
+								<div className='guest-divider'>
+									<span>{t('or')}</span>
+								</div>
+							}
+						/>
+					</div>
+				))}
 
 			<form onSubmit={handleSubmit} className='ui-stack'>
 				<div className='ui-field' data-spacing='section'>

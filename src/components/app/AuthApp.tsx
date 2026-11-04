@@ -32,12 +32,17 @@ const AuthApp: React.FC<AuthContainerProps> = ({
 		'login',
 	);
 	const [showPrivacy, setShowPrivacy] = useState(false);
+	// Google's sign-in for a Google account linked to no account yet: the
+	// account created next is linked to it.
+	const [googleTicket, setGoogleTicket] = useState<string | null>(null);
 
 	const switchToLogin = () => {
+		setGoogleTicket(null);
 		setActiveView('login');
 	};
 
-	const switchToRegister = () => {
+	const switchToRegister = (ticket?: string) => {
+		setGoogleTicket(ticket ?? null);
 		setActiveView('register');
 	};
 
@@ -99,6 +104,8 @@ const AuthApp: React.FC<AuthContainerProps> = ({
 						onRegisterSuccess={onAuthSuccess}
 						onSwitchToLogin={switchToLogin}
 						onShowPrivacy={() => setShowPrivacy(true)}
+						googleTicket={googleTicket}
+						onGoogleTicket={setGoogleTicket}
 					/>
 				) : (
 					<ImportAccount

@@ -220,6 +220,24 @@
 	font-size: var(--font-size-secondary);
 }
 
+/* « Se connecter avec Google »: Google's G before the words, and room
+   before the guest button. */
+.google-sign-in {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-sm);
+}
+
+.google-sign-in .google-icon {
+	flex: none;
+}
+
+.guest-section .google-sign-in,
+.guest-section .google-sign-in-waiting {
+	margin-bottom: var(--space-sm);
+}
+
 .guest-upgrade-banner {
 	margin-bottom: var(--space-lg);
 	animation: slideDown 0.3s ease-out;

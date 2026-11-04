@@ -51,6 +51,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						)}
 					</li>
 					<li>
+						<strong>{t('Signing in with Google:')}</strong>&nbsp;
+						{t(
+							'if you link a Google account, a hash of its identifier, which recognizes it; never its address, its name or its picture, which Feuillet does not ask Google for. Unlinking it, or deleting your account, erases it.',
+						)}
+					</li>
+					<li>
 						<strong>{t('Your projects:')}</strong>&nbsp;
 						{t(
 							'the text of the documents, the files, the comments, the tracked changes and the chat, so that your collaborators receive them even when you are not online; and the versions of the project with their authors, the latest 1000 and those you name.',
@@ -168,6 +174,22 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					<li>
 						<Trans
 							i18nKey='<strong>Google (Gmail):</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through Gmail, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
+							components={{
+								strong: <strong />,
+								privacy: (
+									<TransLink
+										href='https://policies.google.com/privacy'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					</li>
+
+					<li>
+						<Trans
+							i18nKey='<strong>Google (sign-in):</strong> when you sign in with Google, Google learns that you sign in to Feuillet, and Feuillet learns only which Google account it is (<privacy>Privacy Policy</privacy>)'
 							components={{
 								strong: <strong />,
 								privacy: (

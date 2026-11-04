@@ -19,12 +19,34 @@ synchronisation, en quelques minutes au plus ou en rechargeant la page. Les
 adresses des serveurs et ce qui tient à l'appareil (disposition du thème,
 stockage, mode hors ligne) restent propres à chaque navigateur.
 
+## Se connecter avec Google
+
+Comme sur Overleaf, **Se connecter avec Google** ouvre votre compte d'un
+clic, sur n'importe quel appareil, une fois votre compte associé à un compte
+Google :
+
+- depuis la page de connexion : si ce compte Google n'est encore associé à
+  aucun compte Feuillet, Feuillet propose d'en créer un, qui lui sera
+  associé. Choisissez un nom et un mot de passe : le mot de passe chiffre ce
+  que le navigateur garde (vos jetons GitHub, par exemple) et confirme les
+  changements importants, comme sur un compte ordinaire;
+- depuis le profil, pour un compte qui existe déjà : **Associer un compte
+  Google**, avec votre mot de passe. **Dissocier Google** retire
+  l'association; votre mot de passe ouvre toujours votre compte.
+
+Feuillet ne demande à Google que de quoi reconnaître votre compte Google, ni
+son adresse, ni votre nom, ni votre photo, et n'en garde qu'une empreinte.
+Sur un appareil où vous vous êtes connecté avec Google, Feuillet demande
+votre mot de passe la première fois qu'il en a besoin.
+
 ## Le profil
 
 Le menu de votre compte, en haut à droite, ouvre le profil :
 
 - changer de mot de passe; vos autres appareils devront se reconnecter, et
   les assistants comme Claude perdent leur accès;
+- **Se connecter avec Google** : associer un compte Google, ou le
+  dissocier (voir plus haut);
 - **Courriel du compte** et **Codes de récupération**, si vous oubliez
   votre mot de passe (voir plus bas);
 - **Courriel des commits Git** : l'adresse d'auteur de vos commits, que lit
@@ -96,8 +118,9 @@ serveur de Feuillet, combien de temps, et ce qui part chez d'autres services
 
 - votre compte : nom, empreinte du mot de passe (jamais le mot de passe),
   empreintes de vos codes de récupération, adresse courriel si vous en
-  avez donné une, appareils connectés (navigateur et système), liste de
-  vos projets, mots de votre dictionnaire et préférences;
+  avez donné une, empreinte de l'identifiant du compte Google associé s'il
+  y en a un, appareils connectés (navigateur et système), liste de vos
+  projets, mots de votre dictionnaire et préférences;
 - vos projets, leurs versions et leur partage, pour vos collaborateurs;
 - les journaux du serveur web, 14 jours; ceux du serveur de collaboration,
   limités à 30 Mo;

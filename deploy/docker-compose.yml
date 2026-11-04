@@ -33,6 +33,7 @@ services:
       # Grammar and style checking (server/collab/grammar.js).
       GRAMMAR_URL: "http://languagetool:8010"
     # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET, for "Sign in with GitHub",
+    # GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, for "Sign in with Google",
     # the email settings and ADMIN_ACCOUNTS (see deploy/README.md); kept out
     # of the repository.
     env_file:

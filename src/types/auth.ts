@@ -11,10 +11,14 @@ export interface AuthContextType {
 	isAuthenticated: boolean;
 	isInitializing: boolean;
 	login: (username: string, password: string) => Promise<User>;
+	/** Signs in with Google: 'not-linked' when no account is linked to it. */
+	loginWithGoogle: (ticket: string) => Promise<User | 'not-linked'>;
 	register: (
 		username: string,
 		password: string,
 		email?: string,
+		/** Google's sign-in, to link the account to that Google account. */
+		googleTicket?: string,
 	) => Promise<User>;
 	createGuestAccount: () => Promise<User>;
 	upgradeGuestAccount: (

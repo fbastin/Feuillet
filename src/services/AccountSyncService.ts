@@ -160,6 +160,21 @@ const recoveryEmailStatus = (result: any): RecoveryEmailStatus => ({
 	...(typeof result?.pending === 'string' ? { pending: result.pending } : {}),
 });
 
+export interface GoogleStatus {
+	/** Whether the server signs in with Google at all. */
+	enabled: boolean;
+	linked: boolean;
+	linkedAt?: number;
+}
+
+const googleStatusOf = (result: any): GoogleStatus => ({
+	enabled: result?.enabled === true,
+	linked: result?.linked === true,
+	...(typeof result?.linkedAt === 'number'
+		? { linkedAt: result.linkedAt }
+		: {}),
+});
+
 /**
  * An account as the administration page shows it: never its address, its
  * password or its projects' names.
@@ -376,15 +391,93 @@ class AccountSyncService {
 		localStorage.removeItem(deletionsKey(userId));
 	}
 
+	/**
+	 * Creates the account on the server; with a ticket of Google's sign-in,
+	 * linked to that Google account.
+	 */
 	async register(
 		server: string,
 		username: string,
 		password: string,
+		googleTicket?: string,
 	): Promise<AccountSession> {
 		const result = await this.request(server, 'POST', '/account/register', {
-			body: { username, password },
+			body: googleTicket
+				? { username, password, googleTicket }
+				: { username, password },
 		});
 		return { username: result.username, token: result.token, server };
+	}
+
+	/**
+	 * Signs in to the account a Google account is linked to; fails with
+	 * `google_not_linked` when it is linked to none, the ticket staying good
+	 * for creating one.
+	 */
+	async loginWithGoogle(
+		server: string,
+		ticket: string,
+	): Promise<AccountSession> {
+		const result = await this.request(server, 'POST', '/account/google/login', {
+			body: { ticket },
+		});
+		return { username: result.username, token: result.token, server };
+	}
+
+	/** Whether the account is linked to a Google account; null signed out. */
+	async googleStatus(): Promise<GoogleStatus | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			'GET',
+			'/account/google',
+			{
+				token: session.token,
+			},
+		);
+		return googleStatusOf(result);
+	}
+
+	/** Links the account to the Google account of a ticket, or, with null, unlinks it. */
+	async setGoogle(
+		ticket: string | null,
+		password: string,
+	): Promise<GoogleStatus | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/account/google',
+			{
+				token: session.token,
+				body:
+					ticket === null ? { password, remove: true } : { password, ticket },
+			},
+		);
+		return googleStatusOf(result);
+	}
+
+	/**
+	 * Whether `password` is the account's, as the server says: for a device
+	 * that signed in with Google and so does not know it. False when it
+	 * cannot say.
+	 */
+	async checkPassword(userId: string, password: string): Promise<boolean> {
+		const session = this.getSession(userId);
+		if (!session) return false;
+		try {
+			await this.request(session.server, 'POST', '/account/password/verify', {
+				token: session.token,
+				body: { password },
+			});
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	async login(

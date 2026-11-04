@@ -24,6 +24,8 @@
 //    changed it (/history/..., history.js), as on Overleaf;
 //  - signs people in with GitHub for GitHub sync (/github/..., github.js),
 //    handing the token to their browser without keeping it;
+//  - signs people in to their accounts with Google (/google/..., google.js),
+//    keeping only a hash of the Google account's identifier;
 //  - downloads files from the web for signed-in accounts (/fetch,
 //    fetch.js), as Overleaf's "From external URL";
 //  - lets assistants such as Claude work on an account's projects once it
@@ -46,12 +48,18 @@
 //   HISTORY_DIR         directory for project versions (default ./history)
 //   HISTORY_IDLE_MS     quiet time before a version is saved (default 30 s)
 //   HISTORY_MAX_VERSIONS  unlabelled versions kept per project (default 1000)
-//   PUBLIC_URL          this server's public address, for GitHub to send
-//                       people back to (e.g. https://example.org/collab)
+//   PUBLIC_URL          this server's public address, for GitHub and Google
+//                       to send people back to (e.g.
+//                       https://example.org/collab)
 //   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
 //                       the GitHub OAuth App behind "Sign in with GitHub";
 //                       unset turns it off
 //   GITHUB_OAUTH_URL    GitHub's address for signing in (tests only)
+//   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+//                       the Google OAuth client behind "Sign in with
+//                       Google" (google.js); unset turns it off
+//   GOOGLE_AUTHORIZE_URL, GOOGLE_TOKEN_URL
+//                       Google's addresses for signing in (tests only)
 //   MCP_DIR             directory for the applications accounts let work on
 //                       their projects (default ./mcp)
 //   MCP_REDIRECT_URIS   comma-separated addresses, besides Claude's and
@@ -97,6 +105,7 @@ const { createUrlFetcher } = require('./fetch');
 const { createGrammar } = require('./grammar');
 const { createGitBridge } = require('./git');
 const { createGitHub } = require('./github');
+const { createGoogle } = require('./google');
 const { createHistory } = require('./history');
 const { createMcp } = require('./mcp');
 const { createOAuth } = require('./oauth');
@@ -161,11 +170,22 @@ const mailer = createMailer({
 	log,
 	dailyLimit: Number(process.env.MAIL_DAILY_LIMIT) || undefined,
 });
+// Sign in with Google: its tickets, which the account server takes.
+const google = createGoogle({
+	clientId: process.env.GOOGLE_CLIENT_ID,
+	clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+	publicUrl: process.env.PUBLIC_URL,
+	authorizeUrl: process.env.GOOGLE_AUTHORIZE_URL || undefined,
+	tokenUrl: process.env.GOOGLE_TOKEN_URL || undefined,
+	isAllowedOrigin,
+	log,
+});
 const accounts = createAccounts({
 	dir: accountsDir,
 	log,
 	mailer,
 	appUrl: process.env.APP_URL || allowedOrigins[0] || '',
+	google,
 });
 
 // Connections by the link they were opened through, closed when it is
@@ -513,6 +533,17 @@ const server = http.createServer((req, res) => {
 		return;
 	}
 
+	if (google.handles(url)) {
+		const origin = req.headers.origin;
+		if (origin && isAllowedOrigin(origin)) {
+			res.setHeader('Access-Control-Allow-Origin', origin);
+			res.setHeader('Vary', 'Origin');
+		}
+		const params = new URL(req.url, 'http://localhost').searchParams;
+		google.handle(req, res, url, params);
+		return;
+	}
+
 	if (github.handles(url)) {
 		const origin = req.headers.origin;
 		if (origin && isAllowedOrigin(origin)) {
@@ -680,6 +711,7 @@ server.listen(port, host, () => {
 		process.env.TEXLIVE_URL ? 'assistants compile;' : 'assistants do not compile;',
 		process.env.GRAMMAR_URL ? 'grammar checking on;' : 'grammar checking off;',
 		github.enabled ? 'GitHub sign-in on;' : 'GitHub sign-in off;',
+		google.enabled ? 'Google sign-in on;' : 'Google sign-in off;',
 		mailer ? 'recovery by email on;' : 'recovery by email off;',
 		admin.enabled ? 'administration page on' : 'administration page off',
 	);

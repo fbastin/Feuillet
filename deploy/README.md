@@ -98,6 +98,41 @@ The sign-in asks for the `repo` scope, as the personal access token does, so
 that private repositories can be synced. Leaving the file empty turns the
 button off; pasting a token keeps working either way.
 
+## Sign in with Google
+
+"Sign in with Google" opens Feuillet accounts as on Overleaf (server/collab/
+google.js). It asks Google for the `openid` scope only: Feuillet learns which
+Google account signs in, never its address, name or picture, and keeps only
+a hash of its identifier. To offer it, create an OAuth client once:
+
+1. In the Google Cloud console (https://console.cloud.google.com), create a
+   project (or pick one), then go to **Google Auth Platform**:
+   - **Branding**: app name `Feuillet`, a support email, the home page
+     `https://feuillet.slashbin.net`; authorized domain `slashbin.net`. Leave
+     the logo out: with one, Google asks for a brand verification first.
+   - **Audience**: user type **External**, then **Publish app**. The
+     `openid` scope is not sensitive, so the app needs no verification;
+     while it is in "Testing", only the test users listed there may sign in.
+   - **Data Access**: nothing to add (`openid` is always granted).
+2. **Clients** → **Create client** → type **Web application**:
+   - Authorized JavaScript origins: none needed.
+   - Authorized redirect URI:
+     `https://feuillet.slashbin.net/collab/google/callback`
+3. Put its client ID and secret in `/etc/feuillet/collab.env`:
+
+   ```
+   GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=...
+   ```
+
+4. Run `sudo deploy/install.sh` again. The collaboration server's start line
+   in `sudo docker logs feuillet-collab` then says "Google sign-in on", and
+   the sign-in page shows « Se connecter avec Google ».
+
+Leaving them empty keeps the button off. Accounts linked to Google keep a
+password, which encrypts what browsers keep and confirms changes to the
+account.
+
 ## Email: recovering accounts and invitations
 
 Accounts may give an email address, which a link mailed to it confirms; a
