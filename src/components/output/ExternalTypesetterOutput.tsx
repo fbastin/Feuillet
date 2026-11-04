@@ -27,6 +27,7 @@ import { toArrayBuffer } from '../../utils/fileUtils';
 import { gotoEditor } from '../../utils/editorNavigator';
 import ResizablePanel from '../common/ResizablePanel';
 import ExternalCompileButton from './ExternalCompileButton';
+import OutputFilesMenu from './OutputFilesMenu';
 import SourceMapFloatingButton from './SourceMapFloatingButton';
 import {
 	chooseLatexMainFile,
@@ -73,6 +74,8 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 		logIndicator,
 		toggleOutputView,
 		compileDocument,
+		outputFiles,
+		downloadOutputFile,
 	} = useExternalTypesetter();
 
 	const projectId = fileStoreService.getCurrentProjectId() || undefined;
@@ -490,6 +493,10 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 											{compileLog}
 										</pre>
 									</div>
+									<OutputFilesMenu
+										files={outputFiles}
+										onDownload={(path) => downloadOutputFile(provider.id, path)}
+									/>
 								</div>
 							) : (
 								<div className='log-viewer ui-code-block' data-wrap='true'>

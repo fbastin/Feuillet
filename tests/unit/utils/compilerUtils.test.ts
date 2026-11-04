@@ -1,6 +1,7 @@
 import {
 	chooseLatexMainFile,
 	isRootLatexDocument,
+	outputFilesOf,
 } from '@src/utils/compilerUtils';
 
 describe('main document', () => {
@@ -70,5 +71,54 @@ describe('main document', () => {
 		expect(await chooseLatexMainFile(undefined, undefined, parts, isRoot)).toBe(
 			'/chapters/one.tex',
 		);
+	});
+});
+
+describe('output files', () => {
+	const listed = (data: unknown, id = 'output-files') => [
+		{
+			id: 'synctex',
+			name: 'main.synctex.gz',
+			data: new Uint8Array([1, 2, 3]),
+		},
+		{
+			id,
+			name: 'output-files.json',
+			data: new TextEncoder().encode(
+				typeof data === 'string' ? data : JSON.stringify(data),
+			),
+		},
+	];
+
+	it('reads the files a compile reply lists', () => {
+		expect(
+			outputFilesOf(
+				listed([
+					{ path: 'main.aux', size: 120 },
+					{ path: 'chapitres/intro.aux', size: 0 },
+				]),
+			),
+		).toEqual([
+			{ path: 'main.aux', size: 120 },
+			{ path: 'chapitres/intro.aux', size: 0 },
+		]);
+	});
+
+	it('lists none from a server that lists none, or lists them wrongly', () => {
+		expect(outputFilesOf(undefined)).toEqual([]);
+		expect(outputFilesOf(listed([], 'other'))).toEqual([]);
+		expect(outputFilesOf(listed('not json'))).toEqual([]);
+		expect(outputFilesOf(listed({ path: 'main.aux', size: 1 }))).toEqual([]);
+		expect(
+			outputFilesOf(
+				listed([
+					null,
+					{ path: '', size: 1 },
+					{ path: 'main.log' },
+					{ path: 7, size: 1 },
+					{ path: 'main.bbl', size: 2, extra: true },
+				]),
+			),
+		).toEqual([{ path: 'main.bbl', size: 2 }]);
 	});
 });

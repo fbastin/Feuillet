@@ -102,6 +102,18 @@ that needs a package. The lines involved are also marked in the editor, and
 their tooltip gives the same explanation. These explanations are in the
 interface's language.
 
+### The compile's other files
+
+Under the Log, the **Other logs and files** menu lists, as on Overleaf, the
+files the last compile wrote on the server: the whole log (`.log`), the
+formatted bibliography (`.bbl`), the BibTeX or Biber log (`.blg`), the
+`.aux`, and so on. A click downloads the file. The server keeps them while
+the editor stays open: after a long pause, compile again to get them.
+
+arXiv asks for the `.bbl` with the sources. Export the project (**Export
+Current Project** button of the files bar, **Files Only** format), then add
+the `.bbl` downloaded from this menu.
+
 ### From text to PDF, and back
 
 A double click in the PDF goes to the matching line of the text. The sync

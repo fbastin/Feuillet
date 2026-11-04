@@ -8,6 +8,10 @@
 // own working tree, so auxiliary files survive between compiles and only
 // edited files travel.
 //
+// As Overleaf's « Other logs and files », each reply lists the files the
+// compiles wrote (the .bbl arXiv asks for, the whole .log, the .aux...), and
+// a request {"options": {"action": "output-file", "path": ...}} brings one.
+//
 // Compiles run latexmk without rc files and without -shell-escape (TeX Live's
 // restricted shell escape stays in force), one at a time per connection and
 // at most MAX_CONCURRENT at once, each bounded by COMPILE_TIMEOUT_MS. As on
@@ -41,6 +45,7 @@
 
 const { execFileSync, spawn } = require('node:child_process');
 const crypto = require('node:crypto');
+const { constants: fsConstants } = require('node:fs');
 const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
@@ -82,6 +87,10 @@ const fontNamesDir = isolated ? findFontNamesDir() : '';
 
 const MISSING_FILES_STATUS = -2;
 const MAX_LOG_CHARS = 1024 * 1024;
+// The files of the working tree a reply lists, and the largest one sent.
+const MAX_OUTPUT_FILES = 200;
+const MAX_OUTPUT_DEPTH = 8;
+const MAX_OUTPUT_FILE_BYTES = 64 * 1024 * 1024;
 
 // latexmk reads latexmkrc files (Perl) from the project directory, so rc
 // files are never read (-norc) and every option is given here. %P is the
@@ -385,6 +394,77 @@ class Session {
 		}
 	}
 
+	// The files the compiles wrote: those of the working tree that are not
+	// the project's, but the PDF the reply carries. Links are left out.
+	async outputFiles(pdfRelative) {
+		const found = [];
+		const walk = async (directory, prefix, depth) => {
+			const entries = await fs
+				.readdir(directory, { withFileTypes: true })
+				.catch(() => []);
+			for (const entry of entries) {
+				if (found.length >= MAX_OUTPUT_FILES) return;
+				const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+				if (entry.isDirectory()) {
+					if (depth < MAX_OUTPUT_DEPTH) {
+						await walk(path.join(directory, entry.name), relative, depth + 1);
+					}
+				} else if (
+					entry.isFile() &&
+					relative !== pdfRelative &&
+					!this.tracked.has(relative)
+				) {
+					const stats = await fs
+						.lstat(path.join(directory, entry.name))
+						.catch(() => null);
+					if (stats?.isFile()) found.push({ path: relative, size: stats.size });
+				}
+			}
+		};
+		await walk(this.dir, '', 0);
+		return found.sort((a, b) => a.path.localeCompare(b.path));
+	}
+
+	// One of them, read as a file of the working tree only: neither a
+	// project file nor a link, nor a path through one.
+	async outputFile(filePath, format) {
+		const gone = { status: 1, log: `Output file not found: ${filePath}`, format };
+		let target;
+		try {
+			const { relative, absolute } = this.resolve(filePath);
+			if (this.tracked.has(relative)) return gone;
+			const root = await fs.realpath(this.dir);
+			const parent = await fs.realpath(path.dirname(absolute));
+			if (parent !== root && !parent.startsWith(root + path.sep)) return gone;
+			target = path.join(parent, path.basename(absolute));
+		} catch {
+			return gone;
+		}
+		let handle;
+		try {
+			handle = await fs.open(
+				target,
+				fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK,
+			);
+			const stats = await handle.stat();
+			if (!stats.isFile()) return gone;
+			if (stats.size > MAX_OUTPUT_FILE_BYTES) {
+				return { status: 1, log: `Output file too large: ${filePath}`, format };
+			}
+			return {
+				status: 0,
+				log: '',
+				format,
+				mimeType: 'application/octet-stream',
+				output: (await handle.readFile()).toString('base64'),
+			};
+		} catch {
+			return gone;
+		} finally {
+			await handle?.close();
+		}
+	}
+
 	async compile(mainFile, format, options) {
 		const { absolute: source } = this.resolve(mainFile);
 		if (!(await exists(source))) {
@@ -474,8 +554,18 @@ class Session {
 			errors,
 		});
 
+		const pdfRelative = path.relative(this.dir, pdfPath).split(path.sep).join('/');
+		const listed = {
+			id: 'output-files',
+			name: 'output-files.json',
+			mimeType: 'application/json',
+			data: Buffer.from(
+				JSON.stringify(await this.outputFiles(pdfRelative)),
+			).toString('base64'),
+		};
+
 		if (!(await exists(pdfPath))) {
-			return { status: status || 1, log: report, format };
+			return { status: status || 1, log: report, format, artifacts: [listed] };
 		}
 
 		const artifacts = [];
@@ -487,6 +577,7 @@ class Session {
 				data: (await fs.readFile(synctexPath)).toString('base64'),
 			});
 		}
+		artifacts.push(listed);
 
 		// A status other than 0 with a PDF: LaTeX reported errors.
 		return {
@@ -509,6 +600,9 @@ class Session {
 		if (options.action === 'clear-cache') {
 			await this.reset();
 			return { status: 0, log: '', format };
+		}
+		if (options.action === 'output-file') {
+			return this.outputFile(options.path, format);
 		}
 		if (typeof request.mainFile !== 'string' || !Array.isArray(request.files)) {
 			return { status: 1, log: 'Malformed compile request.', format };

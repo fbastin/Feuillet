@@ -155,6 +155,36 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 	}
 
 	/**
+	 * A file the compiles wrote in the server's working tree, as listed by
+	 * their replies (Overleaf's « Other logs and files »); null when the
+	 * server no longer has it: a new connection starts an empty tree.
+	 */
+	async fetchOutputFile(
+		configId: string,
+		path: string,
+	): Promise<Uint8Array | null> {
+		const config = this.configs.get(configId);
+		if (!config) throw new Error(`Typesetter config not found: ${configId}`);
+		// After the compile running, which may write it again.
+		await this.compiling.get(configId)?.catch(() => undefined);
+		const connection = this.connections.get(configId);
+		if (!connection?.transport.isOpen) return null;
+		const result = await this.send(
+			configId,
+			config,
+			connection,
+			{
+				mainFile: '',
+				format: 'pdf',
+				files: [],
+				options: { action: 'output-file', path },
+			},
+			[],
+		);
+		return result.status === 0 && result.output ? result.output : null;
+	}
+
+	/**
 	 * Compiles a whole project, not the open one, over a connection of its
 	 * own: the open project's working tree on the server stays as it is.
 	 */

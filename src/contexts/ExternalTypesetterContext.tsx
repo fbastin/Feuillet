@@ -26,8 +26,17 @@ import {
 	genericTypesetterService,
 	type TypesetterFile,
 } from '../services/GenericTypesetterService';
-import { type DownloadableFile, downloadFiles } from '../utils/archiveUtils';
-import { findCompileArtifact, outputExtension } from '../utils/compilerUtils';
+import {
+	type DownloadableFile,
+	downloadFile,
+	downloadFiles,
+} from '../utils/archiveUtils';
+import {
+	findCompileArtifact,
+	type OutputFileEntry,
+	outputExtension,
+	outputFilesOf,
+} from '../utils/compilerUtils';
 import { getProjectName } from '../utils/urlUtils';
 import { toBytes } from '../utils/fileUtils';
 import { cleanBytes } from '../utils/fileCommentUtils';
@@ -63,6 +72,13 @@ interface ExternalTypesetterContextType {
 	clearCache: (providerId: string) => Promise<void>;
 	/** Stops the compile running, which then ends with its log. */
 	stopCompilation: (providerId: string) => void;
+	/**
+	 * The files the last compile wrote on the server, but its PDF, as
+	 * Overleaf's « Other logs and files »: the .bbl, the whole .log...
+	 */
+	outputFiles: OutputFileEntry[];
+	/** Downloads one of them; false when the server no longer has it. */
+	downloadOutputFile: (providerId: string, path: string) => Promise<boolean>;
 }
 
 export const ExternalTypesetterContext =
@@ -94,6 +110,8 @@ export const ExternalTypesetterProvider: React.FC<
 	const [logIndicator, setLogIndicator] = useState<
 		'idle' | 'success' | 'error'
 	>('idle');
+	// Only while the server keeps them: not with the output kept here.
+	const [outputFiles, setOutputFiles] = useState<OutputFileEntry[]>([]);
 
 	const toggleOutputView = useCallback(() => {
 		setCurrentView((view) => (view === 'log' ? 'output' : 'log'));
@@ -109,6 +127,7 @@ export const ExternalTypesetterProvider: React.FC<
 		setCompiledOutput(null);
 		setOutputMimeType(null);
 		setOutputFormat(null);
+		setOutputFiles([]);
 		setCompileLog('');
 		setCurrentView('log');
 		setLogIndicator('idle');
@@ -195,6 +214,7 @@ export const ExternalTypesetterProvider: React.FC<
 				});
 
 				setCompileLog(result.log);
+				setOutputFiles(outputFilesOf(result.artifacts));
 				void compileDiagnosticsService.publish(
 					provider.projectType,
 					result.log,
@@ -271,6 +291,7 @@ export const ExternalTypesetterProvider: React.FC<
 				}
 			} catch (error) {
 				latexSourceMapService.clear();
+				setOutputFiles([]);
 				const message = error instanceof Error ? error.message : String(error);
 				setCompileError(message);
 				setLogIndicator('error');
@@ -309,6 +330,7 @@ export const ExternalTypesetterProvider: React.FC<
 				});
 
 				setCompileLog(result.log);
+				setOutputFiles(outputFilesOf(result.artifacts));
 
 				// The PDF shown despite errors may be downloaded too.
 				if (!result.output) {
@@ -353,7 +375,25 @@ export const ExternalTypesetterProvider: React.FC<
 		[loadFiles],
 	);
 
+	const downloadOutputFile = useCallback(
+		async (providerId: string, path: string): Promise<boolean> => {
+			const content = await genericTypesetterService.fetchOutputFile(
+				providerId,
+				path,
+			);
+			if (!content) return false;
+			downloadFile(
+				content,
+				path.split('/').pop() || path,
+				'application/octet-stream',
+			);
+			return true;
+		},
+		[],
+	);
+
 	const clearCache = useCallback(async (providerId: string) => {
+		setOutputFiles([]);
 		try {
 			genericTypesetterService.resetSyncState(providerId);
 			await genericTypesetterService.compile(providerId, {
@@ -388,6 +428,8 @@ export const ExternalTypesetterProvider: React.FC<
 				exportDocument,
 				clearCache,
 				stopCompilation,
+				outputFiles,
+				downloadOutputFile,
 			}}
 		>
 			{children}

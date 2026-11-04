@@ -81,6 +81,37 @@ export function findCompileArtifact(
 	});
 }
 
+/** A file a compile wrote on the server, as its reply lists it. */
+export interface OutputFileEntry {
+	path: string;
+	size: number;
+}
+
+/**
+ * The files a compile reply lists in its 'output-files' artifact, as
+ * Overleaf's « Other logs and files »; none from a server that lists none.
+ */
+export function outputFilesOf(
+	artifacts: CompileArtifact[] | undefined,
+): OutputFileEntry[] {
+	const artifact = artifacts?.find((entry) => entry.id === 'output-files');
+	if (!artifact) return [];
+	try {
+		const parsed: unknown = JSON.parse(new TextDecoder().decode(artifact.data));
+		if (!Array.isArray(parsed)) return [];
+		return parsed.flatMap((entry) =>
+			entry &&
+			typeof entry.path === 'string' &&
+			entry.path &&
+			Number.isFinite(entry.size)
+				? [{ path: entry.path, size: Number(entry.size) }]
+				: [],
+		);
+	} catch {
+		return [];
+	}
+}
+
 const FORMAT_EXTENSIONS = new Set([
 	'pdf',
 	'svg',

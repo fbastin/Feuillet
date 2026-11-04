@@ -108,6 +108,19 @@ une commande inconnue ou un environnement qui demande un paquet. Les lignes
 en cause sont aussi marquées dans l'éditeur, et leur info-bulle donne la
 même explication. Ces explications sont dans la langue de l'interface.
 
+### Les autres fichiers de la compilation
+
+Sous le Journal, le menu **Autres journaux et fichiers** liste, comme sur
+Overleaf, les fichiers que la dernière compilation a écrits sur le serveur :
+le journal complet (`.log`), la bibliographie mise en forme (`.bbl`), le
+journal de BibTeX ou de Biber (`.blg`), le `.aux`, etc. Un clic télécharge le
+fichier. Le serveur les garde tant que l'éditeur reste ouvert : après une
+longue pause, compilez de nouveau pour les obtenir.
+
+arXiv demande le `.bbl` avec les sources. Exportez le projet (bouton
+**Exporter le projet actuel** de la barre des fichiers, format **Fichiers
+seulement**), puis ajoutez-y le `.bbl` téléchargé depuis ce menu.
+
 ### Du texte au PDF, et retour
 
 Un double-clic dans le PDF mène à la ligne correspondante du texte. Le
