@@ -2,7 +2,7 @@
 import type React from 'react';
 import { type ReactNode, createContext, useEffect, useState } from 'react';
 
-import { authService } from '../services/AuthService';
+import { USER_PROFILE_SYNCED, authService } from '../services/AuthService';
 import type { AuthContextType, User } from '../types/auth';
 import type {
 	Project,
@@ -94,6 +94,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		};
 
 		initAuth();
+	}, []);
+
+	// The Git commit email or the color, changed on another device.
+	useEffect(() => {
+		const handleSynced = (event: Event) => {
+			const synced = (event as CustomEvent<User>).detail;
+			setUser((current) => (current?.id === synced?.id ? synced : current));
+		};
+		window.addEventListener(USER_PROFILE_SYNCED, handleSynced);
+		return () => window.removeEventListener(USER_PROFILE_SYNCED, handleSynced);
 	}, []);
 
 	const login = async (username: string, password: string): Promise<User> => {

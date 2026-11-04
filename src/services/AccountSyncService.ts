@@ -2,6 +2,7 @@
 import { createNamedLogger } from '@/logging';
 import type { Project } from '../types/projects';
 import type { DictionaryEntry } from '../types/spelling';
+import type { PreferenceEntry } from '../utils/accountPreferences';
 import {
 	type AccountProject,
 	getAccountServerUrl,
@@ -264,6 +265,16 @@ export interface AccountDictionaryStore {
 	addListener(listener: (userId: string, local: boolean) => void): () => void;
 }
 
+export interface AccountPreferencesStore {
+	entries(userId: string): Promise<PreferenceEntry[]>;
+	merge(
+		userId: string,
+		sent: PreferenceEntry[],
+		answer: unknown[],
+	): Promise<void>;
+	addListener(listener: (userId: string) => void): () => void;
+}
+
 const sessionKey = (userId: string) => `feuillet-account-${userId}`;
 const deletionsKey = (userId: string) => `feuillet-account-${userId}-deleted`;
 // The server account a local account was linked to, kept after signing out.
@@ -278,12 +289,14 @@ const readJson = <T>(key: string, fallback: T): T => {
 	}
 };
 
-// Keeps the local project list, and the user's own spelling dictionary, in
-// step with the Feuillet account on the collaboration server, so that every
-// device shows the same projects and accepts the same words.
+// Keeps the local project list, the user's own spelling dictionary and their
+// preferences in step with the Feuillet account on the collaboration server,
+// so that every device shows the same projects, accepts the same words and
+// looks the same.
 class AccountSyncService {
 	private store: AccountProjectStore | null = null;
 	private dictionary: AccountDictionaryStore | null = null;
+	private preferences: AccountPreferencesStore | null = null;
 	private userId: string | null = null;
 	private running: Promise<void> | null = null;
 	private runAgain = false;
@@ -314,6 +327,12 @@ class AccountSyncService {
 		dictionary.addListener((userId, local) => {
 			if (local) this.projectChanged(userId);
 		});
+	}
+
+	attachPreferences(preferences: AccountPreferencesStore): void {
+		this.preferences = preferences;
+		// Preferences changed here reach the server shortly after.
+		preferences.addListener((userId) => this.projectChanged(userId));
 	}
 
 	serverFor(userId?: string | null): string {
@@ -1210,6 +1229,7 @@ class AccountSyncService {
 					window.dispatchEvent(new CustomEvent(ACCOUNT_PROJECTS_CHANGED));
 				}
 				await this.syncDictionary(session, userId);
+				await this.syncPreferences(session, userId);
 				this.updateStatus('synced', Date.now());
 			} catch (error) {
 				if (error instanceof AccountServerError && error.status === 401) {
@@ -1245,6 +1265,32 @@ class AccountSyncService {
 			// A server without dictionaries still keeps the projects in step.
 			if (error instanceof AccountServerError && error.status === 404) {
 				moduleLog.info('The account server keeps no dictionaries');
+				return;
+			}
+			throw error;
+		}
+	}
+
+	private async syncPreferences(
+		session: AccountSession,
+		userId: string,
+	): Promise<void> {
+		if (!this.preferences) return;
+		try {
+			const sent = await this.preferences.entries(userId);
+			const { entries } = await this.request(
+				session.server,
+				'POST',
+				'/account/preferences',
+				{ token: session.token, body: { entries: sent } },
+			);
+			if (Array.isArray(entries)) {
+				await this.preferences.merge(userId, sent, entries);
+			}
+		} catch (error) {
+			// A server without preferences still keeps the projects in step.
+			if (error instanceof AccountServerError && error.status === 404) {
+				moduleLog.info('The account server keeps no preferences');
 				return;
 			}
 			throw error;

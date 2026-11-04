@@ -10,6 +10,15 @@ retrouvez la liste de vos projets, vos projets eux-mêmes et les mots ajoutés
 à votre dictionnaire. Un compte créé avant que Feuillet ait un serveur se lie
 à celui-ci depuis le profil, ou depuis **Partager** quand on veut inviter.
 
+Comme sur Overleaf, vos préférences suivent aussi votre compte : la langue de
+l'interface, la variante du thème (clair ou sombre), les réglages de
+l'éditeur (police, taille, raccourcis clavier, orthographe…), ceux de la
+compilation et du PDF, votre courriel des commits Git et votre couleur. Un
+changement fait sur un appareil arrive sur les autres à leur prochaine
+synchronisation, en quelques minutes au plus ou en rechargeant la page. Les
+adresses des serveurs et ce qui tient à l'appareil (disposition du thème,
+stockage, mode hors ligne) restent propres à chaque navigateur.
+
 ## Le profil
 
 Le menu de votre compte, en haut à droite, ouvre le profil :
@@ -88,7 +97,7 @@ serveur de Feuillet, combien de temps, et ce qui part chez d'autres services
 - votre compte : nom, empreinte du mot de passe (jamais le mot de passe),
   empreintes de vos codes de récupération, adresse courriel si vous en
   avez donné une, appareils connectés (navigateur et système), liste de
-  vos projets;
+  vos projets, mots de votre dictionnaire et préférences;
 - vos projets, leurs versions et leur partage, pour vos collaborateurs;
 - les journaux du serveur web, 14 jours; ceux du serveur de collaboration,
   limités à 30 Mo;

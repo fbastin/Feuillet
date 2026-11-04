@@ -10,6 +10,14 @@ projects, the projects themselves and the words added to your dictionary. An
 account made before Feuillet had a server is linked to it from the profile,
 or from **Share** when inviting.
 
+As on Overleaf, your preferences follow your account too: the interface's
+language, the theme variant (light or dark), the editor's settings (font,
+size, keybindings, spelling…), those of compiling and of the PDF, your Git
+commit email and your color. A change made on one device reaches the others
+at their next sync, within a few minutes or on reloading the page. The
+servers' addresses and what belongs to the device (theme layout, storage,
+offline mode) stay with each browser.
+
 ## The profile
 
 Your account menu, at the top right, opens the profile:
@@ -81,7 +89,8 @@ Feuillet's server keeps, for how long, and what goes to other services
 
 - your account: name, a hash of the password (never the password), hashes
   of your recovery codes, your email address if you gave one, the
-  signed-in devices (browser and system), the list of your projects;
+  signed-in devices (browser and system), the list of your projects, the
+  words of your dictionary and your preferences;
 - your projects, their versions and their sharing, for your collaborators;
 - the web server's logs, 14 days; the collaboration server's, 30 MB at
   most;

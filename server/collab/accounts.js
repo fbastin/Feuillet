@@ -1,8 +1,9 @@
 // server/collab/accounts.js
 // Feuillet accounts: a username, a password, the list of the account's
-// projects and the words of its spelling dictionary, so that signing in on
-// another device shows the same projects and accepts the same words, as on
-// Overleaf. Project contents stay in the shared documents and files; an
+// projects, the words of its spelling dictionary and its preferences (the
+// editor's settings, the Git commit email...), so that signing in on another
+// device shows the same projects, accepts the same words and looks the same,
+// as on Overleaf. Project contents stay in the shared documents and files; an
 // account only lists them.
 //
 // Each account is one JSON file in ACCOUNTS_DIR, named after a hash of the
@@ -21,6 +22,13 @@
 //   POST   /account/sessions  {revoke: id} | {others: true} (token) -> {sessions}
 //   GET    /account/dictionary                           (token) -> {words}
 //   POST   /account/dictionary {words}                   (token) -> {words}
+//   GET    /account/preferences                          (token) -> {entries}
+//   POST   /account/preferences {entries}                (token) -> {entries}:
+//                                                        each {key, value,
+//                                                        updatedAt}, the
+//                                                        latest of each key
+//                                                        kept; the server
+//                                                        does not read them
 //   GET    /account/recovery                             (token) -> {count,
 //                                                        createdAt}
 //   POST   /account/recovery  {password}                 (token) -> {codes,
@@ -72,6 +80,9 @@ const SESSION_TOUCH_MS = 24 * 60 * 60 * 1000;
 const MAX_SESSIONS = 50;
 const MAX_PROJECTS = 5000;
 const MAX_WORDS = 10000;
+const MAX_PREFERENCES = 300;
+// The JSON of one preference's value.
+const MAX_PREFERENCE_CHARS = 4096;
 const MAX_BODY_BYTES = 1024 * 1024;
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -97,6 +108,8 @@ const PROJECT_ID = /^[A-Za-z0-9_-]{1,100}$/;
 // Words as the spell checker finds them: letters, with the apostrophes,
 // hyphens and middle dots inside words.
 const WORD = /^[\p{L}\p{M}'’·-]{1,100}$/u;
+// A setting's id, or a field of the profile: "setting:editor-font-size".
+const PREFERENCE_KEY = /^(setting|profile):[A-Za-z0-9_.-]{1,100}$/;
 
 class HttpError extends Error {
 	constructor(status, code) {
@@ -249,11 +262,39 @@ const mergeLatest = (stored, incoming, clean, keyOf) => {
 	return merged;
 };
 
+// A preference as a device last set it: any small JSON value, null for
+// none.
+const cleanPreference = (entry) => {
+	if (!entry || typeof entry !== 'object') return null;
+	if (typeof entry.key !== 'string' || !PREFERENCE_KEY.test(entry.key)) {
+		return null;
+	}
+	const updatedAt = Number(entry.updatedAt);
+	if (!Number.isFinite(updatedAt) || updatedAt < 0) return null;
+	const value = entry.value === undefined ? null : entry.value;
+	let json;
+	try {
+		json = JSON.stringify(value);
+	} catch {
+		return null;
+	}
+	if (json === undefined || json.length > MAX_PREFERENCE_CHARS) return null;
+	// A device whose clock runs ahead does not win over later changes.
+	return {
+		key: entry.key,
+		value: JSON.parse(json),
+		updatedAt: Math.min(updatedAt, Date.now()),
+	};
+};
+
 const mergeProjects = (stored, incoming) =>
 	mergeLatest(stored, incoming, cleanProject, (entry) => entry.id);
 
 const mergeWords = (stored, incoming) =>
 	mergeLatest(stored, incoming, cleanWord, (entry) => entry.word);
+
+const mergePreferences = (stored, incoming) =>
+	mergeLatest(stored, incoming, cleanPreference, (entry) => entry.key);
 
 // What device signs in, from its browser's User-Agent: the names of the
 // browser and of the system only, for the list of devices; neither the
@@ -1171,6 +1212,28 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 			return { changed, body: { words: listWords(account) } };
 		});
 
+	const listPreferences = (account) => Object.values(account.preferences ?? {});
+
+	const getPreferences = (req) =>
+		authenticate(req, (account) => ({
+			body: { entries: listPreferences(account) },
+		}));
+
+	const syncPreferences = (req, body) =>
+		authenticate(req, (account) => {
+			if (!Array.isArray(body.entries)) {
+				throw new HttpError(400, 'invalid_preferences');
+			}
+			const merged = mergePreferences(account.preferences ?? {}, body.entries);
+			if (Object.keys(merged).length > MAX_PREFERENCES) {
+				throw new HttpError(413, 'too_many_preferences');
+			}
+			const changed =
+				JSON.stringify(merged) !== JSON.stringify(account.preferences ?? {});
+			account.preferences = merged;
+			return { changed, body: { entries: listPreferences(account) } };
+		});
+
 	const readBody = (req) =>
 		new Promise((resolve, reject) => {
 			let size = 0;
@@ -1221,6 +1284,8 @@ const createAccounts = ({ dir, log, mailer = null, appUrl = '' }) => {
 		'POST /account/projects': (req, body) => syncProjects(req, body),
 		'GET /account/dictionary': (req) => getDictionary(req),
 		'POST /account/dictionary': (req, body) => syncDictionary(req, body),
+		'GET /account/preferences': (req) => getPreferences(req),
+		'POST /account/preferences': (req, body) => syncPreferences(req, body),
 		'GET /account/git-tokens': (req) => getGitTokens(req),
 		'POST /account/git-tokens': (req, body) => changeGitTokens(req, body),
 		'GET /account/recovery': (req) => getRecovery(req),

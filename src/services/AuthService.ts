@@ -15,6 +15,10 @@ import type {
 import { accountFieldsChanged } from '../utils/accountSyncUtils';
 import { generateRandomColor } from '../utils/colorUtils';
 import { cleanupProjectDatabases } from '../utils/dbDeleteUtils';
+import {
+	SYNCED_PROFILE_FIELDS,
+	type SyncedProfile,
+} from '../utils/accountPreferences';
 import { generateYjsProjectId } from '../utils/urlUtils';
 import { getUserDataKey } from '../utils/userDataUtils';
 import {
@@ -22,12 +26,15 @@ import {
 	AccountServerError,
 	accountSyncService,
 } from './AccountSyncService';
+import { accountPreferencesService } from './AccountPreferencesService';
 import { diskBackupService } from './DiskBackupService';
 import { personalDictionaryService } from './PersonalDictionaryService';
 
 const moduleLog = createNamedLogger('AuthService');
 
 const COMMIT_EMAILS_KEPT = 'feuillet-commit-emails-kept';
+/** The profile changed on another device of the account: detail, the user. */
+export const USER_PROFILE_SYNCED = 'feuillet-user-profile-synced';
 
 const shouldAutoSync = (): boolean => {
 	return localStorage.getItem('texlyre-auto-sync') === 'true';
@@ -597,13 +604,37 @@ class AuthService {
 
 	async updateUser(user: User): Promise<User> {
 		if (!this.db) await this.initialize();
+		const before: User | undefined = await this.db?.get(
+			this.USER_STORE,
+			user.id,
+		);
 		await this.db?.put(this.USER_STORE, user);
 
 		if (this.currentUser && this.currentUser.id === user.id) {
 			this.currentUser = user;
 		}
+		// The Git commit email and the color follow the account.
+		if (before) accountPreferencesService.profileChanged(user.id, before, user);
 
 		return user;
+	}
+
+	/** Profile fields set on another device of the account. */
+	async applySyncedProfile(
+		userId: string,
+		profile: SyncedProfile,
+	): Promise<void> {
+		const user = await this.getUserById(userId);
+		if (!user) return;
+		const updated: User = { ...user };
+		for (const field of SYNCED_PROFILE_FIELDS) {
+			if (field in profile) updated[field] = profile[field];
+		}
+		await this.db?.put(this.USER_STORE, updated);
+		if (this.currentUser?.id === userId) this.currentUser = updated;
+		window.dispatchEvent(
+			new CustomEvent<User>(USER_PROFILE_SYNCED, { detail: updated }),
+		);
 	}
 
 	async updateUserColor(
@@ -1082,3 +1113,10 @@ personalDictionaryService.followUser(
 	() => authService.getCurrentUser()?.id ?? null,
 );
 accountSyncService.attachDictionary(personalDictionaryService);
+
+accountPreferencesService.attachProfiles({
+	profileOf: (userId) => authService.getUserById(userId),
+	applyProfile: (userId, profile) =>
+		authService.applySyncedProfile(userId, profile),
+});
+accountSyncService.attachPreferences(accountPreferencesService);
