@@ -22,6 +22,7 @@ export const SYNCED_SETTINGS: readonly string[] = [
 	'editor-syntax-highlighting',
 	'editor-spell-check',
 	'editor-spelling-language',
+	'editor-grammar-check',
 	'editor-mathlive-enable',
 	'editor-mathlive-preview-mode',
 	'editor-auto-save-enable',

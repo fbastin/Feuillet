@@ -11,6 +11,7 @@ import {
 } from '../contexts/EditorContext';
 import { useSettings } from '../hooks/useSettings';
 import type { EditorKeymapMode, FontFamily } from '../types/editor';
+import GrammarRulesEditor from '../components/settings/GrammarRulesEditor';
 import PersonalDictionaryEditor from '../components/settings/PersonalDictionaryEditor';
 import type { SpellingSetting } from '../types/spelling';
 
@@ -32,6 +33,7 @@ export function useRegisterEditorSettings() {
 			'editor-keymap-mode',
 			'editor-spell-check',
 			'editor-spelling-language',
+			'editor-grammar-check',
 			'editor-mathlive-enable',
 			'editor-mathlive-preview-mode',
 			'language',
@@ -67,6 +69,9 @@ export function useRegisterEditorSettings() {
 		const initialSpellingLanguage =
 			(batchedSettings['editor-spelling-language'] as SpellingSetting) ??
 			defaultEditorSettings.spellingLanguage;
+		const initialGrammarCheck =
+			(batchedSettings['editor-grammar-check'] as boolean) ??
+			defaultEditorSettings.grammarCheck;
 		const initialMathLiveEnabled =
 			(batchedSettings['editor-mathlive-enable'] as boolean) ??
 			defaultEditorSettings.mathLiveEnabled;
@@ -226,6 +231,32 @@ export function useRegisterEditorSettings() {
 				{ label: t('English (United Kingdom)'), value: 'en-GB' },
 				{ label: t('Off'), value: 'off' },
 			],
+		});
+
+		registerSetting({
+			id: 'editor-grammar-check',
+			category: t('Viewers'),
+			subcategory: t('Text Editor'),
+			type: 'checkbox',
+			label: t('Grammar and style checking'),
+			description: t(
+				"Underline in blue the grammar and style mistakes of LaTeX and Typst prose, with LanguageTool on Feuillet's server; hover for corrections. For accounts signed in to the server.",
+			),
+			defaultValue: initialGrammarCheck,
+		});
+
+		// The rules turned off from the editor, to turn them on again.
+		registerSetting({
+			id: 'editor-grammar-rules-off',
+			category: t('Viewers'),
+			subcategory: t('Text Editor'),
+			type: 'custom',
+			label: t('Grammar rules turned off'),
+			defaultValue: null,
+			strictDefaultValue: true,
+			liveUpdate: true,
+			dependsOn: { id: 'editor-grammar-check', value: true, nest: true },
+			render: () => createElement(GrammarRulesEditor),
 		});
 
 		// The words added to one's dictionary, as Overleaf's « Dictionary:

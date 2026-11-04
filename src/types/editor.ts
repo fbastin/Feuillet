@@ -91,6 +91,8 @@ export interface EditorSettings {
 	keymapMode: EditorKeymapMode;
 	spellCheck: boolean;
 	spellingLanguage: SpellingSetting;
+	/** Grammar and style checking (LanguageTool), when the server offers it. */
+	grammarCheck: boolean;
 	mathLiveEnabled: boolean;
 	mathLivePreviewMode: 'hover-cursor' | 'hover' | 'cursor' | 'never';
 	language: string;

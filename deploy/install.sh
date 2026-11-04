@@ -146,7 +146,7 @@ if docker inspect feuillet-collab >/dev/null 2>&1; then
 		echo "The backup failed; the update goes on."
 fi
 
-echo "== Collaboration and TeX Live servers (the first TeX Live build downloads about 3 GB)"
+echo "== Collaboration, TeX Live and LanguageTool servers (the first builds download about 3 GB and 250 MB)"
 install -d -o root -g www-data -m 0750 "$TEXLIVE_SOCKET_DIR"
 docker compose -f "$HERE/docker-compose.yml" up -d --build
 for _ in $(seq 1 60); do
@@ -159,6 +159,13 @@ for _ in $(seq 1 60); do
 	sleep 1
 done
 curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health && echo
+# LanguageTool has no way in from here (its network is internal): its
+# container says how it is.
+for _ in $(seq 1 90); do
+	if [ "$(docker inspect --format '{{.State.Health.Status}}' feuillet-languagetool 2>/dev/null)" = healthy ]; then break; fi
+	sleep 2
+done
+echo "LanguageTool: $(docker inspect --format '{{.State.Health.Status}}' feuillet-languagetool 2>/dev/null || echo missing)"
 
 echo "== Apache: /texlive/ through the TeX Live server's socket"
 texlive_socket_route "$SSL_CONF" add

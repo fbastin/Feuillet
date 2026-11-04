@@ -350,6 +350,22 @@ logrotate (14 days).
   sudo docker exec feuillet-collab rm "/accounts/$name.json"
   ```
 
+## Grammar checking (LanguageTool)
+
+As Overleaf's Writefull, the editor underlines grammar and style mistakes,
+found by [LanguageTool](https://languagetool.org) 6.6, the official release
+([`server/languagetool`](../server/languagetool); its checksum is checked
+when the image is built). Its container (`feuillet-languagetool`, 2 GB of
+memory at most) is on a Docker network of its own with the collaboration
+server only, without access to the Internet, and writes no logs; the
+collaboration server passes it the paragraphs of signed-in accounts
+(`GRAMMAR_URL`, `server/collab/grammar.js`), 120 a minute per account at
+most, and keeps nothing. Spelling stays with Feuillet's own checker. The
+first check of each language takes a few seconds, while LanguageTool makes
+its rules; later ones take milliseconds. `sudo docker inspect --format
+'{{.State.Health.Status}}' feuillet-languagetool` says how it is. Leaving
+`GRAMMAR_URL` out of `docker-compose.yml` turns grammar checking off.
+
 ## TeX Live server limits
 
 Anyone who can open Feuillet can compile on this server, so the container is

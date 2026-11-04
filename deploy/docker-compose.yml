@@ -30,6 +30,8 @@ services:
       # How the last backup went, for the administration page
       # (deploy/backup.sh, server/collab/admin.js).
       BACKUP_STATUS_DIR: "/backup-status"
+      # Grammar and style checking (server/collab/grammar.js).
+      GRAMMAR_URL: "http://languagetool:8010"
     # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET, for "Sign in with GitHub",
     # the email settings and ADMIN_ACCOUNTS (see deploy/README.md); kept out
     # of the repository.
@@ -50,6 +52,10 @@ services:
     # The group of the TeX Live socket's directory (www-data).
     group_add:
       - "33"
+    # Apache reaches it on the default network; LanguageTool on its own.
+    networks:
+      - default
+      - grammar
 
   # Compiles documents written by anyone who can open Feuillet: each
   # connection under its own uid, bounded in memory, processes and disk, and
@@ -91,6 +97,34 @@ services:
     mem_limit: 4g
     cpus: 4
     pids_limit: 256
+
+  # Grammar and style checking (server/collab/grammar.js): LanguageTool, on
+  # a network of its own with the collaboration server only, without access
+  # to the Internet. Documents' paragraphs pass through it: it keeps nothing
+  # and writes no logs.
+  languagetool:
+    build: ../server/languagetool
+    container_name: feuillet-languagetool
+    restart: unless-stopped
+    logging:
+      driver: none
+    networks:
+      - grammar
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 128
+
+networks:
+  # Without a way out: LanguageTool and the collaboration server only.
+  grammar:
+    internal: true
 
 volumes:
   collab-data:

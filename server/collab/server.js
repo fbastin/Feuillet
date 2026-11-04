@@ -61,6 +61,8 @@
 //                       (e.g. ws+unix:///texlive-socket/texlive.sock:/ for
 //                       its Unix socket, or ws://localhost:7045); unset
 //                       turns that off
+//   GRAMMAR_URL         LanguageTool, for grammar checking (grammar.js; e.g.
+//                       http://languagetool:8010); unset turns that off
 //   TEXLIVE_ORIGIN      the Origin to show it (default: the first of
 //                       ALLOWED_ORIGINS)
 //   SMTP_URL            the SMTP server for recovery emails and invitations
@@ -92,6 +94,7 @@ const { createMailer } = require('./mail');
 const { createCompiler } = require('./compile');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
+const { createGrammar } = require('./grammar');
 const { createGitBridge } = require('./git');
 const { createGitHub } = require('./github');
 const { createHistory } = require('./history');
@@ -258,6 +261,9 @@ const history = createHistory({
 });
 
 const urlFetcher = createUrlFetcher({ accounts, maxBytes: maxFileBytes, log });
+
+// Grammar and style checking with LanguageTool, for signed-in accounts.
+const grammar = createGrammar({ accounts, url: process.env.GRAMMAR_URL });
 
 const admin = createAdmin({
 	admins: (process.env.ADMIN_ACCOUNTS || '').split(','),
@@ -478,9 +484,11 @@ const server = http.createServer((req, res) => {
 				? admin
 				: urlFetcher.handles(url)
 					? urlFetcher
-					: oauth.handlesAccount(url)
-						? { handle: (request, response) => oauth.handleAccount(request, response) }
-						: null;
+					: grammar.handles(url)
+						? grammar
+						: oauth.handlesAccount(url)
+							? { handle: (request, response) => oauth.handleAccount(request, response) }
+							: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {
@@ -670,6 +678,7 @@ server.listen(port, host, () => {
 		`assistant connections in ${mcpDir};`,
 		`Git repositories in ${gitDir};`,
 		process.env.TEXLIVE_URL ? 'assistants compile;' : 'assistants do not compile;',
+		process.env.GRAMMAR_URL ? 'grammar checking on;' : 'grammar checking off;',
 		github.enabled ? 'GitHub sign-in on;' : 'GitHub sign-in off;',
 		mailer ? 'recovery by email on;' : 'recovery by email off;',
 		admin.enabled ? 'administration page on' : 'administration page off',

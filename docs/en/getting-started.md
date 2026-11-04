@@ -79,6 +79,16 @@ polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst. The words added
 to the dictionary are seen, removed or added in **Settings**, **Words added
 to the dictionary**; your account takes them to your other devices.
 
+As Writefull does on Overleaf, grammar and style are checked too, with
+LanguageTool on Feuillet's server, in English and French: mistakes are
+underlined in blue (spelling stays red). Hovering a mistake shows the
+explanation and the corrections, one click away; **Ignore** puts it aside,
+**Turn this rule off** turns the rule off everywhere (rules turned off are
+turned on again in **Settings**). Commands, formulas and citations do not
+count, nor the spaces before « : ; ! ? » that babel adds. Checking needs an
+account signed in to the server, and is turned off in **Settings**,
+**Grammar and style checking**.
+
 When the window is narrow, the least used tools of the editor's toolbar go
 into the **…** menu.
 

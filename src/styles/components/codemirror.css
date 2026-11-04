@@ -1418,3 +1418,80 @@ math-field {
 		background-color: transparent;
 	}
 }
+
+/* Grammar and style, as LanguageTool finds them: blue, apart from spelling. */
+.codemirror-editor-container .cm-grammar-issue {
+	text-decoration: underline wavy var(--color-info, #1e88e5);
+	text-decoration-skip-ink: none;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 3px;
+}
+
+.codemirror-editor-container .cm-tooltip:has(.cm-grammar-tooltip) {
+	background-color: var(--pico-background);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-md);
+}
+
+.cm-grammar-tooltip {
+	max-width: 24rem;
+	padding: var(--space-sm);
+	color: var(--text-color);
+	font-family: var(--font-family-ui, system-ui, sans-serif);
+	font-size: var(--font-size-small);
+}
+
+.cm-grammar-tooltip .cm-grammar-message {
+	margin: 0 0 var(--space-xs);
+}
+
+.cm-grammar-tooltip .cm-grammar-replacements,
+.cm-grammar-tooltip .cm-grammar-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xs);
+	margin-top: var(--space-xs);
+}
+
+.cm-grammar-tooltip button {
+	margin: 0;
+	padding: 2px var(--space-sm);
+	font-size: var(--font-size-small);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	background: var(--pico-background);
+	color: var(--text-color);
+	cursor: pointer;
+}
+
+.cm-grammar-tooltip .cm-grammar-replacements button {
+	font-weight: 600;
+	color: var(--pico-primary);
+}
+
+.cm-grammar-tooltip .cm-grammar-actions button {
+	color: var(--text-color-muted, var(--text-color));
+	opacity: 0.85;
+}
+
+.grammar-rules-list {
+	margin: var(--space-xs) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.grammar-rules-list li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-sm);
+	margin: 0 0 var(--space-xs);
+	list-style: none;
+}
+
+.grammar-rules-list .button {
+	margin: 0;
+	padding: 2px var(--space-sm);
+	font-size: var(--font-size-small);
+}

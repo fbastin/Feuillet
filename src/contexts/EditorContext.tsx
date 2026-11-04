@@ -97,6 +97,7 @@ export const defaultEditorSettings: EditorSettings = {
 	keymapMode: null as EditorKeymapMode,
 	spellCheck: true,
 	spellingLanguage: 'auto' as SpellingSetting,
+	grammarCheck: true,
 	mathLiveEnabled: true,
 	mathLivePreviewMode: 'cursor',
 	language: 'en',
@@ -194,6 +195,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 			spellingLanguage:
 				(getSetting('editor-spelling-language')?.value as SpellingSetting) ??
 				defaultEditorSettings.spellingLanguage,
+			grammarCheck:
+				(getSetting('editor-grammar-check')?.value as boolean) ??
+				defaultEditorSettings.grammarCheck,
 			mathLiveEnabled:
 				(getSetting('editor-mathlive-enable')?.value as boolean) ??
 				defaultEditorSettings.mathLiveEnabled,
@@ -225,6 +229,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 				keymapMode: 'editor-keymap-mode',
 				spellCheck: 'editor-spell-check',
 				spellingLanguage: 'editor-spelling-language',
+				grammarCheck: 'editor-grammar-check',
 				mathLiveEnabled: 'editor-mathlive-enable',
 				mathLivePreviewMode: 'editor-mathlive-preview-mode',
 				language: 'language',

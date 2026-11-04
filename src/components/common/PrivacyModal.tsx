@@ -87,6 +87,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						)}
 					</li>
 					<li>
+						<strong>{t('Grammar checking:')}</strong>&nbsp;
+						{t(
+							'when it is on (Settings), the paragraphs in view of the document you edit go to the server, which checks them with LanguageTool, on the same machine and without access to the Internet, and keeps nothing of them, not even in its logs.',
+						)}
+					</li>
+					<li>
 						<strong>{t('Server logs:')}</strong>&nbsp;
 						{t(
 							"the web server notes the IP address and the pages asked for, kept 14 days. The collaboration server notes events such as an account's creation, with its name, but never a project's content or id; it keeps 30 MB of notes at most, erasing the oldest first.",

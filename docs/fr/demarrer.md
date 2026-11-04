@@ -83,6 +83,16 @@ document : celle de babel ou de polyglossia en LaTeX, celle de
 revoient, se retirent ou s'ajoutent dans **Paramètres**, **Mots ajoutés au
 dictionnaire**; le compte les emporte sur vos autres appareils.
 
+Comme le fait Writefull sur Overleaf, la grammaire et le style sont aussi
+vérifiés, avec LanguageTool sur le serveur de Feuillet, en français et en
+anglais : les fautes sont soulignées en bleu (l'orthographe reste en rouge).
+Le survol d'une faute montre l'explication et les corrections, à choisir d'un
+clic; **Ignorer** l'écarte, **Désactiver cette règle** coupe la règle partout
+(les règles désactivées se réactivent dans **Paramètres**). Les commandes,
+les formules et les citations ne comptent pas, ni les espaces avant « : ; ! ? »
+que babel ajoute. La vérification demande d'être connecté au serveur, et se
+coupe dans **Paramètres**, **Vérification grammaticale et stylistique**.
+
 Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
 l'éditeur passent dans le menu **…**.
 

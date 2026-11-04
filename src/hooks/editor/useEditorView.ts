@@ -97,6 +97,7 @@ import {
 	showCollaborator,
 } from '../../extensions/codemirror/CollaboratorFlashExtension';
 import { createCompileDiagnosticsExtension } from '../../extensions/codemirror/CompileDiagnosticsExtension';
+import { createGrammarExtension } from '../../extensions/codemirror/GrammarExtension';
 import { createSpellingExtension } from '../../extensions/codemirror/SpellingExtension';
 import {
 	createLinkNavigationExtension,
@@ -521,6 +522,17 @@ export const useEditorView = (
 						format: info.isTypst ? 'typst' : 'latex',
 					}),
 				);
+				// Grammar and style, for an account the server knows.
+				if (editorSettings.grammarCheck && user && !user.isGuest) {
+					extensions.push(
+						createGrammarExtension({
+							format: info.isTypst ? 'typst' : 'latex',
+							userId: user.id,
+							interfaceLanguage: editorSettings.language,
+							spellingSetting: editorSettings.spellingLanguage,
+						}),
+					);
+				}
 			}
 			if (info.isLatex) {
 				// The visual editor, on or off as last chosen in this browser.

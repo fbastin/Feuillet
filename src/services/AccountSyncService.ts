@@ -3,6 +3,7 @@ import { createNamedLogger } from '@/logging';
 import type { Project } from '../types/projects';
 import type { DictionaryEntry } from '../types/spelling';
 import type { PreferenceEntry } from '../utils/accountPreferences';
+import type { AnnotationPart } from '../utils/grammarText';
 import {
 	type AccountProject,
 	getAccountServerUrl,
@@ -265,6 +266,16 @@ export interface AccountDictionaryStore {
 	addListener(listener: (userId: string, local: boolean) => void): () => void;
 }
 
+/** A grammar or style mistake LanguageTool found in a paragraph. */
+export interface GrammarMatch {
+	offset: number;
+	length: number;
+	message: string;
+	shortMessage: string;
+	replacements: string[];
+	rule: { id: string; category: string; issueType: string };
+}
+
 export interface AccountPreferencesStore {
 	entries(userId: string): Promise<PreferenceEntry[]>;
 	merge(
@@ -297,6 +308,11 @@ class AccountSyncService {
 	private store: AccountProjectStore | null = null;
 	private dictionary: AccountDictionaryStore | null = null;
 	private preferences: AccountPreferencesStore | null = null;
+	private grammarAvailability: {
+		server: string;
+		at: number;
+		enabled: boolean;
+	} | null = null;
 	private userId: string | null = null;
 	private running: Promise<void> | null = null;
 	private runAgain = false;
@@ -1269,6 +1285,51 @@ class AccountSyncService {
 			}
 			throw error;
 		}
+	}
+
+	/**
+	 * Whether the account's server checks grammar (server/collab/grammar.js):
+	 * asked once a quarter of an hour; false without a session.
+	 */
+	async grammarEnabled(userId: string): Promise<boolean> {
+		const session = this.getSession(userId);
+		if (!session) return false;
+		const known = this.grammarAvailability;
+		if (
+			known?.server === session.server &&
+			Date.now() - known.at < 15 * 60_000
+		) {
+			return known.enabled;
+		}
+		const enabled = await this.request(session.server, 'GET', '/grammar')
+			.then((result) => result?.enabled === true)
+			.catch(() => false);
+		this.grammarAvailability = {
+			server: session.server,
+			at: Date.now(),
+			enabled,
+		};
+		return enabled;
+	}
+
+	/** What LanguageTool finds in a paragraph, as annotated text. */
+	async checkGrammar(
+		userId: string,
+		check: {
+			language: string;
+			annotation: AnnotationPart[];
+			disabledRules?: string[];
+		},
+	): Promise<GrammarMatch[]> {
+		const session = this.getSession(userId);
+		if (!session) throw new AccountServerError('signed_out', 401);
+		const { matches } = await this.request(
+			session.server,
+			'POST',
+			'/grammar/check',
+			{ token: session.token, body: check, timeout: 30_000 },
+		);
+		return Array.isArray(matches) ? (matches as GrammarMatch[]) : [];
 	}
 
 	private async syncPreferences(
