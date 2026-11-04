@@ -20,6 +20,9 @@ const moduleLog = createNamedLogger('AccountSyncService');
 export const ACCOUNT_PROJECTS_CHANGED = 'feuillet-account-projects-changed';
 
 const REQUEST_TIMEOUT_MS = 15_000;
+// Requests that wait for the server to mail something: a mail provider may
+// take its time, as Gmail does, holding back its greeting for seconds.
+const MAIL_TIMEOUT_MS = 60_000;
 const CHANGE_DELAY_MS = 1_500;
 const SYNC_INTERVAL_MS = 2 * 60_000;
 const FOCUS_THROTTLE_MS = 30_000;
@@ -615,6 +618,8 @@ class AccountSyncService {
 			{
 				token: session.token,
 				body: { project: projectLinkService.serverId(projectId), ...change },
+				timeout:
+					change.send || change.resend ? MAIL_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
 			},
 		);
 		const valid = (entry: ProjectInvite) =>
@@ -966,6 +971,7 @@ class AccountSyncService {
 					address === null
 						? { password, remove: true }
 						: { password, address, language },
+				timeout: address === null ? REQUEST_TIMEOUT_MS : MAIL_TIMEOUT_MS,
 			},
 		);
 		return recoveryEmailStatus(result);
@@ -1282,7 +1288,11 @@ class AccountSyncService {
 		server: string,
 		method: string,
 		path: string,
-		{ token, body }: { token?: string; body?: unknown } = {},
+		{
+			token,
+			body,
+			timeout = REQUEST_TIMEOUT_MS,
+		}: { token?: string; body?: unknown; timeout?: number } = {},
 	): Promise<any> {
 		if (!server) throw new AccountServerError('unreachable');
 
@@ -1295,7 +1305,7 @@ class AccountSyncService {
 					...(token ? { Authorization: `Bearer ${token}` } : {}),
 				},
 				body: body ? JSON.stringify(body) : undefined,
-				signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+				signal: AbortSignal.timeout(timeout),
 			});
 		} catch {
 			throw new AccountServerError('unreachable');
