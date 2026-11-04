@@ -7,9 +7,12 @@ FROM node:22-bookworm-slim AS node
 FROM ${TEXLIVE_IMAGE}
 
 # Ghostscript converts EPS figures (epstopdf); Python runs minted's
-# latexminted, which restricted shell escape allows.
+# latexminted and PythonTeX (with Pygments); as on Overleaf, documents may run
+# Inkscape (the svg package) and gnuplot (gnuplottex), the server having no
+# network (server.js, docker-compose.yml).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ghostscript python3 \
+        python3-pygments inkscape gnuplot-nox \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
@@ -52,7 +55,8 @@ ENV NODE_ENV=production \
     WORK_DIR=/work
 EXPOSE 7045
 
+# On its Unix socket when it has one (SOCKET_PATH), else on its port.
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:7045/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+  CMD node -e "const s = process.env.SOCKET_PATH; require('http').get(s ? { socketPath: s, path: '/health' } : 'http://127.0.0.1:7045/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 CMD ["node", "server.js"]

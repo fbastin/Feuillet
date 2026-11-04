@@ -1,6 +1,8 @@
 # deploy/docker-compose.yml
 # Feuillet servers, reachable only from this machine; Apache exposes them as
-# wss://feuillet.slashbin.net/collab/ and wss://feuillet.slashbin.net/texlive/.
+# wss://feuillet.slashbin.net/collab/ and wss://feuillet.slashbin.net/texlive/,
+# the second through a Unix socket in /var/lib/feuillet/texlive-socket, which
+# install.sh makes for the group www-data.
 name: feuillet
 
 # What the servers write (accounts created and deleted, errors): three
@@ -22,8 +24,9 @@ services:
     environment:
       ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
       PUBLIC_URL: "https://feuillet.slashbin.net/collab"
-      # For assistants (Claude) to compile projects (server/collab/mcp.js).
-      TEXLIVE_URL: "ws://texlive:7045"
+      # For assistants (Claude) to compile projects (server/collab/mcp.js),
+      # through the TeX Live server's socket.
+      TEXLIVE_URL: "ws+unix:///texlive-socket/texlive.sock:/"
       # How the last backup went, for the administration page
       # (deploy/backup.sh, server/collab/admin.js).
       BACKUP_STATUS_DIR: "/backup-status"
@@ -43,21 +46,32 @@ services:
       # The projects' Git repositories (server/collab/git.js).
       - collab-git:/git
       - /var/lib/feuillet/backup-status:/backup-status:ro
+      - /var/lib/feuillet/texlive-socket:/texlive-socket
+    # The group of the TeX Live socket's directory (www-data).
+    group_add:
+      - "33"
 
   # Compiles documents written by anyone who can open Feuillet: each
   # connection under its own uid, bounded in memory, processes and disk, and
-  # keeping nothing between runs.
+  # keeping nothing between runs. As on Overleaf, documents may run programs
+  # (shell escape): the container has no network at all, not even this
+  # machine's, and is reached through its Unix socket, in a directory the
+  # compiles cannot open. Its server refuses full shell escape if it finds a
+  # network.
   texlive:
     build: ../server/texlive
     container_name: feuillet-texlive
     restart: unless-stopped
     logging: *logging
-    ports:
-      - "127.0.0.1:7045:7045"
+    network_mode: none
     environment:
       ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
       MAX_CONCURRENT: "2"
       COMPILE_TIMEOUT_MS: "180000"
+      SOCKET_PATH: "/socket/texlive.sock"
+      SHELL_ESCAPE: "full"
+    volumes:
+      - /var/lib/feuillet/texlive-socket:/socket
     tmpfs:
       - /work:size=2g,mode=0711
       - /tmp:size=256m

@@ -13,8 +13,12 @@
 // a request {"options": {"action": "output-file", "path": ...}} brings one.
 //
 // Compiles run latexmk without rc files, but rules of its own for glossaries
-// and nomenclatures, and without -shell-escape (TeX Live's restricted shell
-// escape stays in force), one at a time per connection and
+// and nomenclatures. As on Overleaf, documents may run programs (-shell-escape:
+// Inkscape for the svg package, TikZ's externalization, PythonTeX...) once
+// the server has no network, so that neither can a document: Docker gives it
+// none (deploy/docker-compose.yml) and it is reached through a Unix socket.
+// With a network, TeX Live's restricted shell escape stays in force. Compiles
+// run one at a time per connection and
 // at most MAX_CONCURRENT at once, each bounded by COMPILE_TIMEOUT_MS. As on
 // Overleaf, a compile may run in draft mode (images drawn as boxes) or stop
 // at the first error, and a message {"action": "stop"} stops the compiles a
@@ -43,12 +47,21 @@
 //   MAX_MESSAGE_BYTES   largest accepted request (default 100 MiB)
 //   SESSION_UID_BASE    first of the MAX_CONNECTIONS uids given to
 //                       connections when running as root (default 20000)
+//   SOCKET_PATH         a Unix socket to listen on instead of HOST:PORT; the
+//                       group of its directory may connect
+//   SHELL_ESCAPE        "full" lets documents run programs, if the server has
+//                       no network but loopback; "restricted" (default)
+//                       keeps TeX Live's list of safe programs
+//   SHELL_ESCAPE_ANY_NETWORK  "1" allows "full" with a network (tests only)
+//   SESSION_MAX_PROCESSES  processes each connection may run at once, when
+//                       running as root (default 64)
 
 const { execFileSync, spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const { constants: fsConstants } = require('node:fs');
 const fs = require('node:fs/promises');
 const http = require('node:http');
+const os = require('node:os');
 const path = require('node:path');
 const { WebSocketServer } = require('ws');
 
@@ -70,6 +83,37 @@ const idleTimeoutMs = readInt('IDLE_TIMEOUT_MS', 900_000);
 const maxPayload = readInt('MAX_MESSAGE_BYTES', 100 * 1024 * 1024);
 const sessionUidBase = readInt('SESSION_UID_BASE', 20000);
 const isolated = process.getuid?.() === 0;
+const socketPath = process.env.SOCKET_PATH || '';
+const sessionMaxProcesses = readInt('SESSION_MAX_PROCESSES', 64);
+// util-linux's prlimit bounds the processes of each connection.
+const hasPrlimit = (() => {
+	if (!isolated) return false;
+	try {
+		execFileSync('prlimit', ['--version'], { stdio: 'ignore' });
+		return true;
+	} catch {
+		console.error('prlimit not found: connections are not bounded in processes.');
+		return false;
+	}
+})();
+
+// The network interfaces other than loopback: a document that runs programs
+// could reach whatever they reach.
+const networkInterfaces = () =>
+	Object.entries(os.networkInterfaces())
+		.filter(([, addresses]) => (addresses ?? []).some((entry) => !entry.internal))
+		.map(([name]) => name);
+const shellEscape = (() => {
+	if (process.env.SHELL_ESCAPE !== 'full') return 'restricted';
+	const reachable = networkInterfaces();
+	if (reachable.length === 0 || process.env.SHELL_ESCAPE_ANY_NETWORK === '1') {
+		return 'full';
+	}
+	console.error(
+		`Full shell escape refused: this server has a network (${reachable.join(', ')}). Documents keep TeX Live's restricted shell escape.`,
+	);
+	return 'restricted';
+})();
 // Biber as unpacked when the image was built (check-biber.sh).
 const biberDir = process.env.BIBER_DIR || '';
 
@@ -394,7 +438,21 @@ class Session {
 				resolve({ status: 1, output: '', timedOut: false, stopped: true });
 				return;
 			}
-			const child = spawn('latexmk', args, {
+			// Under its own uid, a connection runs a bounded number of
+			// processes, which a document running programs cannot exceed.
+			const [command, commandArgs] =
+				this.uid === null || !hasPrlimit
+					? ['latexmk', args]
+					: [
+							'prlimit',
+							[
+								`--nproc=${sessionMaxProcesses}:${sessionMaxProcesses}`,
+								'--',
+								'latexmk',
+								...args,
+							],
+						];
+			const child = spawn(command, commandArgs, {
 				cwd,
 				detached: true,
 				env,
@@ -529,6 +587,7 @@ class Session {
 			'-norc',
 			'-e',
 			GLOSSARY_RULES,
+			...(shellEscape === 'full' ? ['-shell-escape'] : []),
 			stopOnFirstError ? '-halt-on-error' : '-f',
 			...(changed ? ['-g'] : []),
 			...(draft ? [`-usepretex=${DRAFT_CODE}`] : []),
@@ -551,6 +610,8 @@ class Session {
 			args,
 			directory,
 		);
+		// Nothing a compile started goes on once it ends.
+		if (this.uid !== null) await killUid(this.uid);
 		log(
 			`compiled with ${engine}${draft ? ' (draft)' : ''}: status ${status} in ${Date.now() - started} ms`,
 		);
@@ -700,6 +761,7 @@ const server = http.createServer((req, res) => {
 				connections: wss.clients.size,
 				compiling: running,
 				queued: waiting.length,
+				shellEscape,
 			}),
 		);
 		return;
@@ -796,18 +858,37 @@ const start = async () => {
 	}
 	// Session uids may cross WORK_DIR but not list it.
 	if (isolated) await fs.chmod(workDir, 0o711);
-	server.listen(port, host, () => {
+	const listening = () =>
 		log(
-			`listening on ${host}:${port};`,
+			`listening on ${socketPath || `${host}:${port}`};`,
 			allowedOrigins.length > 0
 				? `origins: ${allowedOrigins.join(', ')};`
 				: 'any origin;',
 			`${maxConcurrent} concurrent compiles, ${compileTimeoutMs / 1000}s each;`,
 			isolated
-				? `one uid per connection from ${sessionUidBase};`
+				? `one uid per connection from ${sessionUidBase}${hasPrlimit ? `, ${sessionMaxProcesses} processes each` : ''};`
 				: 'compiles share the server user;',
+			shellEscape === 'full'
+				? 'documents may run programs (no network);'
+				: 'restricted shell escape;',
 			`work in ${workDir}`,
 		);
+	if (!socketPath) {
+		server.listen(port, host, listening);
+		return;
+	}
+	// Longer, the system would cut it and listen elsewhere.
+	if (Buffer.byteLength(socketPath) > 107) {
+		throw new Error(`SOCKET_PATH is longer than 107 bytes: ${socketPath}`);
+	}
+	// The socket of a previous run, then this one, for the group of its
+	// directory (Apache and the collaboration server), not the compiles.
+	await fs.rm(socketPath, { force: true });
+	const { gid } = await fs.stat(path.dirname(socketPath));
+	server.listen(socketPath, async () => {
+		await fs.chmod(socketPath, 0o660);
+		if (isolated) await fs.chown(socketPath, 0, gid);
+		listening();
 	});
 };
 

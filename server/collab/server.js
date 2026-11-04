@@ -58,7 +58,9 @@
 //                       programs on the same computer, that applications
 //                       may send people back to after they agree
 //   TEXLIVE_URL         the TeX Live server, for assistants to compile
-//                       (e.g. ws://texlive:7045); unset turns that off
+//                       (e.g. ws+unix:///texlive-socket/texlive.sock:/ for
+//                       its Unix socket, or ws://localhost:7045); unset
+//                       turns that off
 //   TEXLIVE_ORIGIN      the Origin to show it (default: the first of
 //                       ALLOWED_ORIGINS)
 //   SMTP_URL            the SMTP server for recovery emails and invitations

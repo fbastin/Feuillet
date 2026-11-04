@@ -98,6 +98,11 @@ nomenclature of `nomencl` are made by themselves, in as many runs as needed.
 For the server's safety, Feuillet runs `makeindex` itself rather than
 `makeglossaries`; xindy and bib2gls are not run.
 
+As on Overleaf, a document may run programs while compiling (`\write18`,
+shell escape): Inkscape for the `svg` package, TikZ's externalization,
+PythonTeX, minted, gnuplot… The compile server has no network access: a
+document can neither download nor reach anything.
+
 As on Overleaf, a project compiles when it opens; its last PDF shows first,
 while it compiles. The **Auto-compile on project open** setting (Settings,
 Compilation) turns this off.

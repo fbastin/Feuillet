@@ -12,6 +12,10 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 OWNER=${SUDO_USER:-root}
 SITES=/etc/apache2/sites-available
 SSL_CONF=$SITES/$DOMAIN-le-ssl.conf
+# The TeX Live server has no network: Apache and the collaboration server
+# reach it through this socket, in a directory of the group www-data only.
+TEXLIVE_SOCKET_DIR=/var/lib/feuillet/texlive-socket
+TEXLIVE_SOCKET=$TEXLIVE_SOCKET_DIR/texlive.sock
 
 if [ "$(id -u)" -ne 0 ]; then
 	echo "Run with sudo: sudo $0" >&2
@@ -44,6 +48,42 @@ add_proxy_route() {
 	echo "Added $route to $conf (previous version: $backup)"
 }
 
+# Sends /texlive/ to the TeX Live server's socket, in place of the address of
+# an older install (127.0.0.1:7045); with a third argument, adds the route to
+# a virtual host that has none.
+texlive_socket_route() {
+	local conf=$1 add=${2:-}
+	[ -e "$conf" ] || return 0
+	grep -qF "unix:$TEXLIVE_SOCKET|" "$conf" && return 0
+	local present=
+	grep -q "ProxyPass  *\/texlive\/ " "$conf" && present=1
+	[ -n "$present" ] || [ -n "$add" ] || return 0
+	local pass="    ProxyPass        /texlive/ \"unix:$TEXLIVE_SOCKET|http://localhost/\" upgrade=websocket"
+	local reverse="    ProxyPassReverse /texlive/ http://localhost/"
+	local backup
+	backup="$conf.avant-$(date +%Y%m%d-%H%M%S)"
+	cp "$conf" "$backup"
+	if [ -n "$present" ]; then
+		awk -v pass="$pass" -v reverse="$reverse" '
+			/^[[:space:]]*ProxyPass[[:space:]]+\/texlive\// { print pass; next }
+			/^[[:space:]]*ProxyPassReverse[[:space:]]+\/texlive\// { print reverse; next }
+			{ print }
+		' "$backup" >"$conf"
+	else
+		awk -v pass="$pass" -v reverse="$reverse" '
+			/<\/VirtualHost>/ && !done {
+				print "    # TeX Live compile server, through its socket (deploy/docker-compose.yml)."
+				print pass
+				print reverse
+				print ""
+				done = 1
+			}
+			{ print }
+		' "$backup" >"$conf"
+	fi
+	echo "Sent /texlive/ to $TEXLIVE_SOCKET in $conf (previous version: $backup)"
+}
+
 echo "== Web root $WEBROOT (owned by $OWNER, filled by deploy/publish.sh)"
 install -d -o "$OWNER" -g www-data -m 2775 "$WEBROOT"
 
@@ -51,7 +91,7 @@ echo "== Apache virtual host"
 a2enmod -q proxy proxy_http proxy_wstunnel headers rewrite ssl
 if [ -e "$SSL_CONF" ]; then
 	add_proxy_route "$SSL_CONF" /collab/ 1234 "Real-time collaboration server (deploy/docker-compose.yml)."
-	add_proxy_route "$SSL_CONF" /texlive/ 7045 "TeX Live compile server (deploy/docker-compose.yml)."
+	# /texlive/ follows the TeX Live server once it runs, further down.
 	# Where applications such as Claude look for how to sign in to the
 	# collaboration server's /collab/mcp (server/collab/oauth.js).
 	add_proxy_route "$SSL_CONF" /.well-known/oauth-authorization-server 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-authorization-server
@@ -107,14 +147,24 @@ if docker inspect feuillet-collab >/dev/null 2>&1; then
 fi
 
 echo "== Collaboration and TeX Live servers (the first TeX Live build downloads about 3 GB)"
+install -d -o root -g www-data -m 0750 "$TEXLIVE_SOCKET_DIR"
 docker compose -f "$HERE/docker-compose.yml" up -d --build
-for service in 1234 7045; do
-	for _ in $(seq 1 60); do
-		if curl -fsS "http://127.0.0.1:$service/health" >/dev/null; then break; fi
-		sleep 1
-	done
-	curl -fsS "http://127.0.0.1:$service/health" && echo
+for _ in $(seq 1 60); do
+	if curl -fsS http://127.0.0.1:1234/health >/dev/null; then break; fi
+	sleep 1
 done
+curl -fsS http://127.0.0.1:1234/health && echo
+for _ in $(seq 1 60); do
+	if curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health >/dev/null; then break; fi
+	sleep 1
+done
+curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health && echo
+
+echo "== Apache: /texlive/ through the TeX Live server's socket"
+texlive_socket_route "$SSL_CONF" add
+texlive_socket_route "$SITES/$DOMAIN.conf"
+apache2ctl configtest
+systemctl reload apache2
 
 echo "== HTTPS certificate"
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then

@@ -57,7 +57,8 @@ settings, for instance to work offline.
 ```
 browser ──https──▶ Apache ── /                  ▶ /var/www/feuillet.slashbin.net (deploy/publish.sh)
                          ├─ /collab/  (wss, http) ▶ 127.0.0.1:1234 feuillet-collab  (Docker)
-                         └─ /texlive/ (wss, http) ▶ 127.0.0.1:7045 feuillet-texlive (Docker)
+                         └─ /texlive/ (wss, http) ▶ /var/lib/feuillet/texlive-socket/texlive.sock
+                                                     feuillet-texlive (Docker, no network)
 ```
 
 ## First installation
@@ -128,9 +129,9 @@ MAIL_FROM=Feuillet <ACCOUNT@gmail.com>
 ```
 
 Relaying through the host's own mail server instead would mean letting the
-Docker network send through it (Postfix's `mynetworks`); the TeX Live
-container shares that network and runs anyone's documents, so it would be
-able to send mail too.
+Docker network send through it (Postfix's `mynetworks`), which is better kept
+closed (the TeX Live container, which runs anyone's documents, has no
+network at all).
 
 So that whoever makes accounts cannot have the server mail anyone, and the
 mail provider close the sending account, the server sends at most 200
@@ -165,8 +166,8 @@ Assistants tab; changing the password ends them too.
 `deploy/install.sh` adds the Apache routes Claude looks for
 (`/.well-known/oauth-authorization-server` and
 `/.well-known/oauth-protected-resource`); the connections are kept in the
-`collab-mcp` volume, and compiles go to the TeX Live container
-(`TEXLIVE_URL` in `deploy/docker-compose.yml`). Applications may send people
+`collab-mcp` volume, and compiles go to the TeX Live container through its
+socket (`TEXLIVE_URL` in `deploy/docker-compose.yml`). Applications may send people
 back only to Claude or to a program on the same computer; `MCP_REDIRECT_URIS`
 in `/etc/feuillet/collab.env` adds other addresses.
 
@@ -332,7 +333,9 @@ logrotate (14 days).
 - `curl https://feuillet.slashbin.net/collab/health` returns
   `{"status":"ok",...}`.
 - `curl https://feuillet.slashbin.net/texlive/health` returns
-  `{"status":"ok","connections":…,"compiling":…,"queued":…}`.
+  `{"status":"ok","connections":…,"compiling":…,"queued":…,"shellEscape":"full"}`;
+  `"restricted"` means the server found a network and refused to let
+  documents run programs (`sudo docker logs feuillet-texlive` says why).
 - `sudo docker logs feuillet-collab` and `sudo docker logs feuillet-texlive`
   show rejected origins, if any, and one line per compile (engine, status,
   duration). Only `https://feuillet.slashbin.net` is allowed
@@ -357,14 +360,28 @@ bounded (`docker-compose.yml`) and connections are kept apart:
   root in the container, with only the capabilities it needs for that
   (changing owner and uid, removing files, stopping processes); compiles have
   none.
-- latexmk never reads `latexmkrc` files from projects and never passes
-  `-shell-escape`; TeX Live's restricted shell escape (BibTeX, makeindex,
-  epstopdf, minted's latexminted…) stays in force. LuaLaTeX runs without its
+- As on Overleaf, documents may run programs (`-shell-escape`): Inkscape for
+  the `svg` package, TikZ's externalization, PythonTeX, gnuplot… So that they
+  reach nothing, the container has no network (`network_mode: none`), not even
+  this machine's: Apache and the collaboration server reach it through a Unix
+  socket in `/var/lib/feuillet/texlive-socket`, a directory of the group
+  `www-data` that compiles cannot open. The server refuses full shell escape
+  (`SHELL_ESCAPE=full`) if it finds a network interface other than loopback,
+  and documents then keep TeX Live's restricted shell escape (BibTeX,
+  makeindex, epstopdf, minted's latexminted…).
+- Each connection runs at most 64 processes (`SESSION_MAX_PROCESSES`), and
+  whatever a compile started is stopped when it ends.
+- latexmk never reads `latexmkrc` files from projects (they are Perl); its
+  own rules make glossaries and nomenclatures. LuaLaTeX runs without its
   socket library.
 - At most `MAX_CONCURRENT` (2) compiles run at once, others wait in a queue of
   20; each compile stops after `COMPILE_TIMEOUT_MS` (3 minutes).
 - 4 GB of memory, 4 CPUs, 256 processes, and a 2 GB in-memory working area
   that is emptied when the container restarts.
+- What remains: a compile may use the processor and memory within these
+  bounds, and a flaw of the Linux kernel is easier to reach with any program
+  than with TeX alone. Overleaf compiles each project in a container of its
+  own; here connections share one, under different uids.
 
 ## Local development
 
@@ -379,7 +396,9 @@ cd server/texlive && npm install
 ALLOWED_ORIGINS=http://localhost:5173 WORK_DIR=./work npm start
 ```
 
-The TeX Live server uses the `latexmk` found on the machine. Then set
+The TeX Live server uses the `latexmk` found on the machine, with TeX Live's
+restricted shell escape (`SHELL_ESCAPE=full` is refused on a machine with a
+network). Then set
 Settings → Connectivity → WebSocket server to `ws://localhost:1234` and
 Settings → Compilation → LaTeX → TeX Live compile server to
 `ws://localhost:7045`.

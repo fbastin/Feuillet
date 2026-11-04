@@ -104,6 +104,12 @@ qu'il faut. Pour la sécurité du serveur, Feuillet lance lui-même
 `makeindex` au lieu de `makeglossaries`; xindy et bib2gls ne sont pas
 lancés.
 
+Comme sur Overleaf, un document peut lancer des programmes pendant la
+compilation (`\write18`, l'échappement shell) : Inkscape pour le paquet `svg`,
+l'externalisation TikZ, PythonTeX, minted, gnuplot… Le serveur de compilation
+n'a aucun accès au réseau : un document ne peut rien télécharger ni rien
+joindre.
+
 Comme sur Overleaf, un projet se compile quand on l'ouvre; son dernier PDF
 s'affiche d'abord, le temps de la compilation. Le réglage **Compiler
 automatiquement à l'ouverture du projet** (Paramètres, Compilation) désactive

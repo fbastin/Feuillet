@@ -6,7 +6,9 @@
 //
 // Environment (read by server.js):
 //   TEXLIVE_URL     the TeX Live server's WebSocket address, e.g.
-//                   ws://texlive:7045; unset turns compiling off
+//                   ws+unix:///texlive-socket/texlive.sock:/ (its Unix
+//                   socket) or ws://localhost:7045; unset turns compiling
+//                   off
 //   TEXLIVE_ORIGIN  the Origin to present, one the TeX Live server allows
 
 const crypto = require('node:crypto');
