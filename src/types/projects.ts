@@ -31,6 +31,10 @@ export interface Project {
 	// Who owns it on the collaboration server, as its account list says.
 	owner?: 'you' | 'other' | 'none';
 	ownerName?: string;
+	// When its last version was saved on the collaboration server, and by
+	// whom (their names), as Overleaf's project list shows.
+	lastEditedAt?: number;
+	lastEditedBy?: string[];
 }
 
 export type ProjectCreateInput = Omit<

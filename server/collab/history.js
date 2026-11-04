@@ -36,6 +36,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const VERSION_ID = /^[0-9]{13}-[0-9a-f]{8}$/;
+const PROJECT = /^[A-Za-z0-9_-]{1,100}$/;
 const ROUTE =
 	/^\/history\/([A-Za-z0-9_-]{1,100})(?:\/([0-9]{13}-[0-9a-f]{8})|(\/labels)(?:\/([0-9a-f]{16}))?)?$/;
 const MAX_LABELS = 500;
@@ -362,6 +363,28 @@ const createHistory = ({
 	const list = (project) =>
 		readJson(indexPath(project), []).slice().reverse();
 
+	// The project's last version, {time, authors}, for the project lists;
+	// read again only when the list of versions changed.
+	const latestSeen = new Map();
+	const latest = (project) => {
+		if (!PROJECT.test(project)) return null;
+		let changedAt;
+		try {
+			changedAt = fs.statSync(indexPath(project)).mtimeMs;
+		} catch {
+			latestSeen.delete(project);
+			return null;
+		}
+		const seen = latestSeen.get(project);
+		if (seen?.changedAt === changedAt) return seen.version;
+		const last = readJson(indexPath(project), []).at(-1);
+		const version = last
+			? { time: last.time, authors: Array.isArray(last.authors) ? last.authors : [] }
+			: null;
+		latestSeen.set(project, { changedAt, version });
+		return version;
+	};
+
 	const get = (project, id) =>
 		VERSION_ID.test(id) ? readJson(versionPath(project, id), null) : null;
 
@@ -509,7 +532,7 @@ const createHistory = ({
 		}
 	};
 
-	return { track, record, flush, erase, list, get, route, handle };
+	return { track, record, flush, erase, list, latest, get, route, handle };
 };
 
 module.exports = { createHistory };

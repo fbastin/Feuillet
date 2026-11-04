@@ -18,8 +18,9 @@ invitation.
 ## The project list
 
 The left column sorts projects: **All Projects**, **Your Projects**,
-**Shared with You**, **Archived Projects** and **Trash**. Each project card
-offers:
+**Shared with You**, **Archived Projects** and **Trash**. As on Overleaf,
+each card says when the project was last changed, and by whom ("by you" for
+yourself), from its last version. It also offers:
 
 - **Open**;
 - **Make a copy**, which creates a project of your own with the same

@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 
 import { t } from '@/i18n';
 import { formatDate, formatLastModified } from '@/utils/dateUtils.ts';
+import { useAuth } from '../../hooks/useAuth';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
 import type { Project } from '../../types/projects.ts';
 import ProjectBackupControls from '../backup/ProjectBackupControls';
@@ -60,6 +61,28 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
 	const [isOpenDropdownOpen, setIsOpenDropdownOpen] = useState(false);
 	const openDropdownRef = useRef<HTMLDivElement>(null);
+	const { user } = useAuth();
+
+	// As on Overleaf: when the project last changed, and by whom ("you" for
+	// oneself), from its last version on the collaboration server.
+	const lastEdit = (() => {
+		const names = project.lastEditedBy ?? [];
+		if (!project.lastEditedAt || names.length === 0) return null;
+		const own = user?.username?.toLowerCase();
+		const shown = [
+			...new Set(
+				names.map((name) => (name.toLowerCase() === own ? t('you') : name)),
+			),
+		];
+		const listed =
+			shown.length > 3
+				? t('{names} and {count} others', {
+						names: shown.slice(0, 2).join(', '),
+						count: shown.length - 2,
+					})
+				: shown.join(', ');
+		return { at: project.lastEditedAt, names: listed };
+	})();
 
 	// Someone else's: leaving it takes the place of deleting it.
 	const leaveButton = (danger: boolean) =>
@@ -304,11 +327,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 						createdAt: formatDate(project.createdAt),
 					})}
 				</span>
-				<span title={formatDate(project.updatedAt)}>
-					{t('Last Modified: {lastModified}', {
-						lastModified: formatLastModified(project.updatedAt),
-					})}
-				</span>
+				{lastEdit ? (
+					<span title={formatDate(lastEdit.at)} data-role='project-last-edit'>
+						{t('Last Modified: {lastModified} by {names}', {
+							lastModified: formatLastModified(lastEdit.at),
+							names: lastEdit.names,
+						})}
+					</span>
+				) : (
+					<span title={formatDate(project.updatedAt)}>
+						{t('Last Modified: {lastModified}', {
+							lastModified: formatLastModified(project.updatedAt),
+						})}
+					</span>
+				)}
 			</div>
 			{project.owner === 'other' && (
 				<div className='ui-meta' data-role='project-owner'>

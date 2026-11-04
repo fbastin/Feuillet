@@ -19,8 +19,10 @@ invitation.
 ## La liste des projets
 
 La colonne de gauche classe les projets : **Tous les projets**, **Mes
-projets**, **Partagés avec moi**, **Archivés** et **Corbeille**. Chaque carte
-de projet offre :
+projets**, **Partagés avec moi**, **Archivés** et **Corbeille**. Comme sur
+Overleaf, chaque carte dit quand le projet a été modifié en dernier, et par
+qui (« par vous » pour vous-même), d'après sa dernière version. Elle offre
+aussi :
 
 - **Ouvrir**;
 - **Faire une copie**, qui crée un projet à vous avec les mêmes documents et

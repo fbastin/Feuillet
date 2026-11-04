@@ -24,6 +24,8 @@ export interface AccountProject {
 	// Told by the server with each list, never sent to it.
 	owner?: Project['owner'];
 	ownerName?: string;
+	/** The project's last version: when, and by whom. */
+	lastEdit?: { at: number; by: string[] };
 }
 
 export interface AccountSyncPlan {
@@ -89,10 +91,37 @@ const describedBy = (entry: AccountProject) => ({
 	accountUpdatedAt: entry.updatedAt,
 });
 
+const lastEditOf = (entry: AccountProject) =>
+	entry.lastEdit &&
+	Number.isFinite(entry.lastEdit.at) &&
+	Array.isArray(entry.lastEdit.by)
+		? {
+				lastEditedAt: entry.lastEdit.at,
+				lastEditedBy: entry.lastEdit.by
+					.filter((name) => typeof name === 'string' && name)
+					.slice(0, 20),
+			}
+		: {};
+
+// What the server tells of a project, whichever list is newer.
 const ownedBy = (entry: AccountProject) => ({
 	owner: entry.owner,
 	ownerName: entry.ownerName,
+	...lastEditOf(entry),
 });
+
+const toldChanged = (entry: AccountProject, current: Project): boolean => {
+	const told = lastEditOf(entry);
+	return (
+		(!!entry.owner &&
+			(entry.owner !== current.owner ||
+				entry.ownerName !== current.ownerName)) ||
+		(told.lastEditedAt !== undefined &&
+			(told.lastEditedAt !== current.lastEditedAt ||
+				JSON.stringify(told.lastEditedBy) !==
+					JSON.stringify(current.lastEditedBy)))
+	);
+};
 
 // Brings this device in line with the account's list: the most recent
 // version of each project wins, and a project deleted on another device is
@@ -131,11 +160,9 @@ export function planAccountSync(
 				...ownedBy(entry),
 				updatedAt: Math.max(current.updatedAt, entry.updatedAt),
 			});
-		} else if (
-			entry.owner &&
-			(entry.owner !== current.owner || entry.ownerName !== current.ownerName)
-		) {
-			// Who owns it is the server's to say, whichever list is newer.
+		} else if (toldChanged(entry, current)) {
+			// Who owns it, and its last version, are the server's to say,
+			// whichever list is newer.
 			plan.update.push({ ...current, ...ownedBy(entry) });
 		}
 	}

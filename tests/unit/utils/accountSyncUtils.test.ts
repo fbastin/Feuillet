@@ -93,6 +93,43 @@ describe('planAccountSync', () => {
 	});
 });
 
+describe('the last version, as the server tells it', () => {
+	const lastEdit = { at: 500, by: ['alice', 'bob'] };
+
+	it('comes with a project this device does not have yet', () => {
+		const plan = planAccountSync([], [entry({ lastEdit })], 'me');
+		expect(plan.create[0]).toMatchObject({
+			lastEditedAt: 500,
+			lastEditedBy: ['alice', 'bob'],
+		});
+	});
+
+	it('changes a project here even when its list entry is older', () => {
+		const local = project({ accountUpdatedAt: 200, updatedAt: 200 });
+		const plan = planAccountSync(
+			[local],
+			[entry({ updatedAt: 150, lastEdit })],
+			'local-user',
+		);
+		expect(plan.update).toEqual([
+			expect.objectContaining({ lastEditedAt: 500, lastEditedBy: ['alice', 'bob'], accountUpdatedAt: 200 }),
+		]);
+	});
+
+	it('changes nothing when it is the same, and keeps only names', () => {
+		const local = project({ lastEditedAt: 500, lastEditedBy: ['alice', 'bob'] });
+		expect(planAccountSync([local], [entry({ lastEdit })], 'local-user').update).toEqual([]);
+		const odd = planAccountSync(
+			[],
+			[entry({ lastEdit: { at: 9, by: ['carol', 7, ''] as unknown as string[] } })],
+			'me',
+		);
+		expect(odd.create[0].lastEditedBy).toEqual(['carol']);
+		const none = planAccountSync([], [entry({ lastEdit: { at: Number.NaN, by: [] } })], 'me');
+		expect(none.create[0].lastEditedAt).toBeUndefined();
+	});
+});
+
 describe('account fields', () => {
 	it('sends when the listed fields last changed', () => {
 		expect(toAccountProject(project({ updatedAt: 500, accountUpdatedAt: 120 })))

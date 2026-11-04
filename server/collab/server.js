@@ -185,7 +185,16 @@ const shares = createShares({
 	}),
 	eraseProject: (project) => eraseProject(project),
 });
-accounts.setProjectDescriber(shares.describe);
+// Who owns each project, and, as on Overleaf's project list, when it was
+// last changed and by whom: its last version, for accounts that can open it.
+accounts.setProjectDescriber((account, entry) => {
+	const described = shares.describe(account, entry);
+	const access = shares.accessOf(account, entry.editId ?? entry.id);
+	const last = access ? history.latest(access.project) : null;
+	return last
+		? { ...described, lastEdit: { at: last.time, by: last.authors } }
+		: described;
+});
 accounts.setAccountDeleted((account) => shares.forgetAccount(account));
 
 // The projects these rooms belong to.
