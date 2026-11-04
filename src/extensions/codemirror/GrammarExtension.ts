@@ -58,6 +58,7 @@ const moduleLog = createNamedLogger('GrammarExtension');
 const SCAN_DELAY_MS = 1500;
 const MAX_IN_FLIGHT = 2;
 const BACKOFF_MS = 30_000;
+const RETRY_MS = 15_000;
 const MAX_CACHED = 400;
 // Babel, polyglossia and #set text(lang: ...) come early.
 const PREAMBLE_LENGTH = 20_000;
@@ -351,8 +352,12 @@ class GrammarPlugin {
 					this.schedule(BACKOFF_MS);
 					return;
 				}
+				// Tried again a little later: LanguageTool may have been
+				// starting.
 				if (!this.failed) moduleLog.warn('Grammar checking failed:', error);
 				this.failed = true;
+				this.backoffUntil = Date.now() + RETRY_MS;
+				this.schedule(RETRY_MS);
 				return;
 			}
 			await next();

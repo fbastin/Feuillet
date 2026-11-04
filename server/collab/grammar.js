@@ -26,7 +26,13 @@ const MAX_DISABLED_RULES = 100;
 const WINDOW_MS = 60 * 1000;
 const MAX_PER_ACCOUNT = 120;
 const MAX_CONCURRENT = 4;
-const TIMEOUT_MS = 20 * 1000;
+// LanguageTool makes a language's rules at its first check, which takes
+// seconds, more in a container just started.
+const TIMEOUT_MS = 45 * 1000;
+// So that nobody waits for that: French and English, once it is up.
+const WARM_LANGUAGES = ['fr', 'en-US'];
+const WARM_DELAY_MS = 10 * 1000;
+const WARM_ATTEMPTS = 20;
 const LANGUAGE = /^(?:auto|[a-z]{2,3}(?:-[A-Z]{2})?)$/;
 const RULE = /^[A-Za-z0-9_]{1,100}$/;
 // What the source of LaTeX or Typst makes look wrong: several spaces, which
@@ -82,10 +88,31 @@ const cleanMatch = (match) => ({
 	},
 });
 
-const createGrammar = ({ accounts, url }) => {
+const createGrammar = ({ accounts, url, log = () => {} }) => {
 	const base = (url || '').replace(/\/+$/, '');
 	const recent = new Map();
 	let active = 0;
+
+	// Makes the rules of the languages most used before anyone checks.
+	const warm = async (attempt = 1) => {
+		try {
+			for (const language of WARM_LANGUAGES) {
+				const response = await fetch(`${base}/v2/check`, {
+					method: 'POST',
+					body: new URLSearchParams({ text: 'Bonjour.', language }),
+					signal: AbortSignal.timeout(TIMEOUT_MS * 2),
+				});
+				if (!response.ok) throw new Error(`status ${response.status}`);
+				await response.text();
+			}
+			log('grammar checking ready');
+		} catch {
+			if (attempt < WARM_ATTEMPTS) {
+				setTimeout(() => void warm(attempt + 1), WARM_DELAY_MS).unref();
+			}
+		}
+	};
+	if (base) setTimeout(() => void warm(), WARM_DELAY_MS).unref();
 
 	setInterval(() => {
 		const now = Date.now();

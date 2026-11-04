@@ -1327,7 +1327,7 @@ class AccountSyncService {
 			session.server,
 			'POST',
 			'/grammar/check',
-			{ token: session.token, body: check, timeout: 30_000 },
+			{ token: session.token, body: check, timeout: 60_000 },
 		);
 		return Array.isArray(matches) ? (matches as GrammarMatch[]) : [];
 	}

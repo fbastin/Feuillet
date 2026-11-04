@@ -263,7 +263,7 @@ const history = createHistory({
 const urlFetcher = createUrlFetcher({ accounts, maxBytes: maxFileBytes, log });
 
 // Grammar and style checking with LanguageTool, for signed-in accounts.
-const grammar = createGrammar({ accounts, url: process.env.GRAMMAR_URL });
+const grammar = createGrammar({ accounts, url: process.env.GRAMMAR_URL, log });
 
 const admin = createAdmin({
 	admins: (process.env.ADMIN_ACCOUNTS || '').split(','),
