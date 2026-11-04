@@ -36,13 +36,36 @@ export async function readClipboardBlob(): Promise<Blob | null> {
 	return null;
 }
 
+// A name for a file dropped in: its own, made safe for LaTeX, and not one
+// the images folder already has.
+async function freeImageName(name: string): Promise<string> {
+	const dot = name.lastIndexOf('.');
+	const stem =
+		(dot > 0 ? name.slice(0, dot) : name)
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.replace(/[^A-Za-z0-9_-]+/g, '-')
+			.replace(/^-+|-+$/g, '') || 'image';
+	const extension = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
+	for (let index = 0; ; index++) {
+		const candidate = `${stem}${index ? `-${index}` : ''}${extension ? `.${extension}` : ''}`;
+		if (!(await fileStoreService.getFileByPath(`/images/${candidate}`))) {
+			return candidate;
+		}
+	}
+}
+
 export async function uploadPastedFile(
 	blob: Blob,
 	currentFileId?: string,
+	/** A dropped file's own name, kept as on Overleaf. */
+	name?: string,
 ): Promise<string> {
 	const timestamp = Date.now();
 	const ext = getFileExtension(blob.type);
-	const filename = `pasted_${timestamp}.${ext}`;
+	const filename = name
+		? await freeImageName(name)
+		: `pasted_${timestamp}.${ext}`;
 	const uploadPath = `/images/${filename}`;
 
 	try {
@@ -63,21 +86,32 @@ export async function uploadPastedFile(
 		await fileStoreService.storeFile(fileNode, { showConflictDialog: false });
 		document.dispatchEvent(new CustomEvent('refresh-file-tree'));
 
-		if (currentFileId) {
-			const currentFile = await fileStoreService.getFile(currentFileId);
-
-			if (currentFile) {
-				return isLatexFile(currentFile.path)
-					? filePathCacheService.toCompileRelativePath(uploadPath)
-					: getRelativePath(currentFile.path, uploadPath);
-			}
-		}
-
-		return uploadPath;
+		return await pathFromCurrentFile(uploadPath, currentFileId);
 	} catch (error) {
 		moduleLog.error('Error uploading pasted file:', error);
 		throw error;
 	}
+}
+
+/**
+ * A project file's path as the open document names it: from the main
+ * file's folder in LaTeX, which compiles there, else from the document.
+ */
+export async function pathFromCurrentFile(
+	path: string,
+	currentFileId?: string,
+): Promise<string> {
+	if (currentFileId) {
+		const currentFile = await fileStoreService.getFile(currentFileId);
+
+		if (currentFile) {
+			return isLatexFile(currentFile.path)
+				? filePathCacheService.toCompileRelativePath(path)
+				: getRelativePath(currentFile.path, path);
+		}
+	}
+
+	return path;
 }
 
 export async function copyCleanTextToClipboard(text: string): Promise<void> {

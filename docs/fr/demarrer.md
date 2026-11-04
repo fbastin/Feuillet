@@ -67,6 +67,13 @@ d'une ligne; **Fusionner les cellules** les réunit (`\multicolumn`), et
 au-dessus ou en dessous du tableau, ou la retire avec son étiquette; un
 tableau sans environnement `table` en reçoit un, centré.
 
+Une image collée dans le texte, ou glissée depuis l'ordinateur, s'ajoute au
+projet dans le dossier `images` (avec son nom, si on la glisse) et devient
+une figure à cet endroit. Un fichier glissé depuis l'arbre des fichiers met
+ce qui y renvoie : une figure pour une image, `\input` pour un fichier
+`.tex`, `\bibliography` (ou `\addbibresource` avec biblatex) pour un
+`.bib`, `#include` ou `#bibliography` en Typst, sinon son chemin.
+
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
 Typst; un clic droit propose des corrections. La langue suit celle du
 document : celle de babel ou de polyglossia en LaTeX, celle de

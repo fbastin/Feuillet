@@ -1027,7 +1027,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 				nodeType: node.type,
 			}),
 		);
-		e.dataTransfer.effectAllowed = 'move';
+		// Moved in the tree, or dropped on the editor, which refers to it.
+		e.dataTransfer.effectAllowed = 'copyMove';
 	};
 
 	const handleDropOnDirectory = async (
