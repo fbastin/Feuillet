@@ -26,7 +26,7 @@ describe('package for arXiv', () => {
 	it('names what the compile writes after the main file', () => {
 		expect(mainFileParts('/main.tex')).toEqual({ folder: '', job: 'main' });
 		expect(mainFileParts('/these/these.tex')).toEqual({ folder: 'these/', job: 'these' });
-		expect(arxivGeneratedPaths('/main.tex')).toEqual(['main.bbl', 'main.ind', 'main.gls', 'main.nls']);
+		expect(arxivGeneratedPaths('/main.tex')).toEqual(['main.bbl', 'main.ind', 'main.gls', 'main.acr', 'main.sls', 'main.nls']);
 		expect(arxivGeneratedPaths('these/these.tex')[0]).toBe('these/these.bbl');
 		expect(texLiveYearOf(LOG)).toBe(2025);
 		expect(texLiveYearOf('no year')).toBeNull();

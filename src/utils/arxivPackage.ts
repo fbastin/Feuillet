@@ -1,7 +1,8 @@
 // src/utils/arxivPackage.ts
 // A project as arXiv takes it (https://info.arxiv.org/help/submit_tex.html):
 // its sources, the .bbl of the last compile named after the main file (and
-// its .ind, .gls or .nls when there are some), without what compiling
+// its index and glossaries, .ind, .gls, .acr, .sls or .nls, when there are
+// some), without what compiling
 // writes, and a 00README.json naming the main file, the compiler and the
 // TeX Live year (https://info.arxiv.org/help/00README.html).
 
@@ -32,7 +33,7 @@ export interface ArxivPackage {
 }
 
 // Files a compile writes for the main file, which arXiv asks not to send
-// (all but the .bbl, .ind, .gls and .nls, which it needs).
+// (all but the .bbl, the index and the glossaries, which it needs).
 const WRITTEN = [
 	'aux',
 	'log',
@@ -57,13 +58,17 @@ const WRITTEN = [
 	'idx',
 	'glo',
 	'glg',
+	'acn',
+	'alg',
+	'slo',
+	'slg',
 	'ist',
 	'nlo',
 	'nlg',
 ];
 
 /** What the compile writes that arXiv needs. */
-export const ARXIV_GENERATED = ['bbl', 'ind', 'gls', 'nls'];
+export const ARXIV_GENERATED = ['bbl', 'ind', 'gls', 'acr', 'sls', 'nls'];
 
 const README_NAMES = /^00readme(\.[a-z]+)?$/i;
 

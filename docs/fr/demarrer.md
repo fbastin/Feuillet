@@ -88,6 +88,13 @@ serveur de Feuillet. Le menu à côté du bouton de compilation offre :
   la première;
 - la compilation avec le cache vidé.
 
+Comme sur Overleaf, la bibliographie (BibTeX ou Biber), l'index, les
+glossaires du paquet `glossaries` (glossaire, acronymes, symboles, nombres)
+et la nomenclature de `nomencl` se font d'eux-mêmes, en autant de passes
+qu'il faut. Pour la sécurité du serveur, Feuillet lance lui-même
+`makeindex` au lieu de `makeglossaries`; xindy et bib2gls ne sont pas
+lancés.
+
 Comme sur Overleaf, un projet se compile quand on l'ouvre; son dernier PDF
 s'affiche d'abord, le temps de la compilation. Le réglage **Compiler
 automatiquement à l'ouverture du projet** (Paramètres, Compilation) désactive
@@ -126,8 +133,8 @@ prête à téléverser sur arXiv :
 - les sources du projet, sans ce qu'écrit la compilation (`.aux`, `.log`,
   le PDF du document…) ni les fichiers cachés;
 - le `.bbl` de cette compilation, au nom du document principal comme arXiv
-  le demande, car arXiv ne lance ni BibTeX ni Biber (et aussi `.ind`, `.gls`
-  ou `.nls` s'il y en a);
+  le demande, car arXiv ne lance ni BibTeX ni Biber (et aussi l'index et les
+  glossaires : `.ind`, `.gls`, `.acr`, `.sls` ou `.nls`, s'il y en a);
 - un fichier `00README.json` qui indique à arXiv le document principal, le
   compilateur (pdfLaTeX ou XeLaTeX) et l'année de TeX Live. Si le projet a
   déjà son propre `00README`, c'est le sien qui part.

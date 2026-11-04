@@ -12,8 +12,9 @@
 // compiles wrote (the .bbl arXiv asks for, the whole .log, the .aux...), and
 // a request {"options": {"action": "output-file", "path": ...}} brings one.
 //
-// Compiles run latexmk without rc files and without -shell-escape (TeX Live's
-// restricted shell escape stays in force), one at a time per connection and
+// Compiles run latexmk without rc files, but rules of its own for glossaries
+// and nomenclatures, and without -shell-escape (TeX Live's restricted shell
+// escape stays in force), one at a time per connection and
 // at most MAX_CONCURRENT at once, each bounded by COMPILE_TIMEOUT_MS. As on
 // Overleaf, a compile may run in draft mode (images drawn as boxes) or stop
 // at the first error, and a message {"action": "stop"} stops the compiles a
@@ -95,6 +96,47 @@ const MAX_OUTPUT_FILE_BYTES = 64 * 1024 * 1024;
 // latexmk reads latexmkrc files (Perl) from the project directory, so rc
 // files are never read (-norc) and every option is given here. %P is the
 // source, after the code of draft mode when there is some.
+//
+// As on Overleaf, glossaries (the main one, acronyms, symbols, numbers) and
+// nomencl's nomenclature are made between runs. Not with makeglossaries: it
+// runs makeindex through a shell, with options the document writes in its
+// .aux (\@gls@extramakeindexopts), which would let a document run any
+// command. These rules run makeindex itself, without a shell, on the job's
+// own files, with the style the .aux names only if it is a plain file name
+// (xindy and bib2gls are not run).
+const GLOSSARY_RULES = String.raw`
+sub feuillet_aux {
+	my ($base) = @_;
+	open(my $fh, '<', "$base.aux") or return '';
+	local $/;
+	my $text = <$fh>;
+	close($fh);
+	return $text;
+}
+sub feuillet_ist {
+	my ($base) = @_;
+	my ($ist) = feuillet_aux($base) =~ /\\\@istfilename\s*\{([^}]*)\}/;
+	$ist = '' unless defined $ist;
+	$ist =~ s/^"(.*)"\.ist$/$1.ist/;
+	return $ist =~ /^[\w.-]+\.ist$/ ? $ist : "$base.ist";
+}
+sub feuillet_makeindex {
+	my ($base, $in, $out, $log, $style) = @_;
+	return system('makeindex', '-s', $style, '-t', "$base.$log", '-o', "$base.$out", "$base.$in");
+}
+sub feuillet_glo { return feuillet_makeindex($_[0], 'glo', 'gls', 'glg', feuillet_ist($_[0])); }
+sub feuillet_acn { return feuillet_makeindex($_[0], 'acn', 'acr', 'alg', feuillet_ist($_[0])); }
+sub feuillet_slo { return feuillet_makeindex($_[0], 'slo', 'sls', 'slg', feuillet_ist($_[0])); }
+sub feuillet_nlo {
+	my $numbers = feuillet_aux($_[0]) =~ /\\\@newglossary\s*\{numbers\}/;
+	return feuillet_makeindex($_[0], 'nlo', 'nls', 'nlg', $numbers ? feuillet_ist($_[0]) : 'nomencl.ist');
+}
+add_cus_dep('glo', 'gls', 0, 'feuillet_glo');
+add_cus_dep('acn', 'acr', 0, 'feuillet_acn');
+add_cus_dep('slo', 'sls', 0, 'feuillet_slo');
+add_cus_dep('nlo', 'nls', 0, 'feuillet_nlo');
+`;
+
 const ENGINE_ARGS = {
 	pdflatex: ['-pdf'],
 	lualatex: ['-pdflua', '-lualatex=lualatex --nosocket %O %P'],
@@ -485,6 +527,8 @@ class Session {
 		// Stopping at the first error, LaTeX makes no PDF.
 		const args = [
 			'-norc',
+			'-e',
+			GLOSSARY_RULES,
 			stopOnFirstError ? '-halt-on-error' : '-f',
 			...(changed ? ['-g'] : []),
 			...(draft ? [`-usepretex=${DRAFT_CODE}`] : []),

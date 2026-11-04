@@ -84,6 +84,12 @@ Feuillet's server. The menu next to the compile button offers:
 - **error handling**: compile despite errors, or stop at the first one;
 - compiling with the cache cleared.
 
+As on Overleaf, the bibliography (BibTeX or Biber), the index, the glossaries
+of the `glossaries` package (glossary, acronyms, symbols, numbers) and the
+nomenclature of `nomencl` are made by themselves, in as many runs as needed.
+For the server's safety, Feuillet runs `makeindex` itself rather than
+`makeglossaries`; xindy and bib2gls are not run.
+
 As on Overleaf, a project compiles when it opens; its last PDF shows first,
 while it compiles. The **Auto-compile on project open** setting (Settings,
 Compilation) turns this off.
@@ -119,8 +125,8 @@ upload to arXiv:
 - the project's sources, without what compiling writes (`.aux`, `.log`, the
   document's PDF…) or hidden files;
 - the `.bbl` of that compile, named after the main document as arXiv asks,
-  since arXiv runs neither BibTeX nor Biber (and `.ind`, `.gls` or `.nls`
-  when there are some);
+  since arXiv runs neither BibTeX nor Biber (and the index and glossaries:
+  `.ind`, `.gls`, `.acr`, `.sls` or `.nls`, when there are some);
 - a `00README.json` file telling arXiv the main document, the compiler
   (pdfLaTeX or XeLaTeX) and the TeX Live year. If the project has its own
   `00README`, that one goes.
