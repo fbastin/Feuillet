@@ -67,8 +67,10 @@ d'une ligne; **Fusionner les cellules** les réunit (`\multicolumn`), et
 au-dessus ou en dessous du tableau, ou la retire avec son étiquette; un
 tableau sans environnement `table` en reçoit un, centré.
 
-Le correcteur d'orthographe souligne les fautes dans le texte LaTeX; un clic
-droit propose des corrections. La langue suit celle du document.
+Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
+Typst; un clic droit propose des corrections. La langue suit celle du
+document : celle de babel ou de polyglossia en LaTeX, celle de
+`#set text(lang: "fr")` en Typst.
 
 Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
 l'éditeur passent dans le menu **…**.

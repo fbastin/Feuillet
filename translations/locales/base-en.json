@@ -3540,7 +3540,7 @@
   "Uncommitted changes will be discarded.": "Uncommitted changes will be discarded.",
   "Undefined references detected": "Undefined references detected",
   "Underline": "Underline",
-  "Underline misspelled words in LaTeX files, leaving commands, math and references alone. Right-click a word for suggestions.": "Underline misspelled words in LaTeX files, leaving commands, math and references alone. Right-click a word for suggestions.",
+  "Underline misspelled words in LaTeX and Typst files, leaving commands, code, math and references alone. Right-click a word for suggestions.": "Underline misspelled words in LaTeX and Typst files, leaving commands, code, math and references alone. Right-click a word for suggestions.",
   "Undo": "Undo",
   "Unfold All": "Unfold All",
   "Unknown": "Unknown",

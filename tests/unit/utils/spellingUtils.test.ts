@@ -1,10 +1,14 @@
+import { typst_lezer } from 'codemirror-lang-typst/lezer';
+
 import {
 	declaredLanguage,
+	declaredTypstLanguage,
 	guessLanguage,
 	interfaceSpellingLanguage,
 	isProse,
 	proseWords,
 	type SpellingNode,
+	typstProseRuns,
 } from '@src/utils/spellingUtils';
 
 const words = (text: string, before = '', after = '') =>
@@ -170,5 +174,66 @@ describe('interfaceSpellingLanguage', () => {
 		expect(interfaceSpellingLanguage('fr-CA')).toBe('fr');
 		expect(interfaceSpellingLanguage('en-GB')).toBe('en-GB');
 		expect(interfaceSpellingLanguage('de')).toBe('en-US');
+	});
+});
+
+describe('Typst', () => {
+	const parser = typst_lezer().language.parser;
+	const typstWords = (text: string) =>
+		typstProseRuns(parser.parse(text), 0, text.length).flatMap((run) =>
+			proseWords(text.slice(run.from, run.to), run.from).map(({ word }) => word),
+		);
+
+	it('checks the prose of headings, lists, emphasis and content blocks', () => {
+		const text = [
+			'= Introdution du sujet',
+			'Voici une *fote* et _italique_.',
+			'- un élémant',
+			'/ Terme: sa définition',
+			'#figure(image("img.png"), caption: [Une légende erronnée])',
+			'#text(fill: red)[du texte rouje]',
+		].join('\n');
+		const found = typstWords(text);
+		for (const word of ['Introdution', 'fote', 'italique', 'élémant', 'Terme', 'définition', 'légende', 'erronnée', 'rouje']) {
+			expect(found).toContain(word);
+		}
+		for (const word of ['figure', 'image', 'img', 'png', 'caption', 'text', 'fill', 'red']) {
+			expect(found).not.toContain(word);
+		}
+	});
+
+	it('keeps a word whole around its apostrophe', () => {
+		const found = typstWords("Aujourd'hui, c'est-à-dire l'apostrophe et rock'n'roll.");
+		expect(found).toEqual(["Aujourd'hui", "c'est-à-dire", "l'apostrophe", 'et', "rock'n'roll"]);
+	});
+
+	it('leaves code, formulas, strings, labels, references, links and comments alone', () => {
+		const text = [
+			'#set text(lang: "fr")',
+			'#import "@preview/cetz:0.2.0": canvas',
+			'#let fonction(x) = x + 1',
+			'Du `code brut` et $x + y$ et @referance et <etiquete> et https://exemple.org.',
+			'```python',
+			'print("hello wrold")',
+			'```',
+			'// un comentaire',
+			'/* un bloc de comentaire */',
+			'\\#pas une comande',
+		].join('\n');
+		const found = typstWords(text);
+		for (const word of ['code', 'brut', 'referance', 'etiquete', 'exemple', 'wrold', 'comentaire', 'fonction', 'canvas', 'preview']) {
+			expect(found).not.toContain(word);
+		}
+		expect(found).toEqual(expect.arrayContaining(['Du', 'et', 'pas', 'une', 'comande']));
+	});
+
+	it('reads the language a document sets for its text', () => {
+		expect(declaredTypstLanguage('#set text(lang: "fr")\n= Titre')).toBe('fr');
+		expect(declaredTypstLanguage('#set text(font: "Libertinus", lang: "en", region: "GB")')).toBe('en-GB');
+		expect(declaredTypstLanguage('#set text(lang: "en")')).toBe('en-US');
+		expect(declaredTypstLanguage('#set text(lang: "de")')).toBeNull();
+		expect(declaredTypstLanguage('#set text(size: 11pt)\n#set page(paper: "a4")')).toBeUndefined();
+		expect(declaredTypstLanguage('// #set text(lang: "fr")\n#set text(lang: "en")')).toBe('en-US');
+		expect(declaredTypstLanguage('Voir https://typst.app\n#set text(lang: "fr")')).toBe('fr');
 	});
 });

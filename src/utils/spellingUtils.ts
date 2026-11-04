@@ -117,6 +117,60 @@ export function isProse(
 	return true;
 }
 
+// Typst: what is not prose, and is not looked into. Code (raw), formulas,
+// strings (paths, keys), labels, references, links, comments and imports.
+const TYPST_NOT_PROSE = new Set([
+	'Raw',
+	'Equation',
+	'Math',
+	'Str',
+	'Label',
+	'Ref',
+	'Link',
+	'LineComment',
+	'BlockComment',
+	'ModuleImport',
+	'ModuleInclude',
+	'Escape',
+]);
+// The pieces of Typst prose. A smart quote splits a word's text, as in
+// aujourd'hui, so the pieces that touch make one run.
+const TYPST_PROSE_PIECES = new Set(['Text', 'SmartQuote', 'Space']);
+
+interface TypstTree {
+	iterate(spec: {
+		from?: number;
+		to?: number;
+		enter(node: {
+			name: string;
+			from: number;
+			to: number;
+		}): boolean | undefined;
+	}): void;
+}
+
+/** The runs of prose of a Typst syntax tree between `from` and `to`. */
+export function typstProseRuns(
+	tree: TypstTree,
+	from: number,
+	to: number,
+): Array<{ from: number; to: number }> {
+	const runs: Array<{ from: number; to: number }> = [];
+	tree.iterate({
+		from,
+		to,
+		enter(node) {
+			if (TYPST_NOT_PROSE.has(node.name)) return false;
+			if (!TYPST_PROSE_PIECES.has(node.name)) return undefined;
+			const last = runs[runs.length - 1];
+			if (last && last.to === node.from) last.to = node.to;
+			else runs.push({ from: node.from, to: node.to });
+			return false;
+		},
+	});
+	return runs;
+}
+
 // Letters, with the apostrophes, hyphens and middle dots inside words:
 // « aujourd'hui », « c'est-à-dire », « chercheur·e·s ».
 const WORD = /[\p{L}\p{M}]+(?:['’·-][\p{L}\p{M}]+)*/gu;
@@ -281,6 +335,39 @@ export function declaredLanguage(
 	for (let i = options.length - 1; i >= 0; i--) {
 		const language = languageNamed(options[i]);
 		if (language !== undefined) return language;
+	}
+	return undefined;
+}
+
+// Regions whose English is British.
+const BRITISH_REGIONS = new Set(['gb', 'uk', 'au', 'nz', 'ie', 'za', 'in']);
+
+/**
+ * The language a Typst document sets for its text, as #set text(lang: "fr")
+ * or #set text(lang: "en", region: "GB"): the first such rule. Null for a
+ * language without a dictionary here, undefined when it sets none.
+ */
+export function declaredTypstLanguage(
+	source: string,
+): SpellingLanguage | null | undefined {
+	const text = source
+		.replace(/\/\*[\s\S]*?\*\//g, ' ')
+		.replace(/(^|[^:\\])\/\/.*$/gm, '$1');
+	for (const match of text.matchAll(/#set\s+text\s*\(/g)) {
+		const start = (match.index ?? 0) + match[0].length;
+		let depth = 1;
+		let end = start;
+		for (; end < text.length && depth > 0; end++) {
+			if (text[end] === '(') depth++;
+			else if (text[end] === ')') depth--;
+		}
+		const args = text.slice(start, end);
+		const lang = /\blang\s*:\s*"([^"]*)"/.exec(args)?.[1]?.toLowerCase();
+		if (!lang) continue;
+		if (lang === 'fr') return 'fr';
+		if (lang !== 'en') return null;
+		const region = /\bregion\s*:\s*"([^"]*)"/.exec(args)?.[1]?.toLowerCase();
+		return region && BRITISH_REGIONS.has(region) ? 'en-GB' : 'en-US';
 	}
 	return undefined;
 }

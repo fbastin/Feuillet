@@ -3291,7 +3291,7 @@
   "Uncommitted changes will be discarded.": "Les modifications non validées seront abandonnées.",
   "Undefined references detected": "Références non définies détectées",
   "Underline": "Souligné",
-  "Underline misspelled words in LaTeX files, leaving commands, math and references alone. Right-click a word for suggestions.": "Souligner les mots mal orthographiés dans les fichiers LaTeX, sans toucher aux commandes, aux formules ni aux références. Cliquez sur un mot avec le bouton droit pour obtenir des suggestions.",
+  "Underline misspelled words in LaTeX and Typst files, leaving commands, code, math and references alone. Right-click a word for suggestions.": "Souligner les mots mal orthographiés dans les fichiers LaTeX et Typst, sans toucher aux commandes, au code, aux formules ni aux références. Cliquez sur un mot avec le bouton droit pour obtenir des suggestions.",
   "Undo": "Annuler",
   "Unfold All": "Tout déplier",
   "Unknown": "Inconnu",

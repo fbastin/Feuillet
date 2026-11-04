@@ -26,12 +26,15 @@ import { spellingService } from '../../services/SpellingService';
 import type { SpellingLanguage, SpellingSetting } from '../../types/spelling';
 import {
 	declaredLanguage,
+	declaredTypstLanguage,
 	guessLanguage,
 	interfaceSpellingLanguage,
 	isProse,
 	proseWords,
 	type SpellingWord,
+	typstProseRuns,
 } from '../../utils/spellingUtils';
+import { getAnnotationMaskRanges } from './annotations/annotationMasking';
 
 const moduleLog = createNamedLogger('SpellingExtension');
 
@@ -41,10 +44,18 @@ const PREAMBLE_LENGTH = 20_000;
 const CONTEXT_LENGTH = 6;
 const WORD_CHARACTER = /[\p{L}\p{M}'’·-]/u;
 
+export type SpellingFormat = 'latex' | 'typst';
+
 export interface SpellingOptions {
 	setting: SpellingSetting;
 	interfaceLanguage: string;
+	/** The language of the file: LaTeX unless said. */
+	format?: SpellingFormat;
 }
+
+// The language a document declares, as its format declares it.
+const declaredIn = (format: SpellingFormat, source: string) =>
+	format === 'typst' ? declaredTypstLanguage(source) : declaredLanguage(source);
 
 interface SpellingScan {
 	from: number;
@@ -140,6 +151,29 @@ const spellingMenuField = StateField.define<SpellingMenu | null>({
 		),
 });
 
+// The text from `start` to `end`, the comment and review tags in it, which
+// the parser does not see, blanked.
+const proseText = (state: EditorState, start: number, end: number) => {
+	const text = state.sliceDoc(start, end);
+	const masks = getAnnotationMaskRanges(state).filter(
+		(mask) => mask.from < end && mask.to > start,
+	);
+	if (!masks.length) return text;
+	const chars = [...text];
+	let offset = 0;
+	const blanked: string[] = [];
+	for (const char of chars) {
+		const at = start + offset;
+		blanked.push(
+			masks.some((mask) => at >= mask.from && at < mask.to)
+				? ' '.repeat(char.length)
+				: char,
+		);
+		offset += char.length;
+	}
+	return blanked.join('');
+};
+
 // The words to check between `from` and `to`, leaving out the one at
 // `skipAt` while it is being typed.
 function collectWords(
@@ -147,9 +181,26 @@ function collectWords(
 	from: number,
 	to: number,
 	skipAt: number | null = null,
+	format: SpellingFormat = 'latex',
 ): SpellingWord[] {
 	const words: SpellingWord[] = [];
 	const sliceDoc = (start: number, end: number) => state.sliceDoc(start, end);
+	const keep = (found: SpellingWord[]) => {
+		for (const word of found) {
+			if (word.to < from || word.from > to) continue;
+			if (skipAt !== null && word.from <= skipAt && skipAt <= word.to) {
+				continue;
+			}
+			words.push(word);
+		}
+	};
+
+	if (format === 'typst') {
+		for (const run of typstProseRuns(syntaxTree(state), from, to)) {
+			keep(proseWords(proseText(state, run.from, run.to), run.from));
+		}
+		return words;
+	}
 
 	syntaxTree(state).iterate({
 		from,
@@ -159,19 +210,14 @@ function collectWords(
 			const node = ref.node;
 			if (!isProse(node, sliceDoc)) return;
 
-			const found = proseWords(
-				state.sliceDoc(node.from, node.to),
-				node.from,
-				state.sliceDoc(Math.max(0, node.from - CONTEXT_LENGTH), node.from),
-				state.sliceDoc(node.to, node.to + CONTEXT_LENGTH),
+			keep(
+				proseWords(
+					proseText(state, node.from, node.to),
+					node.from,
+					state.sliceDoc(Math.max(0, node.from - CONTEXT_LENGTH), node.from),
+					state.sliceDoc(node.to, node.to + CONTEXT_LENGTH),
+				),
 			);
-			for (const word of found) {
-				if (word.to < from || word.from > to) continue;
-				if (skipAt !== null && word.from <= skipAt && skipAt <= word.to) {
-					continue;
-				}
-				words.push(word);
-			}
 		},
 	});
 	return words;
@@ -373,9 +419,13 @@ class SpellingPlugin {
 		if (menu) return menu;
 
 		const line = state.doc.lineAt(pos);
-		const word = collectWords(state, line.from, line.to).find(
-			(candidate) => candidate.from <= pos && pos <= candidate.to,
-		);
+		const word = collectWords(
+			state,
+			line.from,
+			line.to,
+			null,
+			this.options.format,
+		).find((candidate) => candidate.from <= pos && pos <= candidate.to);
 		return word && personalDictionaryService.has(word.word)
 			? { ...word, language: this.language, learned: true }
 			: null;
@@ -403,7 +453,9 @@ class SpellingPlugin {
 			: [{ from: 0, to: state.doc.length }];
 		const skipAt = this.typing ? state.selection.main.head : null;
 		const found = language
-			? ranges.map(({ from, to }) => collectWords(state, from, to, skipAt))
+			? ranges.map(({ from, to }) =>
+					collectWords(state, from, to, skipAt, this.options.format),
+				)
 			: ranges.map(() => []);
 
 		if (language) {
@@ -459,7 +511,7 @@ class SpellingPlugin {
 		if (setting !== 'auto') return setting;
 
 		const preamble = state.sliceDoc(0, PREAMBLE_LENGTH);
-		const declared = declaredLanguage(preamble);
+		const declared = declaredIn(this.options.format ?? 'latex', preamble);
 		if (declared !== undefined) return declared;
 		if (this.mainLanguage !== undefined) return this.mainLanguage;
 		return (
@@ -478,7 +530,10 @@ class SpellingPlugin {
 				typeof content === 'string'
 					? content
 					: new TextDecoder().decode(content);
-			this.mainLanguage = declaredLanguage(text.slice(0, PREAMBLE_LENGTH));
+			this.mainLanguage = declaredIn(
+				path.toLowerCase().endsWith('.typ') ? 'typst' : 'latex',
+				text.slice(0, PREAMBLE_LENGTH),
+			);
 			if (this.mainLanguage !== undefined) this.schedule(0);
 		} catch (error) {
 			moduleLog.warn('Could not read the main file language:', error);
@@ -486,8 +541,9 @@ class SpellingPlugin {
 	}
 }
 
-// Underlines misspelled words in LaTeX prose, leaving commands, math,
-// labels and references alone; a right-click on a word offers suggestions.
+// Underlines misspelled words in LaTeX or Typst prose, leaving commands,
+// code, math, labels and references alone; a right-click on a word offers
+// suggestions.
 export function createSpellingExtension(options: SpellingOptions): Extension {
 	if (options.setting === 'off') return [];
 

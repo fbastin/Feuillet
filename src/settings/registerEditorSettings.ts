@@ -215,7 +215,7 @@ export function useRegisterEditorSettings() {
 			type: 'select',
 			label: t('Spell checking'),
 			description: t(
-				'Underline misspelled words in LaTeX files, leaving commands, math and references alone. Right-click a word for suggestions.',
+				'Underline misspelled words in LaTeX and Typst files, leaving commands, code, math and references alone. Right-click a word for suggestions.',
 			),
 			defaultValue: initialSpellingLanguage,
 			options: [

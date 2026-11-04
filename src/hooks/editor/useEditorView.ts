@@ -513,13 +513,16 @@ export const useEditorView = (
 			extensions.push(stateExtensions, filePathPlugin);
 			extensions.push(createPasteExtension(currentFileId, fileName));
 
-			if (info.isLatex) {
+			if (info.isLatex || info.isTypst) {
 				extensions.push(
 					createSpellingExtension({
 						setting: editorSettings.spellingLanguage,
 						interfaceLanguage: editorSettings.language,
+						format: info.isTypst ? 'typst' : 'latex',
 					}),
 				);
+			}
+			if (info.isLatex) {
 				// The visual editor, on or off as last chosen in this browser.
 				extensions.push(visualLatex(readVisualPreference()));
 			}

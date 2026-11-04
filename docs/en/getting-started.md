@@ -65,8 +65,9 @@ and **Unmerge cells** splits them again. The **Caption** menu puts the
 caption above or below the table, or takes it away with its label; a table
 without a `table` environment gets one, centred.
 
-The spell checker underlines mistakes in LaTeX text; a right click offers
-corrections. Its language follows the document's.
+The spell checker underlines mistakes in LaTeX and Typst text; a right click
+offers corrections. Its language follows the document's: babel's or
+polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst.
 
 When the window is narrow, the least used tools of the editor's toolbar go
 into the **…** menu.
