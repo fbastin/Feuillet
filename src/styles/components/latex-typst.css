@@ -263,3 +263,41 @@ embed {
 .arxiv-made li {
 	margin-bottom: var(--space-xs);
 }
+
+/* The words of one's dictionary, in Settings. */
+.personal-dictionary-add {
+	display: flex;
+	gap: var(--space-sm);
+	margin: var(--space-xs) 0;
+}
+
+.personal-dictionary-add input {
+	flex: 1;
+	margin: 0;
+}
+
+.personal-dictionary-add .button {
+	margin: 0;
+}
+
+.personal-dictionary-words {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xs);
+	max-height: 14rem;
+	overflow-y: auto;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.personal-dictionary-words li {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	margin: 0;
+	padding: 0 0 0 var(--space-sm);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	list-style: none;
+}

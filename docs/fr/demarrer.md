@@ -79,7 +79,9 @@ ce qui y renvoie : une figure pour une image, `\input` pour un fichier
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
 Typst; un clic droit propose des corrections. La langue suit celle du
 document : celle de babel ou de polyglossia en LaTeX, celle de
-`#set text(lang: "fr")` en Typst.
+`#set text(lang: "fr")` en Typst. Les mots ajoutés au dictionnaire se
+revoient, se retirent ou s'ajoutent dans **Paramètres**, **Mots ajoutés au
+dictionnaire**; le compte les emporte sur vos autres appareils.
 
 Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
 l'éditeur passent dans le menu **…**.

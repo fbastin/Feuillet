@@ -75,7 +75,9 @@ figure for an image, `\input` for a `.tex` file, `\bibliography` (or
 
 The spell checker underlines mistakes in LaTeX and Typst text; a right click
 offers corrections. Its language follows the document's: babel's or
-polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst.
+polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst. The words added
+to the dictionary are seen, removed or added in **Settings**, **Words added
+to the dictionary**; your account takes them to your other devices.
 
 When the window is narrow, the least used tools of the editor's toolbar go
 into the **…** menu.

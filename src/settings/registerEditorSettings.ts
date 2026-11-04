@@ -1,5 +1,5 @@
 // src/settings/registorEditorSettings.ts
-import { useEffect, useRef } from 'react';
+import { createElement, useEffect, useRef } from 'react';
 
 import { t } from '@/i18n';
 import {
@@ -11,6 +11,7 @@ import {
 } from '../contexts/EditorContext';
 import { useSettings } from '../hooks/useSettings';
 import type { EditorKeymapMode, FontFamily } from '../types/editor';
+import PersonalDictionaryEditor from '../components/settings/PersonalDictionaryEditor';
 import type { SpellingSetting } from '../types/spelling';
 
 export function useRegisterEditorSettings() {
@@ -225,6 +226,20 @@ export function useRegisterEditorSettings() {
 				{ label: t('English (United Kingdom)'), value: 'en-GB' },
 				{ label: t('Off'), value: 'off' },
 			],
+		});
+
+		// The words added to one's dictionary, as Overleaf's « Dictionary:
+		// Edit »; kept by the dictionary, not as a setting.
+		registerSetting({
+			id: 'editor-spelling-dictionary',
+			category: t('Viewers'),
+			subcategory: t('Text Editor'),
+			type: 'custom',
+			label: t('Words added to the dictionary'),
+			defaultValue: null,
+			strictDefaultValue: true,
+			liveUpdate: true,
+			render: () => createElement(PersonalDictionaryEditor),
 		});
 
 		registerSetting({
