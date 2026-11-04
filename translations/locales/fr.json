@@ -30,6 +30,7 @@
   "(shared)": "(partagé)",
   "(Shift+F9)": "(Shift+F9)",
   "(You)": "(Vous)",
+  "{address} is already your confirmed address: there is no link to send.": "{{address}} est déjà votre adresse confirmée : il n'y a aucun lien à envoyer.",
   "{count} of them are open right now: whoever has them open is cut off.": "{{count}} d'entre eux sont ouverts en ce moment : ceux qui les ont ouverts en seront coupés.",
   "{count} of them are open right now: whoever has them open is cut off._one": "L'un d'eux est ouvert en ce moment : ceux qui l'ont ouvert en seront coupés.",
   "{count} of them are open right now: whoever has them open is cut off._other": "{{count}} d'entre eux sont ouverts en ce moment : ceux qui les ont ouverts en seront coupés.",
@@ -3503,6 +3504,7 @@
   "Your account on the server": "Votre compte sur le serveur",
   "Your account stays signed in on each device for 90 days after it was last used. Sign out a device you no longer use, or after using a shared computer.": "Votre compte reste connecté sur chaque appareil 90 jours après sa dernière utilisation. Déconnectez un appareil que vous n'utilisez plus, ou après avoir utilisé un ordinateur partagé.",
   "Your account:": "Votre compte :",
+  "Your email address is {address}; it is confirmed.": "Votre adresse courriel est {{address}}; elle est confirmée.",
   "Your mail program opened with the invitation for {email}. If not, copy the link and send it.": "Votre logiciel de courriel s'est ouvert avec l'invitation pour {{email}}. Sinon, copiez le lien et envoyez-le.",
   "Your other devices will have to sign in again, and assistants such as Claude lose their access.": "Vos autres appareils devront se reconnecter, et les assistants comme Claude perdent leur accès.",
   "Your password": "Votre mot de passe",
@@ -3559,6 +3561,5 @@
   "The confirmation link could not be sent to {address}: send it again from your profile.": "Le lien de confirmation n'a pas pu être envoyé à {{address}} : envoyez-le de nouveau depuis votre profil.",
   "The email address could not be confirmed.": "L'adresse courriel n'a pas pu être confirmée.",
   "This address is already the email address of another account.": "Cette adresse est déjà l'adresse courriel d'un autre compte.",
-  "Your account has no email address.": "Votre compte n'a pas d'adresse courriel.",
-  "Your email address is {address}.": "Votre adresse courriel est {{address}}."
+  "Your account has no email address.": "Votre compte n'a pas d'adresse courriel."
 }

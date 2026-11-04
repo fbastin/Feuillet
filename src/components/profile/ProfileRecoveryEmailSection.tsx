@@ -41,6 +41,7 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 	const [password, setPassword] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [notice, setNotice] = useState<string | null>(null);
 	const prefilled = useRef(false);
 
 	useEffect(() => accountSyncService.addListener(setStatus), []);
@@ -82,6 +83,22 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 	if (!user || isGuestUser(user) || !linked || !email?.enabled) return null;
 
 	const change = async (next: string | null) => {
+		setNotice(null);
+		// The address it already has, confirmed: the server sends nothing.
+		if (
+			next !== null &&
+			email.address &&
+			next.toLowerCase() === email.address.toLowerCase()
+		) {
+			setError(null);
+			setNotice(
+				t(
+					'{address} is already your confirmed address: there is no link to send.',
+					{ address: email.address },
+				),
+			);
+			return;
+		}
 		if (!password) {
 			setError(t('Enter your password to change your email address.'));
 			return;
@@ -118,7 +135,9 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 
 			<p className='ui-meta' data-role='recovery-email-status'>
 				{email.address
-					? t('Your email address is {address}.', { address: email.address })
+					? t('Your email address is {address}; it is confirmed.', {
+							address: email.address,
+						})
 					: unconfirmed
 						? t(
 								'{address} is not confirmed yet: confirm it to recover your account if you forget your password.',
@@ -142,6 +161,15 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 			{error && (
 				<div className='ui-message' data-tone='error'>
 					{error}
+				</div>
+			)}
+			{notice && (
+				<div
+					className='ui-message'
+					data-tone='info'
+					data-role='recovery-email-notice'
+				>
+					{notice}
 				</div>
 			)}
 

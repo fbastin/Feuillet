@@ -30,6 +30,7 @@
   "(shared)": "(shared)",
   "(Shift+F9)": "(Shift+F9)",
   "(You)": "(You)",
+  "{address} is already your confirmed address: there is no link to send.": "{{address}} is already your confirmed address: there is no link to send.",
   "{count} of them are open right now: whoever has them open is cut off.": "{{count}} of them are open right now: whoever has them open is cut off.",
   "{count} of them are open right now: whoever has them open is cut off._one": "One of them is open right now: whoever has it open is cut off.",
   "{count} of them are open right now: whoever has them open is cut off._other": "{{count}} of them are open right now: whoever has them open is cut off.",
@@ -3503,6 +3504,7 @@
   "Your account on the server": "Your account on the server",
   "Your account stays signed in on each device for 90 days after it was last used. Sign out a device you no longer use, or after using a shared computer.": "Your account stays signed in on each device for 90 days after it was last used. Sign out a device you no longer use, or after using a shared computer.",
   "Your account:": "Your account:",
+  "Your email address is {address}; it is confirmed.": "Your email address is {{address}}; it is confirmed.",
   "Your mail program opened with the invitation for {email}. If not, copy the link and send it.": "Your mail program opened with the invitation for {{email}}. If not, copy the link and send it.",
   "Your other devices will have to sign in again, and assistants such as Claude lose their access.": "Your other devices will have to sign in again, and assistants such as Claude lose their access.",
   "Your password": "Your password",
@@ -3559,6 +3561,5 @@
   "The confirmation link could not be sent to {address}: send it again from your profile.": "The confirmation link could not be sent to {{address}}: send it again from your profile.",
   "The email address could not be confirmed.": "The email address could not be confirmed.",
   "This address is already the email address of another account.": "This address is already the email address of another account.",
-  "Your account has no email address.": "Your account has no email address.",
-  "Your email address is {address}.": "Your email address is {{address}}."
+  "Your account has no email address.": "Your account has no email address."
 }
