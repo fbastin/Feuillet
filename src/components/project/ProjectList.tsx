@@ -29,6 +29,8 @@ interface ProjectListProps {
 	// Only from the trash, as on Overleaf.
 	onDeleteSelected?: (projectIds: string[]) => Promise<void>;
 	onCopyProject?: (project: Project) => void;
+	/** Compiles a LaTeX project and downloads its PDF. */
+	onDownloadPdf?: (project: Project) => Promise<void>;
 	onArchiveProjects?: (projectIds: string[], archived: boolean) => void;
 	onTrashProjects?: (projectIds: string[], trashed: boolean) => void;
 	onLeaveProject?: (project: Project) => void;
@@ -48,6 +50,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
 	onExportSelected,
 	onDeleteSelected,
 	onCopyProject,
+	onDownloadPdf,
 	onArchiveProjects,
 	onTrashProjects,
 	onLeaveProject,
@@ -436,6 +439,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
 								onDelete={onDeleteProject}
 								onToggleFavorite={onToggleFavorite}
 								onCopy={onCopyProject}
+								onDownloadPdf={onDownloadPdf}
 								onArchive={
 									onArchiveProjects &&
 									((target, archived) =>

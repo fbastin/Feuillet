@@ -27,6 +27,9 @@ aussi :
 - **Ouvrir**;
 - **Faire une copie**, qui crée un projet à vous avec les mêmes documents et
   fichiers, sans la discussion ni les versions;
+- **Télécharger le PDF** d'un projet LaTeX : Feuillet le compile aussitôt
+  avec TeX Live, son document principal, son moteur et sa version de TeX
+  Live, puis télécharge le PDF à son nom;
 - **Archiver**, pour ranger un projet sans le supprimer;
 - **Mettre à la corbeille**, d'où on peut le **Restaurer** ou le
   **Supprimer définitivement**. Supprimer définitivement un de vos projets

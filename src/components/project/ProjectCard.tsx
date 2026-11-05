@@ -11,6 +11,7 @@ import ProjectBackupControls from '../backup/ProjectBackupControls';
 import {
 	ArchiveIcon,
 	CopyIcon,
+	DownloadIcon,
 	EditIcon,
 	FolderIcon,
 	FolderOpenIcon,
@@ -35,6 +36,8 @@ interface ProjectCardProps {
 	onDelete: (project: Project) => void;
 	onToggleFavorite: (projectId: string) => void;
 	onCopy?: (project: Project) => void;
+	// As Overleaf's « Download PDF »: compiles it, then downloads its PDF.
+	onDownloadPdf?: (project: Project) => Promise<void>;
 	onArchive?: (project: Project, archived: boolean) => void;
 	onTrash?: (project: Project, trashed: boolean) => void;
 	// For a project shared with one, as Overleaf's "Leave".
@@ -52,6 +55,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 	onDelete,
 	onToggleFavorite,
 	onCopy,
+	onDownloadPdf,
 	onArchive,
 	onTrash,
 	onLeave,
@@ -60,6 +64,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 	onSelectionChange,
 }) => {
 	const [isOpenDropdownOpen, setIsOpenDropdownOpen] = useState(false);
+	const [makingPdf, setMakingPdf] = useState(false);
 	const openDropdownRef = useRef<HTMLDivElement>(null);
 	const { user } = useAuth();
 
@@ -448,6 +453,25 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 									title={t('Make a copy')}
 								>
 									<CopyIcon />
+								</button>
+							)}
+							{onDownloadPdf && project.type === 'latex' && (
+								<button
+									type='button'
+									className='button'
+									data-action='download-pdf'
+									data-state={makingPdf ? 'loading' : undefined}
+									disabled={makingPdf}
+									onClick={(e) => {
+										e.stopPropagation();
+										setMakingPdf(true);
+										void onDownloadPdf(project).finally(() =>
+											setMakingPdf(false),
+										);
+									}}
+									title={makingPdf ? t('Compiling...') : t('Download PDF')}
+								>
+									<DownloadIcon />
 								</button>
 							)}
 							<button

@@ -6,6 +6,13 @@ import { APP_NAME, APP_SOURCE_URL } from '@/branding';
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
+import {
+	FileImportError,
+	fileImportService,
+} from '../../services/FileImportService';
+import { notificationService } from '../../services/NotificationService';
+import { downloadFile } from '../../utils/archiveUtils';
+import { outputFileName } from '../../utils/fileImportUtils';
 import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
 import { useAuth } from '../../hooks/useAuth';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
@@ -489,6 +496,32 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 	const handleTrashProjects = (ids: string[], trashed: boolean) =>
 		void moveProjects(ids, { trashedAt: trashed ? Date.now() : undefined });
 
+	// As Overleaf's « Download PDF » in the project list: the project compiled
+	// now with TeX Live, its main document, compiler and year.
+	const handleDownloadPdf = async (project: Project) => {
+		const operationId = `download-pdf-${project.id}`;
+		const fileName = outputFileName(project.name);
+		notificationService.showLoading(
+			t('Compiling {name}...', { name: project.name }),
+			operationId,
+		);
+		try {
+			const pdf = await fileImportService.compileOutput(project);
+			downloadFile(new Uint8Array(pdf), fileName, 'application/pdf');
+			notificationService.showSuccess(
+				t('{name} was downloaded.', { name: fileName }),
+				{ operationId },
+			);
+		} catch (error) {
+			notificationService.showError(
+				error instanceof FileImportError
+					? error.message
+					: t('The PDF could not be made.'),
+				{ operationId },
+			);
+		}
+	};
+
 	// The collaboration server copies the project; it then opens here.
 	const handleCopyProject = async (source: Project, name: string) => {
 		const sourceId = source.docUrl.startsWith('yjs:')
@@ -771,6 +804,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 							}
 							onCopyProject={canCopy ? setCopySource : undefined}
 							onArchiveProjects={handleArchiveProjects}
+							onDownloadPdf={handleDownloadPdf}
 							onTrashProjects={handleTrashProjects}
 							onLeaveProject={openDeleteModal}
 							view={projectView}

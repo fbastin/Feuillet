@@ -25,6 +25,9 @@ yourself), from its last version. It also offers:
 - **Open**;
 - **Make a copy**, which creates a project of your own with the same
   documents and files, without the chat or the versions;
+- **Download PDF** of a LaTeX project: Feuillet compiles it at once with
+  TeX Live, its main document, engine and TeX Live version, then downloads
+  the PDF under its name;
 - **Archive**, to put a project away without deleting it;
 - **Move to trash**, from where it can be restored (**Restore**) or deleted
   (**Delete for good**). Deleting one of your projects for good also erases
