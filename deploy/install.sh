@@ -117,6 +117,11 @@ GITHUB_CLIENT_SECRET=
 # fill in its client id and secret, then run deploy/install.sh again.
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+# "Sign in with ORCID": register a client of ORCID's public API (see
+# deploy/README.md), fill in its client id and secret, then run
+# deploy/install.sh again.
+ORCID_CLIENT_ID=
+ORCID_CLIENT_SECRET=
 # Emails (recovering accounts, invitations): an SMTP server and a sender (see
 # deploy/README.md); empty keeps it off.
 SMTP_URL=
@@ -133,6 +138,10 @@ else
 	if ! grep -q '^GOOGLE_CLIENT_ID=' /etc/feuillet/collab.env; then
 		printf '\n# "Sign in with Google": create a Google OAuth client (see deploy/README.md),\n# fill in its client id and secret, then run deploy/install.sh again.\nGOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\n' >>/etc/feuillet/collab.env
 		echo "Added GOOGLE_CLIENT_ID= and GOOGLE_CLIENT_SECRET= to /etc/feuillet/collab.env: see deploy/README.md to sign in with Google."
+	fi
+	if ! grep -q '^ORCID_CLIENT_ID=' /etc/feuillet/collab.env; then
+		printf '\n# "Sign in with ORCID": register a client of ORCID'"'"'s public API (see\n# deploy/README.md), fill in its client id and secret, then run\n# deploy/install.sh again.\nORCID_CLIENT_ID=\nORCID_CLIENT_SECRET=\n' >>/etc/feuillet/collab.env
+		echo "Added ORCID_CLIENT_ID= and ORCID_CLIENT_SECRET= to /etc/feuillet/collab.env: see deploy/README.md to sign in with ORCID."
 	fi
 fi
 

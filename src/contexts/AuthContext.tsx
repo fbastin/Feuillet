@@ -3,6 +3,10 @@ import type React from 'react';
 import { type ReactNode, createContext, useEffect, useState } from 'react';
 
 import { USER_PROFILE_SYNCED, authService } from '../services/AuthService';
+import type {
+	ProviderTicket,
+	SignInProvider,
+} from '../services/ExternalSignInService';
 import type { AuthContextType, User } from '../types/auth';
 import type {
 	Project,
@@ -18,7 +22,7 @@ export const AuthContext = createContext<AuthContextType>({
 	login: async () => {
 		throw new Error('Not implemented');
 	},
-	loginWithGoogle: async () => {
+	loginWithProvider: async () => {
 		throw new Error('Not implemented');
 	},
 	register: async () => {
@@ -115,10 +119,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		return loggedInUser;
 	};
 
-	const loginWithGoogle = async (
+	const loginWithProvider = async (
+		provider: SignInProvider,
 		ticket: string,
 	): Promise<User | 'not-linked'> => {
-		const result = await authService.loginWithGoogle(ticket);
+		const result = await authService.loginWithProvider(provider, ticket);
 		if (result !== 'not-linked') setUser(result);
 		return result;
 	};
@@ -127,14 +132,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		username: string,
 		password: string,
 		email?: string,
-		googleTicket?: string,
+		link?: ProviderTicket,
 	): Promise<User> => {
-		const newUser = await authService.register(
-			username,
-			password,
-			email,
-			googleTicket,
-		);
+		const newUser = await authService.register(username, password, email, link);
 		setUser(newUser);
 		return newUser;
 	};
@@ -264,7 +264,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				isAuthenticated: !!user,
 				isInitializing,
 				login,
-				loginWithGoogle,
+				loginWithProvider,
 				register,
 				createGuestAccount,
 				upgradeGuestAccount,

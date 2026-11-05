@@ -57,6 +57,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						)}
 					</li>
 					<li>
+						<strong>{t('Signing in with ORCID:')}</strong>&nbsp;
+						{t(
+							'if you link an ORCID account, a hash of its ORCID iD, which recognizes it; never the iD itself nor your name, which ORCID also sends and Feuillet does not keep. Unlinking it, or deleting your account, erases it.',
+						)}
+					</li>
+					<li>
 						<strong>{t('Your projects:')}</strong>&nbsp;
 						{t(
 							'the text of the documents, the files, the comments, the tracked changes and the chat, so that your collaborators receive them even when you are not online; and the versions of the project with their authors, the latest 1000 and those you name.',
@@ -195,6 +201,22 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 								privacy: (
 									<TransLink
 										href='https://policies.google.com/privacy'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					</li>
+
+					<li>
+						<Trans
+							i18nKey='<strong>ORCID (sign-in):</strong> when you sign in with ORCID, ORCID learns that you sign in to Feuillet, and Feuillet learns only which ORCID iD it is (<privacy>Privacy Policy</privacy>)'
+							components={{
+								strong: <strong />,
+								privacy: (
+									<TransLink
+										href='https://info.orcid.org/privacy-policy/'
 										target='_blank'
 										rel='noreferrer'
 									/>

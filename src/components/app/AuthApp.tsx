@@ -10,6 +10,7 @@ import ImportAccount from '../auth/ImportAccount';
 import Login from '../auth/Login';
 import Register from '../auth/Register';
 import ResetPassword from '../auth/ResetPassword';
+import type { ProviderTicket } from '../../services/ExternalSignInService';
 import PrivacyModal from '../common/PrivacyModal';
 import ThemeToggleButton from '../settings/ThemeToggleButton';
 import LanguageToggleButton from '../settings/LanguageToggleButton';
@@ -32,17 +33,17 @@ const AuthApp: React.FC<AuthContainerProps> = ({
 		'login',
 	);
 	const [showPrivacy, setShowPrivacy] = useState(false);
-	// Google's sign-in for a Google account linked to no account yet: the
-	// account created next is linked to it.
-	const [googleTicket, setGoogleTicket] = useState<string | null>(null);
+	// Google's or ORCID's sign-in for an account of theirs linked to no
+	// account yet: the account created next is linked to it.
+	const [link, setLink] = useState<ProviderTicket | null>(null);
 
 	const switchToLogin = () => {
-		setGoogleTicket(null);
+		setLink(null);
 		setActiveView('login');
 	};
 
-	const switchToRegister = (ticket?: string) => {
-		setGoogleTicket(ticket ?? null);
+	const switchToRegister = (ticket?: ProviderTicket) => {
+		setLink(ticket ?? null);
 		setActiveView('register');
 	};
 
@@ -104,8 +105,8 @@ const AuthApp: React.FC<AuthContainerProps> = ({
 						onRegisterSuccess={onAuthSuccess}
 						onSwitchToLogin={switchToLogin}
 						onShowPrivacy={() => setShowPrivacy(true)}
-						googleTicket={googleTicket}
-						onGoogleTicket={setGoogleTicket}
+						link={link}
+						onLink={setLink}
 					/>
 				) : (
 					<ImportAccount

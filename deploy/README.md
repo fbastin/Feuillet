@@ -135,6 +135,34 @@ Leaving them empty keeps the button off. Accounts linked to Google keep a
 password, which encrypts what browsers keep and confirms changes to the
 account.
 
+## Sign in with ORCID
+
+"Sign in with ORCID" works the same way, as on Overleaf (server/collab/
+orcid.js, with google.js on oidcSignIn.js): the `openid` scope only;
+Feuillet learns which ORCID iD signs in and keeps only a hash of it, never
+the iD itself nor the name ORCID sends with it. To offer it, register a
+client of ORCID's free public API once:
+
+1. Sign in to https://orcid.org (an ORCID account with a verified email),
+   then open **Developer tools** (https://orcid.org/developer-tools) and
+   **Register for the free ORCID public API**.
+2. Fill in: name `Feuillet`, website `https://feuillet.slashbin.net`, a short
+   description (a collaborative LaTeX editor), and the redirect URI
+   `https://feuillet.slashbin.net/collab/orcid/callback`.
+3. Put its client ID (`APP-…`) and secret in `/etc/feuillet/collab.env`:
+
+   ```
+   ORCID_CLIENT_ID=APP-...
+   ORCID_CLIENT_SECRET=...
+   ```
+
+4. Run `sudo deploy/install.sh` again. The start line then says "ORCID
+   sign-in on", and the sign-in page shows « Se connecter avec ORCID ».
+
+To try it first on ORCID's sandbox (https://sandbox.orcid.org, with a client
+registered there), add `ORCID_AUTHORIZE_URL=https://sandbox.orcid.org/oauth/authorize`
+and `ORCID_TOKEN_URL=https://sandbox.orcid.org/oauth/token`.
+
 ## Email: recovering accounts and invitations
 
 Accounts may give an email address, which a link mailed to it confirms; a

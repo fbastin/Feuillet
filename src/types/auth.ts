@@ -1,5 +1,9 @@
 // src/types/auth.ts
 import type {
+	ProviderTicket,
+	SignInProvider,
+} from '../services/ExternalSignInService';
+import type {
 	Project,
 	ProjectCreateInput,
 	ProjectGroup,
@@ -11,14 +15,20 @@ export interface AuthContextType {
 	isAuthenticated: boolean;
 	isInitializing: boolean;
 	login: (username: string, password: string) => Promise<User>;
-	/** Signs in with Google: 'not-linked' when no account is linked to it. */
-	loginWithGoogle: (ticket: string) => Promise<User | 'not-linked'>;
+	/**
+	 * Signs in with Google or ORCID: 'not-linked' when no account is linked
+	 * to that account.
+	 */
+	loginWithProvider: (
+		provider: SignInProvider,
+		ticket: string,
+	) => Promise<User | 'not-linked'>;
 	register: (
 		username: string,
 		password: string,
 		email?: string,
-		/** Google's sign-in, to link the account to that Google account. */
-		googleTicket?: string,
+		/** Google's or ORCID's sign-in, to link the account to that account. */
+		link?: ProviderTicket,
 	) => Promise<User>;
 	createGuestAccount: () => Promise<User>;
 	upgradeGuestAccount: (

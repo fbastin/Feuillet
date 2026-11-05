@@ -65,8 +65,9 @@ services:
       GRAMMAR_URL: "http://languagetool:8010"
     # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET, for "Sign in with GitHub",
     # GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, for "Sign in with Google",
-    # the email settings and ADMIN_ACCOUNTS (see deploy/README.md); kept out
-    # of the repository.
+    # ORCID_CLIENT_ID and ORCID_CLIENT_SECRET, for "Sign in with ORCID", the
+    # email settings and ADMIN_ACCOUNTS (see deploy/README.md); kept out of
+    # the repository.
     env_file:
       - path: /etc/feuillet/collab.env
         required: false

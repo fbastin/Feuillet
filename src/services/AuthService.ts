@@ -28,6 +28,11 @@ import {
 } from './AccountSyncService';
 import { accountPreferencesService } from './AccountPreferencesService';
 import { diskBackupService } from './DiskBackupService';
+import {
+	PROVIDER_NAMES,
+	type ProviderTicket,
+	type SignInProvider,
+} from './ExternalSignInService';
 import { personalDictionaryService } from './PersonalDictionaryService';
 
 const moduleLog = createNamedLogger('AuthService');
@@ -374,8 +379,8 @@ class AuthService {
 		username: string,
 		password: string,
 		email?: string,
-		// Google's sign-in, to link the account to that Google account.
-		googleTicket?: string,
+		// Google's or ORCID's sign-in, to link the account to that account.
+		link?: ProviderTicket,
 	): Promise<User> {
 		if (!this.db) await this.initialize();
 
@@ -399,11 +404,7 @@ class AuthService {
 			}
 		}
 
-		const session = await this.registerOnServer(
-			username,
-			password,
-			googleTicket,
-		);
+		const session = await this.registerOnServer(username, password, link);
 		const passwordHash = await this.hashPassword(password);
 		const userId = crypto.randomUUID();
 		const now = Date.now();
@@ -482,18 +483,18 @@ class AuthService {
 	// Creates the account on the server too, so that it can be opened on other
 	// devices. Without the server (offline, or none configured), the account
 	// stays in this browser and is linked at a later sign-in; but not one to
-	// be linked to a Google account, which only the server can do.
+	// be linked to a Google or ORCID account, which only the server can do.
 	private async registerOnServer(
 		username: string,
 		password: string,
-		googleTicket?: string,
+		link?: ProviderTicket,
 	): Promise<AccountSession | null> {
 		try {
 			return await accountSyncService.register(
 				accountSyncService.serverFor(),
 				username,
 				password,
-				googleTicket,
+				link,
 			);
 		} catch (error) {
 			if (error instanceof AccountServerError) {
@@ -509,22 +510,25 @@ class AuthService {
 						t('Too many attempts. Please try again in a few minutes.'),
 					);
 				}
-				if (error.code === 'google_taken') {
+				const provider = link ? PROVIDER_NAMES[link.provider] : '';
+				if (link && error.code === `${link.provider}_taken`) {
 					throw new Error(
 						t(
-							'This Google account is already linked to another Feuillet account: sign in with Google instead.',
+							'This {provider} account is already linked to another Feuillet account: sign in with {provider} instead.',
+							{ provider },
 						),
 					);
 				}
-				if (googleTicket && error.code === 'invalid_ticket') {
+				if (link && error.code === 'invalid_ticket') {
 					throw new Error(
 						t(
-							'The confirmation from Google expired. Sign in with Google again.',
+							'The confirmation from {provider} expired. Sign in with {provider} again.',
+							{ provider },
 						),
 					);
 				}
 			}
-			if (googleTicket) {
+			if (link) {
 				throw new Error(
 					t('The server could not be reached. Please try again later.'),
 				);
@@ -535,23 +539,28 @@ class AuthService {
 	}
 
 	/**
-	 * Signs in with a Google account, to the account linked to it, as on
-	 * Overleaf: 'not-linked' when it is linked to none, so that one may be
-	 * created. A browser that has not seen the account yet does not know its
-	 * password; the server checks it when it is asked for (verifyPassword).
+	 * Signs in with a Google or ORCID account, to the account linked to it,
+	 * as on Overleaf: 'not-linked' when it is linked to none, so that one may
+	 * be created. A browser that has not seen the account yet does not know
+	 * its password; the server checks it when it is asked for
+	 * (verifyPassword).
 	 */
-	async loginWithGoogle(ticket: string): Promise<User | 'not-linked'> {
+	async loginWithProvider(
+		provider: SignInProvider,
+		ticket: string,
+	): Promise<User | 'not-linked'> {
 		if (!this.db) await this.initialize();
 
 		let session: AccountSession;
 		try {
-			session = await accountSyncService.loginWithGoogle(
+			session = await accountSyncService.loginWithProvider(
 				accountSyncService.serverFor(),
+				provider,
 				ticket,
 			);
 		} catch (error) {
 			const code = error instanceof AccountServerError ? error.code : '';
-			if (code === 'google_not_linked') return 'not-linked';
+			if (code === `${provider}_not_linked`) return 'not-linked';
 			if (code === 'too_many_attempts') {
 				throw new Error(
 					t('Too many attempts. Please try again in a few minutes.'),
@@ -559,7 +568,10 @@ class AuthService {
 			}
 			if (code === 'invalid_ticket') {
 				throw new Error(
-					t('The confirmation from Google expired. Sign in with Google again.'),
+					t(
+						'The confirmation from {provider} expired. Sign in with {provider} again.',
+						{ provider: PROVIDER_NAMES[provider] },
+					),
 				);
 			}
 			throw new Error(
@@ -790,7 +802,7 @@ class AuthService {
 
 		const passwordHash = await this.hashPassword(password);
 		if (user.passwordHash === passwordHash) return true;
-		// Signed in with Google here, this browser does not know the
+		// Signed in with Google or ORCID here, this browser does not know the
 		// password yet: the account server does, and this browser keeps it.
 		if (user.passwordHash || this.isGuestUser(user)) return false;
 		if (!(await accountSyncService.checkPassword(userId, password))) {

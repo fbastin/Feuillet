@@ -3004,6 +3004,27 @@ export const ToolbarDescriptionIcon: React.FC = () => (
 );
 
 // Google's "G", which Google's sign-in buttons must show.
+// ORCID's iD mark, as sites that sign in with ORCID show it.
+export const OrcidIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
+	<svg
+		className='orcid-icon'
+		xmlns='http://www.w3.org/2000/svg'
+		width={size}
+		height={size}
+		viewBox='0 0 256 256'
+		aria-hidden='true'
+	>
+		<circle cx='128' cy='128' r='128' fill='#A6CE39' />
+		<circle cx='86' cy='78' r='11' fill='#fff' />
+		<rect x='77' y='102' width='18' height='90' fill='#fff' />
+		<path
+			fill='#fff'
+			fillRule='evenodd'
+			d='M112 102h34c30 0 52 19 52 45s-22 45-52 45h-34zM130 118v58h15c20 0 35-12 35-29s-15-29-35-29z'
+		/>
+	</svg>
+);
+
 export const GoogleIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
 	<svg
 		className='google-icon'

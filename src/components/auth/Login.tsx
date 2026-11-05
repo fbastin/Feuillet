@@ -12,7 +12,13 @@ import {
 	getTempPrf,
 	clearTempPrf,
 } from '../../utils/chelysWebauthn';
-import GoogleSignInButton from './GoogleSignInButton';
+import {
+	PROVIDER_NAMES,
+	type ProviderTicket,
+	SIGN_IN_PROVIDERS,
+	type SignInProvider,
+} from '../../services/ExternalSignInService';
+import ExternalSignInButton from './ExternalSignInButton';
 import GuestConsentModal from './GuestConsentModal';
 import RecoverAccount from './RecoverAccount';
 import PrivacyModal from '../common/PrivacyModal';
@@ -22,8 +28,8 @@ const moduleLog = createNamedLogger('Login');
 
 interface LoginProps {
 	onLoginSuccess: () => void;
-	/** With a ticket of Google's sign-in, to create an account linked to it. */
-	onSwitchToRegister: (googleTicket?: string) => void;
+	/** With a ticket of Google's or ORCID's sign-in, to create an account linked to it. */
+	onSwitchToRegister: (link?: ProviderTicket) => void;
 	onSwitchToImport: () => void;
 }
 
@@ -32,7 +38,7 @@ const Login: React.FC<LoginProps> = ({
 	onSwitchToRegister,
 	onSwitchToImport,
 }) => {
-	const { login, loginWithGoogle, createGuestAccount } = useAuth();
+	const { login, loginWithProvider, createGuestAccount } = useAuth();
 	const {
 		chelysLogin,
 		confirmChelysRegister,
@@ -138,12 +144,15 @@ const Login: React.FC<LoginProps> = ({
 		}
 	};
 
-	// Signed in to the account linked to that Google account; or, none
-	// being linked, on to creating one, as Overleaf does.
-	const handleGoogleTicket = async (ticket: string) => {
-		const result = await loginWithGoogle(ticket);
+	// Signed in to the account linked to that Google or ORCID account; or,
+	// none being linked, on to creating one, as Overleaf does.
+	const handleProviderTicket = async (
+		provider: SignInProvider,
+		ticket: string,
+	) => {
+		const result = await loginWithProvider(provider, ticket);
 		if (result === 'not-linked') {
-			onSwitchToRegister(ticket);
+			onSwitchToRegister({ provider, ticket });
 			return;
 		}
 		logoutChelys();
@@ -321,13 +330,19 @@ const Login: React.FC<LoginProps> = ({
 							<div className='guest-divider'>
 								<span>{t('or')}</span>
 							</div>
-							<GoogleSignInButton
-								label={t('Sign in with Google')}
-								disabled={isLoading}
-								onStart={() => setError(null)}
-								onTicket={handleGoogleTicket}
-								onError={setError}
-							/>
+							{SIGN_IN_PROVIDERS.map((provider) => (
+								<ExternalSignInButton
+									key={provider}
+									provider={provider}
+									label={t('Sign in with {provider}', {
+										provider: PROVIDER_NAMES[provider],
+									})}
+									disabled={isLoading}
+									onStart={() => setError(null)}
+									onTicket={(ticket) => handleProviderTicket(provider, ticket)}
+									onError={setError}
+								/>
+							))}
 							<button
 								type='button'
 								className='button'

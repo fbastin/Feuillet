@@ -19,7 +19,13 @@ import {
 } from '../../utils/authUtils';
 import CopyField from '../common/CopyField';
 import { PasskeyIcon } from '../common/Icons';
-import GoogleSignInButton from './GoogleSignInButton';
+import {
+	PROVIDER_NAMES,
+	type ProviderTicket,
+} from '../../services/ExternalSignInService';
+import ExternalSignInButton, {
+	useAvailableProviders,
+} from './ExternalSignInButton';
 
 // The address given becomes the account's once the link mailed to it
 // confirms it, as on Overleaf. Mailing takes some seconds: the sign-up does
@@ -67,11 +73,11 @@ interface RegisterProps {
 		email?: string,
 	) => Promise<any>;
 	/**
-	 * Google's sign-in for a Google account linked to no account: the
-	 * account created here is linked to it.
+	 * Google's or ORCID's sign-in for an account of theirs linked to no
+	 * account: the account created here is linked to it.
 	 */
-	googleTicket?: string | null;
-	onGoogleTicket?: (ticket: string | null) => void;
+	link?: ProviderTicket | null;
+	onLink?: (link: ProviderTicket | null) => void;
 }
 
 const Register: React.FC<RegisterProps> = ({
@@ -80,10 +86,11 @@ const Register: React.FC<RegisterProps> = ({
 	onShowPrivacy,
 	isUpgrade = false,
 	upgradeFunction,
-	googleTicket = null,
-	onGoogleTicket,
+	link = null,
+	onLink,
 }) => {
-	const { register, loginWithGoogle } = useAuth();
+	const { register, loginWithProvider } = useAuth();
+	const providers = useAvailableProviders();
 	const { chelysRegister } = useChelys();
 
 	const [username, setUsername] = useState('');
@@ -128,7 +135,7 @@ const Register: React.FC<RegisterProps> = ({
 					username,
 					password,
 					address || undefined,
-					googleTicket ?? undefined,
+					link ?? undefined,
 				);
 			}
 			if (address) confirmEmailLater(address, password);
@@ -207,52 +214,61 @@ const Register: React.FC<RegisterProps> = ({
 			)}
 
 			{!isUpgrade &&
-				(googleTicket ? (
+				(link ? (
 					<div
 						className='ui-message'
 						data-tone='info'
-						data-role='google-sign-up-notice'
+						data-role={`${link.provider}-sign-up-notice`}
 					>
 						<p>
 							{t(
-								'Google confirmed your Google account, which is not linked to a Feuillet account yet. Choose a name and a password: the account is linked to it, and Google then signs you in.',
+								'{provider} confirmed your {provider} account, which is not linked to a Feuillet account yet. Choose a name and a password: the account is linked to it, and {provider} then signs you in.',
+								{ provider: PROVIDER_NAMES[link.provider] },
 							)}
 						</p>
 						<button
 							type='button'
 							className='button'
 							data-variant='text'
-							data-action='forget-google-sign-up'
-							onClick={() => onGoogleTicket?.(null)}
+							data-action={`forget-${link.provider}-sign-up`}
+							onClick={() => onLink?.(null)}
 							disabled={isLoading}
 						>
-							{t('Do not link Google')}
+							{t('Do not link {provider}', {
+								provider: PROVIDER_NAMES[link.provider],
+							})}
 						</button>
 					</div>
 				) : (
-					<div className='ui-stack' data-gap='xs'>
-						<GoogleSignInButton
-							label={t('Sign up with Google')}
-							disabled={isLoading}
-							onStart={() => setError(null)}
-							onTicket={async (ticket) => {
-								// Already linked: that account opens.
-								const result = await loginWithGoogle(ticket);
-								if (result === 'not-linked') {
-									onGoogleTicket?.(ticket);
-									return;
-								}
-								onRegisterSuccess();
-								window.location.reload();
-							}}
-							onError={setError}
-							after={
-								<div className='guest-divider'>
-									<span>{t('or')}</span>
-								</div>
-							}
-						/>
-					</div>
+					providers.length > 0 && (
+						<div className='ui-stack' data-gap='xs'>
+							{providers.map((provider) => (
+								<ExternalSignInButton
+									key={provider}
+									provider={provider}
+									label={t('Sign up with {provider}', {
+										provider: PROVIDER_NAMES[provider],
+									})}
+									disabled={isLoading}
+									onStart={() => setError(null)}
+									onTicket={async (ticket) => {
+										// Already linked: that account opens.
+										const result = await loginWithProvider(provider, ticket);
+										if (result === 'not-linked') {
+											onLink?.({ provider, ticket });
+											return;
+										}
+										onRegisterSuccess();
+										window.location.reload();
+									}}
+									onError={setError}
+								/>
+							))}
+							<div className='guest-divider'>
+								<span>{t('or')}</span>
+							</div>
+						</div>
+					)
 				))}
 
 			<form onSubmit={handleSubmit} className='ui-stack'>

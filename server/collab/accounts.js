@@ -60,13 +60,15 @@
 //                                                        Google account
 //   POST   /account/google    {password, remove: true}   (token)
 //   POST   /account/google/login {ticket}                -> {username, token}
+//   GET, POST /account/orcid, POST /account/orcid/login  the same for ORCID
 //
-// Sign in with Google, as on Overleaf (google.js): an account may be linked
-// to one Google account, then opened with it; or created linked to it, with
-// a password still, which encrypts what the browser keeps and confirms what
-// changes the account. Of the Google account, only a hash of its identifier
-// is kept, not its address nor its name. POST /account/register takes
-// {username, password, googleTicket} to create an account linked to it.
+// Sign in with Google or ORCID, as on Overleaf (google.js, orcid.js): an
+// account may be linked to one account of each, then opened with it; or
+// created linked to one, with a password still, which encrypts what the
+// browser keeps and confirms what changes the account. Of that account,
+// only a hash of its identifier is kept, not its address nor its name.
+// POST /account/register takes {username, password, googleTicket} (or
+// orcidTicket) to create an account linked to it.
 //
 // Git tokens, as Overleaf's Git authentication tokens: Git gives one, with
 // the account's name, to clone, pull and push its projects (git.js), never
@@ -348,17 +350,22 @@ const createAccounts = ({
 	log,
 	mailer = null,
 	appUrl = '',
-	// Sign in with Google (google.js): its tickets, or null.
+	// Sign in with Google and ORCID (google.js, orcid.js): their tickets, or
+	// null.
 	google = null,
+	orcid = null,
 }) => {
 	fs.mkdirSync(dir, { recursive: true });
 	// Which account confirmed each recovery address, by a hash of it.
 	const emailsDir = path.join(dir, 'emails');
 	fs.mkdirSync(emailsDir, { recursive: true });
-	// Which account each Google account was linked to, by a hash of its
-	// identifier.
-	const googleDir = path.join(dir, 'google');
-	fs.mkdirSync(googleDir, { recursive: true });
+	// The sites one signs in with, by the id an account keeps its link under
+	// ({identity, linkedAt}); which account each of their accounts was linked
+	// to, by a hash of its identifier, in a directory of that id.
+	const providers = { google, orcid };
+	const PROVIDER_NAMES = { google: 'Google', orcid: 'ORCID' };
+	const PROVIDERS = Object.keys(providers);
+	for (const id of PROVIDERS) fs.mkdirSync(path.join(dir, id), { recursive: true });
 	const appBase = String(appUrl).replace(/\/+$/, '');
 
 	const accountPath = (key) => path.join(dir, `${key}.json`);
@@ -404,40 +411,40 @@ const createAccounts = ({
 		}
 	};
 
-	const googlePath = (identity) => path.join(googleDir, `${identity}.json`);
-	// The account a Google account is linked to: its key, if that account
+	const linkPath = (id, identity) => path.join(dir, id, `${identity}.json`);
+	// The account a site's account is linked to: its key, if that account
 	// still says so.
-	const googleOwner = (identity) => {
+	const linkOwner = (id, identity) => {
 		let key;
 		try {
-			key = JSON.parse(fs.readFileSync(googlePath(identity), 'utf8')).key;
+			key = JSON.parse(fs.readFileSync(linkPath(id, identity), 'utf8')).key;
 		} catch (error) {
 			if (error.code === 'ENOENT') return null;
 			throw error;
 		}
 		if (typeof key !== 'string' || !/^[0-9a-f]{64}$/.test(key)) return null;
-		return read(key)?.google?.identity === identity ? key : null;
+		return read(key)?.[id]?.identity === identity ? key : null;
 	};
-	const setGoogleOwner = (identity, key) => {
-		const target = googlePath(identity);
+	const setLinkOwner = (id, identity, key) => {
+		const target = linkPath(id, identity);
 		const temp = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
 		fs.writeFileSync(temp, JSON.stringify({ key }), { mode: 0o600 });
 		fs.renameSync(temp, target);
 	};
-	const dropGoogleOwner = (identity, key) => {
+	const dropLinkOwner = (id, identity, key) => {
 		if (!identity) return;
 		try {
-			const stored = JSON.parse(fs.readFileSync(googlePath(identity), 'utf8'));
+			const stored = JSON.parse(fs.readFileSync(linkPath(id, identity), 'utf8'));
 			if (stored.key !== key) return;
 		} catch {
 			return;
 		}
-		fs.rmSync(googlePath(identity), { force: true });
+		fs.rmSync(linkPath(id, identity), { force: true });
 	};
-	// The Google account a ticket of google.js stands for.
-	const googleIdentity = (ticket) => {
-		if (!google?.enabled) throw new HttpError(404, 'google_disabled');
-		const identity = google.identityFor(ticket);
+	// The site's account a ticket of its sign-in stands for.
+	const ticketIdentity = (id, ticket) => {
+		if (!providers[id]?.enabled) throw new HttpError(404, `${id}_disabled`);
+		const identity = providers[id].identityFor(ticket);
 		if (!identity) throw new HttpError(400, 'invalid_ticket');
 		return identity;
 	};
@@ -622,11 +629,13 @@ const createAccounts = ({
 		if (!validPassword(body.password)) {
 			throw new HttpError(400, 'invalid_password');
 		}
-		// Created linked to a Google account, which no other may be.
-		const identity =
-			body.googleTicket === undefined ? null : googleIdentity(body.googleTicket);
-		if (identity && googleOwner(identity)) {
-			throw new HttpError(409, 'google_taken');
+		// Created linked to a Google or ORCID account, which no other may be.
+		const linkedWith =
+			PROVIDERS.find((id) => body[`${id}Ticket`] !== undefined) ?? null;
+		const ticket = linkedWith ? body[`${linkedWith}Ticket`] : undefined;
+		const identity = linkedWith ? ticketIdentity(linkedWith, ticket) : null;
+		if (identity && linkOwner(linkedWith, identity)) {
+			throw new HttpError(409, `${linkedWith}_taken`);
 		}
 		const key = keyOf(username);
 		const passwordHash = await hashPassword(body.password);
@@ -640,34 +649,41 @@ const createAccounts = ({
 				createdAt: now,
 				projects: {},
 				sessions: {},
-				...(identity ? { google: { identity, linkedAt: now } } : {}),
+				...(identity ? { [linkedWith]: { identity, linkedAt: now } } : {}),
 			};
 			if (identity) {
-				if (googleOwner(identity) || !google.identityFor(body.googleTicket, { use: true })) {
-					throw new HttpError(409, 'google_taken');
+				if (
+					linkOwner(linkedWith, identity) ||
+					!providers[linkedWith].identityFor(ticket, { use: true })
+				) {
+					throw new HttpError(409, `${linkedWith}_taken`);
 				}
-				setGoogleOwner(identity, key);
+				setLinkOwner(linkedWith, identity, key);
 			}
 			const token = openSession(account, key, device);
 			write(key, account);
-			log('account created', JSON.stringify(username), identity ? 'with Google' : '');
+			log(
+				'account created',
+				JSON.stringify(username),
+				identity ? `with ${PROVIDER_NAMES[linkedWith]}` : '',
+			);
 			return { username, token };
 		});
 	};
 
-	// Signs in with a Google account, to the account linked to it.
-	const googleLogin = async (body, ip, device) => {
+	// Signs in with a site's account, to the account linked to it.
+	const providerLogin = async (id, body, ip, device) => {
 		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
-		const identity = googleIdentity(body.ticket);
-		const key = googleOwner(identity);
+		const identity = ticketIdentity(id, body.ticket);
+		const key = linkOwner(id, identity);
 		// The ticket stays good for creating an account linked to it.
-		if (!key) throw new HttpError(404, 'google_not_linked');
+		if (!key) throw new HttpError(404, `${id}_not_linked`);
 
 		return withAccount(key, (account) => {
-			if (account?.google?.identity !== identity) {
-				throw new HttpError(404, 'google_not_linked');
+			if (account?.[id]?.identity !== identity) {
+				throw new HttpError(404, `${id}_not_linked`);
 			}
-			if (!google.identityFor(body.ticket, { use: true })) {
+			if (!providers[id].identityFor(body.ticket, { use: true })) {
 				throw new HttpError(400, 'invalid_ticket');
 			}
 			const token = openSession(account, key, device);
@@ -676,43 +692,43 @@ const createAccounts = ({
 		});
 	};
 
-	const googleStatus = (account) => ({
-		enabled: Boolean(google?.enabled),
-		linked: Boolean(account.google),
-		...(account.google ? { linkedAt: account.google.linkedAt } : {}),
+	const linkStatus = (id, account) => ({
+		enabled: Boolean(providers[id]?.enabled),
+		linked: Boolean(account[id]),
+		...(account[id] ? { linkedAt: account[id].linkedAt } : {}),
 	});
 
-	const getGoogle = (req) =>
-		authenticate(req, (account) => ({ body: googleStatus(account) }));
+	const getLink = (id, req) =>
+		authenticate(req, (account) => ({ body: linkStatus(id, account) }));
 
-	// Links the account to a Google account, or not any more.
-	const setGoogle = (req, body) =>
+	// Links the account to a site's account, or not any more.
+	const setLink = (id, req, body) =>
 		authenticate(req, async (account) => {
 			if (!(await checkPassword(String(body.password), account.passwordHash))) {
 				throw new HttpError(401, 'wrong_password');
 			}
 			const key = keyOf(account.username);
 			if (body.remove === true) {
-				dropGoogleOwner(account.google?.identity, key);
-				delete account.google;
-				log('Google account unlinked');
-				return { changed: true, body: googleStatus(account) };
+				dropLinkOwner(id, account[id]?.identity, key);
+				delete account[id];
+				log(`${PROVIDER_NAMES[id]} account unlinked`);
+				return { changed: true, body: linkStatus(id, account) };
 			}
-			const identity = googleIdentity(body.ticket);
-			const owner = googleOwner(identity);
-			if (owner && owner !== key) throw new HttpError(409, 'google_taken');
-			google.identityFor(body.ticket, { use: true });
-			if (account.google?.identity !== identity) {
-				dropGoogleOwner(account.google?.identity, key);
-				account.google = { identity, linkedAt: Date.now() };
-				setGoogleOwner(identity, key);
-				log('Google account linked');
+			const identity = ticketIdentity(id, body.ticket);
+			const owner = linkOwner(id, identity);
+			if (owner && owner !== key) throw new HttpError(409, `${id}_taken`);
+			providers[id].identityFor(body.ticket, { use: true });
+			if (account[id]?.identity !== identity) {
+				dropLinkOwner(id, account[id]?.identity, key);
+				account[id] = { identity, linkedAt: Date.now() };
+				setLinkOwner(id, identity, key);
+				log(`${PROVIDER_NAMES[id]} account linked`);
 			}
-			return { changed: true, body: googleStatus(account) };
+			return { changed: true, body: linkStatus(id, account) };
 		});
 
 	// Whether a password is the account's, as a device that signed in with
-	// Google asks before keeping a secret with it.
+	// Google or ORCID asks before keeping a secret with it.
 	const verifyPassword = (req, body) =>
 		authenticate(req, async (account) => {
 			const key = keyOf(account.username);
@@ -1096,7 +1112,9 @@ const createAccounts = ({
 	const forget = async (account) => {
 		await accountDeleted(idOf(account));
 		dropEmailOwner(account.email?.address, keyOf(account.username));
-		dropGoogleOwner(account.google?.identity, keyOf(account.username));
+		for (const id of PROVIDERS) {
+			dropLinkOwner(id, account[id]?.identity, keyOf(account.username));
+		}
 	};
 
 	const deleteAccount = (req, body) =>
@@ -1447,10 +1465,16 @@ const createAccounts = ({
 		'POST /account/reset': (req, body) =>
 			resetPassword(body, clientAddress(req)),
 		'POST /account/password/verify': (req, body) => verifyPassword(req, body),
-		'GET /account/google': (req) => getGoogle(req),
-		'POST /account/google': (req, body) => setGoogle(req, body),
-		'POST /account/google/login': (req, body) =>
-			googleLogin(body, clientAddress(req), deviceOf(req)),
+		...Object.fromEntries(
+			PROVIDERS.flatMap((id) => [
+				[`GET /account/${id}`, (req) => getLink(id, req)],
+				[`POST /account/${id}`, (req, body) => setLink(id, req, body)],
+				[
+					`POST /account/${id}/login`,
+					(req, body) => providerLogin(id, body, clientAddress(req), deviceOf(req)),
+				],
+			]),
+		),
 	};
 
 	const handles = (url) => url === '/account' || url.startsWith('/account/');

@@ -15,6 +15,7 @@ import {
 	isValidYjsProjectId,
 	projectLinkKind,
 } from '../utils/urlUtils';
+import type { ProviderTicket, SignInProvider } from './ExternalSignInService';
 import { projectLinkService } from './ProjectLinkService';
 
 const moduleLog = createNamedLogger('AccountSyncService');
@@ -160,14 +161,15 @@ const recoveryEmailStatus = (result: any): RecoveryEmailStatus => ({
 	...(typeof result?.pending === 'string' ? { pending: result.pending } : {}),
 });
 
-export interface GoogleStatus {
-	/** Whether the server signs in with Google at all. */
+/** Whether the account is linked to a Google or ORCID account. */
+export interface LinkStatus {
+	/** Whether the server signs in with that site at all. */
 	enabled: boolean;
 	linked: boolean;
 	linkedAt?: number;
 }
 
-const googleStatusOf = (result: any): GoogleStatus => ({
+const linkStatusOf = (result: any): LinkStatus => ({
 	enabled: result?.enabled === true,
 	linked: result?.linked === true,
 	...(typeof result?.linkedAt === 'number'
@@ -392,79 +394,82 @@ class AccountSyncService {
 	}
 
 	/**
-	 * Creates the account on the server; with a ticket of Google's sign-in,
-	 * linked to that Google account.
+	 * Creates the account on the server; with a ticket of Google's or
+	 * ORCID's sign-in, linked to that account.
 	 */
 	async register(
 		server: string,
 		username: string,
 		password: string,
-		googleTicket?: string,
+		link?: ProviderTicket,
 	): Promise<AccountSession> {
 		const result = await this.request(server, 'POST', '/account/register', {
-			body: googleTicket
-				? { username, password, googleTicket }
+			body: link
+				? { username, password, [`${link.provider}Ticket`]: link.ticket }
 				: { username, password },
 		});
 		return { username: result.username, token: result.token, server };
 	}
 
 	/**
-	 * Signs in to the account a Google account is linked to; fails with
-	 * `google_not_linked` when it is linked to none, the ticket staying good
-	 * for creating one.
+	 * Signs in to the account a Google or ORCID account is linked to; fails
+	 * with `<provider>_not_linked` when it is linked to none, the ticket
+	 * staying good for creating one.
 	 */
-	async loginWithGoogle(
+	async loginWithProvider(
 		server: string,
+		provider: SignInProvider,
 		ticket: string,
 	): Promise<AccountSession> {
-		const result = await this.request(server, 'POST', '/account/google/login', {
-			body: { ticket },
-		});
+		const result = await this.request(
+			server,
+			'POST',
+			`/account/${provider}/login`,
+			{ body: { ticket } },
+		);
 		return { username: result.username, token: result.token, server };
 	}
 
-	/** Whether the account is linked to a Google account; null signed out. */
-	async googleStatus(): Promise<GoogleStatus | null> {
+	/** Whether the account is linked to a site's account; null signed out. */
+	async linkStatus(provider: SignInProvider): Promise<LinkStatus | null> {
 		const userId = this.userId;
 		const session = userId ? this.getSession(userId) : null;
 		if (!userId || !session) return null;
 		const result = await this.request(
 			session.server,
 			'GET',
-			'/account/google',
-			{
-				token: session.token,
-			},
+			`/account/${provider}`,
+			{ token: session.token },
 		);
-		return googleStatusOf(result);
+		return linkStatusOf(result);
 	}
 
-	/** Links the account to the Google account of a ticket, or, with null, unlinks it. */
-	async setGoogle(
+	/** Links the account to the site's account of a ticket, or, with null, unlinks it. */
+	async setLink(
+		provider: SignInProvider,
 		ticket: string | null,
 		password: string,
-	): Promise<GoogleStatus | null> {
+	): Promise<LinkStatus | null> {
 		const userId = this.userId;
 		const session = userId ? this.getSession(userId) : null;
 		if (!userId || !session) return null;
 		const result = await this.request(
 			session.server,
 			'POST',
-			'/account/google',
+			`/account/${provider}`,
 			{
 				token: session.token,
 				body:
 					ticket === null ? { password, remove: true } : { password, ticket },
 			},
 		);
-		return googleStatusOf(result);
+		return linkStatusOf(result);
 	}
 
 	/**
 	 * Whether `password` is the account's, as the server says: for a device
-	 * that signed in with Google and so does not know it. False when it
-	 * cannot say.
+	 * that signed in with Google or ORCID and so does not know it. False
+	 * when it cannot say.
 	 */
 	async checkPassword(userId: string, password: string): Promise<boolean> {
 		const session = this.getSession(userId);

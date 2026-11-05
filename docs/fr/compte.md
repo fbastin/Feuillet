@@ -39,14 +39,25 @@ son adresse, ni votre nom, ni votre photo, et n'en garde qu'une empreinte.
 Sur un appareil où vous vous êtes connecté avec Google, Feuillet demande
 votre mot de passe la première fois qu'il en a besoin.
 
+## Se connecter avec ORCID
+
+Comme sur Overleaf, **Se connecter avec ORCID** fait de même avec votre
+identifiant ORCID, pratique entre chercheurs : depuis la page de connexion,
+qui propose aussi d'**S'inscrire avec ORCID**, ou depuis le profil
+(**Associer un compte ORCID**, **Dissocier ORCID**). Un même compte Feuillet
+peut être associé à la fois à un compte Google et à un compte ORCID.
+
+Feuillet n'apprend d'ORCID que votre identifiant ORCID et n'en garde qu'une
+empreinte, jamais l'identifiant lui-même ni le nom qu'ORCID envoie avec lui.
+
 ## Le profil
 
 Le menu de votre compte, en haut à droite, ouvre le profil :
 
 - changer de mot de passe; vos autres appareils devront se reconnecter, et
   les assistants comme Claude perdent leur accès;
-- **Se connecter avec Google** : associer un compte Google, ou le
-  dissocier (voir plus haut);
+- **Se connecter avec Google** et **Se connecter avec ORCID** : associer
+  un compte de chacun, ou le dissocier (voir plus haut);
 - **Courriel du compte** et **Codes de récupération**, si vous oubliez
   votre mot de passe (voir plus bas);
 - **Courriel des commits Git** : l'adresse d'auteur de vos commits, que lit
