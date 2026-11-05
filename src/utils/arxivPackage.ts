@@ -99,6 +99,9 @@ export const texLiveYearOf = (log: string): number | null => {
 	return match ? Number(match[1]) : null;
 };
 
+/** The years of TeX Live arXiv compiles with. */
+export const ARXIV_TEXLIVE_YEARS: readonly number[] = [2023, 2025];
+
 // arXiv offers TeX Live 2023 and 2025; a later one is nearest to 2025.
 const arxivTexLive = (year: number | null): 2023 | 2025 =>
 	year !== null && year <= 2023 ? 2023 : 2025;

@@ -2,6 +2,7 @@ import type { TypesetterUIField } from '@src/types/compilation';
 import type { ProjectMetadata } from '@src/types/documents';
 import { movedPath } from '@src/utils/fileEvents';
 import {
+	optionsWith,
 	sharedFieldValue,
 	withMainFile,
 	withSharedFieldValue,
@@ -78,5 +79,60 @@ describe("the project's compile settings", () => {
 		const set = withMainFile(metadata, '/these.tex');
 		expect(set).toEqual({ ...metadata, mainFile: '/these.tex' });
 		expect(withMainFile(set, undefined)).toEqual(metadata);
+	});
+});
+
+describe('a select that keeps values no option offers', () => {
+	const version: TypesetterUIField = {
+		key: 'version',
+		label: 'TeX Live version:',
+		kind: 'select',
+		shared: true,
+		defaultValue: 'latest',
+		options: [
+			{ label: 'Latest', value: 'latest' },
+			{ label: 'TeX Live 2025', value: '2025' },
+		],
+		otherValues: { pattern: '^\\d{4}$', label: 'TeX Live {value} (gone)' },
+	};
+	const withVersion = (value: unknown): ProjectMetadata =>
+		({
+			...metadata,
+			typesetterOptions: { texlive: { version: value } },
+		}) as ProjectMetadata;
+
+	it("keeps a year the server stopped offering, as the project's", () => {
+		expect(sharedFieldValue(withVersion('2025'), 'texlive', version)).toBe(
+			'2025',
+		);
+		expect(sharedFieldValue(withVersion('2024'), 'texlive', version)).toBe(
+			'2024',
+		);
+		expect(
+			sharedFieldValue(withVersion('nonsense'), 'texlive', version),
+		).toBeUndefined();
+		expect(sharedFieldValue(withVersion(2024), 'texlive', version)).toBeUndefined();
+		// A select without the pattern still takes its options only.
+		expect(
+			sharedFieldValue(
+				{ ...metadata, typesetterOptions: { texlive: { engine: '2024' } } },
+				'texlive',
+				engine,
+			),
+		).toBeUndefined();
+	});
+
+	it('shows that year among the options, with its label', () => {
+		expect(optionsWith(version, '2025')).toBe(version.options);
+		expect(optionsWith(version, '2024').at(-1)).toEqual({
+			value: '2024',
+			label: { key: 'TeX Live {value} (gone)', params: { value: '2024' } },
+		});
+		expect(optionsWith(engine, '2024')).toBe(engine.options);
+	});
+
+	it('ignores a pattern that is not one', () => {
+		const broken = { ...version, otherValues: { pattern: '(', label: 'x' } };
+		expect(sharedFieldValue(withVersion('2024'), 'texlive', broken)).toBeUndefined();
 	});
 });

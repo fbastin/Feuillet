@@ -3,6 +3,8 @@ import type { TypesetterProvider } from '@src/types/compilation';
 import {
 	TEXLIVE_TYPESETTER_ID,
 	createTexliveTypesetterConfig,
+	parseTexliveYears,
+	texliveHealthUrl,
 } from '@src/utils/texliveTypesetter';
 import { normalizeTypesetterConfig } from '@src/utils/toolConfigUtils';
 
@@ -49,6 +51,7 @@ describe('Feuillet TeX Live typesetter', () => {
 		});
 		expect(normalized?.ui?.compile?.fields.map((field) => field.key)).toEqual([
 			'engine',
+			'version',
 			'mode',
 			'errors',
 		]);
@@ -69,8 +72,12 @@ describe('Feuillet TeX Live typesetter', () => {
 		const shared = (fields = normalized?.ui?.compile?.fields ?? []) =>
 			fields.filter((field) => field.shared).map((field) => field.key);
 
-		expect(shared()).toEqual(['engine']);
-		expect(shared(normalized?.ui?.export?.fields)).toEqual(['engine']);
+		// And its year of TeX Live, as Overleaf.
+		expect(shared()).toEqual(['engine', 'version']);
+		expect(shared(normalized?.ui?.export?.fields)).toEqual([
+			'engine',
+			'version',
+		]);
 	});
 
 	it('keeps the built-in LaTeX compiler first when TeX Live is not preferred', () => {
@@ -98,5 +105,87 @@ describe('Feuillet TeX Live typesetter', () => {
 		expect(
 			typesetterRegistryService.resolve('latex', 'internal:latex')?.id,
 		).toBe('internal:latex');
+	});
+});
+
+describe('the years of TeX Live', () => {
+	const versionOf = (years: Parameters<typeof createTexliveTypesetterConfig>[1]) =>
+		createTexliveTypesetterConfig(URL, years).ui?.compile?.fields.find(
+			(field) => field.key === 'version',
+		);
+
+	it('are asked of the server next to its socket', () => {
+		expect(texliveHealthUrl('wss://feuillet.example/texlive/')).toBe(
+			'https://feuillet.example/texlive/health',
+		);
+		expect(texliveHealthUrl('ws://localhost:7045')).toBe(
+			'http://localhost:7045/health',
+		);
+		expect(texliveHealthUrl('https://feuillet.example/')).toBeNull();
+		expect(texliveHealthUrl('not a url')).toBeNull();
+	});
+
+	it('are read from what the server says, newest first', () => {
+		expect(parseTexliveYears({ year: 2026, years: [2025, 2026, 2025] })).toEqual({
+			year: 2026,
+			years: [2026, 2025],
+		});
+		expect(parseTexliveYears({ status: 'ok' })).toBeNull();
+		expect(parseTexliveYears({ year: 'x', years: [2026, 'y', 12] })).toEqual({
+			year: null,
+			years: [2026],
+		});
+	});
+
+	it("offer the latest, then each year, arXiv's said, as the project's choice", () => {
+		const field = versionOf({ year: 2026, years: [2026, 2025] });
+		expect(field).toMatchObject({
+			kind: 'select',
+			shared: true,
+			sendAs: 'option',
+			defaultValue: 'latest',
+		});
+		expect(field?.options).toEqual([
+			{
+				label: { key: 'Latest (TeX Live {year})', params: { year: '2026' } },
+				value: 'latest',
+			},
+			{ label: { key: 'TeX Live {year}', params: { year: '2026' } }, value: '2026' },
+			{
+				label: { key: 'TeX Live {year} (arXiv)', params: { year: '2025' } },
+				value: '2025',
+			},
+		]);
+		expect(field?.help).toBeDefined();
+		// The export menu shows it too.
+		expect(
+			createTexliveTypesetterConfig(URL, null).ui?.export?.fields.map(
+				(entry) => entry.key,
+			),
+		).toEqual(['format', 'engine', 'version']);
+	});
+
+	it('before the server says, offer the latest alone and keep any year', () => {
+		const field = versionOf(null);
+		expect(field?.options?.map((option) => option.value)).toEqual(['latest']);
+		expect(field?.help).toBeUndefined();
+		expect(new RegExp(field?.otherValues?.pattern ?? '').test('2025')).toBe(true);
+		expect(new RegExp(field?.otherValues?.pattern ?? '').test('20255')).toBe(
+			false,
+		);
+	});
+
+	it('survive the normalization of recipes', () => {
+		const normalized = normalizeTypesetterConfig(
+			createTexliveTypesetterConfig(URL, { year: 2026, years: [2026, 2025] }),
+		);
+		const field = normalized?.ui?.compile?.fields.find(
+			(entry) => entry.key === 'version',
+		);
+		expect(field?.otherValues).toEqual({
+			pattern: '^\\d{4}$',
+			label: 'TeX Live {value} (not on this server: the latest compiles)',
+		});
+		expect(field?.shared).toBe(true);
 	});
 });

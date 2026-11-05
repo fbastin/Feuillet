@@ -75,6 +75,12 @@ export interface TypesetterUIField {
 	showWhen?: TypesetterUIFieldCondition;
 	/** Kept with the project, the same for every collaborator. */
 	shared?: boolean;
+	/**
+	 * Values kept although no option offers them, as a year of TeX Live a
+	 * project chose before the server stopped offering it: those matching
+	 * the pattern, shown with the label ({value}).
+	 */
+	otherValues?: { pattern: string; label: TranslatableText };
 }
 
 export interface TypesetterUISection {

@@ -19,7 +19,10 @@ import {
 import {
 	TEXLIVE_SERVER_SETTING,
 	TEXLIVE_TYPESETTER_ID,
+	type TexliveYears,
 	createTexliveTypesetterConfig,
+	parseTexliveYears,
+	texliveHealthUrl,
 } from '../utils/texliveTypesetter';
 import {
 	moveConfig,
@@ -85,6 +88,24 @@ export const TypesetterConfigProvider: React.FC<
 		getSetting(TEXLIVE_SERVER_SETTING)?.value ?? '',
 	).trim();
 
+	// The years of TeX Live the server offers, for the projects to choose.
+	const [texliveYears, setTexliveYears] = useState<TexliveYears | null>(null);
+	useEffect(() => {
+		setTexliveYears(null);
+		const health = texliveServer ? texliveHealthUrl(texliveServer) : null;
+		if (!health) return;
+		let current = true;
+		fetch(health, { cache: 'no-store' })
+			.then((response) => (response.ok ? response.json() : null))
+			.then((json) => {
+				if (current) setTexliveYears(parseTexliveYears(json));
+			})
+			.catch(() => undefined);
+		return () => {
+			current = false;
+		};
+	}, [texliveServer]);
+
 	// Feuillet's TeX Live server is offered to everyone and preferred for new
 	// LaTeX projects, unless the user keeps a recipe under the same id. It is
 	// not part of the user's recipe list.
@@ -93,8 +114,10 @@ export const TypesetterConfigProvider: React.FC<
 		const overridden = [...storedConfigs, ...disabledConfigs].some(
 			(config) => config.id === TEXLIVE_TYPESETTER_ID,
 		);
-		return overridden ? [] : [createTexliveTypesetterConfig(texliveServer)];
-	}, [texliveServer, storedConfigs, disabledConfigs]);
+		return overridden
+			? []
+			: [createTexliveTypesetterConfig(texliveServer, texliveYears)];
+	}, [texliveServer, texliveYears, storedConfigs, disabledConfigs]);
 
 	useEffect(() => {
 		setConfigs(storedConfigs);

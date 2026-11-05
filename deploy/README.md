@@ -59,6 +59,8 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/feuil
                          ├─ /collab/  (wss, http) ▶ 127.0.0.1:1234 feuillet-collab  (Docker)
                          └─ /texlive/ (wss, http) ▶ /var/lib/feuillet/texlive-socket/texlive.sock
                                                      feuillet-texlive (Docker, no network)
+                                                       └─▶ texlive-2025.sock
+                                                           feuillet-texlive-2025 (same)
 ```
 
 ## First installation
@@ -345,6 +347,36 @@ that name and administer the server.
 - TeX Live packages: `sudo docker compose -f deploy/docker-compose.yml build --pull texlive`
   then `sudo docker compose -f deploy/docker-compose.yml up -d texlive`.
 
+## Years of TeX Live
+
+As on Overleaf, each project chooses its TeX Live in the compile menu
+(« Version de TeX Live »), for all its collaborators: « La plus récente »,
+the default, follows `texlive/texlive:latest` and its updates; a year stays
+the same, as TeX Live 2025, the one arXiv compiles with (the arXiv package
+then matches it, biblatex's `.bbl` included).
+
+The latest's server (`texlive`) passes the compiles of another year to that
+year's server, on a socket of the same directory: `OTHER_YEARS` names them
+(`2025=/socket/texlive-2025.sock`), and `/texlive/health` lists the years,
+which the compile menu offers. Each year is an image of about 3 GB
+(`texlive/texlive:TL2025-historic`, made by the Island of TeX; their
+historic images go back to 2013) and an idle server of a few dozen MB.
+
+Each spring, when `latest` moves to a new year, `install.sh` says so. The
+projects that chose the year before then compile with the new one (their
+menu says so), unless a server offers it. To keep it, as for 2026:
+
+1. In `docker-compose.yml`, copy the `texlive-2025` service as
+   `texlive-2026`, with `TEXLIVE_IMAGE: texlive/texlive:TL2026-historic`,
+   `container_name: feuillet-texlive-2026` and
+   `SOCKET_PATH: "/socket/texlive-2026.sock"`.
+2. Add it to the latest's `OTHER_YEARS`:
+   `"2025=/socket/texlive-2025.sock,2026=/socket/texlive-2026.sock"`.
+3. Run `sudo deploy/install.sh`.
+
+A year nobody uses any more is removed the other way round (its service,
+its entry in `OTHER_YEARS`, then `sudo docker image prune`).
+
 Documents are kept in the `feuillet_collab-data` volume, file contents in
 `feuillet_collab-files`, accounts in `feuillet_collab-accounts` (one JSON
 file per account, with a scrypt hash of its password and the hashes of its
@@ -428,7 +460,8 @@ bounded (`docker-compose.yml`) and connections are kept apart:
 - At most `MAX_CONCURRENT` (2) compiles run at once, others wait in a queue of
   20; each compile stops after `COMPILE_TIMEOUT_MS` (3 minutes).
 - 4 GB of memory, 4 CPUs, 256 processes, and a 2 GB in-memory working area
-  that is emptied when the container restarts.
+  that is emptied when the container restarts; each other year's server has
+  the same bounds, with 3 GB, 3 CPUs and one compile at a time.
 - What remains: a compile may use the processor and memory within these
   bounds, and a flaw of the Linux kernel is easier to reach with any program
   than with TeX alone. Overleaf compiles each project in a container of its

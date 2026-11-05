@@ -99,6 +99,10 @@ Feuillet's server. The menu next to the compile button offers:
 
 - the project's **main document** and **engine** (pdfLaTeX, XeLaTeX or
   LuaLaTeX), the same for every collaborator;
+- the **TeX Live version**, also the project's: **Latest**, the default,
+  follows Feuillet's updates; a year stays the same for the project, as
+  TeX Live 2025, the one arXiv compiles with. Choosing the latest's year
+  keeps the project on it when TeX Live moves to a new year;
 - the **compile mode**: normal, or fast (draft), which draws images as
   boxes;
 - **error handling**: compile despite errors, or stop at the first one;
@@ -159,7 +163,9 @@ upload to arXiv:
 The menu then says what the archive holds and what arXiv may refuse:
 LuaLaTeX, which arXiv does not offer; a main document outside the root,
 since arXiv compiles from the root; a bibliography without a `.bbl`; a
-biblatex `.bbl` in another format than arXiv's; compile errors.
+biblatex `.bbl` in another format than arXiv's; compile errors. For the
+`.bbl` to be the one arXiv expects, choose **TeX Live 2025 (arXiv)** as the
+TeX Live version before exporting.
 
 ### From text to PDF, and back
 

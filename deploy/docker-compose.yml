@@ -13,6 +13,37 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+# What every TeX Live server shares (the latest and other years).
+x-texlive-environment: &texlive-environment
+  ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
+  MAX_CONCURRENT: "2"
+  COMPILE_TIMEOUT_MS: "180000"
+  SHELL_ESCAPE: "full"
+
+x-texlive: &texlive
+  restart: unless-stopped
+  logging: *logging
+  network_mode: none
+  volumes:
+    - /var/lib/feuillet/texlive-socket:/socket
+  tmpfs:
+    - /work:size=2g,mode=0711
+    - /tmp:size=256m
+  # What the server needs to run each connection under its own uid and clean
+  # up after it; the compiles themselves have no capability.
+  cap_drop:
+    - ALL
+  cap_add:
+    - CHOWN
+    - DAC_OVERRIDE
+    - FOWNER
+    - KILL
+    - SETGID
+    - SETUID
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 256
+
 services:
   collab:
     build: ../server/collab
@@ -64,40 +95,35 @@ services:
   # (shell escape): the container has no network at all, not even this
   # machine's, and is reached through its Unix socket, in a directory the
   # compiles cannot open. Its server refuses full shell escape if it finds a
-  # network.
+  # network. This one is the latest TeX Live; a project may choose another
+  # year, whose compiles it passes to that year's server (OTHER_YEARS).
   texlive:
+    <<: *texlive
     build: ../server/texlive
     container_name: feuillet-texlive
-    restart: unless-stopped
-    logging: *logging
-    network_mode: none
     environment:
-      ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
-      MAX_CONCURRENT: "2"
-      COMPILE_TIMEOUT_MS: "180000"
+      <<: *texlive-environment
       SOCKET_PATH: "/socket/texlive.sock"
-      SHELL_ESCAPE: "full"
-    volumes:
-      - /var/lib/feuillet/texlive-socket:/socket
-    tmpfs:
-      - /work:size=2g,mode=0711
-      - /tmp:size=256m
-    # What the server needs to run each connection under its own uid and clean
-    # up after it; the compiles themselves have no capability.
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - KILL
-      - SETGID
-      - SETUID
-    security_opt:
-      - no-new-privileges:true
+      OTHER_YEARS: "2025=/socket/texlive-2025.sock"
     mem_limit: 4g
     cpus: 4
-    pids_limit: 256
+
+  # TeX Live 2025, the year arXiv compiles with, for the projects that
+  # choose it; the same server, on an image of that year. Another year is a
+  # service like this one, named in OTHER_YEARS above (deploy/README.md).
+  texlive-2025:
+    <<: *texlive
+    build:
+      context: ../server/texlive
+      args:
+        TEXLIVE_IMAGE: texlive/texlive:TL2025-historic
+    container_name: feuillet-texlive-2025
+    environment:
+      <<: *texlive-environment
+      SOCKET_PATH: "/socket/texlive-2025.sock"
+      MAX_CONCURRENT: "1"
+    mem_limit: 3g
+    cpus: 3
 
   # Grammar and style checking (server/collab/grammar.js): LanguageTool, on
   # a network of its own with the collaboration server only, without access

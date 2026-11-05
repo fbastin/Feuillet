@@ -186,6 +186,17 @@ function normalizeUIField(value: unknown): TypesetterUIField | null {
 				}
 			: undefined;
 
+	const otherLabel = isRecord(value.otherValues)
+		? normalizeTranslatableText(value.otherValues.label)
+		: null;
+	const otherValues =
+		isRecord(value.otherValues) &&
+		typeof value.otherValues.pattern === 'string' &&
+		otherLabel !== null &&
+		isValidPattern(value.otherValues.pattern)
+			? { pattern: value.otherValues.pattern, label: otherLabel }
+			: undefined;
+
 	return {
 		key,
 		label,
@@ -201,8 +212,18 @@ function normalizeUIField(value: unknown): TypesetterUIField | null {
 		...(group ? { group } : {}),
 		...(showWhen ? { showWhen } : {}),
 		...(value.shared === true ? { shared: true } : {}),
+		...(otherValues ? { otherValues } : {}),
 	};
 }
+
+const isValidPattern = (pattern: string): boolean => {
+	try {
+		new RegExp(pattern);
+		return true;
+	} catch {
+		return false;
+	}
+};
 
 function normalizeUISection(value: unknown): TypesetterUISection | null {
 	if (!isRecord(value) || !Array.isArray(value.fields)) {

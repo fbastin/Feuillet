@@ -156,7 +156,7 @@ if docker inspect feuillet-collab >/dev/null 2>&1; then
 		echo "The backup failed; the update goes on."
 fi
 
-echo "== Collaboration, TeX Live and LanguageTool servers (the first builds download about 3 GB and 250 MB)"
+echo "== Collaboration, TeX Live and LanguageTool servers (the first builds download about 3 GB for each year of TeX Live, and 250 MB)"
 install -d -o root -g www-data -m 0750 "$TEXLIVE_SOCKET_DIR"
 docker compose -f "$HERE/docker-compose.yml" up -d --build
 for _ in $(seq 1 60); do
@@ -169,6 +169,26 @@ for _ in $(seq 1 60); do
 	sleep 1
 done
 curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health && echo
+# The other years of TeX Live that projects may choose (OTHER_YEARS in
+# docker-compose.yml), each on its own socket.
+for socket in "$TEXLIVE_SOCKET_DIR"/texlive-[0-9][0-9][0-9][0-9].sock; do
+	[ -S "$socket" ] || continue
+	for _ in $(seq 1 60); do
+		if curl -fsS --unix-socket "$socket" http://localhost/health >/dev/null; then break; fi
+		sleep 1
+	done
+	echo "$(basename "$socket" .sock): $(curl -fsS --unix-socket "$socket" http://localhost/health || echo 'not answering')"
+done
+# When the latest TeX Live moves to a new year, the projects that chose the
+# previous one compile with the new one until a server offers it.
+year=$(curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health | sed -n 's/.*"year":\([0-9]\{4\}\).*/\1/p')
+if [ -n "$year" ]; then
+	previous=$(cat /var/lib/feuillet/texlive-year 2>/dev/null || true)
+	if [ -n "$previous" ] && [ "$previous" != "$year" ]; then
+		echo "TeX Live is now $year (it was $previous). Projects that chose TeX Live $previous compile with $year until a server offers it: see \"Years of TeX Live\" in deploy/README.md."
+	fi
+	echo "$year" >/var/lib/feuillet/texlive-year
+fi
 # LanguageTool has no way in from here (its network is internal): its
 # container says how it is.
 for _ in $(seq 1 90); do

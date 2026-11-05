@@ -24,6 +24,13 @@
 // at the first error, and a message {"action": "stop"} stops the compiles a
 // connection asked for before it.
 //
+// As on Overleaf, a project may choose its year of TeX Live: this server is
+// the latest, and other years are servers of their own, on sockets of the
+// same directory (OTHER_YEARS, deploy/docker-compose.yml). A compile that
+// asks for one of them ({"options": {"version": "2025"}}) goes there through
+// this connection, which brings its reply back; "latest", or a year no
+// server offers, compiles here. /health says which years there are.
+//
 // The log has the layout of the busytex harness that Feuillet's LaTeX log
 // viewer reads (extras/loggers/latex_visualizer/parser.ts): the viewer lists
 // the errors and warnings of the LOG section, the transcript of the last
@@ -55,6 +62,10 @@
 //   SHELL_ESCAPE_ANY_NETWORK  "1" allows "full" with a network (tests only)
 //   SESSION_MAX_PROCESSES  processes each connection may run at once, when
 //                       running as root (default 64)
+//   TEXLIVE_YEAR        this TeX Live's year, when pdftex --version does not
+//                       tell it (tests)
+//   OTHER_YEARS         the servers of other years, as
+//                       2025=/socket/texlive-2025.sock, comma-separated
 
 const { execFileSync, spawn } = require('node:child_process');
 const crypto = require('node:crypto');
@@ -63,7 +74,7 @@ const fs = require('node:fs/promises');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
-const { WebSocketServer } = require('ws');
+const { WebSocket, WebSocketServer } = require('ws');
 
 const readInt = (name, fallback) =>
 	Number.parseInt(process.env[name] || String(fallback), 10);
@@ -114,6 +125,33 @@ const shellEscape = (() => {
 	);
 	return 'restricted';
 })();
+// This TeX Live's year, as its programs say: "pdfTeX 3.141592653-2.6-1.40.28
+// (TeX Live 2026)".
+const ownYear = (() => {
+	if (/^\d{4}$/.test(process.env.TEXLIVE_YEAR || '')) {
+		return process.env.TEXLIVE_YEAR;
+	}
+	try {
+		const banner = execFileSync('pdftex', ['--version'], { encoding: 'utf8' });
+		return /TeX Live (\d{4})/.exec(banner)?.[1] ?? '';
+	} catch {
+		return '';
+	}
+})();
+// The other years' servers, by year.
+const otherYears = new Map(
+	(process.env.OTHER_YEARS || '')
+		.split(',')
+		.map((entry) => entry.split('=').map((part) => part.trim()))
+		.filter(
+			([year, socket]) => /^\d{4}$/.test(year) && socket && year !== ownYear,
+		),
+);
+const offeredYears = [...new Set([ownYear, ...otherYears.keys()])]
+	.filter(Boolean)
+	.map(Number)
+	.sort((a, b) => b - a);
+
 // Biber as unpacked when the image was built (check-biber.sh).
 const biberDir = process.env.BIBER_DIR || '';
 
@@ -752,8 +790,83 @@ class Session {
 	}
 }
 
+// A connection to another year's server, for one connection to this one:
+// requests go there as they came, and their replies come back as they are.
+class Relay {
+	constructor(year, origin) {
+		this.year = year;
+		this.pending = new Map();
+		this.closed = false;
+		this.socket = new WebSocket(`ws+unix://${otherYears.get(year)}:/`, {
+			headers: origin ? { Origin: origin } : {},
+			maxPayload: 8 * maxPayload,
+		});
+		this.opened = new Promise((resolve) => {
+			this.socket.once('open', () => resolve(true));
+			this.socket.once('close', () => resolve(false));
+		});
+		// Its errors close it; they are told by the replies.
+		this.socket.on('error', () => {});
+		this.socket.on('message', (data, isBinary) => {
+			let requestId;
+			try {
+				requestId = JSON.parse(data.toString('utf8'))?.requestId;
+			} catch {
+				return;
+			}
+			const done = this.pending.get(requestId);
+			if (!done) return;
+			this.pending.delete(requestId);
+			done({ data, isBinary });
+		});
+		this.socket.on('close', () => {
+			this.closed = true;
+			for (const done of this.pending.values()) done(null);
+			this.pending.clear();
+		});
+	}
+
+	// The reply to a request, or null when that server could not answer.
+	async send(requestId, data) {
+		if (!(await this.opened) || this.closed) return null;
+		return new Promise((resolve) => {
+			this.pending.set(requestId, resolve);
+			this.socket.send(data, { binary: false });
+		});
+	}
+
+	// A message without a reply, as a stop.
+	tell(data) {
+		if (this.socket.readyState === WebSocket.OPEN) {
+			this.socket.send(data, { binary: false });
+		}
+	}
+
+	close() {
+		this.socket.close();
+	}
+}
+
+// Where a compile goes: '' here, or another year's server. A year that no
+// server offers, as one a project kept from before an update, compiles here.
+const targetOf = (version) =>
+	typeof version === 'string' && otherYears.has(version) ? version : '';
+
+// Health is read across origins by the pages that offer the years.
+const allowHealthOrigin = (req, res) => {
+	const origin = req.headers.origin || '';
+	if (!origin) return;
+	if (allowedOrigins.length === 0) {
+		res.setHeader('Access-Control-Allow-Origin', '*');
+	} else if (allowedOrigins.includes(origin)) {
+		res.setHeader('Access-Control-Allow-Origin', origin);
+		res.setHeader('Vary', 'Origin');
+	}
+};
+
 const server = http.createServer((req, res) => {
 	if ((req.url || '').split('?')[0] === '/health') {
+		allowHealthOrigin(req, res);
 		res.writeHead(200, { 'Content-Type': 'application/json' });
 		res.end(
 			JSON.stringify({
@@ -762,6 +875,9 @@ const server = http.createServer((req, res) => {
 				compiling: running,
 				queued: waiting.length,
 				shellEscape,
+				// This server's TeX Live, then the years a compile may ask for.
+				year: ownYear ? Number(ownYear) : null,
+				years: offeredYears,
 			}),
 		);
 		return;
@@ -792,7 +908,7 @@ server.on('upgrade', (req, socket, head) => {
 	});
 });
 
-wss.on('connection', (conn) => {
+wss.on('connection', (conn, req) => {
 	const uid = isolated ? freeUids.shift() : null;
 	if (uid === undefined) {
 		// Closing connections give their uid back once their files are gone.
@@ -802,6 +918,18 @@ wss.on('connection', (conn) => {
 	const session = new Session(uid);
 	let queue = Promise.resolve();
 	let idleTimer = null;
+	// The other years' servers this connection compiled with, and where its
+	// last compile went ('' here), which has the files the next one builds on.
+	const relays = new Map();
+	let target = '';
+	const relayTo = (year) => {
+		let relay = relays.get(year);
+		if (!relay || relay.closed) {
+			relay = new Relay(year, req.headers.origin || '');
+			relays.set(year, relay);
+		}
+		return relay;
+	};
 
 	const resetIdleTimer = () => {
 		clearTimeout(idleTimer);
@@ -818,24 +946,74 @@ wss.on('connection', (conn) => {
 			return;
 		}
 		const seq = ++session.received;
-		// Not queued: it stops what is running.
+		// Not queued: it stops what is running, here and on other years'.
 		if (request?.action === 'stop') {
 			session.stop(seq);
+			for (const relay of relays.values()) relay.tell(data);
 			return;
 		}
 		const requestId = request?.requestId;
 		if (typeof requestId !== 'string') return;
 
 		queue = queue.then(async () => {
+			const options =
+				request.options && typeof request.options === 'object'
+					? request.options
+					: {};
+			// Asking for a file, or to clear the cache: the last compile's server.
+			const to = options.action ? target : targetOf(options.version);
 			let response;
-			try {
-				response = await session.handle(request, seq);
-			} catch (error) {
+			if (to !== target) {
+				target = to;
+				// That server's files are not this project's latest: all of them
+				// are sent again, as to a new connection.
+				const { files, manifest } = request;
+				if (
+					Array.isArray(manifest) &&
+					Array.isArray(files) &&
+					files.length < manifest.length
+				) {
+					response = {
+						status: MISSING_FILES_STATUS,
+						log: '',
+						format: request.format,
+						missing: manifest.map((entry) => entry?.path),
+					};
+				}
+			}
+			if (!response && to) {
+				const reply = await relayTo(to).send(requestId, data);
+				if (reply) {
+					if (conn.readyState === conn.OPEN) {
+						conn.send(reply.data, { binary: reply.isBinary });
+					}
+					return;
+				}
 				response = {
 					status: 1,
-					log: error instanceof Error ? error.message : String(error),
+					log: formatLog({
+						engine: String(options.engine ?? 'pdflatex'),
+						source: path.posix.basename(String(request.mainFile ?? '')),
+						status: 1,
+						transcript: '',
+						output: '',
+						errors: [
+							`TeX Live ${to} cannot be reached right now. Try again in a moment, or choose another TeX Live version.`,
+						],
+					}),
 					format: request.format,
 				};
+			}
+			if (!response) {
+				try {
+					response = await session.handle(request, seq);
+				} catch (error) {
+					response = {
+						status: 1,
+						log: error instanceof Error ? error.message : String(error),
+						format: request.format,
+					};
+				}
 			}
 			if (conn.readyState === conn.OPEN) {
 				conn.send(JSON.stringify({ requestId, ...response }));
@@ -845,6 +1023,7 @@ wss.on('connection', (conn) => {
 
 	conn.on('close', () => {
 		clearTimeout(idleTimer);
+		for (const relay of relays.values()) relay.close();
 		void session.close();
 	});
 });
@@ -871,6 +1050,7 @@ const start = async () => {
 			shellEscape === 'full'
 				? 'documents may run programs (no network);'
 				: 'restricted shell escape;',
+			`TeX Live ${ownYear || '(year unknown)'}${otherYears.size > 0 ? `, and ${[...otherYears.keys()].join(', ')} on their servers` : ''};`,
 			`work in ${workDir}`,
 		);
 	if (!socketPath) {

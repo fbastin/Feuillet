@@ -110,6 +110,17 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 	}
 
 	updateConfig(configId: string, config: TypesetterServerConfig): void {
+		// Only its menus changed (as the years of TeX Live once the server
+		// told them): the connection, and the files the server has, stay.
+		const previous = this.configs.get(configId);
+		if (
+			previous &&
+			JSON.stringify([previous.transportConfig, previous.incrementalSync]) ===
+				JSON.stringify([config.transportConfig, config.incrementalSync])
+		) {
+			this.configs.set(configId, config);
+			return;
+		}
 		this.disconnect(configId);
 		this.configs.set(configId, config);
 		this.setConnectionStatus(config.id, 'disconnected');

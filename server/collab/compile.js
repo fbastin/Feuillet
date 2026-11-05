@@ -20,7 +20,7 @@ const createCompiler = ({ url, origin, timeoutMs = 240_000 }) => {
 	if (!url) return null;
 
 	/** {status, log, pdf?}: status 0 for a PDF without errors. */
-	const compile = ({ files, mainFile, engine }) =>
+	const compile = ({ files, mainFile, engine, version = 'latest' }) =>
 		new Promise((resolve, reject) => {
 			const requestId = crypto.randomUUID();
 			const socket = new WebSocket(url, {
@@ -50,7 +50,11 @@ const createCompiler = ({ url, origin, timeoutMs = 240_000 }) => {
 							path: file.path.replace(/^\/+/, ''),
 							content: file.bytes.toString('base64'),
 						})),
-						options: { engine: ENGINES.includes(engine) ? engine : 'pdflatex' },
+						options: {
+							engine: ENGINES.includes(engine) ? engine : 'pdflatex',
+							// The project's year of TeX Live (server/texlive/server.js).
+							version: /^(latest|\d{4})$/.test(String(version)) ? String(version) : 'latest',
+						},
 					}),
 				);
 			});

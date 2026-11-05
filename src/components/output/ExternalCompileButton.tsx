@@ -29,6 +29,7 @@ import {
 	TrashIcon,
 } from '../common/Icons';
 import { getFilenameFromPath } from '../../utils/fileUtils';
+import { optionsWith } from '../../utils/projectCompileSettings';
 import {
 	collectValues,
 	fieldDefault,
@@ -451,13 +452,19 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 						className='ui-field-control'
 						disabled={locked}
 						title={title}
+						data-field={field.key}
 					>
-						{(field.options ?? []).map((option) => (
+						{optionsWith(field, value).map((option) => (
 							<option key={option.value} value={option.value}>
 								{resolveLabel(option.label)}
 							</option>
 						))}
 					</select>
+					{field.help && (
+						<div className='ui-meta' data-role='field-help'>
+							{resolveLabel(field.help)}
+						</div>
+					)}
 				</div>
 			);
 		}

@@ -1,10 +1,48 @@
 // src/utils/projectCompileSettings.ts
 // The compile settings Overleaf keeps with a project rather than with each
 // person: the main document and the compiler.
-import type { TypesetterUIField } from '../types/compilation';
+import type {
+	TypesetterUIField,
+	TypesetterUIFieldOption,
+} from '../types/compilation';
 import type { ProjectMetadata } from '../types/documents';
 
 type FieldValue = string | number | boolean;
+
+/** A value of a select that no option offers, but which it keeps. */
+export function isOtherValue(
+	field: TypesetterUIField,
+	value: unknown,
+): boolean {
+	if (typeof value !== 'string' || field.otherValues === undefined) {
+		return false;
+	}
+	if (field.options?.some((option) => option.value === value)) return false;
+	try {
+		return new RegExp(field.otherValues.pattern).test(value);
+	} catch {
+		return false;
+	}
+}
+
+/** A select's options, with the value it keeps when no option offers it. */
+export function optionsWith(
+	field: TypesetterUIField,
+	value: unknown,
+): TypesetterUIFieldOption[] {
+	const options = field.options ?? [];
+	if (!isOtherValue(field, value) || !field.otherValues) return options;
+	const { label } = field.otherValues;
+	const key = typeof label === 'string' ? label : label.key;
+	const params = typeof label === 'string' ? {} : (label.params ?? {});
+	return [
+		...options,
+		{
+			value: String(value),
+			label: { key, params: { ...params, value: String(value) } },
+		},
+	];
+}
 
 /** A project's value for a field, if it is one the field accepts. */
 export function sharedFieldValue(
@@ -16,7 +54,8 @@ export function sharedFieldValue(
 	if (value === undefined || value === null) return undefined;
 	switch (field.kind) {
 		case 'select':
-			return field.options?.some((option) => option.value === value)
+			return field.options?.some((option) => option.value === value) ||
+				isOtherValue(field, value)
 				? value
 				: undefined;
 		case 'boolean':

@@ -758,15 +758,20 @@ const createMcp = ({ oauth, shares, files, history, compiler, log, version = '1.
 				}
 				const engineOption = metadata.typesetterOptions?.texlive?.engine;
 				const engine = ENGINES.includes(engineOption) ? engineOption : 'pdflatex';
+				// The project's year of TeX Live, as in Feuillet's compile menu.
+				const versionOption = metadata.typesetterOptions?.texlive?.version;
+				const version = /^(latest|\d{4})$/.test(String(versionOption ?? ''))
+					? String(versionOption)
+					: 'latest';
 				let result;
 				try {
-					result = await compiler.compile({ files: sources, mainFile, engine });
+					result = await compiler.compile({ files: sources, mainFile, engine, version });
 				} catch (error) {
 					throw new ToolError(error.message);
 				}
 				const summary = summarizeLog(result.log);
 				const lines = [
-					`Compiled ${mainFile} with ${engine}: ${
+					`Compiled ${mainFile} with ${engine}${version === 'latest' ? '' : ` (TeX Live ${version})`}: ${
 						result.pdf
 							? result.status === 0
 								? 'PDF made without errors'

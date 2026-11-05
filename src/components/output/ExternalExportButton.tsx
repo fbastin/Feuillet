@@ -22,6 +22,7 @@ import {
 } from '../common/Icons';
 import type { ArxivPackage, ArxivWarning } from '../../utils/arxivPackage';
 import { getFilenameFromPath } from '../../utils/fileUtils';
+import { optionsWith } from '../../utils/projectCompileSettings';
 import { TEXLIVE_TYPESETTER_ID } from '../../utils/texliveTypesetter';
 import {
 	chooseLatexMainFile,
@@ -43,7 +44,7 @@ interface ExternalExportButtonProps {
 const LOG_FIELD_KEY = 'includeLog';
 
 // What arXiv may refuse or compile otherwise.
-const arxivWarningText = (warning: ArxivWarning): string => {
+const arxivWarningText = (warning: ArxivWarning, year: number): string => {
 	switch (warning) {
 		case 'lualatex':
 			return t(
@@ -59,7 +60,8 @@ const arxivWarningText = (warning: ArxivWarning): string => {
 			);
 		case 'biblatex-format':
 			return t(
-				'The .bbl of biblatex is not in the format of the TeX Live arXiv offers: arXiv may refuse it.',
+				'The .bbl of biblatex is not in the format of the TeX Live arXiv offers: arXiv may refuse it. Choose TeX Live {year} (arXiv) as the TeX Live version, then export again.',
+				{ year: String(year) },
 			);
 		case 'compile-errors':
 			return t(
@@ -258,7 +260,9 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 		const value = stored === undefined ? fieldDefault(field) : stored;
 
 		if (field.shared) {
-			const option = field.options?.find((entry) => entry.value === value);
+			const option = optionsWith(field, value).find(
+				(entry) => entry.value === value,
+			);
 			return (
 				<div className='ui-menu-section' data-variant='control' key={field.key}>
 					<div className='ui-menu-title' data-variant='control'>
@@ -267,6 +271,7 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 					<div
 						className='ui-menu-value'
 						title={t('Kept with the project, for every collaborator')}
+						data-field={field.key}
 					>
 						{option ? resolveLabel(option.label) : String(value)}
 					</div>
@@ -472,7 +477,7 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 							<ul data-role='arxiv-warnings'>
 								{arxivMade.warnings.map((warning) => (
 									<li key={warning} data-warning={warning}>
-										{arxivWarningText(warning)}
+										{arxivWarningText(warning, arxivMade.texLiveVersion)}
 									</li>
 								))}
 							</ul>

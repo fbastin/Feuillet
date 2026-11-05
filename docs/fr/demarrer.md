@@ -103,6 +103,11 @@ serveur de Feuillet. Le menu à côté du bouton de compilation offre :
 
 - le **document principal** du projet et le **moteur** (pdfLaTeX, XeLaTeX
   ou LuaLaTeX), communs à tous les collaborateurs;
+- la **version de TeX Live**, elle aussi commune : **La plus récente**, par
+  défaut, suit les mises à jour de Feuillet; une année reste la même pour le
+  projet, comme TeX Live 2025, celle avec laquelle arXiv compile. Choisir
+  l'année de la plus récente fige le projet sur celle-ci quand TeX Live
+  passe à une nouvelle année;
 - le **mode de compilation** : normal, ou rapide (brouillon), qui dessine les
   images comme des cadres;
 - la **gestion des erreurs** : compiler malgré les erreurs, ou s'arrêter à
@@ -170,7 +175,8 @@ Le menu dit ensuite ce que contient l'archive et ce qu'arXiv pourrait
 refuser : LuaLaTeX, qu'arXiv n'offre pas; un document principal hors de la
 racine, car arXiv compile depuis la racine; une bibliographie sans `.bbl`;
 un `.bbl` de biblatex d'un autre format que celui d'arXiv; des erreurs de
-compilation.
+compilation. Pour que le `.bbl` soit celui qu'attend arXiv, choisissez
+**TeX Live 2025 (arXiv)** comme version de TeX Live avant l'exportation.
 
 ### Du texte au PDF, et retour
 
