@@ -24,3 +24,15 @@ describe('app name post-processing', () => {
 		).toBe('Based on TeXlyre');
 	});
 });
+
+describe('translation keys', () => {
+	it('keeps colons and full stops as part of the text', async () => {
+		const i18next = (await import('../../src/i18n')).default;
+		expect(t('Git:')).toBe('Git:');
+		expect(t('Remote:')).toBe('Remote:');
+		await i18next.changeLanguage('fr');
+		expect(t('Git:')).toBe('Git :');
+		expect(t('When compiling:')).toBe('La compilation :');
+		await i18next.changeLanguage('en');
+	});
+});

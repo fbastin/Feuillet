@@ -52,6 +52,11 @@ i18next.use(initReactI18next).init({
 	interpolation: {
 		escapeValue: false,
 	},
+	// The keys are the English sentences, in flat files: a colon or a full
+	// stop is part of the text, not a namespace or a nesting ("Git:" would
+	// read as the key "" of a namespace "Git", shown empty).
+	nsSeparator: false,
+	keySeparator: false,
 	postProcess: ['appName'],
 });
 
