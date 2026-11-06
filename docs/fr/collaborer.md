@@ -60,6 +60,24 @@ la barre de l'éditeur et à côté des fichiers ouverts par d'autres. Un clic
 sur l'avatar d'une personne ouvre le document où elle se trouve et descend
 jusqu'à son curseur; sa ligne s'allume un instant dans sa couleur.
 
+## Les collaborateurs du projet
+
+L'onglet **Collaborateurs** (l'icône de personnes, à gauche, à côté des
+**Fichiers**) montre :
+
+- **Ici maintenant** : les personnes présentes, avec le fichier où chacune
+  se trouve; un clic sur ce fichier mène à son curseur;
+- **Personnes du projet** : le propriétaire, les comptes invités avec leur
+  rôle (modifier, réviser, lire), et ceux qui sont venus par un lien de
+  partage, avec ce que permet ce lien. **Actualiser** relit la liste.
+
+Les personnes du projet sont montrées à ses membres, et à qui le modifie ou
+le révise par un lien; pas à qui le lit par le lien en lecture seule. Qui
+ouvre un lien sans être connecté à un compte n'est pas nommé : il apparaît
+seulement dans **Ici maintenant**, le temps qu'il est là. **Partager**, en
+haut de l'onglet, ouvre la fenêtre de partage, où le propriétaire invite et
+retire des personnes.
+
 ## Discuter
 
 **Discussion du projet**, en bas à droite, est une discussion propre au

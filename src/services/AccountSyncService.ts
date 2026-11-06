@@ -82,6 +82,20 @@ export interface ProjectMember {
 	role: MemberRole;
 }
 
+/** An account that lists a project by a link given it, not invited. */
+export interface ProjectVisitor {
+	username: string;
+	access: 'edit' | 'review' | 'view';
+	since?: number;
+}
+
+/** Who works on a project, as its people see it (shares.js). */
+export interface ProjectPeople {
+	owner?: string;
+	members: ProjectMember[];
+	visitors: ProjectVisitor[];
+}
+
 /** A pending invitation: its link holds `invite`. */
 /** An application that works on the account's projects, as Claude. */
 export interface AssistantConnection {
@@ -753,9 +767,7 @@ class AccountSyncService {
 	 * accounts invited. Null without an account, or from a server that shows
 	 * them to the owner only.
 	 */
-	async projectPeople(
-		projectId: string,
-	): Promise<{ owner?: string; members: ProjectMember[] } | null> {
+	async projectPeople(projectId: string): Promise<ProjectPeople | null> {
 		const userId = this.userId;
 		const session = userId ? this.getSession(userId) : null;
 		if (!userId || !session) return null;
@@ -777,6 +789,14 @@ class AccountSyncService {
 						typeof member?.username === 'string' &&
 						MEMBER_ROLES.includes(member.role),
 				),
+				// From servers that tell who came by a link.
+				visitors: Array.isArray(result.visitors)
+					? result.visitors.filter(
+							(visitor: ProjectVisitor) =>
+								typeof visitor?.username === 'string' &&
+								['edit', 'review', 'view'].includes(visitor.access),
+						)
+					: [],
 			};
 		} catch {
 			return null;

@@ -57,6 +57,24 @@ editor's toolbar and next to files others have open. Clicking someone's
 avatar opens the document they are in and scrolls to their cursor; their
 line lights up for a moment in their color.
 
+## The project's collaborators
+
+The **Collaborators** tab (the people icon, on the left, next to **Files**)
+shows:
+
+- **Here now**: the people present, with the file each one is in; clicking
+  that file goes to their cursor;
+- **People of the project**: the owner, the accounts invited with their role
+  (edit, review, read), and those who came by a sharing link, with what that
+  link allows. **Refresh** reads the list again.
+
+The project's people are shown to its members, and to whoever edits or
+reviews it by a link; not to whoever reads it by the read-only link. Someone
+who opens a link without being signed in to an account is not named: they
+only show under **Here now**, while they are there. **Share**, at the top of
+the tab, opens the sharing dialog, where the owner invites and removes
+people.
+
 ## Chatting
 
 **Project Chat**, at the bottom right, is a chat of the project's own, kept

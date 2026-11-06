@@ -21,7 +21,7 @@ import GitHistoryPanel from '../history/GitHistoryPanel';
 import ProjectVersionsPanel from '../history/ProjectVersionsPanel';
 import ReviewOverviewPanel from '../review/ReviewOverviewPanel';
 import type { GitDiffView } from '../history/GitDiffViewer';
-import DocumentExplorer from './DocumentExplorer';
+import CollaboratorsPanel from '../collab/CollaboratorsPanel';
 import FileExplorer from './FileExplorer';
 import SearchPanel from './SearchPanel';
 
@@ -83,12 +83,6 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 	onClearDiff,
 	onNavigateToSearchResult,
 	documents,
-	selectedDocId,
-	onSelectDocument,
-	onCreateDocument,
-	onRenameDocument,
-	onUpdateContent,
-	content,
 	docUrl,
 	collabProjectId,
 	docsWithPeers,
@@ -121,10 +115,11 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 			</button>
 			<button
 				type='button'
-				className={`view-toggle-icon ui-tab${activeView === 'documents' ? ' active' : ''}`}
-				onClick={() => onViewChange('documents')}
-				title={t('Collab')}
-				aria-label={t('Collab')}
+				className={`view-toggle-icon ui-tab${activeView === 'people' ? ' active' : ''}`}
+				data-view='people'
+				onClick={() => onViewChange('people')}
+				title={t('Collaborators')}
+				aria-label={t('Collaborators')}
 			>
 				<UsersIcon />
 			</button>
@@ -219,19 +214,8 @@ const EditorSidebar: React.FC<EditorSidebarProps> = ({
 							projectId={projectId}
 							onNavigate={onNavigateToSearchResult}
 						/>
-					) : activeView === 'documents' ? (
-						<DocumentExplorer
-							documents={documents}
-							selectedDocId={selectedDocId}
-							onSelectDocument={onSelectDocument}
-							onCreateDocument={onCreateDocument}
-							onRenameDocument={onRenameDocument}
-							onUpdateContent={onUpdateContent}
-							content={content}
-							docUrl={docUrl}
-							collabProjectId={collabProjectId}
-							docsWithPeers={docsWithPeers}
-						/>
+					) : activeView === 'people' ? (
+						<CollaboratorsPanel documents={documents} />
 					) : (
 						<FileExplorer
 							onFileSelect={onFileSelect}

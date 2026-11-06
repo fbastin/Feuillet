@@ -613,6 +613,13 @@ const createAccounts = ({
 		describeProject = describe;
 	};
 
+	// Told each list a device sends (shares.js keeps who reaches a project
+	// through a link); never in the way of the list.
+	let projectsListed = () => {};
+	const setProjectsListener = (listener) => {
+		projectsListed = listener;
+	};
+
 	const listProjects = (account) =>
 		Object.values(account.projects ?? {})
 			.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -1367,11 +1374,17 @@ const createAccounts = ({
 			if (!Array.isArray(body.projects)) {
 				throw new HttpError(400, 'invalid_projects');
 			}
-			const merged = mergeProjects(account.projects ?? {}, body.projects);
+			const before = account.projects ?? {};
+			const merged = mergeProjects(before, body.projects);
 			if (Object.keys(merged).length > MAX_PROJECTS) {
 				throw new HttpError(413, 'too_many_projects');
 			}
 			account.projects = merged;
+			try {
+				projectsListed(idOf(account), Object.values(merged), before);
+			} catch (error) {
+				log('project list not noted', error?.message ?? error);
+			}
 			return { changed: true, body: { projects: listProjects(account) } };
 		});
 
@@ -1547,6 +1560,7 @@ const createAccounts = ({
 		shareProject,
 		unshareProject,
 		setProjectDescriber,
+		setProjectsListener,
 		setAccountDeleted,
 	};
 };

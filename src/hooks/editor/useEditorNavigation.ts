@@ -165,7 +165,8 @@ export const useEditorNavigation = ({
 			lastOpenedFilePathRef.current =
 				docToFileMapRef.current.get(docId)?.filePath ?? null;
 
-			if (!preserveView) setActiveView(view);
+			// The documents' list is no longer shown: the files are.
+			if (!preserveView) setActiveView('files');
 
 			setIsEditingFile(false);
 			onSelectDocument(docId);
@@ -375,7 +376,7 @@ export const useEditorNavigation = ({
 	);
 
 	const handleSwitchToDocuments = useCallback(() => {
-		setActiveView('documents');
+		setActiveView('files');
 	}, []);
 
 	const handleTabSwitch = useCallback(

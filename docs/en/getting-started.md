@@ -91,7 +91,8 @@ from GitHub instead (see [GitHub](github.md)).
 
 ## The editor
 
-- On the left, the **Files** tree, with **Search** across the project, the
+- On the left, the **Files** tree, with the **Collaborators** (see
+  [Collaborating](collaborating.md)), **Search** across the project, the
   **Review overview**, the **Versions** and the **Git history**. **New File**
   creates a LaTeX, BibTeX or other file; images can be dropped there too.
 - In the middle, the text, in **Code** or **Visual** mode. Visual mode shows

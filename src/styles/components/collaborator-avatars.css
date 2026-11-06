@@ -145,3 +145,83 @@ button.collab-avatar {
 .collab-avatar-tooltip-email:hover {
 	text-decoration: underline;
 }
+
+/* The collaborators' panel, in the editor's sidebar (CollaboratorsPanel) */
+.collaborators-panel {
+	padding: var(--space-sm) var(--space-md);
+	overflow-y: auto;
+	height: 100%;
+}
+
+/* As the other views' headings (« FICHIERS »). */
+.collaborators-panel h3,
+.collaborators-panel h4 {
+	margin: 0;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.collaborators-panel h4 {
+	color: var(--text-secondary, inherit);
+}
+
+.collaborators-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-xs) var(--space-sm);
+}
+
+.collaborators-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+}
+
+.collaborators-list li {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+	min-width: 0;
+}
+
+/* The name, and under it the role or the file. */
+.collaborators-who {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	min-width: 0;
+	flex: 1;
+}
+
+.collaborators-name {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.collaborators-who .ui-meta,
+.collaborators-who button {
+	font-size: 0.85em;
+	padding: 0;
+}
+
+.collaborators-dot {
+	flex: none;
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.7rem;
+	font-weight: 600;
+	color: #fff;
+}

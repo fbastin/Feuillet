@@ -244,6 +244,10 @@ accounts.setProjectDescriber((account, entry) => {
 		: described;
 });
 accounts.setAccountDeleted((account) => shares.forgetAccount(account));
+// Who reaches each project through a link, for its people (shares.js).
+accounts.setProjectsListener((account, entries, before) =>
+	shares.noteListed(account, entries, before),
+);
 
 // The projects these rooms belong to.
 const projectsOf = (rooms) => {

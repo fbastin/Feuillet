@@ -100,7 +100,9 @@ export interface EditorSettings {
 }
 
 export type EditorSidebarView =
+	// The documents' list, no longer shown: opening one shows the files.
 	| 'documents'
+	| 'people'
 	| 'files'
 	| 'search'
 	| 'review'

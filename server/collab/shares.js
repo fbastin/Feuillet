@@ -30,8 +30,12 @@
 //                                               if the project has none
 //   POST /share/edit {project, reset: true}     (owner) a new editing id; the
 //                                               old one stops working
-//   POST /share/members {project}    (token) -> {members, owner}, for any
-//                                    member, as Overleaf shows collaborators
+//   POST /share/members {project}    (token) -> {members, visitors, owner},
+//                                    for any member and whoever edits or
+//                                    reviews by a link, as Overleaf shows
+//                                    collaborators; `visitors`, the accounts
+//                                    that list the project by a link given
+//                                    them, with its access
 //   POST /share/members {project, add: {username, role}, name, type}
 //   POST /share/members {project, remove: username}
 //   POST /share/members {project, transfer: username, name, type}
@@ -337,6 +341,63 @@ const createShares = ({
 			.map(({ username, role }) => ({ username, role }))
 			.sort((a, b) => a.username.localeCompare(b.username));
 
+	// The links an account's list names a project by.
+	const linkIdsOf = (entry) =>
+		[
+			entry.editId,
+			/^yjs:([A-Za-z0-9_-]+)/.exec(String(entry.docUrl ?? ''))?.[1],
+			entry.id,
+		].filter((id, index, all) => id && all.indexOf(id) === index);
+
+	/**
+	 * Accounts that keep a project in their list by a link they were given,
+	 * not invited, as Overleaf lists who joined by link sharing: noted with
+	 * the access of the link, from each list a device sends, and forgotten
+	 * when the project leaves it.
+	 */
+	const noteListed = (account, entries, before = {}) => {
+		for (const entry of entries) {
+			// A removed entry keeps only its id: its links are in the list
+			// as it was.
+			const named = entry.deleted ? (before[entry.id] ?? entry) : entry;
+			let found = null;
+			for (const id of linkIdsOf(named)) {
+				found = lookup(id);
+				if (found) break;
+			}
+			if (!found) continue;
+			const record = readProject(found.project);
+			const known = record.visitors?.[account];
+			const gone = entry.deleted || found.access === 'replaced';
+			if (gone || record.owner === account || record.members?.[account]) {
+				if (known) {
+					const { [account]: _dropped, ...others } = record.visitors;
+					writeProject(found.project, { ...record, visitors: others });
+				}
+				continue;
+			}
+			if (known?.access === found.access) continue;
+			writeProject(found.project, {
+				...record,
+				visitors: {
+					...(record.visitors ?? {}),
+					[account]: { access: found.access, since: known?.since ?? Date.now() },
+				},
+			});
+		}
+	};
+
+	const listVisitors = (record) =>
+		Object.entries(record.visitors ?? {})
+			.filter(([id]) => id !== record.owner && !record.members?.[id])
+			.map(([id, { access, since }]) => ({
+				username: accounts.usernameOf(id),
+				access,
+				since,
+			}))
+			.filter((visitor) => visitor.username)
+			.sort((a, b) => a.username.localeCompare(b.username));
+
 	const linkOf = (project, role) =>
 		role === 'editor'
 			? editOf(project)
@@ -427,12 +488,14 @@ const createShares = ({
 		const { project } = found;
 		const role = roleOf(readProject(project), account);
 		// Every member sees who works on the project, to choose whose changes
-		// are tracked, as on Overleaf; only the owner changes who does.
+		// are tracked, as on Overleaf, and so does whoever edits or reviews it
+		// through a link; only the owner changes who does.
 		const changes =
 			Boolean(body.add) ||
 			typeof body.remove === 'string' ||
 			typeof body.transfer === 'string';
-		if (role !== 'owner' && (changes || !role)) {
+		const reachesByLink = found.access === 'edit' || found.access === 'review';
+		if (changes ? role !== 'owner' : !(role || reachesByLink)) {
 			throw new HttpError(403, 'not_owner');
 		}
 
@@ -464,6 +527,7 @@ const createShares = ({
 		const owner = accounts.usernameOf(record.owner);
 		return {
 			members: listMembers(record),
+			visitors: listVisitors(record),
 			...(owner ? { owner } : {}),
 			// The editing link is the owner's to hand out.
 			...(record.owner === account ? { edit: editOf(project) } : {}),
@@ -576,10 +640,14 @@ const createShares = ({
 			if (record.deleted) continue;
 			if (record.owner === account) {
 				await deleteProject(project, account);
-			} else if (record.members?.[account]) {
+				continue;
+			}
+			if (record.members?.[account] || record.visitors?.[account]) {
 				const members = { ...record.members };
 				delete members[account];
-				writeProject(project, { ...record, members });
+				const visitors = { ...record.visitors };
+				delete visitors[account];
+				writeProject(project, { ...record, members, visitors });
 			}
 		}
 	};
@@ -926,6 +994,7 @@ const createShares = ({
 		handle,
 		lookup,
 		describe,
+		noteListed,
 		accessOf,
 		forgetAccount,
 		census,

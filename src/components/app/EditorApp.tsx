@@ -75,6 +75,7 @@ import { TEXLIVE_TYPESETTER_ID } from '../../utils/texliveTypesetter';
 import FooterLinks from '../common/FooterLinks';
 import ServiceStatusBanner from '../common/ServiceStatusBanner';
 import QuotaBanner from '../common/QuotaBanner';
+import { OPEN_SHARE_DIALOG_EVENT } from '../collab/CollaboratorsPanel';
 
 const moduleLog = createNamedLogger('EditorApp');
 
@@ -155,6 +156,12 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 		useState(false);
 	const [showAutoBackupModal, setShowAutoBackupModal] = useState(false);
 	const [showShareModal, setShowShareModal] = useState(false);
+	// The collaborators' panel opens the same sharing dialog.
+	useEffect(() => {
+		const open = () => setShowShareModal(true);
+		document.addEventListener(OPEN_SHARE_DIALOG_EVENT, open);
+		return () => document.removeEventListener(OPEN_SHARE_DIALOG_EVENT, open);
+	}, []);
 	const [showGuestUpgradeModal, setShowGuestUpgradeModal] = useState(false);
 	const [isEditingMetadata, setIsEditingMetadata] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);

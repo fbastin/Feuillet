@@ -3676,5 +3676,21 @@
   "Review emails: tell me when someone replies in a comment thread of mine, or mentions me (@name)": "Review emails: tell me when someone replies in a comment thread of mine, or mentions me (@name)",
   "Write @ and an account name to tell a collaborator by email; replies tell those in the thread.": "Write @ and an account name to tell a collaborator by email; replies tell those in the thread.",
   "Review emails:": "Review emails:",
-  "to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them.": "to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them."
+  "to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them.": "to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them.",
+  "The files that are not shared documents (images, PDFs, files never opened) reach every collaborator through Feuillet's server:": "The files that are not shared documents (images, PDFs, files never opened) reach every collaborator through Feuillet's server:",
+  "A changed file goes to the server, which keeps it and gives it to the others": "A changed file goes to the server, which keeps it and gives it to the others",
+  "Shared documents, the text files opened in the editor, are kept in step in real time instead": "Shared documents, the text files opened in the editor, are kept in step in real time instead",
+  "The last exchanges of files with the server; the project's files are under Files, on the left.": "The last exchanges of files with the server; the project's files are under Files, on the left.",
+  "Can edit, by a link": "Can edit, by a link",
+  "Can review, by a link": "Can review, by a link",
+  "Read-only, by a link": "Read-only, by a link",
+  "Here now ({count})": "Here now ({{count}})",
+  "Go to their cursor": "Go to their cursor",
+  "People of the project": "People of the project",
+  "Sign in to a Feuillet account to see who works on the project.": "Sign in to a Feuillet account to see who works on the project.",
+  "The project's people are shown to its members, and to whoever edits or reviews it by a link.": "The project's people are shown to its members, and to whoever edits or reviews it by a link.",
+  "Owner": "Owner",
+  "Nobody yet.": "Nobody yet.",
+  "Anonymous": "Anonymous",
+  "Those who open a link without signing in are not named; the chat and the cursors show them while they are here.": "Those who open a link without signing in are not named; the chat and the cursors show them while they are here."
 }

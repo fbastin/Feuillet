@@ -195,6 +195,11 @@ const FileSyncModal: React.FC<FileSyncModalProps> = ({ isOpen, onClose }) => {
 									{t('Clear All')}
 								</button>
 							</div>
+							<p className='ui-note'>
+								{t(
+									"The last exchanges of files with the server; the project's files are under Files, on the left.",
+								)}
+							</p>
 
 							<div className='ui-list' data-gap='sm' data-scroll='medium'>
 								{notifications
@@ -243,7 +248,7 @@ const FileSyncModal: React.FC<FileSyncModalProps> = ({ isOpen, onClose }) => {
 						<div>
 							<p>
 								{t(
-									'File synchronization automatically keeps non-linked files in sync between all collaborators:',
+									"The files that are not shared documents (images, PDFs, files never opened) reach every collaborator through Feuillet's server:",
 								)}
 							</p>
 							<ul>
@@ -254,12 +259,12 @@ const FileSyncModal: React.FC<FileSyncModalProps> = ({ isOpen, onClose }) => {
 								</li>
 								<li>
 									{t(
-										'When differences are detected, files are shared via secure peer-to-peer transfer',
+										'A changed file goes to the server, which keeps it and gives it to the others',
 									)}
 								</li>
 								<li>
 									{t(
-										'Only non-linked files (files not connected to documents) are synchronized',
+										'Shared documents, the text files opened in the editor, are kept in step in real time instead',
 									)}
 								</li>
 								<li>

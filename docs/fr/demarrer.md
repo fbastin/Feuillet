@@ -92,8 +92,9 @@ GitHub (voir [GitHub](github.md)).
 
 ## L'éditeur
 
-- À gauche, l'arbre des **Fichiers**, avec la **Recherche** dans tout le
-  projet, la **Relecture**, les **Versions** et l'**Historique Git**. Le
+- À gauche, l'arbre des **Fichiers**, avec les **Collaborateurs** (voir
+  [Collaborer](collaborer.md)), la **Recherche** dans tout le projet, la
+  **Relecture**, les **Versions** et l'**Historique Git**. Le
   bouton **Nouveau fichier** crée un fichier LaTeX, BibTeX ou autre; on peut
   aussi y déposer des images.
 - Au centre, le texte, en mode **Code** ou **Visuel**. Le mode visuel montre
