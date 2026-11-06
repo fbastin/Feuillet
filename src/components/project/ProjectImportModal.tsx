@@ -29,6 +29,7 @@ import GitHubImportModal from './GitHubImportModal';
 import TemplateImportModal from './TemplateImportModal';
 import UrlImportModal from './UrlImportModal';
 import YjsLinkImportModal from './YjsLinkImportModal';
+import { markInAppProjectLink } from '../../utils/urlProjectLink';
 
 interface ProjectImportModalProps {
 	isOpen: boolean;
@@ -127,6 +128,7 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 
 			const templateUrl = `${window.location.origin}${window.location.pathname}#newProjectName:${encodeURIComponent(data.name)}&newProjectDescription:${encodeURIComponent(data.description)}&newProjectType:${encodeURIComponent(data.type)}&newProjectTags:${encodeURIComponent(data.tags.join(','))}&newProjectFiles:${encodeURIComponent(data.zipUrl)}`;
 
+			markInAppProjectLink(new URL(templateUrl).hash);
 			window.location.replace(templateUrl);
 			window.location.reload();
 		} catch (error) {
@@ -154,6 +156,7 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 				: '';
 			const templateUrl = `${window.location.origin}${window.location.pathname}#newProjectName:${encodeURIComponent(template.name)}&newProjectDescription:${encodeURIComponent(template.description)}${typeSuffix}&newProjectTags:${encodeURIComponent(template.tags.join(','))}&newProjectFiles:${encodeURIComponent(template.downloadUrl)}${fileSuffix}${compileSuffix}`;
 
+			markInAppProjectLink(new URL(templateUrl).hash);
 			window.location.replace(templateUrl);
 			window.location.reload();
 		} catch (error) {

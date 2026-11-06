@@ -48,6 +48,11 @@ import PrivacyModal from '../common/PrivacyModal';
 import ShareTargetModal from '../project/ShareTargetModal';
 import OpenLinkModal from '../project/OpenLinkModal';
 import { openLinkIdOf } from '../../utils/openLink';
+import {
+	openLinkRequestOf,
+	takeInAppProjectLink,
+} from '../../utils/urlProjectLink';
+import type { LocalOpenLink } from '../project/OpenLinkModal';
 import ToastContainer from '../common/ToastContainer';
 
 const moduleLog = createNamedLogger('AppRouter');
@@ -146,6 +151,10 @@ const AppRouter: React.FC = () => {
 	// « Ouvrir dans Feuillet »: what a link to /docs holds, once signed in.
 	const [openLinkId, setOpenLinkId] = useState<string | null>(() =>
 		openLinkIdOf(window.location.hash),
+	);
+	// TeXlyre's project address coming from elsewhere: asked first too.
+	const [localOpenLink, setLocalOpenLink] = useState<LocalOpenLink | null>(
+		null,
 	);
 	const { launchedFiles, clearLaunchedFiles } = useDiskFiles(docUrl);
 
@@ -283,6 +292,19 @@ const AppRouter: React.FC = () => {
 				return;
 			}
 			processedProjectHashRef.current = hashUrl;
+
+			// Only this tab's own imports create the project at once.
+			if (!takeInAppProjectLink(hashUrl)) {
+				setLocalOpenLink({
+					request: openLinkRequestOf(urlProjectParams),
+					name: urlProjectParams.newProjectName,
+					projectType:
+						urlProjectParams.newProjectType === 'typst' ? 'typst' : 'latex',
+				});
+				replaceHash('');
+				setCurrentView('projects');
+				return;
+			}
 
 			createProjectFromUrl(urlProjectParams).then((createdDocUrl) => {
 				if (createdDocUrl) {
@@ -627,11 +649,13 @@ const AppRouter: React.FC = () => {
 
 	const handleOpenLinkClose = () => {
 		setOpenLinkId(null);
+		setLocalOpenLink(null);
 		if (openLinkIdOf(window.location.hash)) replaceHash('');
 	};
 
 	const handleOpenLinkProject = (openDocUrl: string, projectId: string) => {
 		setOpenLinkId(null);
+		setLocalOpenLink(null);
 		// Going back does not offer to create the project again.
 		replaceHash('');
 		handleOpenProject(openDocUrl, undefined, undefined, projectId);
@@ -698,6 +722,13 @@ const AppRouter: React.FC = () => {
 				<OpenLinkModal
 					key={openLinkId}
 					id={openLinkId}
+					onClose={handleOpenLinkClose}
+					onOpenProject={handleOpenLinkProject}
+				/>
+			)}
+			{!openLinkId && localOpenLink && isAuthenticated && !isInitializing && (
+				<OpenLinkModal
+					local={localOpenLink}
 					onClose={handleOpenLinkClose}
 					onOpenProject={handleOpenLinkProject}
 				/>

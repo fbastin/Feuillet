@@ -40,8 +40,18 @@ import { TEXLIVE_TYPESETTER_ID } from '../../utils/texliveTypesetter';
 import { LinkIcon } from '../common/Icons';
 import Modal from '../common/Modal';
 
+/** A request read in the page's own address (utils/urlProjectLink.ts). */
+export interface LocalOpenLink {
+	request: OpenLinkRequest;
+	name?: string;
+	projectType?: 'latex' | 'typst';
+}
+
 interface OpenLinkModalProps {
-	id: string;
+	/** A request kept by the server for a link to /docs… */
+	id?: string;
+	/** …or one the address held. */
+	local?: LocalOpenLink;
 	onClose: () => void;
 	onOpenProject: (docUrl: string, projectId: string) => void;
 }
@@ -171,6 +181,7 @@ async function filesOf(request: OpenLinkRequest): Promise<FileNode[]> {
 
 const OpenLinkModal: React.FC<OpenLinkModalProps> = ({
 	id,
+	local,
 	onClose,
 	onOpenProject,
 }) => {
@@ -187,6 +198,14 @@ const OpenLinkModal: React.FC<OpenLinkModalProps> = ({
 		let current = true;
 		setRequest(null);
 		setLoadError(null);
+		if (local) {
+			setRequest(local.request);
+			setName(
+				local.name?.trim() || projectNameOf(local.request, t('LaTeX snippet')),
+			);
+			return;
+		}
+		if (!id) return;
 		void (async () => {
 			try {
 				const response = await fetch(
@@ -223,7 +242,7 @@ const OpenLinkModal: React.FC<OpenLinkModalProps> = ({
 		return () => {
 			current = false;
 		};
-	}, [id]);
+	}, [id, local]);
 
 	const engine = request?.engine ? ENGINE_OF[request.engine] : undefined;
 	const sources = useMemo(
@@ -241,13 +260,17 @@ const OpenLinkModal: React.FC<OpenLinkModalProps> = ({
 		setError(null);
 		try {
 			const files = await filesOf(request);
-			if (!files.some((node) => node.type === 'file')) {
+			// An address may name only a project, as TeXlyre's do.
+			if (
+				request.sources.length > 0 &&
+				!files.some((node) => node.type === 'file')
+			) {
 				throw new Error(t('This link holds no file.'));
 			}
 			const project = await createProject({
 				name: name.trim(),
 				description: '',
-				type: 'latex',
+				type: local?.projectType ?? 'latex',
 				tags: [],
 				isFavorite: false,
 			});
