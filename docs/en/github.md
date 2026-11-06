@@ -47,6 +47,36 @@ The **Git history** tab, on the left, shows the commits and their
 differences. **Unlink repository** undoes the link without touching the
 project or its history.
 
+## Working on a branch
+
+To have changes reviewed before they reach the main branch, as is done with
+GitHub, the **Branch** section of the GitHub window tells which branch the
+project is on (it is GitHub's alone).
+
+1. **Work on a new branch**: give it a name (Feuillet offers one, such as
+   `feuillet-2026-11-06`), then **Create the branch and follow it**. The
+   branch starts from the current branch on GitHub. The files do not change;
+   the next pushes go to the new branch.
+2. Edit the project and push your changes as usual.
+3. **Open a pull request**: give a title and a description; what is not on
+   GitHub yet is pushed to the branch first. Your coauthors review the pull
+   request on GitHub, comment on it and merge it there. A box marks it as a
+   draft. The section then shows the pull request's state, with a link to
+   it.
+4. Once the pull request is merged, **Go back to main** (or the branch it
+   went into) puts the project back on that branch: its files become the
+   branch's, which now holds your changes.
+
+**Switch to another branch** does the same with any branch of the
+repository, a coauthor's for instance. What is not on GitHub yet is pushed
+first to the branch being left, so that nothing is lost; then the project's
+files become those of the other branch.
+
+The branch is the project's, not only yours: when you change it, the files
+change for every collaborator, and those who linked the repository from
+their browser follow the same branch. Comments and tracked changes stay
+attached to the text that does not change.
+
 ## Publishing a release
 
 Once the project is linked, the **Publish a release on GitHub** section of

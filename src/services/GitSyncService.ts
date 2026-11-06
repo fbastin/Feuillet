@@ -62,7 +62,7 @@ export interface GitPushSummary {
 	pushedCommits: number;
 }
 
-interface ResolvedTransport {
+export interface ResolvedTransport {
 	config: GitRemoteConfig;
 	provider: GitRemoteProvider;
 	token: string;
@@ -697,6 +697,14 @@ class GitSyncService {
 		if (!token)
 			throw new Error('The saved Git remote credential is unavailable');
 		return { config, provider, token };
+	}
+
+	/** The linked remote, its provider and token, for calls past push and pull. */
+	remoteAccess(
+		projectId: string,
+		secrets: GitSecretReader,
+	): Promise<ResolvedTransport> {
+		return this.resolveTransport(projectId, secrets);
 	}
 
 	private async hasCommit(projectId: string, oid: string): Promise<boolean> {
@@ -1420,6 +1428,50 @@ class GitSyncService {
 		await fileSystem.flush();
 		this.setSyncBase(projectId, { localOid, remoteOid: base });
 		return true;
+	}
+
+	/**
+	 * Links the project to another branch of the same repository. A branch
+	 * just made from the linked one starts at the same commit, so the
+	 * synchronization base still holds (`keepSyncBase`); for any other, it
+	 * is found again from the commits both sides have.
+	 */
+	linkBranch(projectId: string, branch: string, keepSyncBase = false): void {
+		const config = this.getConfig(projectId);
+		if (!config || config.branch === branch) return;
+		const { syncBase, ...rest } = config;
+		this.setConfig(projectId, {
+			...rest,
+			branch,
+			...(keepSyncBase && syncBase ? { syncBase } : {}),
+		});
+	}
+
+	/**
+	 * Makes the project's files those of a fetched remote branch, as
+	 * `git switch`: the working tree goes to its commit, and a local branch
+	 * of the same name points there. The project must have no pending
+	 * change: what the current branch had is expected to be on the remote.
+	 */
+	async checkoutFetched(
+		projectId: string,
+		fetched: GitFetchedRemote,
+	): Promise<void> {
+		const git = await getGit();
+		const { fileSystem, options } = this.repo(projectId);
+		const local = safeRefPart(fetched.remoteBranch);
+		// The files first, through the fetched branch itself: the local branch
+		// to move may be the one checked out.
+		await gitService.checkout(projectId, fetched.temporaryBranch);
+		await git.writeRef({
+			...options,
+			ref: `refs/heads/${local}`,
+			value: fetched.localOid,
+			force: true,
+		});
+		await fileSystem.flush();
+		await gitService.checkout(projectId, local);
+		this.markFetchedSynced(projectId, fetched);
 	}
 
 	markFetchedSynced(projectId: string, fetched: GitFetchedRemote): void {

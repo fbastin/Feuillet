@@ -49,6 +49,38 @@ L'onglet **Historique Git**, à gauche, montre les commits et leurs
 différences. **Délier le dépôt** défait le lien sans toucher ni au projet ni
 à son historique.
 
+## Travailler sur une branche
+
+Pour faire relire des modifications avant qu'elles n'arrivent sur la branche
+principale, comme on le fait avec GitHub, la section **Branche** de la
+fenêtre GitHub dit sur quelle branche le projet se trouve (elle est propre à
+GitHub).
+
+1. **Travailler sur une nouvelle branche** : donnez-lui un nom (Feuillet en
+   propose un, comme `feuillet-2026-11-06`), puis **Créer la branche et la
+   suivre**. La branche part de la branche actuelle sur GitHub. Les fichiers
+   ne changent pas; les prochains envois iront sur la nouvelle branche.
+2. Modifiez le projet, envoyez vos modifications comme d'habitude.
+3. **Ouvrir une demande de fusion** (une *pull request*) : donnez un titre et
+   une description; ce qui n'est pas encore sur GitHub est d'abord envoyé sur
+   la branche. Vos coauteurs relisent la demande sur GitHub, la commentent
+   et la fusionnent là. Une case la marque comme brouillon. La section
+   montre ensuite l'état de la demande, avec un lien vers elle.
+4. Une fois la demande fusionnée, **Revenir sur main** (ou la branche visée)
+   remet le projet sur cette branche : ses fichiers deviennent ceux de la
+   branche, qui contient maintenant vos modifications.
+
+**Passer à une autre branche** fait de même avec n'importe quelle branche du
+dépôt, par exemple celle d'un coauteur. Ce qui n'est pas encore sur GitHub
+est d'abord envoyé sur la branche que l'on quitte, pour que rien ne se
+perde; puis les fichiers du projet deviennent ceux de l'autre branche.
+
+La branche est celle du projet, pas seulement la vôtre : quand vous en
+changez, les fichiers changent pour tous les collaborateurs, et ceux qui ont
+relié le dépôt depuis leur navigateur suivent la même branche. Les
+commentaires et les modifications suivies restent attachés au texte qui ne
+change pas.
+
 ## Publier une version
 
 Une fois le projet lié, la section **Publier une version sur GitHub** de la

@@ -3,7 +3,9 @@ import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import type { SecretsContextType } from '../contexts/SecretsContext';
 import type { User } from '../types/auth';
+import type { SharedGitRemote } from '../types/documents';
 import { stripAnnotationTagsWithSpans } from '../utils/annotationTagUtils';
+import { branchNameProblem } from '../utils/gitBranch';
 import { collabService } from './CollabService';
 import { gitFileSystemService } from './GitFileSystemService';
 import { type GitMergePlan, gitService } from './GitService';
@@ -36,6 +38,14 @@ export interface GitProjectPushResult {
 	push: GitPushSummary | null;
 }
 
+export interface GitBranchSwitchResult {
+	/** What was pushed to the branch left, first; null when nothing was. */
+	pushed: GitProjectPushResult | null;
+	/** The merge before that push was not completed: nothing changed. */
+	cancelled: boolean;
+	branch: string;
+}
+
 export interface GitProjectSyncOptions {
 	secrets: GitSyncSecrets;
 	user: User | null;
@@ -44,6 +54,25 @@ export interface GitProjectSyncOptions {
 
 const notifyHistoryChanged = () =>
 	document.dispatchEvent(new CustomEvent('git-history-changed'));
+
+// The branch is the project's, as the repository is: telling it in the
+// project's metadata makes the collaborators' devices follow it
+// (GitHubSyncButton).
+const shareBranch = (projectId: string) => {
+	const config = gitSyncService.getConfig(projectId);
+	const map = collabService
+		.getDocContainer(projectId, 'yjs_metadata')
+		?.doc.getMap('data');
+	if (!config || !map) return;
+	const link: SharedGitRemote = {
+		providerId: config.providerId,
+		repositoryId: config.repositoryId,
+		repositoryLabel: config.repositoryLabel,
+		branch: config.branch,
+		...(config.syncBase ? { syncedCommit: config.syncBase.remoteOid } : {}),
+	};
+	map.set('gitRemote', link);
+};
 
 const resolutionText = (
 	plan: GitMergePlan,
@@ -263,6 +292,112 @@ class GitProjectSyncService {
 		return this.withLatestDocuments(projectId, () =>
 			this.commitPullAndPush(projectId, secrets, user, commitMessage),
 		);
+	}
+
+	/**
+	 * Work on a branch: makes `name` on the remote, at the head of the
+	 * linked branch, and links the project to it. The files do not change;
+	 * the next push goes to the new branch, which a pull request can then
+	 * propose for merging.
+	 */
+	async startBranch(
+		projectId: string,
+		secrets: GitSyncSecrets,
+		name: string,
+	): Promise<void> {
+		const branch = name.trim();
+		const problem = branchNameProblem(branch);
+		if (problem) throw new Error(problem);
+		const { config, provider, token } = await gitSyncService.remoteAccess(
+			projectId,
+			secrets,
+		);
+		if (!provider.createBranch) {
+			throw new Error(
+				t('Branches cannot be made on {provider} from here.', {
+					provider: provider.displayName,
+				}),
+			);
+		}
+		await provider.createBranch(
+			token,
+			config.repositoryId,
+			branch,
+			config.branch,
+		);
+		gitSyncService.linkBranch(projectId, branch, true);
+		shareBranch(projectId);
+		notifyHistoryChanged();
+	}
+
+	/**
+	 * Switches the project to another branch of the repository, as
+	 * `git switch`: what the current branch has that the remote has not is
+	 * pushed there first, so that nothing is lost; then the project's files
+	 * become the other branch's, for every collaborator.
+	 */
+	async switchBranch(
+		projectId: string,
+		target: string,
+		{ secrets, user, commitMessage }: GitProjectSyncOptions,
+	): Promise<GitBranchSwitchResult> {
+		return this.withLatestDocuments(projectId, async () => {
+			const config = gitSyncService.getConfig(projectId);
+			if (!config) throw new Error(t('Link a repository first.'));
+			if (config.branch === target) {
+				return { pushed: null, cancelled: false, branch: target };
+			}
+
+			let pushed: GitProjectPushResult | null = null;
+			const initialized = await gitService.isInitialized(projectId);
+			const head = initialized ? await gitService.getHeadOid(projectId) : null;
+			const pending =
+				initialized && (await gitService.getChanges(projectId)).length > 0;
+			const ahead =
+				head !== null &&
+				(await gitSyncService.getSyncStatus(projectId, secrets)).localAhead;
+			if (!head || pending || ahead) {
+				pushed = await this.commitPullAndPush(
+					projectId,
+					secrets,
+					user,
+					commitMessage,
+				);
+				if (!pushed.push) {
+					return { pushed, cancelled: true, branch: config.branch };
+				}
+			}
+
+			gitSyncService.linkBranch(projectId, target);
+			let temporaryBranch: string | null = null;
+			try {
+				const fetched = await gitSyncService.fetchForMerge(projectId, secrets);
+				if (!fetched) {
+					throw new Error(
+						t('The branch {branch} has no commit yet.', { branch: target }),
+					);
+				}
+				temporaryBranch = fetched.temporaryBranch;
+				await gitSyncService.checkoutFetched(projectId, fetched);
+			} catch (error) {
+				gitSyncService.linkBranch(projectId, config.branch);
+				throw error;
+			} finally {
+				if (temporaryBranch) {
+					await gitSyncService
+						.discardFetched(projectId, temporaryBranch)
+						.catch((cleanupError) =>
+							moduleLog.warn(
+								'Failed to remove the fetched branch:',
+								cleanupError,
+							),
+						);
+				}
+			}
+			shareBranch(projectId);
+			notifyHistoryChanged();
+			return { pushed, cancelled: false, branch: target };
+		});
 	}
 
 	private async commitPullAndPush(

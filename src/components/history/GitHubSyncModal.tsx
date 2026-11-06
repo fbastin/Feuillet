@@ -43,6 +43,7 @@ import type { SharedGitRemote } from '@/types/documents';
 import type { PendingGitImport } from '@/utils/gitPendingImport';
 import { ensureGitRemoteBranch, isRejectedToken } from '@/utils/gitUtils';
 import GitAccountTokenForm from './GitAccountTokenForm';
+import GitHubBranchSection from './GitHubBranchSection';
 import GitHubReleaseSection from './GitHubReleaseSection';
 import { OPEN_GIT_CLONE_EVENT } from './GitCloneButton';
 import GitRepositoryPicker, {
@@ -856,6 +857,23 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				) : null}
 			</section>
 
+			<GitHubBranchSection
+				provider={provider}
+				config={config}
+				remoteName={remoteName}
+				projectId={projectId}
+				user={user}
+				syncStatus={syncStatus}
+				pendingChangeCount={pendingChangeCount}
+				isBusy={isBusy}
+				busyAction={busyAction}
+				commitMessage={() => commitMessage.trim() || defaultCommitMessage()}
+				run={run}
+				readToken={readToken}
+				createActionSecrets={createActionSecrets}
+				onChanged={refreshStatus}
+			/>
+
 			<section
 				className='ui-card ui-stack'
 				data-gap='sm'
@@ -947,7 +965,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			<div className='github-sync-footer ui-stack' data-gap='sm'>
 				<p className='ui-note'>
 					{t(
-						'The link and the Git history are stored in this browser. Collaborators who want to push or pull link the same repository from their own browser. Branches and the full history are in the History tab.',
+						'The link and the Git history are stored in this browser. Collaborators who want to push or pull link the same repository from their own browser; they follow the branch chosen here. The full history is in the Git history tab.',
 					)}
 				</p>
 				<button

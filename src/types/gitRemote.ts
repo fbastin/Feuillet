@@ -163,6 +163,42 @@ export interface GitRemoteReleases {
 	remove(token: string, repositoryId: string, id: number): Promise<void>;
 }
 
+/** A pull request, as GitHub's: a branch proposed for merging into another. */
+export interface GitRemotePullRequest {
+	number: number;
+	url: string;
+	title: string;
+	state: 'open' | 'closed' | 'merged';
+	draft: boolean;
+	/** The branch it merges into, and the one it proposes. */
+	base: string;
+	head: string;
+}
+
+export interface GitRemotePullRequestInput {
+	title: string;
+	body: string;
+	head: string;
+	base: string;
+	draft: boolean;
+}
+
+export interface GitRemotePullRequests {
+	/** The branch pull requests go to unless another is chosen. */
+	defaultBranch(token: string, repositoryId: string): Promise<string>;
+	/** The latest pull request proposing `branch`, open or not. */
+	find(
+		token: string,
+		repositoryId: string,
+		branch: string,
+	): Promise<GitRemotePullRequest | null>;
+	create(
+		token: string,
+		repositoryId: string,
+		input: GitRemotePullRequestInput,
+	): Promise<GitRemotePullRequest>;
+}
+
 export interface GitRemoteProvider {
 	id: string;
 	displayName: string;
@@ -191,5 +227,6 @@ export interface GitRemoteProvider {
 	getRepositoryUrl?(repositoryId: string, branch?: string): string;
 	getTokenCreationUrl?(appName: string): string;
 	releases?: GitRemoteReleases;
+	pullRequests?: GitRemotePullRequests;
 	historyTransport: GitRemoteHistoryTransport;
 }

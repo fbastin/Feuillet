@@ -36,6 +36,10 @@ const sameRepository = (a?: SharedGitRemote, b?: SharedGitRemote) =>
 const sameLink = (a?: SharedGitRemote, b?: SharedGitRemote) =>
 	sameRepository(a, b) && a?.syncedCommit === b?.syncedCommit;
 
+// The same repository, on whichever branch.
+const sameRepositoryAnyBranch = (a?: SharedGitRemote, b?: SharedGitRemote) =>
+	a?.providerId === b?.providerId && a?.repositoryId === b?.repositoryId;
+
 export const findGitHubPlugin = () =>
 	pluginRegistry
 		.getBackup()
@@ -105,7 +109,20 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 		if (!map) return;
 		if (remote) {
 			const link = sharedLinkOf(remote);
-			if (!sameLink(sharedRef.current, link)) map.set('gitRemote', link);
+			const current = sharedRef.current;
+			// Another branch of the same repository: a collaborator switched
+			// it, and this device follows (below); a switch made here tells
+			// it itself (GitProjectSyncService).
+			if (
+				current &&
+				sameRepositoryAnyBranch(current, link) &&
+				current.branch !== link.branch
+			)
+				return;
+			// Without a synced commit of its own (it just followed the branch),
+			// this device leaves the one the project has.
+			if (sameRepository(current, link) && !link.syncedCommit) return;
+			if (!sameLink(current, link)) map.set('gitRemote', link);
 		} else if (
 			before &&
 			sameRepository(sharedRef.current, sharedLinkOf(before))
@@ -113,6 +130,26 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 			map.delete('gitRemote');
 		}
 	}, [remote, projectId, loaded]);
+
+	// The project's branch, as its collaborators chose it: this device
+	// pushes and pulls there too.
+	// On the branch's name only: while a switch made here is under way, the
+	// project's metadata changes (its files) before it tells the new branch.
+	const sharedProvider = shared?.providerId;
+	const sharedRepository = shared?.repositoryId;
+	const sharedBranch = shared?.branch;
+	useEffect(() => {
+		if (!projectId || !sharedBranch) return;
+		const config = gitSyncService.getConfig(projectId);
+		if (
+			config &&
+			config.providerId === sharedProvider &&
+			config.repositoryId === sharedRepository &&
+			config.branch !== sharedBranch
+		) {
+			gitSyncService.linkBranch(projectId, sharedBranch);
+		}
+	}, [projectId, sharedProvider, sharedRepository, sharedBranch]);
 
 	// Whether the repository has commits this project has not pulled yet,
 	// checked now and then without asking for the password.

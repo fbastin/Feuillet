@@ -1,5 +1,7 @@
 import type {
 	GitRemoteProvider,
+	GitRemotePullRequest,
+	GitRemotePullRequests,
 	GitRemoteReleases,
 	GitRemoteSignature,
 	GitRemoteTreeEntry,
@@ -368,6 +370,61 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 	},
 };
 
+interface GitHubPull {
+	number: number;
+	html_url: string;
+	title: string;
+	state: 'open' | 'closed';
+	draft?: boolean;
+	merged_at: string | null;
+	base: { ref: string };
+	head: { ref: string };
+}
+
+const pullOf = (pull: GitHubPull): GitRemotePullRequest => ({
+	number: pull.number,
+	url: pull.html_url,
+	title: pull.title,
+	state: pull.merged_at ? 'merged' : pull.state,
+	draft: pull.draft === true,
+	base: pull.base.ref,
+	head: pull.head.ref,
+});
+
+// Pull requests between branches of the repository itself.
+const pullRequests: GitRemotePullRequests = {
+	defaultBranch: async (token, repositoryId) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		return (
+			await request<{ default_branch: string }>(token, `repos/${owner}/${repo}`)
+		).default_branch;
+	},
+	find: async (token, repositoryId, branch) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const head = encodeURIComponent(`${owner}:${branch}`);
+		const pulls = await request<GitHubPull[]>(
+			token,
+			`repos/${owner}/${repo}/pulls?state=all&head=${head}&sort=created&direction=desc&per_page=5`,
+		);
+		return pulls[0] ? pullOf(pulls[0]) : null;
+	},
+	create: async (token, repositoryId, input) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		return pullOf(
+			await request<GitHubPull>(token, `repos/${owner}/${repo}/pulls`, {
+				method: 'POST',
+				body: JSON.stringify({
+					title: input.title,
+					body: input.body,
+					head: input.head,
+					base: input.base,
+					draft: input.draft,
+				}),
+			}),
+		);
+	},
+};
+
 export const gitHubGitRemoteProvider: GitRemoteProvider = {
 	id: 'github',
 	displayName: 'GitHub',
@@ -448,5 +505,6 @@ export const gitHubGitRemoteProvider: GitRemoteProvider = {
 	getTokenCreationUrl: (appName) =>
 		`${webBaseUrl()}/settings/tokens/new?scopes=repo&description=${encodeURIComponent(appName)}`,
 	releases,
+	pullRequests,
 	historyTransport,
 };
