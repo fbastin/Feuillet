@@ -7,10 +7,12 @@ modifications pour les faire accepter ou rejeter.
 
 ## Commenter
 
-Sélectionnez un passage : un bouton **Commentaire** apparaît à côté
-(raccourci **Alt+C**). Le bouton des commentaires, dans la barre de
-l'éditeur, ouvre le panneau où l'on répond aux commentaires et où on les
-marque comme résolus.
+Sélectionnez un passage : un bouton **Ajouter un commentaire** apparaît à
+côté (raccourci **Alt+C**). Écrivez le commentaire, puis **Ajouter un
+commentaire**. Le bouton des commentaires (la bulle, avec leur nombre),
+dans la barre de l'éditeur, ouvre le panneau où l'on répond aux
+commentaires (**Ajouter une réponse**) et où on les marque comme résolus.
+Les lecteurs ne commentent pas; les éditeurs et les relecteurs, si.
 
 ### Être prévenu par courriel
 

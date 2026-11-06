@@ -7,9 +7,11 @@ they are accepted or rejected.
 
 ## Commenting
 
-Select a passage: a **Comment** button appears next to it (shortcut
-**Alt+C**). The comments button, in the editor's toolbar, opens the panel
-where comments are answered and marked as resolved.
+Select a passage: an **Add Comment** button appears next to it (shortcut
+**Alt+C**). Write the comment, then **Add Comment**. The comments button
+(the speech bubble, with their number), in the editor's toolbar, opens the
+panel where comments are answered (**Add response**) and marked as
+resolved. Readers do not comment; editors and reviewers do.
 
 ### Being told by email
 
