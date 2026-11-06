@@ -12,6 +12,20 @@ Sélectionnez un passage : un bouton **Commentaire** apparaît à côté
 l'éditeur, ouvre le panneau où l'on répond aux commentaires et où on les
 marque comme résolus.
 
+### Être prévenu par courriel
+
+Une réponse dans un fil de commentaires prévient par courriel ceux qui y ont
+écrit; écrire `@` suivi d'un nom de compte, dans un commentaire ou une
+réponse, prévient aussi ce collaborateur. C'est le cas aussi des réponses
+aux modifications suivies, de celles qu'on écrit dans la **Relecture** (à
+gauche) et de celles de [Claude](claude.md).
+
+Le courriel cite le passage, le commentaire et la réponse, et donne le lien
+du document. Seuls le reçoivent les membres du projet dont le courriel du
+compte est confirmé; décochez **Courriels de relecture** dans votre profil
+pour ne plus en recevoir. Pour n'inonder personne, un compte en reçoit
+au plus cinq par jour.
+
 ## Suivre les modifications
 
 Le bouton de suivi des modifications (le crayon) active le suivi pour vous.

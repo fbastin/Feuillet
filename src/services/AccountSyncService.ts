@@ -655,6 +655,30 @@ class AccountSyncService {
 	}
 
 	/**
+	 * Has the collaboration server tell a comment's thread, by email, of the
+	 * comment or the reply this account just wrote (server/collab/
+	 * reviewNotices.js). Nothing without a signed-in account.
+	 */
+	async notifyReview(body: {
+		project: string;
+		comment: string;
+		reply?: boolean;
+		language?: string;
+	}): Promise<void> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return;
+		await fetch(`${session.server}/review/notify`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${session.token}`,
+			},
+			body: JSON.stringify(body),
+		});
+	}
+
+	/**
 	 * Attaches a file to a GitHub release through the collaboration server,
 	 * which GitHub's upload server takes and pages are not (CORS). The token
 	 * passes through, unkept. Null when no account is signed in.

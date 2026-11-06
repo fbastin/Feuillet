@@ -111,6 +111,7 @@ const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
 const { createOpenLinks } = require('./docs');
 const { createReleaseAssets } = require('./releases');
+const { createReviewNotices } = require('./reviewNotices');
 const { createGrammar } = require('./grammar');
 const { createGitBridge } = require('./git');
 const { createGitHub } = require('./github');
@@ -364,11 +365,21 @@ const projectFiles = createProjectFiles({
 	getYDoc,
 	filesDir,
 });
+// Emails about replies to comments and mentions (server/collab/reviewNotices.js).
+const reviewNotices = createReviewNotices({
+	accounts,
+	shares,
+	files: projectFiles,
+	mailer,
+	appUrl: process.env.APP_URL || allowedOrigins[0] || '',
+	log,
+});
 const mcp = createMcp({
 	oauth,
 	shares,
 	files: projectFiles,
 	history,
+	notices: reviewNotices,
 	compiler: createCompiler({
 		url: process.env.TEXLIVE_URL,
 		origin: process.env.TEXLIVE_ORIGIN || allowedOrigins[0],
@@ -547,11 +558,13 @@ const server = http.createServer((req, res) => {
 					? urlFetcher
 					: releaseAssets.handles(url)
 						? releaseAssets
-						: grammar.handles(url)
-							? grammar
-							: oauth.handlesAccount(url)
-								? { handle: (request, response) => oauth.handleAccount(request, response) }
-								: null;
+						: reviewNotices.handles(url)
+							? reviewNotices
+							: grammar.handles(url)
+								? grammar
+								: oauth.handlesAccount(url)
+									? { handle: (request, response) => oauth.handleAccount(request, response) }
+									: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {

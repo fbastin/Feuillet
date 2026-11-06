@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import i18next, { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
+import { useSettings } from '../../hooks/useSettings';
 import {
 	AccountServerError,
 	type AccountSyncStatus,
@@ -33,6 +34,9 @@ const errorMessage = (error: unknown): string => {
 
 const ProfileRecoveryEmailSection: React.FC = () => {
 	const { user, isGuestUser, updateUser } = useAuth();
+	const { getSetting, updateSetting } = useSettings();
+	// Emails about the review, sent to the confirmed address (on by default).
+	const reviewEmails = getSetting('review-email-notifications')?.value !== false;
 	const [status, setStatus] = useState<AccountSyncStatus>(
 		accountSyncService.getStatus(),
 	);
@@ -145,6 +149,20 @@ const ProfileRecoveryEmailSection: React.FC = () => {
 							)
 						: t('Your account has no email address.')}
 			</p>
+			<label className='checkbox-control' data-role='review-emails'>
+				<input
+					type='checkbox'
+					checked={reviewEmails}
+					onChange={(event) =>
+						updateSetting('review-email-notifications', event.target.checked)
+					}
+				/>
+				<span>
+					{t(
+						'Review emails: tell me when someone replies in a comment thread of mine, or mentions me (@name)',
+					)}
+				</span>
+			</label>
 			{email.pending && (
 				<div
 					className='ui-message'

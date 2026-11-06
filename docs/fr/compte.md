@@ -59,7 +59,10 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 - **Se connecter avec Google** et **Se connecter avec ORCID** : associer
   un compte de chacun, ou le dissocier (voir plus haut);
 - **Courriel du compte** et **Codes de récupération**, si vous oubliez
-  votre mot de passe (voir plus bas);
+  votre mot de passe (voir plus bas). Sous l'adresse, **Courriels de
+  relecture** dit si Feuillet vous écrit quand on répond dans un fil de
+  commentaires où vous avez écrit, ou qu'on vous mentionne (voir
+  [Relecture](relecture.md));
 - **Courriel des commits Git** : l'adresse d'auteur de vos commits, que lit
   quiconque voit le dépôt (sur GitHub, par exemple votre adresse noreply);
   elle est distincte du courriel du compte;

@@ -11,6 +11,18 @@ Select a passage: a **Comment** button appears next to it (shortcut
 **Alt+C**). The comments button, in the editor's toolbar, opens the panel
 where comments are answered and marked as resolved.
 
+### Being told by email
+
+A reply in a comment thread tells those who wrote in it by email; writing
+`@` and an account name, in a comment or a reply, tells that collaborator
+too. So do replies to tracked changes, those written in the **Review**
+overview (on the left) and those of [Claude](claude.md).
+
+The email quotes the passage, the comment and the reply, and gives the
+document's link. Only the project's members whose account email is
+confirmed receive it; untick **Review emails** in your profile to get no
+more. So as to flood nobody, an account gets at most five a day.
+
 ## Tracking changes
 
 The track changes button (the pen) turns tracking on for you. Its arrow

@@ -9,6 +9,8 @@
 export const SYNCED_SETTINGS: readonly string[] = [
 	// The interface.
 	'language',
+	// Emails about the review, which the server reads.
+	'review-email-notifications',
 	'text-direction',
 	'theme-variant',
 	// The editor.

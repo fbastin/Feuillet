@@ -16,7 +16,7 @@
 // directly and create files. Changes are saved in the project's history
 // under the assistant's and the account's names.
 
-const { strip, cleanView, annotationsOf, commentTags, reviewTags, scanAll, tagUser, withResponse } =
+const { strip, cleanView, annotationsOf, commentTags, newId, reviewTags, scanAll, tagUser, withResponse } =
 	require('./annotations');
 const { summarizeLog, ENGINES } = require('./compile');
 
@@ -174,7 +174,22 @@ const locate = (text, part, what) => {
 	throw new ToolError(`${what} was not found in the file.${hint}`);
 };
 
-const createMcp = ({ oauth, shares, files, history, compiler, log, version = '1.0.0' }) => {
+const createMcp = ({ oauth, shares, files, history, compiler, notices = null, log, version = '1.0.0' }) => {
+	// Tells the thread, by email, of what an assistant wrote in a document
+	// (reviewNotices.js); never in the way of the tool's answer.
+	const tellReview = (context, project, file, comment, response) => {
+		if (!notices || !file.entry.documentId) return;
+		void notices
+			.notify({
+				sender: { id: context.account.id, username: context.username },
+				project: project.project,
+				document: file.entry.documentId,
+				comment,
+				response,
+			})
+			.catch((error) => log('review email failed', error?.message ?? error));
+	};
+
 	// ---- Projects and access
 
 	const linkIds = (entry) =>
@@ -656,6 +671,7 @@ const createMcp = ({ oauth, shares, files, history, compiler, log, version = '1.
 				if (!comment) throw new ToolError('The comment must not be empty.');
 				const file = await textFileOf(project, args.path);
 				const author = authorOf(context);
+				let commentId;
 				const outcome = await changeText(context, project, file, (text) => {
 					const view = cleanView(text);
 					const part = String(args.quote ?? '');
@@ -668,11 +684,13 @@ const createMcp = ({ oauth, shares, files, history, compiler, log, version = '1.
 						);
 					}
 					const tags = commentTags(author, comment);
+					commentId = tags.id;
 					return {
 						text: text.slice(0, start) + tags.open + text.slice(start, end) + tags.close + text.slice(end),
 						line: lineOf(view.text, at),
 					};
 				});
+				tellReview(context, project, file, commentId);
 				return `Comment added on ${file.path} (line ${outcome.line}).`;
 			},
 		},
@@ -700,11 +718,13 @@ const createMcp = ({ oauth, shares, files, history, compiler, log, version = '1.
 				if (!reply) throw new ToolError('The reply must not be empty.');
 				const file = await textFileOf(project, args.path);
 				const author = authorOf(context);
+				const responseId = newId();
 				await changeText(context, project, file, (text) => {
 					const match = scanAll(text).find((entry) => entry.id === String(args.id));
 					if (!match) throw new ToolError(`No comment or suggestion ${args.id} in ${file.path}.`);
-					return { text: withResponse(text, match, author, reply) };
+					return { text: withResponse(text, match, author, reply, Date.now(), responseId) };
 				});
+				tellReview(context, project, file, String(args.id), responseId);
 				return `Reply added in ${file.path}.`;
 			},
 		},

@@ -23,6 +23,7 @@ import {
 	announceReviewSidePanel,
 	onReviewSidePanel,
 } from '../utils/reviewSidePanel';
+import { tellReview } from '../utils/reviewNotices';
 
 const moduleLog = createNamedLogger('CommentContext');
 
@@ -169,6 +170,8 @@ export const CommentProvider: React.FC<CommentProviderProps> = ({
 		if (!user) return { openTag: '', closeTag: '', commentId: '' };
 
 		const rawComment = commentService.addComment(content, user.username);
+		// Those it mentions (@name) are told by email.
+		tellReview(rawComment.commentId);
 
 		setShowComments(true);
 		return rawComment;
@@ -186,6 +189,7 @@ export const CommentProvider: React.FC<CommentProviderProps> = ({
 			content,
 			user.username,
 		);
+		tellReview(commentId, { reply: true });
 
 		const updatedComment = {
 			...comment,

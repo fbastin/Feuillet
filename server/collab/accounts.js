@@ -1260,6 +1260,26 @@ const createAccounts = ({
 		};
 	};
 
+	// Where and how to tell an account about the review (reviewNotices.js):
+	// its confirmed address, its interface language, and whether it wants
+	// these emails (on unless turned off in its preferences).
+	const reviewContactOf = (id) => {
+		const [key, createdAt] = String(id).split('.');
+		if (!/^[0-9a-f]{64}$/.test(key ?? '')) return null;
+		const account = read(key);
+		if (!account || String(account.createdAt) !== createdAt) return null;
+		// Settings that follow the account (src/utils/accountPreferences.ts).
+		const preference = (name) =>
+			listPreferences(account).find((entry) => entry.key === `setting:${name}`)
+				?.value;
+		const language = preference('language');
+		return {
+			email: account.email?.confirmedAt ? account.email.address : null,
+			language: typeof language === 'string' ? language : undefined,
+			enabled: preference('review-email-notifications') !== false,
+		};
+	};
+
 	// Who sent a request.
 	const identify = (req) =>
 		authenticate(req, (account) => ({ body: idOf(account) }));
@@ -1518,6 +1538,7 @@ const createAccounts = ({
 		findAccount,
 		usernameOf,
 		hasConfirmedEmail,
+		reviewContactOf,
 		summaries,
 		listedEntries,
 		verifyGitToken,

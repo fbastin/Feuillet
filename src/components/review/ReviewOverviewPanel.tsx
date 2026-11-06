@@ -28,6 +28,7 @@ import {
 	RefreshIcon,
 	TrackChangesIcon,
 } from '../common/Icons';
+import { tellReview } from '../../utils/reviewNotices';
 
 interface ReviewOverviewPanelProps {
 	projectId: string;
@@ -123,6 +124,7 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 			addReply(text, item.kind, item.id, content, user.username),
 		);
 		if (sent) {
+			tellReview(item.id, { reply: true });
 			setReplyingTo(null);
 			setDraft('');
 		}

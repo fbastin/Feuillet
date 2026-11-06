@@ -257,10 +257,17 @@ const commentTags = (user, comment, time = Date.now()) => {
 };
 
 /** The text with one more reply to an annotation. */
-const withResponse = (text, match, user, content, time = Date.now()) => {
+const withResponse = (
+	text,
+	match,
+	user,
+	content,
+	time = Date.now(),
+	id = newId(),
+) => {
 	const responses = [
 		...parseResponses(match.openTagContent),
-		{ id: newId(), user: tagUser(user), time, content },
+		{ id, user: tagUser(user), time, content },
 	];
 	const tag = text.substring(match.openTagStart, match.openTagEnd);
 	const replaced = tag.replace(
@@ -278,6 +285,7 @@ module.exports = {
 	annotationsOf,
 	cleanView,
 	commentTags,
+	newId,
 	reviewTags,
 	scan,
 	scanAll,

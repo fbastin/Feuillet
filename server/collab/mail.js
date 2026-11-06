@@ -1,6 +1,7 @@
 // server/collab/mail.js
 // Feuillet's few emails, as Overleaf's: confirming the account's email
-// address, a link to choose a new password, and an invitation to a project.
+// address, a link to choose a new password, an invitation to a project, and
+// a reply to one's comment or a mention in one (reviewNotices.js).
 // They go through the SMTP server given by SMTP_URL (such as
 // smtps://user:password@smtp.example.org:465), from MAIL_FROM (such as
 // "Feuillet <noreply@example.org>"). Without both, Feuillet sends none and
@@ -14,13 +15,31 @@
 // anyone, and the mail provider would close the sending account: at most
 // MAIL_DAILY_LIMIT emails (200 by default) in any 24 hours, invitations
 // three quarters of them, so that recovering accounts still works; and 10
-// to one address. They are counted in memory, from the server's start.
+// to one address. Review emails take at most a quarter, invitations and
+// them three quarters together, and 5 to one address apart from the rest:
+// they never stop an account's recovery. They are counted in memory, from
+// the server's start.
 
 const crypto = require('node:crypto');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DAILY_LIMIT = 200;
 const PER_RECIPIENT = 10;
+const REVIEW_PER_RECIPIENT = 5;
+
+// Some of a comment in an email: as written, line breaks kept, not too long.
+const excerpt = (text, max = 600) => {
+	const value = String(text ?? '')
+		.replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ')
+		.replace(/\n{3,}/g, '\n\n')
+		.trim();
+	return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+};
+const quoted = (text) =>
+	excerpt(text)
+		.split('\n')
+		.map((line) => `> ${line}`)
+		.join('\n');
 
 // A project's name in an email: one line, not too long.
 const oneLine = (text, max = 100) => {
@@ -86,6 +105,31 @@ const MESSAGES = {
 				'Si vous ne connaissez pas cette personne, ignorez ce message.',
 			].join('\n'),
 		}),
+		review: ({ username, inviter, project, why, passage, comment, written, link }) => ({
+			subject:
+				why === 'reply'
+					? `${inviter} a répondu dans « ${project} »`
+					: `${inviter} vous mentionne dans « ${project} »`,
+			text: [
+				`Bonjour ${username},`,
+				'',
+				why === 'reply'
+					? `${inviter} a répondu à un commentaire auquel vous avez participé, dans le projet « ${project} » :`
+					: why === 'mention-reply'
+						? `${inviter} vous mentionne dans une réponse à un commentaire, dans le projet « ${project} » :`
+						: `${inviter} vous mentionne dans un commentaire, dans le projet « ${project} » :`,
+				'',
+				...(passage ? [`Sur le passage : « ${oneLine(passage, 120)} »`, ''] : []),
+				...(comment ? ['Commentaire :', quoted(comment), ''] : []),
+				`${why === 'mention' ? 'Commentaire' : 'Réponse'} de ${inviter} :`,
+				quoted(written),
+				'',
+				'Pour répondre, ouvrez le projet :',
+				link,
+				'',
+				'Vous recevez ce message parce que votre compte Feuillet participe à ce projet. Pour ne plus en recevoir, décochez « Courriels de relecture » dans votre profil.',
+			].join('\n'),
+		}),
 	},
 	en: {
 		confirm: ({ username, link }) => ({
@@ -128,6 +172,31 @@ const MESSAGES = {
 				'If you do not know this person, ignore this message.',
 			].join('\n'),
 		}),
+		review: ({ username, inviter, project, why, passage, comment, written, link }) => ({
+			subject:
+				why === 'reply'
+					? `${inviter} replied in "${project}"`
+					: `${inviter} mentioned you in "${project}"`,
+			text: [
+				`Hello ${username},`,
+				'',
+				why === 'reply'
+					? `${inviter} replied to a comment you took part in, in the project "${project}":`
+					: why === 'mention-reply'
+						? `${inviter} mentioned you in a reply to a comment, in the project "${project}":`
+						: `${inviter} mentioned you in a comment, in the project "${project}":`,
+				'',
+				...(passage ? [`On the passage: "${oneLine(passage, 120)}"`, ''] : []),
+				...(comment ? ['Comment:', quoted(comment), ''] : []),
+				`${why === 'mention' ? 'Comment' : 'Reply'} by ${inviter}:`,
+				quoted(written),
+				'',
+				'To reply, open the project:',
+				link,
+				'',
+				'You get this message because your Feuillet account takes part in this project. To get no more, untick "Review emails" in your profile.',
+			].join('\n'),
+		}),
 	},
 };
 
@@ -155,39 +224,69 @@ const createMailer = ({
 		transport ?? require('nodemailer').createTransport(url);
 	const limit =
 		Number.isInteger(dailyLimit) && dailyLimit > 0 ? dailyLimit : DAILY_LIMIT;
-	// When each email of the last 24 hours went, in all and to each address
-	// (by a hash of it).
+	// When each email of the last 24 hours went, and of which kind, in all
+	// and to each address (by a hash of it); review emails to an address
+	// apart, so that they never stop the others.
 	let sent = [];
 	const sentTo = new Map();
+	const reviewTo = new Map();
 	const startedAt = now();
+
+	const prune = (map, since) => {
+		for (const [key, times] of map) {
+			const recent = times.filter((at) => at > since);
+			if (recent.length) map.set(key, recent);
+			else map.delete(key);
+		}
+	};
 
 	// Counts an email about to go, or refuses it.
 	const take = (kind, to) => {
 		const since = now() - DAY_MS;
-		sent = sent.filter((at) => at > since);
-		for (const [key, times] of sentTo) {
-			const recent = times.filter((at) => at > since);
-			if (recent.length) sentTo.set(key, recent);
-			else sentTo.delete(key);
-		}
+		sent = sent.filter((entry) => entry.at > since);
+		prune(sentTo, since);
+		prune(reviewTo, since);
 		const recipient = crypto
 			.createHash('sha256')
 			.update(String(to).toLowerCase())
 			.digest('hex');
-		const toThem = sentTo.get(recipient) ?? [];
-		const share = kind === 'invite' ? Math.floor((limit * 3) / 4) : limit;
-		if (sent.length >= share || toThem.length >= PER_RECIPIENT) {
-			const which = toThem.length >= PER_RECIPIENT ? 'to one address' : 'a day';
+		const perAddress = kind === 'review' ? reviewTo : sentTo;
+		const toThem = perAddress.get(recipient) ?? [];
+		const ofKinds = (...kinds) =>
+			sent.filter((entry) => kinds.includes(entry.kind)).length;
+		const full =
+			sent.length >= limit ||
+			(kind === 'invite' &&
+				ofKinds('invite', 'review') >= Math.floor((limit * 3) / 4)) ||
+			(kind === 'review' &&
+				(ofKinds('review') >= Math.floor(limit / 4) ||
+					ofKinds('invite', 'review') >= Math.floor((limit * 3) / 4)));
+		const perLimit = kind === 'review' ? REVIEW_PER_RECIPIENT : PER_RECIPIENT;
+		if (full || toThem.length >= perLimit) {
+			const which = toThem.length >= perLimit ? 'to one address' : 'a day';
 			log(`${kind} email not sent: limit of emails ${which} reached`);
 			throw new MailQuotaError();
 		}
-		sent.push(now());
-		sentTo.set(recipient, [...toThem, now()]);
+		sent.push({ at: now(), kind });
+		perAddress.set(recipient, [...toThem, now()]);
 	};
 
 	const send = async (
 		kind,
-		{ to, language, username, link, inviter, project, type, role },
+		{
+			to,
+			language,
+			username,
+			link,
+			inviter,
+			project,
+			type,
+			role,
+			why,
+			passage,
+			comment,
+			written,
+		},
 	) => {
 		const french = /^fr\b/i.test(String(language ?? ''));
 		const messages = MESSAGES[french ? 'fr' : 'en'];
@@ -198,6 +297,10 @@ const createMailer = ({
 			project: oneLine(project) || (french ? 'sans titre' : 'untitled'),
 			kind: type === 'typst' ? 'Typst' : 'LaTeX',
 			role,
+			why,
+			passage,
+			comment,
+			written,
 		});
 		take(kind, to);
 		try {
@@ -214,7 +317,7 @@ const createMailer = ({
 	// hours, counted since `since`, and the limits.
 	const stats = () => {
 		const since = now() - DAY_MS;
-		sent = sent.filter((at) => at > since);
+		sent = sent.filter((entry) => entry.at > since);
 		return {
 			sent: sent.length,
 			limit,

@@ -3936,5 +3936,10 @@
   "Pre-release": "Pre-release",
   "Publishing...": "Publishing...",
   "Publish the release": "Publish the release",
-  "signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. The PDF of a GitHub release goes through it too, with the token, to be handed to GitHub. A file imported from a web address is downloaded by the server for you, without being kept.": "signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. The PDF of a GitHub release goes through it too, with the token, to be handed to GitHub. A file imported from a web address is downloaded by the server for you, without being kept."
+  "signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. The PDF of a GitHub release goes through it too, with the token, to be handed to GitHub. A file imported from a web address is downloaded by the server for you, without being kept.": "signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. The PDF of a GitHub release goes through it too, with the token, to be handed to GitHub. A file imported from a web address is downloaded by the server for you, without being kept.",
+  "Review emails": "Review emails",
+  "Review emails: tell me when someone replies in a comment thread of mine, or mentions me (@name)": "Review emails: tell me when someone replies in a comment thread of mine, or mentions me (@name)",
+  "Write @ and an account name to tell a collaborator by email; replies tell those in the thread.": "Write @ and an account name to tell a collaborator by email; replies tell those in the thread.",
+  "Review emails:": "Review emails:",
+  "to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them.": "to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them."
 }

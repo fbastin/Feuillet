@@ -28,6 +28,7 @@ import {
 	withLegacyTracking,
 	withUserTracked,
 } from '../utils/trackChangesUtils';
+import { tellReview } from '../utils/reviewNotices';
 
 export const ReviewContext = createContext<ReviewContextType | null>(null);
 
@@ -388,6 +389,7 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 					currentUser.username,
 				),
 			);
+			tellReview(reviewId, { reply: true });
 		},
 		[updateResponses],
 	);

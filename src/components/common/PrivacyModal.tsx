@@ -105,6 +105,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						)}
 					</li>
 					<li>
+						<strong>{t('Review emails:')}</strong>&nbsp;
+						{t(
+							'to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them.',
+						)}
+					</li>
+					<li>
 						<strong>{t('Grammar checking:')}</strong>&nbsp;
 						{t(
 							'when it is on (Settings), the paragraphs in view of the document you edit go to the server, which checks them with LanguageTool, on the same machine and without access to the Internet, and keeps nothing of them, not even in its logs.',

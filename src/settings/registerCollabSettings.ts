@@ -19,6 +19,7 @@ export function useRegisterCollabSettings() {
 			'collab-websocket-server',
 			'collab-awareness-timeout',
 			'collab-auto-reconnect',
+			'review-email-notifications',
 		]);
 
 		const initialProviderType =
@@ -104,6 +105,19 @@ export function useRegisterCollabSettings() {
 				'Automatically attempt to reconnect when the connection is lost',
 			),
 			defaultValue: initialAutoReconnect,
+		});
+
+		// Read by the server, which mails the review (server/collab/
+		// reviewNotices.js); changed in the profile, with the account email.
+		registerSetting({
+			id: 'review-email-notifications',
+			category: t('Connectivity'),
+			subcategory: t('Real-time Synchronization'),
+			type: 'checkbox',
+			label: t('Review emails'),
+			defaultValue:
+				(batchedSettings['review-email-notifications'] as boolean) ?? true,
+			hidden: true,
 		});
 	}, [registerSetting, batchGetSettings]);
 }

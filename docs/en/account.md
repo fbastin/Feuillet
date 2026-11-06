@@ -56,7 +56,9 @@ Your account menu, at the top right, opens the profile:
 - **Sign in with Google** and **Sign in with ORCID**: linking an account of
   each, or unlinking it (see above);
 - **Account email** and **Recovery codes**, in case you forget your
-  password (see below);
+  password (see below). Under the address, **Review emails** says whether
+  Feuillet writes to you when someone replies in a comment thread you wrote
+  in, or mentions you (see [Review](review.md));
 - **Git commit email**: the author address of your commits, which anyone
   who sees the repository reads (on GitHub, for example, your noreply
   address); it is apart from the account email;

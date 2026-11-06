@@ -68,6 +68,11 @@ const CommentModal: React.FC<CommentModalProps> = ({
 							/* biome-ignore lint/a11y/noAutofocus: Comment modal expects immediate typing focus. */
 							autoFocus
 						/>
+						<p className='ui-note' data-role='mention-hint'>
+							{t(
+								'Write @ and an account name to tell a collaborator by email; replies tell those in the thread.',
+							)}
+						</p>
 					</div>
 
 					<div
