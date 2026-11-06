@@ -100,7 +100,9 @@ from GitHub instead (see [GitHub](github.md)).
 - In the middle, the text, in **Code** or **Visual** mode. Visual mode shows
   headings, lists, formulas, figures and tables as in the document; a
   toolbar helps with formatting, and **Ctrl+B** and **Ctrl+I** (**Cmd** on
-  a Mac) make the selection bold or italic.
+  a Mac) make the selection bold or italic. Renaming an environment, in
+  `\begin{…}` or in `\end{…}`, renames the other too (except while changes
+  are tracked, where each change is proposed on its own).
 - On the right, the output: the compile **Log** and the PDF. The editor and
   the PDF share the width half and half; the divider can be moved, and the
   proportion chosen follows the window.

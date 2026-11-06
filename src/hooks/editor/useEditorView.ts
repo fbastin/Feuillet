@@ -56,6 +56,7 @@ import {
 
 import { createNamedLogger } from '@/logging';
 import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
+import { environmentNameSync } from '../../extensions/codemirror/environmentNameSync';
 import {
 	createBold as createLatexBold,
 	createItalic as createLatexItalic,
@@ -72,6 +73,7 @@ import {
 	commentSystemExtension,
 } from '../../extensions/codemirror/CommentExtension';
 import {
+	reviewConfig,
 	reviewDisplayExtension,
 	reviewSystemExtension,
 	setTrackChanges,
@@ -405,6 +407,14 @@ export const useEditorView = (
 		const extensions: Extension[] = [
 			...(editorSettings.autoIndent && (info.isLatex || info.isTypst)
 				? [createListingsExtension(info.fileType as 'latex' | 'typst')]
+				: []),
+			// \begin{…} and its \end{…} renamed together.
+			...(info.isLatex && !isViewOnly
+				? [
+						environmentNameSync(
+							(state) => state.field(reviewConfig, false)?.tracking === true,
+						),
+					]
 				: []),
 			EditorView.theme({
 				'.cm-content': {

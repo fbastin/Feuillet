@@ -102,7 +102,9 @@ GitHub (voir [GitHub](github.md)).
   les titres, les listes, les formules, les figures et les tableaux comme
   dans le document; une barre d'outils sert à la mise en forme, et
   **Ctrl+B** et **Ctrl+I** (**Cmd** sur Mac) mettent la sélection en gras
-  ou en italique.
+  ou en italique. Changer le nom d'un environnement, dans `\begin{…}` ou
+  dans `\end{…}`, change aussi l'autre (sauf pendant le suivi des
+  modifications, où chaque changement est proposé à part).
 - À droite, la sortie : le **Journal** de compilation et le PDF. L'éditeur
   et le PDF se partagent la largeur à moitié; la séparation se déplace, et
   la proportion choisie suit la fenêtre.
