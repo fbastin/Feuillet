@@ -3647,5 +3647,7 @@
   "This link holds no file.": "This link holds no file.",
   "PSTricks draws with PostScript, which pdfLaTeX and LuaLaTeX cannot run. Choose LaTeX (or XeLaTeX) as the compiler in the compile options.": "PSTricks draws with PostScript, which pdfLaTeX and LuaLaTeX cannot run. Choose LaTeX (or XeLaTeX) as the compiler in the compile options.",
   "Links that open a project:": "Links that open a project:",
-  "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.": "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk."
+  "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.": "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.",
+  "Auto compile": "Auto compile",
+  "Compiles a moment after you stop typing, as on Overleaf.": "Compiles a moment after you stop typing, as on Overleaf."
 }

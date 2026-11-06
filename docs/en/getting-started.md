@@ -156,6 +156,10 @@ Feuillet's server. The menu next to the compile button offers:
 - the **compile mode**: normal, or fast (draft), which draws images as
   boxes;
 - **error handling**: compile despite errors, or stop at the first one;
+- **Auto compile**, as Overleaf's: the project compiles two seconds after
+  you stop typing, with what you just wrote. A collaborator's changes
+  compile on their side, if they turned it on. Each project has its own
+  setting;
 - compiling with the cache cleared.
 
 As on Overleaf, the bibliography (BibTeX or Biber), the index, the glossaries

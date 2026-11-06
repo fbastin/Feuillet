@@ -3647,5 +3647,7 @@
   "This link holds no file.": "Ce lien ne contient aucun fichier.",
   "PSTricks draws with PostScript, which pdfLaTeX and LuaLaTeX cannot run. Choose LaTeX (or XeLaTeX) as the compiler in the compile options.": "PSTricks dessine en PostScript, que pdfLaTeX et LuaLaTeX ne savent pas exécuter. Choisissez LaTeX (ou XeLaTeX) comme compilateur dans les options de compilation.",
   "Links that open a project:": "Liens qui ouvrent un projet :",
-  "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.": "ce qu'un lien ou un formulaire d'une autre page donne à /docs (code LaTeX, adresses de fichiers) reste 30 minutes dans la mémoire du serveur, le temps de créer le projet, et n'est jamais écrit sur disque."
+  "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.": "ce qu'un lien ou un formulaire d'une autre page donne à /docs (code LaTeX, adresses de fichiers) reste 30 minutes dans la mémoire du serveur, le temps de créer le projet, et n'est jamais écrit sur disque.",
+  "Auto compile": "Compilation automatique",
+  "Compiles a moment after you stop typing, as on Overleaf.": "Compile un instant après que vous avez cessé de taper, comme sur Overleaf."
 }

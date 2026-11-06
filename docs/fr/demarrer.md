@@ -164,6 +164,10 @@ serveur de Feuillet. Le menu à côté du bouton de compilation offre :
   images comme des cadres;
 - la **gestion des erreurs** : compiler malgré les erreurs, ou s'arrêter à
   la première;
+- la **Compilation automatique**, comme l'« Auto Compile » d'Overleaf : le
+  projet se compile deux secondes après que vous avez cessé de taper, avec
+  ce que vous venez d'écrire. Les modifications d'un collaborateur se
+  compilent chez lui, s'il l'a activée. Le réglage est propre à chaque projet;
 - la compilation avec le cache vidé.
 
 Comme sur Overleaf, la bibliographie (BibTeX ou Biber), l'index, les

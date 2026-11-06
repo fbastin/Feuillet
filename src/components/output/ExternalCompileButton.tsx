@@ -28,6 +28,11 @@ import {
 	StopIcon,
 	TrashIcon,
 } from '../common/Icons';
+import {
+	AUTO_COMPILE_DELAY_MS,
+	onLocalEdit,
+	saveOpenDocuments,
+} from '../../utils/autoCompile';
 import { getFilenameFromPath } from '../../utils/fileUtils';
 import { optionsWith } from '../../utils/projectCompileSettings';
 import {
@@ -103,6 +108,8 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		? t('Kept with the project, for every collaborator')
 		: t("Only the project's editors can change this");
 	const autoCompilePropertyId = `external-${provider.id}-auto-compile-on-save`;
+	// Overleaf's Auto Compile, as the person types.
+	const typingCompilePropertyId = `external-${provider.id}-auto-compile`;
 	const fieldPropertyId = useCallback(
 		(key: string) => `external-${provider.id}-${key}`,
 		[provider.id],
@@ -124,6 +131,12 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 
 		registerProperty({
 			id: autoCompilePropertyId,
+			category: 'Compilation',
+			subcategory: provider.label,
+			defaultValue: false,
+		});
+		registerProperty({
+			id: typingCompilePropertyId,
 			category: 'Compilation',
 			subcategory: provider.label,
 			defaultValue: false,
@@ -204,6 +217,9 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 
 	const effectiveAutoCompileOnSave =
 		getProperty(autoCompilePropertyId, { scope: 'project', projectId }) ===
+		true;
+	const effectiveAutoCompile =
+		getProperty(typingCompilePropertyId, { scope: 'project', projectId }) ===
 		true;
 
 	const readValue = useCallback(
@@ -342,6 +358,36 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		};
 	}, [useSharedSettings, effectiveAutoCompileOnSave]);
 
+	// A pause after the person's last change: the open documents are saved,
+	// as Ctrl+Enter does, then compiled (by the saving itself when « on
+	// save » is on too). Collaborators' changes compile on their side.
+	const compilesOnSaveRef = useRef(false);
+	compilesOnSaveRef.current = useSharedSettings && effectiveAutoCompileOnSave;
+	useEffect(() => {
+		if (!useSharedSettings || !effectiveAutoCompile) return;
+
+		let timer: ReturnType<typeof setTimeout> | null = null;
+		const compileNow = async () => {
+			timer = null;
+			await saveOpenDocuments();
+			if (compilesOnSaveRef.current) return;
+			const state = compileStateRef.current;
+			if (state.isCompiling) {
+				autoCompilePendingRef.current = true;
+				return;
+			}
+			await state.runCompile(false);
+		};
+		const stopListening = onLocalEdit(() => {
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(() => void compileNow(), AUTO_COMPILE_DELAY_MS);
+		});
+		return () => {
+			stopListening();
+			if (timer) clearTimeout(timer);
+		};
+	}, [useSharedSettings, effectiveAutoCompile]);
+
 	useEffect(() => {
 		if (isCompiling || !autoCompilePendingRef.current) return;
 		autoCompilePendingRef.current = false;
@@ -361,6 +407,13 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 				handleStopShortcut,
 			);
 	}, [useSharedSettings, canStop, handleStop]);
+
+	const handleAutoCompileChange = (checked: boolean) => {
+		setProperty(typingCompilePropertyId, checked, {
+			scope: 'project',
+			projectId,
+		});
+	};
 
 	const handleAutoCompileOnSaveChange = (checked: boolean) => {
 		setProperty(autoCompilePropertyId, checked, {
@@ -607,6 +660,23 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 				)}
 
 				<div className='ui-menu-section' data-variant='control'>
+					{useSharedSettings && (
+						<label
+							className='ui-menu-item checkbox-control'
+							title={t(
+								'Compiles a moment after you stop typing, as on Overleaf.',
+							)}
+						>
+							<input
+								type='checkbox'
+								data-field='auto-compile'
+								checked={effectiveAutoCompile}
+								onChange={(e) => handleAutoCompileChange(e.target.checked)}
+							/>
+
+							{t('Auto compile')}
+						</label>
+					)}
 					{useSharedSettings && (
 						<label className='ui-menu-item checkbox-control'>
 							<input

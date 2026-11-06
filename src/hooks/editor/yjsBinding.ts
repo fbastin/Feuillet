@@ -9,6 +9,7 @@ import { Awareness } from 'y-protocols/awareness';
 import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
 
 import { undoStepFacet } from '../../extensions/codemirror/undoSteps';
+import { announceLocalEdit } from '../../utils/autoCompile';
 
 interface YjsBindingOptions {
 	onUpdateContent: (content: string) => void;
@@ -85,6 +86,13 @@ export const createYjsEditorBindingExtensions = (
 		attributeFilter: ['data-theme-mode'],
 	});
 
+	// Changes made here, typing or undoing, not those of collaborators: for
+	// the auto compile (utils/autoCompile.ts).
+	const localEdits = (_event: Y.YTextEvent, transaction: Y.Transaction) => {
+		if (transaction.local) announceLocalEdit();
+	};
+	yText.observe(localEdits);
+
 	return {
 		extensions: [
 			yCollab(yText, awareness, { undoManager }),
@@ -92,6 +100,7 @@ export const createYjsEditorBindingExtensions = (
 			undoStepFacet.of(() => undoManager.stopCapturing()),
 		],
 		cleanup: () => {
+			yText.unobserve(localEdits);
 			themeObserver.disconnect();
 			if (localAwareness) {
 				localAwareness.destroy();

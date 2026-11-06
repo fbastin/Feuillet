@@ -113,6 +113,10 @@ import {
 } from '../../contexts/EditorContext';
 import type { EditorSettings } from '../../types/editor';
 import { autoSaveService } from '../../services/AutoSaveService';
+import {
+	announceLocalEdit,
+	onSaveOpenDocuments,
+} from '../../utils/autoCompile';
 import { detectFileType, isBibFile } from '../../utils/fileUtils';
 import { collabService } from '../../services/CollabService';
 import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
@@ -360,6 +364,10 @@ export const useEditorView = (
 
 		return EditorView.updateListener.of((update: ViewUpdate) => {
 			if (update.docChanged && autoSaveRef.current) autoSaveRef.current();
+			// A collaborative document says so through Yjs (yjsBinding.ts).
+			if (update.docChanged && isEditingFile && !isViewOnly) {
+				announceLocalEdit();
+			}
 
 			if (update.selectionSet) {
 				if (cursorUpdateTimeout) clearTimeout(cursorUpdateTimeout);
@@ -1095,6 +1103,27 @@ export const useEditorView = (
 				compartmentsRef.current.highlight.reconfigure(highlightExtension),
 		});
 	}, [buildHighlightExtension]);
+
+	// The auto compile has the open document saved first, as Ctrl+Enter does.
+	useEffect(() => {
+		if (isViewOnly) return;
+		return onSaveOpenDocuments(() => {
+			const content = viewRef.current?.state?.doc?.toString();
+			if (content === undefined) return undefined;
+			if (isEditingFile && currentFileId) return saveFileToStorage(content);
+			if (!isEditingFile && documentId) {
+				return saveDocumentToLinkedFile(content);
+			}
+			return undefined;
+		});
+	}, [
+		isViewOnly,
+		isEditingFile,
+		currentFileId,
+		documentId,
+		saveFileToStorage,
+		saveDocumentToLinkedFile,
+	]);
 
 	/* biome-ignore lint/correctness/useExhaustiveDependencies: editorSettingsVersion is the trigger to recreate the auto-saver when auto-save delay/enabled changes. */
 	useEffect(() => {
