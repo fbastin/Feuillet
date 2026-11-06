@@ -200,14 +200,14 @@ export function createTexliveTypesetterConfig(
 							key: '{typesetter} Engine:',
 							params: { typesetter: 'LaTeX' },
 						},
-						value: 'TeX Live (full)',
+						value: 'TeX Live, full distribution',
 					},
 					{
 						label: {
 							key: '{typesetter} Compilers:',
 							params: { typesetter: 'LaTeX' },
 						},
-						value: 'pdfLaTeX, LuaLaTeX, XeLaTeX (latexmk)',
+						value: 'pdfLaTeX, LaTeX, LuaLaTeX, XeLaTeX (latexmk)',
 					},
 					{ label: 'Output Formats:', value: 'PDF' },
 				],

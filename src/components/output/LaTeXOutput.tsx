@@ -394,6 +394,7 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 						</button>
 					)}
 
+					{/* The same name in both views: « PDF », not « Sortie ». */}
 					{currentView === 'log' && (
 						<button
 							type='button'
@@ -401,7 +402,7 @@ const LaTeXOutput: React.FC<LaTeXOutputProps> = ({
 							onClick={() => toggleOutputView()}
 							disabled={!hasAnyOutput}
 						>
-							{t('Output')}
+							{t('PDF')}
 						</button>
 					)}
 				</div>

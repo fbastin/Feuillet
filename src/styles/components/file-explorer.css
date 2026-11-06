@@ -68,7 +68,7 @@
 }
 
 .ui-panel-header[data-role="explorer"] > .ui-toolbar-actions {
-	gap: var(--ui-explorer-actions-gap, var(--space-sm));
+	gap: var(--ui-explorer-actions-gap, var(--space-xs));
 }
 
 .file-toolbar-dropdown {

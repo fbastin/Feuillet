@@ -4,17 +4,19 @@ import type React from 'react';
 import { t } from '@/i18n';
 import InfoTooltip from '../common/InfoTooltip';
 
+// Under the password field: what the password does on Feuillet, where
+// accounts live on the server (TeXlyre's note spoke of the browser only).
 const PasswordInfo: React.FC = () => {
 	return (
-		<div className='ui-toolbar' data-gap='sm'>
+		<div className='ui-toolbar ui-field-hint' data-gap='xs'>
 			<span className='ui-note'>
 				{t(
-					'Passwords protect API keys and separate account spaces, not your projects.',
+					'It signs you in to your Feuillet account, on any device, and encrypts your tokens in this browser.',
 				)}
 			</span>
 			<InfoTooltip
 				content={t(
-					"Your password separates different user accounts on the same device and browser, and encrypts sensitive information like GitHub tokens and API keys if provided. The password itself is securely hashed and never stored in plain text. However, your project files and documents remain unencrypted in browser storage - anyone with physical access to this browser can view them. When using public or shared computers, export your account as a ZIP file and clear TeXlyre's browser data before leaving.",
+					"Your password signs you in to your Feuillet account on any device; the server keeps only a hash of it. In this browser, it also encrypts sensitive information such as GitHub tokens and API keys. Your projects remain readable in this browser's storage: on a shared computer, sign out and clear Feuillet's browser data before leaving.",
 				)}
 			/>
 		</div>

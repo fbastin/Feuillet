@@ -81,4 +81,18 @@ export const t = (
 	return i18next.t(key, options) as string;
 };
 
+// Words the style sheets write (codemirror.css: « Error: » before a
+// diagnostic), in the interface's language.
+const applyStyleSheetWords = () => {
+	if (typeof document === 'undefined') return;
+	const style = document.documentElement.style;
+	style.setProperty('--diagnostic-error-label', JSON.stringify(t('Error: ')));
+	style.setProperty(
+		'--diagnostic-warning-label',
+		JSON.stringify(t('Warning: ')),
+	);
+	style.setProperty('--diagnostic-info-label', JSON.stringify(t('Info: ')));
+};
+i18next.on('languageChanged', applyStyleSheetWords);
+
 export default i18next;

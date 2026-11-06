@@ -2,6 +2,8 @@
 import type React from 'react';
 import { useRef, useState } from 'react';
 
+import { t } from '@/i18n';
+
 import { InfoIcon } from './Icons';
 import Popover from './Popover';
 
@@ -27,6 +29,7 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
 				className={`ui-icon-button ${className}`}
 				data-variant='ghost'
 				data-size='xs'
+				aria-label={t('More information')}
 				onMouseEnter={() => setShowTooltip(true)}
 				onMouseLeave={() => setShowTooltip(false)}
 				onClick={() => setShowTooltip(!showTooltip)}

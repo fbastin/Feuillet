@@ -307,7 +307,6 @@ const Register: React.FC<RegisterProps> = ({
 				</div>
 
 				<div className='ui-field' data-spacing='section'>
-					<PasswordInfo />
 					<label htmlFor='password'>
 						{t('Password')}
 						<span className='required'>*</span>
@@ -321,6 +320,7 @@ const Register: React.FC<RegisterProps> = ({
 						autoComplete='new-password'
 						required
 					/>
+					<PasswordInfo />
 				</div>
 
 				<div className='ui-field' data-spacing='section'>
@@ -337,6 +337,45 @@ const Register: React.FC<RegisterProps> = ({
 						autoComplete='new-password'
 						required
 					/>
+				</div>
+
+				{/* Agreed before the button they unlock, not under it. */}
+				<div className='ui-stack auth-consent-fields' data-gap='xs'>
+					<div className='ui-field'>
+						<label className='checkbox-control'>
+							<input
+								type='checkbox'
+								checked={ageConfirmed}
+								onChange={(e) => setAgeConfirmed(e.target.checked)}
+								required
+							/>
+
+							<span>{t('I confirm I am at least 16 years old')}</span>
+						</label>
+					</div>
+
+					<div className='ui-field'>
+						<label className='checkbox-control'>
+							<input
+								type='checkbox'
+								checked={privacyAccepted}
+								onChange={(e) => setPrivacyAccepted(e.target.checked)}
+								required
+							/>
+
+							<span>
+								{t('I understand how my data is handled as described in the')}{' '}
+								<button
+									type='button'
+									className='button'
+									data-variant='text'
+									onClick={onShowPrivacy}
+								>
+									{t('privacy information')}
+								</button>
+							</span>
+						</label>
+					</div>
 				</div>
 
 				<button
@@ -373,44 +412,6 @@ const Register: React.FC<RegisterProps> = ({
 					</button>
 				)}
 			</form>
-
-			<div className='ui-stack auth-consent-fields' data-gap='xs'>
-				<div className='ui-field'>
-					<label className='checkbox-control'>
-						<input
-							type='checkbox'
-							checked={ageConfirmed}
-							onChange={(e) => setAgeConfirmed(e.target.checked)}
-							required
-						/>
-
-						<span>{t('I confirm I am at least 16 years old')}</span>
-					</label>
-				</div>
-
-				<div className='ui-field'>
-					<label className='checkbox-control'>
-						<input
-							type='checkbox'
-							checked={privacyAccepted}
-							onChange={(e) => setPrivacyAccepted(e.target.checked)}
-							required
-						/>
-
-						<span>
-							{t('I understand how my data is handled as described in the')}{' '}
-							<button
-								type='button'
-								className='button'
-								data-variant='text'
-								onClick={onShowPrivacy}
-							>
-								{t('privacy information')}
-							</button>
-						</span>
-					</label>
-				</div>
-			</div>
 
 			{!isUpgrade && (
 				<div className='ui-actions' data-align='center' data-wrap='true'>

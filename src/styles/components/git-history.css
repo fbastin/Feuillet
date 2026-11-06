@@ -587,6 +587,14 @@
 	min-width: 2.25rem;
 }
 
+/* The six views share the sidebar's width, the narrowest included, rather
+   than pushing the last one out of sight. */
+.ui-tab-list[data-role="explorer-view"] > .ui-tab.view-toggle-icon {
+	flex: 1 1 0;
+	min-width: 1.75rem;
+	padding-inline: 0;
+}
+
 .ui-tab-list[data-role="explorer-view"] .view-toggle-icon svg {
 	width: 16px;
 	height: 16px;
@@ -968,6 +976,8 @@
 	flex: 1;
 	font-variant-numeric: tabular-nums;
 	font-weight: 600;
+	/* « 06 h 45 » on one line, even in a narrow sidebar. */
+	white-space: nowrap;
 }
 
 /* Under the time, past the compare box. */

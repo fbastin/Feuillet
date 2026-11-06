@@ -426,6 +426,8 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 							</button>
 						))}
 
+					{/* With one output, its name in both views: « PDF », not
+					    « Sortie ». */}
 					{currentView === 'log' && (
 						<button
 							type='button'
@@ -433,7 +435,7 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 							onClick={() => toggleOutputView()}
 							disabled={!hasOutput}
 						>
-							{t('Output')}
+							{tabs.length === 1 ? tabs[0].label : t('Output')}
 						</button>
 					)}
 				</div>

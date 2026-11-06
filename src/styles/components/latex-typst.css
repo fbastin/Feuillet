@@ -109,18 +109,20 @@ embed {
 	margin: 0;
 }
 
+/* The server compiler's mark, in the corner: kept off the chevron, whose
+   arm it otherwise prolongs into a « ✓ ». */
 .external-button-status {
 	position: absolute;
-	top: -1px;
-	right: -1px;
+	top: -3px;
+	right: -3px;
 	display: inline-flex;
 	color: var(--pico-primary);
 	pointer-events: none;
 }
 
 .external-button-status svg {
-	width: 0.55rem;
-	height: 0.55rem;
+	width: 0.45rem;
+	height: 0.45rem;
 	stroke-width: 2.5;
 }
 

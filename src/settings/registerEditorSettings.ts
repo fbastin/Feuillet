@@ -125,6 +125,11 @@ export function useRegisterEditorSettings() {
 			label: t('Font size (pixels)'),
 			description: t('Set the font size for the editor'),
 			defaultValue: initialFontSize,
+			// Older defaults named sizes (« lg »): a number field shows those
+			// empty, so it shows the size they stand for.
+			...(typeof batchedSettings['editor-font-size'] === 'number'
+				? {}
+				: { value: initialFontSize }),
 			min: MIN_FONT_SIZE,
 			max: MAX_FONT_SIZE,
 			onChange: (value) => {

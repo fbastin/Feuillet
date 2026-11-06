@@ -15,7 +15,7 @@
     "editor-auto-save-delay": 1000,
     "editor-auto-save-enable": true,
     "editor-font-family": "monospace",
-    "editor-font-size": "lg",
+    "editor-font-size": 16,
     "editor-show-line-numbers": true,
     "editor-spell-check": false,
     "editor-syntax-highlighting": true,

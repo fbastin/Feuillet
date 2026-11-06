@@ -2,6 +2,8 @@
 import React from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 
+import { t } from '@/i18n';
+
 import { useHeaderVisibility } from '../../hooks/useHeaderVisibility';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import CollaboratorAvatars, {
@@ -131,7 +133,9 @@ export const PluginHeader: React.FC<PluginHeaderProps> = ({
 							data-role='plugin-path'
 							data-variant='text'
 							onClick={onNavigateToLinkedFile}
-							title={`Navigate to linked file: ${linkedFileInfo.fileName}`}
+							title={t('Go to the linked file: {fileName}', {
+								fileName: linkedFileInfo.fileName,
+							})}
 						>
 							{filePath || fileName}
 						</button>
@@ -142,7 +146,9 @@ export const PluginHeader: React.FC<PluginHeaderProps> = ({
 						<button
 							type='button'
 							onClick={onNavigateToLinkedFile}
-							title={`Navigate to linked file: ${linkedFileInfo.fileName}`}
+							title={t('Go to the linked file: {fileName}', {
+								fileName: linkedFileInfo.fileName,
+							})}
 							className='ui-icon-button'
 							data-variant='subtle'
 							data-size='xs'

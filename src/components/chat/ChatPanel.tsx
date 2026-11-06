@@ -91,6 +91,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
 						data-role='chat-collapse'
 						data-variant='ghost'
 						data-size='xs'
+						aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+						title={isCollapsed ? t('Expand') : t('Collapse')}
 					>
 						{isCollapsed ? <ChevronUpIcon /> : <ChevronDownIcon />}
 					</button>

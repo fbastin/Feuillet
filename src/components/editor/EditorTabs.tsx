@@ -445,7 +445,9 @@ const EditorTabs: React.FC<EditorTabsProps> = ({ onTabSwitch }) => {
 								)}
 							</span>
 							<span className='tab-title ui-control-label'>
-								{tab.title}
+								{/* « main.tex », not « /main.tex »: the path's root is
+								    implied, as in the file tree. */}
+								{tab.title.replace(/^\/+/, '')}
 								{tab.isDirty && (
 									<span className='ui-status' data-tone='warning'>
 										•

@@ -326,10 +326,11 @@
 	grid-row: 1;
 }
 
-.cm-editor .cm-panel.cm-search label:has(input[name="word"])::after {
-	content: "|w|";
-	font-family: var(--editor-font-family, monospace);
-	font-size: var(--font-size-small);
+/* « ab » on a bracket (searchPanelLabels.ts), as the sidebar search. */
+.cm-editor .cm-panel.cm-search .cm-search-word-icon {
+	width: 18px;
+	height: 16px;
+	flex-shrink: 0;
 }
 
 .cm-editor .cm-panel.cm-search label:has(input[name="re"]) {
@@ -442,40 +443,9 @@
 	visibility: visible;
 }
 
-.cm-editor .cm-panel.cm-search label:has(input[name="case"])::before {
-	content: "Match case";
-}
-
-.cm-editor .cm-panel.cm-search label:has(input[name="word"])::before {
-	content: "Match whole word";
-}
-
-.cm-editor .cm-panel.cm-search label:has(input[name="re"])::before {
-	content: "Regular expression";
-}
-
-.cm-editor .cm-panel.cm-search button[name="prev"]::before {
-	content: "Previous match";
-}
-
-.cm-editor .cm-panel.cm-search button[name="next"]::before {
-	content: "Next match";
-}
-
-.cm-editor .cm-panel.cm-search button[name="select"]::before {
-	content: "All matches";
-}
-
-.cm-editor .cm-panel.cm-search button[name="close"]::before {
-	content: "Close search";
-}
-
-.cm-editor .cm-panel.cm-search button[name="replace"]::before {
-	content: "Replace";
-}
-
-.cm-editor .cm-panel.cm-search button[name="replaceAll"]::before {
-	content: "Replace all";
+/* Each control's name, translated (searchPanelLabels.ts). */
+.cm-editor .cm-panel.cm-search :is(button, label)[data-tip]::before {
+	content: attr(data-tip);
 }
 
 .codemirror-editor-container .cm-searchMatch {

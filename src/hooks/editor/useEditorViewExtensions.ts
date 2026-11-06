@@ -40,6 +40,7 @@ import {
 } from '../../contexts/EditorContext';
 import { latexTypstBidiIsolates } from '../../extensions/codemirror/BidiExtension';
 import { resolveHighlightTheme } from '../../extensions/codemirror/HighlightThemeExtension';
+import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
 import { createLanguageExtension } from '../../extensions/codemirror/LanguageExtension';
 import { createListingsExtension } from '../../extensions/codemirror/ListingsExtension';
 import { createMathLiveExtension } from '../../extensions/codemirror/MathLiveExtension';
@@ -99,6 +100,7 @@ export const useEditorViewExtensions = ({
 			bracketMatching(),
 			closeBrackets(),
 			highlightSelectionMatches(),
+			editorPhrases(),
 			search({
 				scrollToMatch: (range, view) =>
 					EditorView.scrollIntoView(range, {

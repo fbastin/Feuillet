@@ -1,5 +1,6 @@
 /* biome-ignore-all lint/suspicious/noControlCharactersInRegex: Filename validator must reject control characters. */
 // src/utils/fileUtils.ts
+import i18next from 'i18next';
 import mime from 'mime';
 
 import { t } from '@/i18n';
@@ -73,14 +74,21 @@ export function toBase64(content: string | Uint8Array | ArrayBuffer): string {
 	return btoa(binaryString);
 }
 
+// One decimal, written as the interface's language writes it: « 27,8 Ko ».
+const oneDecimal = (value: number): string =>
+	value.toLocaleString(i18next.language || undefined, {
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 1,
+	});
+
 export function formatFileSize(size?: number): string {
 	if (!size) return t('Unknown size');
 	if (size < 1024) return t('{count} bytes', { count: size });
 	if (size < 1024 * 1024)
-		return t('{size} KB', { size: (size / 1024).toFixed(1) });
+		return t('{size} KB', { size: oneDecimal(size / 1024) });
 	if (size < 1024 * 1024 * 1024)
-		return t('{size} MB', { size: (size / (1024 * 1024)).toFixed(1) });
-	return t('{size} GB', { size: (size / (1024 * 1024 * 1024)).toFixed(1) });
+		return t('{size} MB', { size: oneDecimal(size / (1024 * 1024)) });
+	return t('{size} GB', { size: oneDecimal(size / (1024 * 1024 * 1024)) });
 }
 
 export async function computeGitBlobSha(

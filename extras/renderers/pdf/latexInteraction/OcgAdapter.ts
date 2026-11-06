@@ -60,11 +60,11 @@ function renderLayerPanel(
 	const panel = document.createElement('div');
 	panel.className = 'pdf-latex-ocg-panel';
 	panel.setAttribute('role', 'group');
-	panel.setAttribute('aria-label', 'PDF layers');
+	panel.setAttribute('aria-label', t('PDF layers'));
 
 	const title = document.createElement('div');
 	title.className = 'pdf-latex-ocg-title';
-	title.textContent = 'PDF layers';
+	title.textContent = t('PDF layers');
 	panel.appendChild(title);
 
 	const refreshViewer = () => {
@@ -115,8 +115,10 @@ function renderLayerPanel(
 
 export const OcgAdapter: LatexPdfInteractionAdapter = {
 	name: 'ocg',
+	// PDF.js gives every document an optional content configuration, layers
+	// or not: only its groups tell that there are layers.
 	detect: (context: LatexPdfInteractionContext) =>
-		Boolean(context.analysis.optionalContentConfig) ||
+		getGroups(context.analysis.optionalContentConfig).length > 0 ||
 		flattenActionStrings(context.analysis.documentActions).some((js) =>
 			/ocg|optional content|layer/i.test(js),
 		),

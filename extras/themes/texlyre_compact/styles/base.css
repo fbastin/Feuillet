@@ -408,6 +408,23 @@ html[data-layout="texlyre-compact"]
 	line-height: 1.35;
 }
 
+/* Pico draws the arrow 0.75rem from the edge, 1rem wide: past the 26px kept
+   for it, so the text of a select sized by its content ran over it. */
+html[data-layout="texlyre-compact"] body select:not([multiple], [size]) {
+	background-position: center right 7px;
+	background-size: 14px auto;
+}
+
+html[data-layout="texlyre-compact"][dir="rtl"]
+	body
+	select:not([multiple], [size]),
+html[data-layout="texlyre-compact"]
+	body
+	[dir="rtl"]
+	select:not([multiple], [size]) {
+	background-position: center left 7px;
+}
+
 html[data-layout="texlyre-compact"] body textarea,
 html[data-layout="texlyre-compact"] body select[multiple] {
 	font-size: var(--compact-font-small);

@@ -28,6 +28,8 @@ class TypesetterRegistryService {
 		this.notify();
 	}
 
+	// File kinds' labels stay keys, translated when a menu shows them: the
+	// builtins register before the interface's language is known.
 	registerBuiltins(): void {
 		if (this.builtinsRegistered) return;
 		this.builtinsRegistered = true;
@@ -42,17 +44,17 @@ class TypesetterRegistryService {
 			inputFiles: [
 				{
 					extension: 'tex',
-					label: t('{typesetter} File', { typesetter: t('LaTeX') }),
+					label: { key: '{typesetter} File', params: { typesetter: 'LaTeX' } },
 					mimeType: 'text/x-tex',
 				},
 				{
 					extension: 'cls',
-					label: t('{typesetter} Class', { typesetter: t('LaTeX') }),
+					label: { key: '{typesetter} Class', params: { typesetter: 'LaTeX' } },
 					mimeType: 'text/x-tex',
 				},
 				{
 					extension: 'sty',
-					label: t('{typesetter} Style', { typesetter: t('LaTeX') }),
+					label: { key: '{typesetter} Style', params: { typesetter: 'LaTeX' } },
 					mimeType: 'text/x-tex',
 				},
 			],
@@ -69,7 +71,7 @@ class TypesetterRegistryService {
 			inputFiles: [
 				{
 					extension: 'typ',
-					label: t('{typesetter} File', { typesetter: t('Typst') }),
+					label: { key: '{typesetter} File', params: { typesetter: 'Typst' } },
 					mimeType: 'text/x-typst',
 				},
 			],

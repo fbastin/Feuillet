@@ -13,7 +13,12 @@ interface SourceMapButtonProps {
 	disabled?: boolean;
 }
 
-const CLICK_MODE_OPTIONS: { label: string; value: SourceMapClickMode }[] = [
+// Labels read when drawn: at import, the interface's language is not known
+// yet, and « Single » stayed in English.
+const clickModeOptions = (): {
+	label: string;
+	value: SourceMapClickMode;
+}[] => [
 	{ label: t('Single'), value: 'single' },
 	{ label: t('Double'), value: 'double' },
 	{ label: t('Triple'), value: 'triple' },
@@ -102,7 +107,7 @@ const SourceMapButton: React.FC<SourceMapButtonProps> = ({
 					</div>
 					{reverseClickEnabled && (
 						<div className='sourcemap-click-mode-group'>
-							{CLICK_MODE_OPTIONS.map((opt) => (
+							{clickModeOptions().map((opt) => (
 								<button
 									type='button'
 									key={opt.value}
@@ -134,7 +139,7 @@ const SourceMapButton: React.FC<SourceMapButtonProps> = ({
 					</div>
 					{forwardClickEnabled && (
 						<div className='sourcemap-click-mode-group'>
-							{CLICK_MODE_OPTIONS.map((opt) => (
+							{clickModeOptions().map((opt) => (
 								<button
 									type='button'
 									key={opt.value}

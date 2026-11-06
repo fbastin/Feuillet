@@ -172,6 +172,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 		</span>
 	);
 
+	const hasLastOpened = Boolean(
+		project.lastOpenedFilePath || project.lastOpenedDocId,
+	);
+
 	const getDropdownDisplayText = () => {
 		if (project.lastOpenedFilePath) {
 			const fileName =
@@ -373,7 +377,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 						>
 							<button
 								type='button'
-								className='button primary ui-split-main'
+								className={`button primary${hasLastOpened ? ' ui-split-main' : ''}`}
 								onClick={handleDefaultOpen}
 								title={getDropdownDisplayText()}
 								aria-label={getDropdownDisplayText()}
@@ -381,16 +385,19 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 								<FolderIcon />
 								<span className='project-open-label'>{t('Open')}</span>
 							</button>
-							<button
-								type='button'
-								className='button primary ui-split-toggle'
-								onClick={toggleOpenDropdown}
-								title={t('Open Options')}
-							>
-								<ChevronDownIcon />
-							</button>
+							{/* A choice only once there is a last file to go back to. */}
+							{hasLastOpened && (
+								<button
+									type='button'
+									className='button primary ui-split-toggle'
+									onClick={toggleOpenDropdown}
+									title={t('Open Options')}
+								>
+									<ChevronDownIcon />
+								</button>
+							)}
 						</div>
-						{isOpenDropdownOpen && (
+						{isOpenDropdownOpen && hasLastOpened && (
 							<div className='ui-menu' data-position='below'>
 								<div className='ui-menu-item' onClick={handleDefaultOpen}>
 									{getDropdownContent()}

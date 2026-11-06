@@ -55,6 +55,7 @@ import {
 } from 'yjs';
 
 import { createNamedLogger } from '@/logging';
+import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
 import { createLanguageExtension } from '../../extensions/codemirror/LanguageExtension';
 import { resolveHighlightTheme } from '../../extensions/codemirror/HighlightThemeExtension';
 import { annotationSystemExtension } from '../../extensions/codemirror/AnnotationExtension';
@@ -415,6 +416,7 @@ export const useEditorView = (
 			bracketMatching(),
 			closeBrackets(),
 			highlightSelectionMatches(),
+			editorPhrases(),
 			search({
 				scrollToMatch: (range, view) =>
 					EditorView.scrollIntoView(range, {

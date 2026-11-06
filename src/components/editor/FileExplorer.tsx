@@ -1329,6 +1329,52 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 						data-active-style='filled'
 						ref={headerActionsRef}
 					>
+						{/* Making files first, as on Overleaf: at the sidebar's usual
+						    width the last buttons need a scroll. */}
+						{!readOnly && (
+							<>
+								<button
+									type='button'
+									ref={fileCreationButtonRef}
+									className='ui-icon-button'
+									data-variant='subtle'
+									title={t('New File')}
+									onClick={(e) => handleStartCreateFile('/', e.currentTarget)}
+								>
+									<FilePlusIcon />
+								</button>
+
+								<button
+									type='button'
+									className='ui-icon-button'
+									data-variant='subtle'
+									title={t('New Folder')}
+									onClick={() => handleStartCreateDirectory('/')}
+								>
+									<FolderPlusIcon />
+								</button>
+								<button
+									type='button'
+									className='ui-icon-button'
+									data-variant='subtle'
+									title={t('Upload Files')}
+									onClick={() => document.getElementById('file-input')?.click()}
+								>
+									<UploadIcon />
+								</button>
+
+								<input
+									id='file-input'
+									type='file'
+									multiple
+									onChange={handleFileUpload}
+									style={{ display: 'none' }}
+								/>
+
+								<div className='action-separator'></div>
+							</>
+						)}
+
 						<button
 							type='button'
 							className='ui-icon-button'
@@ -1361,8 +1407,6 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 							<CheckIcon />
 						</button>
 
-						<div className='action-separator'></div>
-
 						<button
 							type='button'
 							className='ui-icon-button'
@@ -1375,59 +1419,16 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 						</button>
 
 						{!readOnly && (
-							<>
-								<button
-									type='button'
-									className='ui-icon-button'
-									data-variant='subtle'
-									title={t('Open Folder from Disk')}
-									onClick={handleOpenFolder}
-									disabled={
-										!currentProjectId || !workspaceService.isSupported()
-									}
-								>
-									<FolderOpenIcon />
-								</button>
-
-								<button
-									type='button'
-									className='ui-icon-button'
-									data-variant='subtle'
-									title={t('Upload Files')}
-									onClick={() => document.getElementById('file-input')?.click()}
-								>
-									<UploadIcon />
-								</button>
-
-								<input
-									id='file-input'
-									type='file'
-									multiple
-									onChange={handleFileUpload}
-									style={{ display: 'none' }}
-								/>
-
-								<button
-									type='button'
-									ref={fileCreationButtonRef}
-									className='ui-icon-button'
-									data-variant='subtle'
-									title={t('New File')}
-									onClick={(e) => handleStartCreateFile('/', e.currentTarget)}
-								>
-									<FilePlusIcon />
-								</button>
-
-								<button
-									type='button'
-									className='ui-icon-button'
-									data-variant='subtle'
-									title={t('New Folder')}
-									onClick={() => handleStartCreateDirectory('/')}
-								>
-									<FolderPlusIcon />
-								</button>
-							</>
+							<button
+								type='button'
+								className='ui-icon-button'
+								data-variant='subtle'
+								title={t('Open Folder from Disk')}
+								onClick={handleOpenFolder}
+								disabled={!currentProjectId || !workspaceService.isSupported()}
+							>
+								<FolderOpenIcon />
+							</button>
 						)}
 					</div>
 
