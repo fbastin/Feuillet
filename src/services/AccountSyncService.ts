@@ -655,6 +655,42 @@ class AccountSyncService {
 	}
 
 	/**
+	 * Attaches a file to a GitHub release through the collaboration server,
+	 * which GitHub's upload server takes and pages are not (CORS). The token
+	 * passes through, unkept. Null when no account is signed in.
+	 */
+	async uploadReleaseAsset(
+		input: {
+			repositoryId: string;
+			releaseId: number;
+			name: string;
+			type: string;
+			bytes: Uint8Array;
+			githubToken: string;
+		},
+		signal?: AbortSignal,
+	): Promise<Response | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const query = new URLSearchParams({
+			repository: input.repositoryId,
+			release: String(input.releaseId),
+			name: input.name,
+		});
+		return fetch(`${session.server}/github/release-asset?${query}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': input.type,
+				Authorization: `Bearer ${session.token}`,
+				'X-GitHub-Token': input.githubToken,
+			},
+			body: input.bytes as Uint8Array<ArrayBuffer>,
+			signal,
+		});
+	}
+
+	/**
 	 * The accounts the owner invited to a project, after adding or removing
 	 * one. Removing someone replaces the link they used.
 	 */

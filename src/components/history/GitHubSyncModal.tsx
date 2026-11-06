@@ -43,6 +43,7 @@ import type { SharedGitRemote } from '@/types/documents';
 import type { PendingGitImport } from '@/utils/gitPendingImport';
 import { ensureGitRemoteBranch, isRejectedToken } from '@/utils/gitUtils';
 import GitAccountTokenForm from './GitAccountTokenForm';
+import GitHubReleaseSection from './GitHubReleaseSection';
 import { OPEN_GIT_CLONE_EVENT } from './GitCloneButton';
 import GitRepositoryPicker, {
 	type GitRepositorySelection,
@@ -927,6 +928,21 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 							})}
 				</button>
 			</section>
+
+			<GitHubReleaseSection
+				provider={provider}
+				config={config}
+				remoteName={remoteName}
+				projectId={projectId}
+				projectName={projectName}
+				syncStatus={syncStatus}
+				pendingChangeCount={pendingChangeCount}
+				isBusy={isBusy}
+				busyAction={busyAction}
+				run={run}
+				readToken={readToken}
+				createActionSecrets={createActionSecrets}
+			/>
 
 			<div className='github-sync-footer ui-stack' data-gap='sm'>
 				<p className='ui-note'>

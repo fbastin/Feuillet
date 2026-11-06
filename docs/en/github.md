@@ -47,6 +47,31 @@ The **Git history** tab, on the left, shows the commits and their
 differences. **Unlink repository** undoes the link without touching the
 project or its history.
 
+## Publishing a release
+
+Once the project is linked, the **Publish a release on GitHub** section of
+the GitHub window makes a release: a tag on the repository's latest commit,
+with the project's PDF attached, compiled then and there with TeX Live. It is
+what GitHub shows under **Releases**, and what one cites or sends.
+
+- The suggested **Tag** follows the latest one (`v2` after `v1`, `1.4` after
+  `1.3`); the **Title** and **Notes** are yours.
+- The project must be up to date with GitHub: push and pull first, so that
+  the PDF is made of what the release points to.
+- **Pre-release** marks it so on GitHub; one may also publish without the
+  PDF.
+- The PDF goes through Feuillet's server, which GitHub takes it from when the
+  browser cannot send it: you must be signed in to a Feuillet account. The
+  server hands the PDF and the token to GitHub without keeping them. If GitHub
+  refuses the PDF, nothing is published.
+- The token must be allowed to write to the repository: the `repo` access
+  (the one **Connect to GitHub** asks for), or **Contents: write** for a
+  fine-grained token.
+
+If the repository is linked to [Zenodo](https://zenodo.org/account/settings/github/),
+each published release is archived there and receives a DOI, to cite for a
+thesis, a report or a preprint.
+
 ## Working on your computer
 
 To work on your computer, with your usual tools or with

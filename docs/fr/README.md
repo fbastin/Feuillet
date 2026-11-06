@@ -26,8 +26,8 @@ guide nomme les boutons tels qu'ils s'affichent en français.
 4. [Versions](versions.md) : historique du projet, étiquettes, comparer,
    restaurer.
 5. [GitHub](github.md) : lier un projet à un dépôt, envoyer, récupérer,
-   travailler sur son ordinateur, badge « Ouvrir dans Feuillet » pour un
-   README.
+   publier une version avec son PDF, travailler sur son ordinateur, badge
+   « Ouvrir dans Feuillet » pour un README.
 6. [Git](git.md) : cloner un projet avec Git, tirer et pousser, sans GitHub.
 7. [Claude](claude.md) : laisser Claude lire, compiler, commenter et proposer
    des modifications.

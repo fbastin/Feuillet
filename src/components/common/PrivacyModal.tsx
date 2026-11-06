@@ -95,7 +95,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					<li>
 						<strong>{t('What only passes through:')}</strong>&nbsp;
 						{t(
-							'signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. A file imported from a web address is downloaded by the server for you, without being kept.',
+							'signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. The PDF of a GitHub release goes through it too, with the token, to be handed to GitHub. A file imported from a web address is downloaded by the server for you, without being kept.',
 						)}
 					</li>
 					<li>

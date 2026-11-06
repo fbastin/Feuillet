@@ -23,7 +23,8 @@ guide names the buttons as they read in English.
 4. [Versions](versions.md): the project's history, labels, comparing,
    restoring.
 5. [GitHub](github.md): linking a project to a repository, pushing, pulling,
-   working on your computer, an "Open in Feuillet" badge for a README.
+   publishing a release with its PDF, working on your computer, an "Open in
+   Feuillet" badge for a README.
 6. [Git](git.md): cloning a project with Git, pulling and pushing, without
    GitHub.
 7. [Claude](claude.md): letting Claude read, compile, comment on and suggest

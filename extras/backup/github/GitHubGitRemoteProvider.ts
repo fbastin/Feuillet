@@ -1,5 +1,6 @@
 import type {
 	GitRemoteProvider,
+	GitRemoteReleases,
 	GitRemoteSignature,
 	GitRemoteTreeEntry,
 } from '@/types/gitRemote';
@@ -97,6 +98,66 @@ const bootstrapEmptyRepository = async (
 		},
 	);
 	return initialized.commit.sha;
+};
+
+// « Publier une version sur GitHub »: the PDF is attached in between, through
+// Feuillet's server (server/collab/releases.js).
+const releases: GitRemoteReleases = {
+	latestTag: async (token, repositoryId) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const list = await request<{ tag_name?: string }[]>(
+			token,
+			`repos/${owner}/${repo}/releases?per_page=1`,
+		);
+		return list[0]?.tag_name ?? null;
+	},
+	tagExists: async (token, repositoryId, tag) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		try {
+			await request(
+				token,
+				`repos/${owner}/${repo}/git/ref/tags/${encodeURIComponent(tag)}`,
+			);
+			return true;
+		} catch (error) {
+			if ((error as { status?: number }).status === 404) return false;
+			throw error;
+		}
+	},
+	createDraft: async (token, repositoryId, input) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const release = await request<{ id: number }>(
+			token,
+			`repos/${owner}/${repo}/releases`,
+			{
+				method: 'POST',
+				body: JSON.stringify({
+					tag_name: input.tagName,
+					target_commitish: input.targetCommitish,
+					name: input.name,
+					body: input.body,
+					prerelease: input.prerelease,
+					draft: true,
+				}),
+			},
+		);
+		return { id: release.id };
+	},
+	publish: async (token, repositoryId, id) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const release = await request<{ html_url: string; tag_name: string }>(
+			token,
+			`repos/${owner}/${repo}/releases/${id}`,
+			{ method: 'PATCH', body: JSON.stringify({ draft: false }) },
+		);
+		return { url: release.html_url, tagName: release.tag_name };
+	},
+	remove: async (token, repositoryId, id) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		await request(token, `repos/${owner}/${repo}/releases/${id}`, {
+			method: 'DELETE',
+		});
+	},
 };
 
 const historyTransport: GitRemoteProvider['historyTransport'] = {
@@ -386,5 +447,6 @@ export const gitHubGitRemoteProvider: GitRemoteProvider = {
 	},
 	getTokenCreationUrl: (appName) =>
 		`${webBaseUrl()}/settings/tokens/new?scopes=repo&description=${encodeURIComponent(appName)}`,
+	releases,
 	historyTransport,
 };

@@ -1042,3 +1042,16 @@
 .github-sync-clone[open] summary {
 	margin-bottom: var(--space-xs);
 }
+
+/* Publishing a release with the PDF (GitHubReleaseSection) */
+.github-sync-release summary {
+	cursor: pointer;
+}
+
+.github-sync-release[open] summary {
+	margin-bottom: var(--space-sm);
+}
+
+.github-sync-release textarea {
+	resize: vertical;
+}

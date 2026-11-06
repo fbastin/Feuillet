@@ -49,6 +49,32 @@ L'onglet **Historique Git**, à gauche, montre les commits et leurs
 différences. **Délier le dépôt** défait le lien sans toucher ni au projet ni
 à son historique.
 
+## Publier une version
+
+Une fois le projet lié, la section **Publier une version sur GitHub** de la
+fenêtre GitHub crée une version (une *release*) : un tag sur le dernier
+commit du dépôt, avec le PDF du projet en pièce jointe, compilé au moment même
+avec TeX Live. C'est ce que GitHub montre sous **Releases**, et ce qu'on cite
+ou qu'on envoie.
+
+- Le **Tag** proposé suit le dernier (`v2` après `v1`, `1.4` après `1.3`);
+  le **Titre** et les **Notes** sont libres.
+- Le projet doit être à jour avec GitHub : envoyez et récupérez d'abord les
+  modifications, pour que le PDF soit fait de ce que la version désigne.
+- **Prépublication** la marque comme telle sur GitHub; on peut aussi publier
+  sans le PDF.
+- Le PDF passe par le serveur de Feuillet, que GitHub accepte quand le
+  navigateur ne le peut pas : il faut être connecté à un compte Feuillet. Le
+  serveur remet le PDF et le jeton à GitHub sans les garder. Si GitHub refuse
+  le PDF, rien n'est publié.
+- Le jeton doit pouvoir écrire dans le dépôt : l'accès `repo` (celui que
+  demande **Se connecter à GitHub**), ou **Contents: write** pour un jeton à
+  accès précis.
+
+Si le dépôt est relié à [Zenodo](https://zenodo.org/account/settings/github/),
+chaque version publiée y est archivée et reçoit un DOI, à citer pour une
+thèse, un rapport ou une prépublication.
+
 ## Travailler sur son ordinateur
 
 Pour travailler sur votre ordinateur, avec vos outils habituels ou avec

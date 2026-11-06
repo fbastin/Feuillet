@@ -133,6 +133,36 @@ export interface GitRemoteHistoryTransport {
 	): Promise<GitRemoteCommitObject>;
 }
 
+/** A release to make on the provider, at a commit. */
+export interface GitRemoteReleaseInput {
+	tagName: string;
+	name: string;
+	body: string;
+	/** The commit the tag points to. */
+	targetCommitish: string;
+	prerelease: boolean;
+}
+
+/**
+ * Releases, as GitHub's: made as a draft, its files attached, then
+ * published (or removed when a file could not be attached).
+ */
+export interface GitRemoteReleases {
+	latestTag(token: string, repositoryId: string): Promise<string | null>;
+	tagExists(token: string, repositoryId: string, tag: string): Promise<boolean>;
+	createDraft(
+		token: string,
+		repositoryId: string,
+		input: GitRemoteReleaseInput,
+	): Promise<{ id: number }>;
+	publish(
+		token: string,
+		repositoryId: string,
+		id: number,
+	): Promise<{ url: string; tagName: string }>;
+	remove(token: string, repositoryId: string, id: number): Promise<void>;
+}
+
 export interface GitRemoteProvider {
 	id: string;
 	displayName: string;
@@ -160,5 +190,6 @@ export interface GitRemoteProvider {
 	): Promise<GitRemoteRepository>;
 	getRepositoryUrl?(repositoryId: string, branch?: string): string;
 	getTokenCreationUrl?(appName: string): string;
+	releases?: GitRemoteReleases;
 	historyTransport: GitRemoteHistoryTransport;
 }

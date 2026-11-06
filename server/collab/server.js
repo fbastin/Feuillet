@@ -110,6 +110,7 @@ const { createCompiler } = require('./compile');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
 const { createOpenLinks } = require('./docs');
+const { createReleaseAssets } = require('./releases');
 const { createGrammar } = require('./grammar');
 const { createGitBridge } = require('./git');
 const { createGitHub } = require('./github');
@@ -302,6 +303,14 @@ const history = createHistory({
 });
 
 const urlFetcher = createUrlFetcher({ accounts, maxBytes: maxFileBytes, log });
+
+// The PDF of a GitHub release, which GitHub's upload server takes only
+// from servers (server/collab/releases.js).
+const releaseAssets = createReleaseAssets({
+	accounts,
+	uploadsUrl: process.env.GITHUB_UPLOADS_URL || undefined,
+	log,
+});
 
 // « Ouvrir dans Feuillet » links and forms, as Overleaf's /docs.
 const openLinks = createOpenLinks({
@@ -536,11 +545,13 @@ const server = http.createServer((req, res) => {
 				? admin
 				: urlFetcher.handles(url)
 					? urlFetcher
-					: grammar.handles(url)
-						? grammar
-						: oauth.handlesAccount(url)
-							? { handle: (request, response) => oauth.handleAccount(request, response) }
-							: null;
+					: releaseAssets.handles(url)
+						? releaseAssets
+						: grammar.handles(url)
+							? grammar
+							: oauth.handlesAccount(url)
+								? { handle: (request, response) => oauth.handleAccount(request, response) }
+								: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {
@@ -555,7 +566,8 @@ const server = http.createServer((req, res) => {
 		if (req.method === 'OPTIONS') {
 			res.writeHead(204, {
 				'Access-Control-Allow-Methods': 'GET, POST, DELETE',
-				'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+				'Access-Control-Allow-Headers':
+					'Authorization, Content-Type, X-GitHub-Token',
 				'Access-Control-Max-Age': '86400',
 			});
 			res.end();
