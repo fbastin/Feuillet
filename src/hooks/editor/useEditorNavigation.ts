@@ -329,22 +329,32 @@ export const useEditorNavigation = ({
 		[docUrl, getSetting, linkFileToDocument],
 	);
 
-	const handleUserFileSelect = useCallback(
-		async (fileId: string) => {
-			const file = await getFile(fileId);
-			if (!file) return;
-			if (await linkOnOpen(file)) return;
-
+	// However a file is opened (a click, a tab, a compile going to the main
+	// document, a link), as the shared document it is, or becomes: opened
+	// as a plain file, a text file would not be edited together in real
+	// time, and a collaborator's typing would not show.
+	const openFileOrDocument = useCallback(
+		async (file: FileNode) => {
 			if (file.documentId) {
 				openDocumentById(file.documentId, 'files');
 				pushEditorRoute(file.documentId, file.path);
 				return;
 			}
+			if (await linkOnOpen(file)) return;
 
 			await openFileByNode(file);
 			pushEditorRoute(undefined, file.path);
 		},
-		[getFile, linkOnOpen, openDocumentById, openFileByNode, pushEditorRoute],
+		[linkOnOpen, openDocumentById, openFileByNode, pushEditorRoute],
+	);
+
+	const handleUserFileSelect = useCallback(
+		async (fileId: string) => {
+			const file = await getFile(fileId);
+			if (!file) return;
+			await openFileOrDocument(file);
+		},
+		[getFile, openFileOrDocument],
 	);
 
 	const handleDocumentSelect = useCallback(
@@ -382,18 +392,10 @@ export const useEditorNavigation = ({
 			if (targetTab.type === 'file' && targetTab.fileId) {
 				const file = await getFile(targetTab.fileId);
 				if (!file) return;
-
-				if (file.documentId) {
-					openDocumentById(file.documentId, 'files');
-					pushEditorRoute(file.documentId, file.path);
-					return;
-				}
-
-				await openFileByNode(file);
-				pushEditorRoute(undefined, file.path);
+				await openFileOrDocument(file);
 			}
 		},
-		[tabs, getFile, openDocumentById, openFileByNode, pushEditorRoute],
+		[tabs, getFile, openDocumentById, openFileOrDocument, pushEditorRoute],
 	);
 
 	const handleSearchResultNavigate = useCallback(
@@ -417,8 +419,21 @@ export const useEditorNavigation = ({
 				return;
 			}
 
-			const file = await getFile(fileId);
+			let file = await getFile(fileId);
 			if (!file) return;
+			// Linked now, it opens as the shared document; then to the line.
+			if (!file.documentId && (await linkOnOpen(file))) {
+				const linked = await getFile(fileId);
+				if (linked?.documentId) {
+					gotoEditor(
+						{ kind: 'document', documentId: linked.documentId },
+						{ line, column },
+						{ waitForReady: true, timeoutMs: 5000 },
+					);
+					return;
+				}
+				file = linked ?? file;
+			}
 
 			if (file.documentId) {
 				openDocumentById(file.documentId, 'files', true);
@@ -437,7 +452,7 @@ export const useEditorNavigation = ({
 				{ waitForReady: false },
 			);
 		},
-		[getFile, openDocumentById, openFileByNode],
+		[getFile, linkOnOpen, openDocumentById, openFileByNode],
 	);
 
 	const handleUpdateContent = useCallback(
@@ -537,14 +552,7 @@ export const useEditorNavigation = ({
 
 			const file = await getFile(fileId);
 			if (!file) return;
-			if (file.documentId) {
-				openDocumentById(file.documentId, 'files');
-				pushEditorRoute(file.documentId, file.path);
-				return;
-			}
-
-			await openFileByNode(file);
-			pushEditorRoute(undefined, file.path);
+			await openFileOrDocument(file);
 		};
 
 		const handleNavigateToCompiledFile = async (event: Event) => {
@@ -553,15 +561,7 @@ export const useEditorNavigation = ({
 
 			const targetFile = await fileStoreService.getFileByPath(filePath);
 			if (!targetFile || targetFile.type !== 'file') return;
-
-			if (targetFile.documentId) {
-				openDocumentById(targetFile.documentId, 'files');
-				pushEditorRoute(targetFile.documentId, targetFile.path);
-				return;
-			}
-
-			await openFileByNode(targetFile);
-			pushEditorRoute(undefined, targetFile.path);
+			await openFileOrDocument(targetFile);
 		};
 
 		document.addEventListener(
@@ -583,7 +583,7 @@ export const useEditorNavigation = ({
 				handleNavigateToCompiledFile,
 			);
 		};
-	}, [getFile, openDocumentById, openFileByNode, pushEditorRoute]);
+	}, [getFile, openFileOrDocument]);
 
 	useEffect(() => {
 		if (!selectedFileId || !isEditingFile) return;
