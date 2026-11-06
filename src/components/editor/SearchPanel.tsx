@@ -6,7 +6,12 @@ import { t } from '@/i18n';
 import { useCollab } from '../../hooks/useCollab';
 import { useSearch } from '../../hooks/useSearch';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
-import { SearchIcon, ReplaceIcon, FileTextIcon } from '../common/Icons';
+import {
+	FileTextIcon,
+	ReplaceIcon,
+	SearchIcon,
+	WholeWordIcon,
+} from '../common/Icons';
 import { fileOperationNotificationService } from '../../services/FileOperationNotificationService';
 import SearchReplaceModal from './SearchReplaceModal';
 
@@ -309,8 +314,9 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
 					aria-pressed={wholeWord}
 					onClick={toggleWholeWord}
 					title={t('Match whole word')}
+					aria-label={t('Match whole word')}
 				>
-					{t('|w|')}
+					<WholeWordIcon />
 				</button>
 				<button
 					type='button'

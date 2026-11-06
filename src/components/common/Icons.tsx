@@ -3052,3 +3052,33 @@ export const GoogleIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
 		/>
 	</svg>
 );
+
+// « Match whole word », as code editors draw it: « ab » on a bracket.
+export const WholeWordIcon: React.FC = () => (
+	<svg
+		xmlns='http://www.w3.org/2000/svg'
+		width='18'
+		height='16'
+		viewBox='0 0 18 16'
+		aria-hidden='true'
+	>
+		<text
+			x='9'
+			y='10'
+			textAnchor='middle'
+			fontSize='12.5'
+			fontFamily='inherit'
+			fill='currentColor'
+		>
+			ab
+		</text>
+		<path
+			d='M1.5 11.5v2.5h15v-2.5'
+			fill='none'
+			stroke='currentColor'
+			strokeWidth='1.2'
+			strokeLinecap='round'
+			strokeLinejoin='round'
+		/>
+	</svg>
+);
