@@ -278,7 +278,9 @@ html[data-layout="texlyre-compact"] {
 	--ui-log-message-margin-bottom: 7px;
 	--ui-history-item-font-size: var(--font-size-micro);
 	--ui-history-item-meta-font-size: var(--font-size-tiny);
-	--ui-thread-panel-width: var(--comment-panel-width);
+	/* A share of the editor's column, as Overleaf's review margin: 340 px
+	   fixed left the text a strip once the PDF took half the window. */
+	--ui-thread-panel-width: clamp(220px, 38%, var(--comment-panel-width));
 	--ui-thread-panel-background: var(--sidebar-background);
 	--ui-thread-panel-shadow: none;
 	--ui-thread-item-margin-bottom: 6px;

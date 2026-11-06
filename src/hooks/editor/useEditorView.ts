@@ -56,6 +56,14 @@ import {
 
 import { createNamedLogger } from '@/logging';
 import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
+import {
+	createBold as createLatexBold,
+	createItalic as createLatexItalic,
+} from '../../extensions/codemirror/toolbar/latexItems';
+import {
+	createBold as createTypstBold,
+	createItalic as createTypstItalic,
+} from '../../extensions/codemirror/toolbar/typstItems';
 import { createLanguageExtension } from '../../extensions/codemirror/LanguageExtension';
 import { resolveHighlightTheme } from '../../extensions/codemirror/HighlightThemeExtension';
 import { annotationSystemExtension } from '../../extensions/codemirror/AnnotationExtension';
@@ -682,7 +690,29 @@ export const useEditorView = (
 			]),
 		);
 
-		return [formatBinding, saveBinding, compileBinding];
+		// Ctrl+B and Ctrl+I as on Overleaf: bold and italic around the
+		// selection (\textbf{…}, \textit{…}; *…*, _…_ in Typst), before
+		// CodeMirror's Mod-i, « Expand selection ».
+		const emphasis =
+			info.isLatex && !isViewOnly
+				? { bold: createLatexBold(), italic: createLatexItalic() }
+				: info.isTypst && !isViewOnly
+					? { bold: createTypstBold(), italic: createTypstItalic() }
+					: null;
+		const emphasisBinding = emphasis
+			? Prec.high(
+					keymap.of([
+						{ key: 'Mod-b', run: emphasis.bold.command, preventDefault: true },
+						{
+							key: 'Mod-i',
+							run: emphasis.italic.command,
+							preventDefault: true,
+						},
+					]),
+				)
+			: [];
+
+		return [formatBinding, saveBinding, compileBinding, emphasisBinding];
 	};
 
 	// Readers see comments and tracked changes too, not their tags.

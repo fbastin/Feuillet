@@ -165,9 +165,27 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 								data-surface='secondary'
 							>
 								<div className='ui-actions' data-wrap='true'>
-									<kbd>{t('Ctrl')}</kbd> + <kbd>I</kbd>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>B</kbd>
 								</div>
-								<div className='ui-list-content'>{t('Expand selection')}</div>
+								<div className='ui-list-content'>
+									{t('Bold (LaTeX and Typst)')}
+								</div>
+							</div>
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>I</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t(
+										'Italic (LaTeX and Typst); in other files, expand selection',
+									)}
+								</div>
 							</div>
 							<div
 								className='ui-list-item'

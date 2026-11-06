@@ -100,6 +100,8 @@
 	display: none;
 }
 
+/* Its menu open, by « ⋮ » or a right click: the button it hangs from stays. */
+.file-node.menu-open .action-menu,
 .file-node:hover .action-menu {
 	display: block;
 }

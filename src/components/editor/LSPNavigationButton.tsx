@@ -19,12 +19,14 @@ interface LSPNavigationButtonProps {
 	fileName: string;
 }
 
-const NAVIGATION_LABELS: Record<LSPNavigationKind, string> = {
-	definition: t('Go to Definition'),
-	declaration: t('Go to Declaration'),
-	typeDefinition: t('Go to Type Definition'),
-	implementation: t('Go to Implementation'),
-};
+// Read when drawn: at import, the interface's language is not known yet.
+const navigationLabel = (kind: LSPNavigationKind): string =>
+	({
+		definition: t('Go to Definition'),
+		declaration: t('Go to Declaration'),
+		typeDefinition: t('Go to Type Definition'),
+		implementation: t('Go to Implementation'),
+	})[kind];
 
 const LSPNavigationButton: React.FC<LSPNavigationButtonProps> = ({
 	fileName,
@@ -132,7 +134,7 @@ const LSPNavigationButton: React.FC<LSPNavigationButtonProps> = ({
 					className='button ui-split-main'
 					onClick={() => navigate(primaryKind)}
 					disabled={!hasTarget}
-					title={hasTarget ? NAVIGATION_LABELS[primaryKind] : noTargetLabel}
+					title={hasTarget ? navigationLabel(primaryKind) : noTargetLabel}
 				>
 					<GoToDefinitionIcon />
 				</button>
@@ -170,7 +172,7 @@ const LSPNavigationButton: React.FC<LSPNavigationButtonProps> = ({
 							onClick={() => navigate(kind)}
 						>
 							<GoToDefinitionIcon />
-							<span className='ui-menu-label'>{NAVIGATION_LABELS[kind]}</span>
+							<span className='ui-menu-label'>{navigationLabel(kind)}</span>
 						</button>
 					))}
 				</div>

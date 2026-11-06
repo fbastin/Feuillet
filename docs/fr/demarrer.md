@@ -96,11 +96,16 @@ GitHub (voir [GitHub](github.md)).
   [Collaborer](collaborer.md)), la **Recherche** dans tout le projet, la
   **Relecture**, les **Versions** et l'**Historique Git**. Le
   bouton **Nouveau fichier** crée un fichier LaTeX, BibTeX ou autre; on peut
-  aussi y déposer des images.
+  aussi y déposer des images. Un clic droit sur un fichier ou un dossier
+  ouvre son menu (renommer, déplacer, dupliquer, supprimer…).
 - Au centre, le texte, en mode **Code** ou **Visuel**. Le mode visuel montre
   les titres, les listes, les formules, les figures et les tableaux comme
-  dans le document; une barre d'outils sert à la mise en forme.
-- À droite, la sortie : le **Journal** de compilation et le PDF.
+  dans le document; une barre d'outils sert à la mise en forme, et
+  **Ctrl+B** et **Ctrl+I** (**Cmd** sur Mac) mettent la sélection en gras
+  ou en italique.
+- À droite, la sortie : le **Journal** de compilation et le PDF. L'éditeur
+  et le PDF se partagent la largeur à moitié; la séparation se déplace, et
+  la proportion choisie suit la fenêtre.
 
 En mode visuel, comme dans l'éditeur de tableaux d'Overleaf, un clic dans un
 tableau sélectionne une cellule et montre sa barre d'outils : lignes,

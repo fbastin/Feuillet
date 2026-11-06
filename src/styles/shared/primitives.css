@@ -1605,7 +1605,10 @@ textarea:focus,
 }
 
 .ui-panel[data-role="thread"] {
-	width: var(--ui-thread-panel-width, var(--comment-panel-width));
+	width: var(
+		--ui-thread-panel-width,
+		clamp(220px, 38%, var(--comment-panel-width))
+	);
 	height: 100%;
 	position: relative;
 	flex-shrink: 0;
@@ -1615,6 +1618,28 @@ textarea:focus,
 		var(--pico-secondary-background)
 	);
 	box-shadow: var(--ui-thread-panel-shadow, none);
+}
+
+/* A narrow review margin: the title on a line, the tabs on the next,
+   rather than « M… »; the « all » buttons wrap whole, not mid-word. */
+.ui-panel[data-role="thread"] > .ui-panel-header[data-role="thread"] {
+	flex-wrap: wrap;
+	row-gap: var(--space-xs);
+}
+
+.ui-panel[data-role="thread"]
+	> .ui-panel-header[data-role="thread"]
+	> :is(.ui-panel-title, .ui-panel-heading) {
+	flex: 0 0 auto;
+}
+
+.ui-panel[data-role="thread"] > .ui-panel-controls.ui-actions {
+	flex-wrap: wrap;
+	row-gap: var(--space-xs);
+}
+
+.ui-panel[data-role="thread"] > .ui-panel-controls.ui-actions > button {
+	white-space: nowrap;
 }
 
 .ui-card[data-role="thread-item"] {

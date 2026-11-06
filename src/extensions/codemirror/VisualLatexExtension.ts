@@ -890,8 +890,12 @@ const visualTheme = EditorView.baseTheme({
 		borderRadius: 'var(--radius-sm)',
 		backgroundColor: 'var(--pico-background)',
 		boxShadow: 'var(--shadow-md)',
-		flexWrap: 'nowrap',
+		// On one line, as wide as the figure at most: in a narrow editor it
+		// wraps rather than losing « Modifier » past the left edge.
+		flexWrap: 'wrap',
 		width: 'max-content',
+		maxWidth: '100%',
+		boxSizing: 'border-box',
 	},
 	'.cm-visual-figure .cm-visual-figure-toolbar[hidden]': { display: 'none' },
 	// The outline of the image shows the selection, rather than the theme's

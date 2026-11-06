@@ -2673,7 +2673,7 @@
   "Resolve and preview images referenced by relative paths": "Résoudre et prévisualiser les images référencées par des chemins relatifs",
   "Resolve Conflicts ({resolved}/{total} resolved)": "Résoudre les conflits ({{resolved}}/{{total}} résolus)",
   "Resolve local images": "Résoudre les images locales",
-  "Resolved": "Résolu",
+  "Resolved": "Résolus",
   "Restart media from the beginning when it ends": "Relancer le média depuis le début lorsqu'il se termine",
   "Restore": "Restaurer",
   "Restore ({total})": "Restaurer ({{total}})",
@@ -3724,5 +3724,7 @@
   "Close search": "Fermer la recherche",
   "Error: ": "Erreur : ",
   "Warning: ": "Avertissement : ",
-  "Info: ": "Info : "
+  "Info: ": "Info : ",
+  "Bold (LaTeX and Typst)": "Gras (LaTeX et Typst)",
+  "Italic (LaTeX and Typst); in other files, expand selection": "Italique (LaTeX et Typst); dans les autres fichiers, étendre la sélection"
 }

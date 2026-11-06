@@ -211,13 +211,21 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 			<div
 				className={`file-node ${selectedFileId === node.id ? 'selected' : ''}
                     ${isDragOver && node.type === 'directory' ? 'drag-over' : ''}
-                    ${hasViewer ? 'has-viewer' : ''}`}
+                    ${hasViewer ? 'has-viewer' : ''}
+                    ${activeMenu === node.id ? 'menu-open' : ''}`}
 				onClick={() =>
 					!isRenaming &&
 					(node.type === 'directory'
 						? onToggleFolder(node.path)
 						: onFileSelect(node))
 				}
+				// A right click opens the row's « ⋮ » menu, as Overleaf's tree.
+				onContextMenu={(e) => {
+					if (isRenaming) return;
+					e.preventDefault();
+					e.stopPropagation();
+					onSetActiveMenu(node.id);
+				}}
 				onDragOver={(e) => {
 					if (node.type === 'directory') {
 						const isFileDrop = Array.from(e.dataTransfer.items).some(

@@ -3989,5 +3989,7 @@
   "Close search": "Close search",
   "Error: ": "Error: ",
   "Warning: ": "Warning: ",
-  "Info: ": "Info: "
+  "Info: ": "Info: ",
+  "Bold (LaTeX and Typst)": "Bold (LaTeX and Typst)",
+  "Italic (LaTeX and Typst); in other files, expand selection": "Italic (LaTeX and Typst); in other files, expand selection"
 }
