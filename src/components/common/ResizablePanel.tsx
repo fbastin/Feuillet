@@ -281,6 +281,13 @@ interface ResizablePanelProps {
 	stackDefaultSize?: number;
 	stackMinSize?: number;
 	stackCollapsedSize?: number;
+	/**
+	 * The panel's share of its parent's width (0 to 1), as Overleaf splits
+	 * the editor and the PDF: kept when the window changes size, where a
+	 * width in pixels squeezed the editor on a smaller screen.
+	 */
+	share?: number;
+	onShareChange?: (share: number) => void;
 }
 
 const ResizablePanel: React.FC<ResizablePanelProps> = ({
@@ -305,15 +312,21 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
 	stackDefaultSize = 33.333,
 	stackMinSize = 10,
 	stackCollapsedSize,
+	share,
+	onShareChange,
 }) => {
 	const stack = useContext(ResizablePanelStackContext);
 	const isStacked = Boolean(stack && stackId);
+	const sharing =
+		share !== undefined && !isStacked && direction === 'horizontal';
 	const [size, setSize] = useState(direction === 'horizontal' ? width : height);
 	const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
 	const [previousSize, setPreviousSize] = useState(
 		direction === 'horizontal' ? width : height,
 	);
 	const [resizing, setResizing] = useState(false);
+	const resizingRef = useRef(false);
+	resizingRef.current = resizing;
 	const [isHovering, setIsHovering] = useState(false);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const startPosRef = useRef(0);
@@ -400,12 +413,31 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
 	};
 
 	useEffect(() => {
-		if (isStacked) return;
+		if (isStacked || sharing) return;
 		const newSize = direction === 'horizontal' ? width : height;
 		if (!collapsed && !resizing) {
 			setSize(newSize);
 		}
-	}, [width, height, direction, collapsed, resizing, isStacked]);
+	}, [width, height, direction, collapsed, resizing, isStacked, sharing]);
+
+	// The width follows the parent's, at the share chosen.
+	useEffect(() => {
+		if (!sharing || share === undefined) return;
+		const parent = panelRef.current?.parentElement;
+		if (!parent) return;
+		const apply = () => {
+			if (collapsed || resizingRef.current) return;
+			const total = parent.clientWidth;
+			if (total <= 0) return;
+			const { min, max } = getLimits();
+			setSize(Math.max(min, Math.min(max, Math.round(share * total))));
+		};
+		apply();
+		if (typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver(apply);
+		observer.observe(parent);
+		return () => observer.disconnect();
+	}, [sharing, share, collapsed, getLimits]);
 
 	useEffect(() => {
 		const handleWindowResize = () => {
@@ -464,6 +496,10 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
 			newSize = Math.max(min, Math.min(max, newSize));
 			setSize(newSize);
 			if (onResize) onResize(newSize);
+			if (sharing && onShareChange) {
+				const total = panelRef.current?.parentElement?.clientWidth ?? 0;
+				if (total > 0) onShareChange(newSize / total);
+			}
 		};
 
 		const handleMouseUp = () => {
@@ -497,6 +533,8 @@ const ResizablePanel: React.FC<ResizablePanelProps> = ({
 		stackResizePanel,
 		stackFinishResize,
 		stackId,
+		sharing,
+		onShareChange,
 	]);
 
 	const toggleCollapse = () => {

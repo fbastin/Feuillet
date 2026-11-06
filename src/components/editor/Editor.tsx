@@ -654,9 +654,10 @@ const EditorContent: React.FC<{
 			!isViewOnly &&
 			(isLatexFile(path) || isTypstFile(path));
 		const list: (OverflowItem | false)[] = [
+			// Code or visual: as Overleaf, always in view, never in « … ».
 			isLatexFile(path) && {
 				key: 'visual',
-				priority: 6,
+				priority: Number.POSITIVE_INFINITY,
 				node: <VisualEditorToggle viewRef={viewRef} />,
 			},
 			hasToolbarSupport(type) &&

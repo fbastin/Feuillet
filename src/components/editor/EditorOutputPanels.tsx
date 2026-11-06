@@ -21,6 +21,12 @@ interface EditorOutputPanelsProps {
 	latexOutputWidth: number;
 	typstOutputWidth: number;
 	externalOutputWidth: number;
+	latexOutputShare?: number;
+	typstOutputShare?: number;
+	externalOutputShare?: number;
+	onLatexShare?: (share: number) => void;
+	onTypstShare?: (share: number) => void;
+	onExternalShare?: (share: number) => void;
 	latexOutputCollapsed: boolean;
 	typstOutputCollapsed: boolean;
 	externalOutputCollapsed: boolean;
@@ -50,6 +56,12 @@ const EditorOutputPanels: React.FC<EditorOutputPanelsProps> = ({
 	latexOutputWidth,
 	typstOutputWidth,
 	externalOutputWidth,
+	latexOutputShare,
+	typstOutputShare,
+	externalOutputShare,
+	onLatexShare,
+	onTypstShare,
+	onExternalShare,
 	latexOutputCollapsed,
 	typstOutputCollapsed,
 	externalOutputCollapsed,
@@ -75,6 +87,8 @@ const EditorOutputPanels: React.FC<EditorOutputPanelsProps> = ({
 				<ResizablePanel
 					direction='horizontal'
 					width={latexOutputWidth}
+					share={latexOutputShare}
+					onShareChange={onLatexShare}
 					minWidth={300}
 					maxWidth='80%'
 					alignment='start'
@@ -101,6 +115,8 @@ const EditorOutputPanels: React.FC<EditorOutputPanelsProps> = ({
 				<ResizablePanel
 					direction='horizontal'
 					width={typstOutputWidth}
+					share={typstOutputShare}
+					onShareChange={onTypstShare}
 					minWidth={300}
 					maxWidth='80%'
 					alignment='start'
@@ -127,6 +143,8 @@ const EditorOutputPanels: React.FC<EditorOutputPanelsProps> = ({
 				<ResizablePanel
 					direction='horizontal'
 					width={externalOutputWidth}
+					share={externalOutputShare}
+					onShareChange={onExternalShare}
 					minWidth={300}
 					maxWidth='80%'
 					alignment='start'

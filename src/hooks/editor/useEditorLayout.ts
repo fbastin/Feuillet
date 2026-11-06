@@ -4,6 +4,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useProperties } from '../useProperties';
 import { useTheme } from '../useTheme';
 
+const DEFAULT_SHARE = 0.5;
+
+const shareOf = (value: unknown): number | undefined => {
+	const share = Number(value);
+	return Number.isFinite(share) && share > 0.05 && share < 0.95
+		? share
+		: undefined;
+};
+
 export const useEditorLayout = () => {
 	const { currentLayout } = useTheme();
 	const {
@@ -22,6 +31,11 @@ export const useEditorLayout = () => {
 	const [latexOutputWidth, setLatexOutputWidth] = useState(550);
 	const [typstOutputWidth, setTypstOutputWidth] = useState(550);
 	const [externalOutputWidth, setExternalOutputWidth] = useState(550);
+	// The output's share of the editor's area, half by default as on
+	// Overleaf; it follows the window, where a width in pixels did not.
+	const [latexOutputShare, setLatexOutputShare] = useState(DEFAULT_SHARE);
+	const [typstOutputShare, setTypstOutputShare] = useState(DEFAULT_SHARE);
+	const [externalOutputShare, setExternalOutputShare] = useState(DEFAULT_SHARE);
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 	const [latexOutputCollapsed, setLatexOutputCollapsed] = useState(false);
 	const [typstOutputCollapsed, setTypstOutputCollapsed] = useState(false);
@@ -106,6 +120,30 @@ export const useEditorLayout = () => {
 		[setProperty],
 	);
 
+	const handleLatexOutputShare = useCallback(
+		(share: number) => {
+			setLatexOutputShare(share);
+			setProperty('latex-output-share', share);
+		},
+		[setProperty],
+	);
+
+	const handleTypstOutputShare = useCallback(
+		(share: number) => {
+			setTypstOutputShare(share);
+			setProperty('typst-output-share', share);
+		},
+		[setProperty],
+	);
+
+	const handleExternalOutputShare = useCallback(
+		(share: number) => {
+			setExternalOutputShare(share);
+			setProperty('external-output-share', share);
+		},
+		[setProperty],
+	);
+
 	const handleToolbarToggle = useCallback(
 		(visible: boolean) => {
 			setToolbarVisible(visible);
@@ -175,6 +213,18 @@ export const useEditorLayout = () => {
 			subcategory: 'Layout',
 			defaultValue: typstOutputWidth,
 		});
+		for (const id of [
+			'latex-output-share',
+			'typst-output-share',
+			'external-output-share',
+		]) {
+			registerProperty({
+				id,
+				category: 'UI',
+				subcategory: 'Layout',
+				defaultValue: DEFAULT_SHARE,
+			});
+		}
 		registerProperty({
 			id: 'sidebar-collapsed',
 			category: 'UI',
@@ -238,6 +288,9 @@ export const useEditorLayout = () => {
 		const storedExternalWidth = getProperty('external-output-width');
 		const storedLatexWidth = getProperty('latex-output-width');
 		const storedTypstWidth = getProperty('typst-output-width');
+		const storedLatexShare = shareOf(getProperty('latex-output-share'));
+		const storedTypstShare = shareOf(getProperty('typst-output-share'));
+		const storedExternalShare = shareOf(getProperty('external-output-share'));
 		const storedSidebarCollapsed = getProperty('sidebar-collapsed');
 		const storedExternalCollapsed = getProperty('external-output-collapsed');
 		const storedLatexCollapsed = getProperty('latex-output-collapsed');
@@ -257,6 +310,10 @@ export const useEditorLayout = () => {
 			setLatexOutputWidth(Number(storedLatexWidth));
 		if (storedTypstWidth !== undefined)
 			setTypstOutputWidth(Number(storedTypstWidth));
+		if (storedLatexShare !== undefined) setLatexOutputShare(storedLatexShare);
+		if (storedTypstShare !== undefined) setTypstOutputShare(storedTypstShare);
+		if (storedExternalShare !== undefined)
+			setExternalOutputShare(storedExternalShare);
 		if (storedSidebarCollapsed !== undefined)
 			setSidebarCollapsed(Boolean(storedSidebarCollapsed));
 		if (storedExternalCollapsed !== undefined)
@@ -284,6 +341,9 @@ export const useEditorLayout = () => {
 		latexOutputWidth,
 		typstOutputWidth,
 		externalOutputWidth,
+		latexOutputShare,
+		typstOutputShare,
+		externalOutputShare,
 		sidebarCollapsed,
 		latexOutputCollapsed,
 		typstOutputCollapsed,
@@ -303,6 +363,9 @@ export const useEditorLayout = () => {
 		handleTypstOutputCollapse,
 		handleExternalOutputWidthResize,
 		handleExternalOutputCollapse,
+		handleLatexOutputShare,
+		handleTypstOutputShare,
+		handleExternalOutputShare,
 		handleToolbarToggle,
 	};
 };
