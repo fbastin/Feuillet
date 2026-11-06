@@ -219,8 +219,11 @@ add_cus_dep('slo', 'sls', 0, 'feuillet_slo');
 add_cus_dep('nlo', 'nls', 0, 'feuillet_nlo');
 `;
 
+// LaTeX goes through DVI and PostScript, as Overleaf's "LaTeX" and arXiv's
+// latex+dvips_ps2pdf, for PSTricks and other PostScript code.
 const ENGINE_ARGS = {
 	pdflatex: ['-pdf'],
+	latex: ['-pdfps'],
 	lualatex: ['-pdflua', '-lualatex=lualatex --nosocket %O %P'],
 	xelatex: ['-pdfxe'],
 };

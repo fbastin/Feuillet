@@ -3895,5 +3895,22 @@
   "The confirmation link could not be sent to {address}: send it again from your profile.": "The confirmation link could not be sent to {{address}}: send it again from your profile.",
   "The email address could not be confirmed.": "The email address could not be confirmed.",
   "This address is already the email address of another account.": "This address is already the email address of another account.",
-  "Your account has no email address.": "Your account has no email address."
+  "Your account has no email address.": "Your account has no email address.",
+  "Open in {app}": "Open in {{app}}",
+  "This link has expired: open it again from the page it came from.": "This link has expired: open it again from the page it came from.",
+  "The server could not give what this link holds.": "The server could not give what this link holds.",
+  "LaTeX snippet": "LaTeX snippet",
+  "This link creates a project with these files. Create it if you trust the page it came from.": "This link creates a project with these files. Create it if you trust the page it came from.",
+  "LaTeX code, {count} lines": "LaTeX code, {{count}} lines",
+  "LaTeX code, {count} lines_one": "LaTeX code, {{count}} line",
+  "LaTeX code, {count} lines_other": "LaTeX code, {{count}} lines",
+  "From {host}": "From {{host}}",
+  "Included in the link": "Included in the link",
+  "Compiler: {compiler}": "Compiler: {{compiler}}",
+  "Show LaTeX documents in the visual editor": "Show LaTeX documents in the visual editor",
+  "A file in this link cannot be read.": "A file in this link cannot be read.",
+  "This link holds no file.": "This link holds no file.",
+  "PSTricks draws with PostScript, which pdfLaTeX and LuaLaTeX cannot run. Choose LaTeX (or XeLaTeX) as the compiler in the compile options.": "PSTricks draws with PostScript, which pdfLaTeX and LuaLaTeX cannot run. Choose LaTeX (or XeLaTeX) as the compiler in the compile options.",
+  "Links that open a project:": "Links that open a project:",
+  "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.": "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk."
 }

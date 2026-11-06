@@ -3630,5 +3630,22 @@
   "The confirmation link could not be sent to {address}: send it again from your profile.": "Le lien de confirmation n'a pas pu être envoyé à {{address}} : envoyez-le de nouveau depuis votre profil.",
   "The email address could not be confirmed.": "L'adresse courriel n'a pas pu être confirmée.",
   "This address is already the email address of another account.": "Cette adresse est déjà l'adresse courriel d'un autre compte.",
-  "Your account has no email address.": "Votre compte n'a pas d'adresse courriel."
+  "Your account has no email address.": "Votre compte n'a pas d'adresse courriel.",
+  "Open in {app}": "Ouvrir dans {{app}}",
+  "This link has expired: open it again from the page it came from.": "Ce lien a expiré : ouvrez-le de nouveau depuis la page d'où il vient.",
+  "The server could not give what this link holds.": "Le serveur n'a pas pu donner le contenu de ce lien.",
+  "LaTeX snippet": "Extrait LaTeX",
+  "This link creates a project with these files. Create it if you trust the page it came from.": "Ce lien crée un projet avec ces fichiers. Créez-le si vous faites confiance à la page d'où il vient.",
+  "LaTeX code, {count} lines": "Code LaTeX, {{count}} lignes",
+  "LaTeX code, {count} lines_one": "Code LaTeX, {{count}} ligne",
+  "LaTeX code, {count} lines_other": "Code LaTeX, {{count}} lignes",
+  "From {host}": "De {{host}}",
+  "Included in the link": "Inclus dans le lien",
+  "Compiler: {compiler}": "Compilateur : {{compiler}}",
+  "Show LaTeX documents in the visual editor": "Afficher les documents LaTeX dans l'éditeur visuel",
+  "A file in this link cannot be read.": "Un fichier de ce lien ne peut pas être lu.",
+  "This link holds no file.": "Ce lien ne contient aucun fichier.",
+  "PSTricks draws with PostScript, which pdfLaTeX and LuaLaTeX cannot run. Choose LaTeX (or XeLaTeX) as the compiler in the compile options.": "PSTricks dessine en PostScript, que pdfLaTeX et LuaLaTeX ne savent pas exécuter. Choisissez LaTeX (ou XeLaTeX) comme compilateur dans les options de compilation.",
+  "Links that open a project:": "Liens qui ouvrent un projet :",
+  "what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.": "ce qu'un lien ou un formulaire d'une autre page donne à /docs (code LaTeX, adresses de fichiers) reste 30 minutes dans la mémoire du serveur, le temps de créer le projet, et n'est jamais écrit sur disque."
 }

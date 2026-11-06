@@ -23,6 +23,7 @@ const ENGINE_FIELD: TypesetterUIField = {
 	defaultValue: 'pdflatex',
 	options: [
 		{ label: 'pdfLaTeX', value: 'pdflatex' },
+		{ label: 'LaTeX', value: 'latex' },
 		{ label: 'LuaLaTeX', value: 'lualatex' },
 		{ label: 'XeLaTeX', value: 'xelatex' },
 	],

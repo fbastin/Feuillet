@@ -109,6 +109,7 @@ const { createMailer } = require('./mail');
 const { createCompiler } = require('./compile');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
+const { createOpenLinks } = require('./docs');
 const { createGrammar } = require('./grammar');
 const { createGitBridge } = require('./git');
 const { createGitHub } = require('./github');
@@ -301,6 +302,12 @@ const history = createHistory({
 });
 
 const urlFetcher = createUrlFetcher({ accounts, maxBytes: maxFileBytes, log });
+
+// « Ouvrir dans Feuillet » links and forms, as Overleaf's /docs.
+const openLinks = createOpenLinks({
+	appUrl: process.env.APP_URL || allowedOrigins[0] || '',
+	isAllowedOrigin,
+});
 
 // Grammar and style checking with LanguageTool, for signed-in accounts.
 const grammar = createGrammar({ accounts, url: process.env.GRAMMAR_URL, log });
@@ -513,6 +520,11 @@ const server = http.createServer((req, res) => {
 	// Git, with an account's Git token.
 	if (gitBridge.handles(url)) {
 		void gitBridge.handle(req, res, url);
+		return;
+	}
+	// Links and forms of other sites, as to Overleaf's /docs: from anywhere.
+	if (openLinks.handles(url)) {
+		openLinks.handle(req, res, url);
 		return;
 	}
 

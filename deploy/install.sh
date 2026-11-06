@@ -96,6 +96,7 @@ if [ -e "$SSL_CONF" ]; then
 	# collaboration server's /collab/mcp (server/collab/oauth.js).
 	add_proxy_route "$SSL_CONF" /.well-known/oauth-authorization-server 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-authorization-server
 	add_proxy_route "$SSL_CONF" /.well-known/oauth-protected-resource 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-protected-resource
+	add_proxy_route "$SSL_CONF" /docs 1234 "« Ouvrir dans Feuillet » links and forms, as Overleaf's /docs (server/collab/docs.js)." /docs
 else
 	install -m 644 "$HERE/apache/$DOMAIN.conf" "$SITES/$DOMAIN.conf"
 	a2ensite -q "$DOMAIN"

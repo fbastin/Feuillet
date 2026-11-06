@@ -27,7 +27,7 @@ export type ArxivWarning =
 
 export interface ArxivPackage {
 	files: ArxivFile[];
-	compiler: 'pdflatex' | 'xelatex' | null;
+	compiler: 'pdflatex' | 'latex' | 'xelatex' | null;
 	texLiveVersion: 2023 | 2025;
 	warnings: ArxivWarning[];
 }
@@ -148,8 +148,8 @@ export const buildArxivPackage = (input: {
 	const warnings: ArxivWarning[] = [];
 	const engine = input.engine || 'pdflatex';
 	const compiler =
-		engine === 'xelatex'
-			? 'xelatex'
+		engine === 'xelatex' || engine === 'latex'
+			? engine
 			: engine === 'lualatex'
 				? null
 				: 'pdflatex';

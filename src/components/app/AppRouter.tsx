@@ -46,6 +46,8 @@ import LoadingScreen from './LoadingScreen';
 import ProjectApp from './ProjectApp';
 import PrivacyModal from '../common/PrivacyModal';
 import ShareTargetModal from '../project/ShareTargetModal';
+import OpenLinkModal from '../project/OpenLinkModal';
+import { openLinkIdOf } from '../../utils/openLink';
 import ToastContainer from '../common/ToastContainer';
 
 const moduleLog = createNamedLogger('AppRouter');
@@ -141,6 +143,10 @@ const AppRouter: React.FC = () => {
 	const [isCreatingProject, setIsCreatingProject] = useState(false);
 	const [showPrivacy, setShowPrivacy] = useState(false);
 	const [pendingShare, setPendingShare] = useState<PendingShare | null>(null);
+	// « Ouvrir dans Feuillet »: what a link to /docs holds, once signed in.
+	const [openLinkId, setOpenLinkId] = useState<string | null>(() =>
+		openLinkIdOf(window.location.hash),
+	);
 	const { launchedFiles, clearLaunchedFiles } = useDiskFiles(docUrl);
 
 	const [isPdfViewerWindow, setIsPdfViewerWindow] = useState(false);
@@ -610,6 +616,27 @@ const AppRouter: React.FC = () => {
 		setCurrentView('editor');
 	};
 
+	useEffect(() => {
+		const follow = () => {
+			const id = openLinkIdOf(window.location.hash);
+			if (id) setOpenLinkId(id);
+		};
+		window.addEventListener('hashchange', follow);
+		return () => window.removeEventListener('hashchange', follow);
+	}, []);
+
+	const handleOpenLinkClose = () => {
+		setOpenLinkId(null);
+		if (openLinkIdOf(window.location.hash)) replaceHash('');
+	};
+
+	const handleOpenLinkProject = (openDocUrl: string, projectId: string) => {
+		setOpenLinkId(null);
+		// Going back does not offer to create the project again.
+		replaceHash('');
+		handleOpenProject(openDocUrl, undefined, undefined, projectId);
+	};
+
 	const handleShareTargetClose = () => {
 		if (pendingShare) {
 			shareTargetService.clearPendingShare(pendingShare.id);
@@ -666,6 +693,15 @@ const AppRouter: React.FC = () => {
 			{/* Once for the whole app, so that a message outlives a change of
 			    view, and shows in the project list too. */}
 			<ToastContainer />
+
+			{openLinkId && isAuthenticated && !isInitializing && (
+				<OpenLinkModal
+					key={openLinkId}
+					id={openLinkId}
+					onClose={handleOpenLinkClose}
+					onOpenProject={handleOpenLinkProject}
+				/>
+			)}
 
 			<ShareTargetModal
 				isOpen={incomingFiles.length > 0 && isAuthenticated && !isInitializing}

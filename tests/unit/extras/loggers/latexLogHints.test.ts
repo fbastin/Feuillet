@@ -20,6 +20,16 @@ l.4 Bonjour \\foo
         expect(hint).toContain('\\usepackage{…}');
     });
 
+    it('tells PSTricks to compile with LaTeX', () => {
+        const hint = hintOf(`! Undefined control sequence.
+\\c@lor@to@ps ->\\PSTricks 
+                         _Not_Configured_For_This_Format
+l.4 ...pspicture}(0,0)(2,1)\\psline[linecolor=red](
+                                                  0,0)(2,1)\\end{pspicture}`);
+        expect(hint).toContain('PSTricks draws with PostScript');
+        expect(hint).toContain('Choose LaTeX (or XeLaTeX)');
+    });
+
     it('explains math outside math mode', () => {
         expect(hintOf(`! Missing $ inserted.
 <inserted text> 

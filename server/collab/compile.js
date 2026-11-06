@@ -14,7 +14,7 @@
 const crypto = require('node:crypto');
 const WebSocket = require('ws');
 
-const ENGINES = ['pdflatex', 'xelatex', 'lualatex'];
+const ENGINES = ['pdflatex', 'latex', 'xelatex', 'lualatex'];
 
 const createCompiler = ({ url, origin, timeoutMs = 240_000 }) => {
 	if (!url) return null;

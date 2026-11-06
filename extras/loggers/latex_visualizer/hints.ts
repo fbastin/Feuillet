@@ -10,6 +10,8 @@ export interface HintSource {
 	type: 'error' | 'warning' | 'info';
 	message: string;
 	lineContent?: string;
+	/** The lines TeX shows between the message and the line. */
+	context?: string;
 }
 
 type Rule = {
@@ -61,6 +63,16 @@ const RULES: Rule[] = [
 	{
 		pattern: /^Undefined control sequence/,
 		hint: (_match, entry) => {
+			// PSTricks says so through a command it leaves undefined.
+			if (
+				entry.context
+					?.replace(/\s+/g, '')
+					.includes('\\PSTricks_Not_Configured_For_This_Format')
+			) {
+				return t(
+					'PSTricks draws with PostScript, which pdfLaTeX and LuaLaTeX cannot run. Choose LaTeX (or XeLaTeX) as the compiler in the compile options.',
+				);
+			}
 			const command = lastCommand(entry.lineContent);
 			return command
 				? t(

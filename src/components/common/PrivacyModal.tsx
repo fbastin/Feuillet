@@ -99,6 +99,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						)}
 					</li>
 					<li>
+						<strong>{t('Links that open a project:')}</strong>&nbsp;
+						{t(
+							'what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.',
+						)}
+					</li>
+					<li>
 						<strong>{t('Grammar checking:')}</strong>&nbsp;
 						{t(
 							'when it is on (Settings), the paragraphs in view of the document you edit go to the server, which checks them with LanguageTool, on the same machine and without access to the Internet, and keeps nothing of them, not even in its logs.',

@@ -51,6 +51,44 @@ with TeX Live from the start.
 - a web address (a repository or an archive);
 - TeXlyre's template gallery.
 
+### Open in Feuillet
+
+As "Open in Overleaf", a link or a form on another page creates a project in
+Feuillet. The address is `https://feuillet.slashbin.net/docs`, with the same
+fields as Overleaf's (`https://www.overleaf.com/docs`): replacing one with
+the other is enough.
+
+- `snip_uri`: the address of a file (`.tex`, `.bib`, image…) or of a `.zip`
+  archive, or a `data:` address. Several files:
+  `snip_uri[]=…&snip_uri[]=…`;
+- `snip` or `encoded_snip`: LaTeX code, as is or encoded
+  (`encodeURIComponent`). Without `\documentclass`, it goes into Overleaf's
+  preamble (12 pt article, `amsmath`, `tikz`);
+- `snip_name` (or `snip_name[]`): each file's name, in order;
+- `engine`: `pdflatex`, `latex_dvipdf` (the LaTeX engine), `xelatex` or
+  `lualatex`;
+- `main_document`: the main document;
+- `visual_editor=true`: offers the visual editor.
+
+A link is followed with GET; a form is sent with POST
+(`application/x-www-form-urlencoded`, up to 10 MB). Feuillet shows the files
+and where they come from, and creates the project only when you ask; without
+an open account, it first asks you to sign in. The server downloads files
+from other sites for your account, as adding a file **From external URL**
+does. It keeps the request for 30 minutes, in memory only: after that, open
+the link again.
+
+For a public GitHub repository, this badge opens a copy of the repository
+(replace `OWNER/REPO`):
+
+```markdown
+[![Open in Feuillet](https://feuillet.slashbin.net/badges/open-in-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/OWNER/REPO/archive/HEAD.zip)
+```
+
+The French badge is `badges/ouvrir-dans-feuillet.svg`. To keep the project
+linked to the repository and push your changes to it, import the repository
+from GitHub instead (see [GitHub](github.md)).
+
 ## The editor
 
 - On the left, the **Files** tree, with **Search** across the project, the
@@ -100,8 +138,10 @@ into the **…** menu.
 **Ctrl+Enter** (or **Cmd+Enter**) compiles the project with TeX Live, on
 Feuillet's server. The menu next to the compile button offers:
 
-- the project's **main document** and **engine** (pdfLaTeX, XeLaTeX or
-  LuaLaTeX), the same for every collaborator;
+- the project's **main document** and **engine** (pdfLaTeX, LaTeX, XeLaTeX
+  or LuaLaTeX), the same for every collaborator. As on Overleaf and arXiv,
+  **LaTeX** goes through DVI and PostScript (`latex`, `dvips`, then
+  `ps2pdf`): it is the engine for PSTricks, and images are then EPS;
 - the **TeX Live version**, also the project's: **Latest**, the default,
   follows Feuillet's updates; a year stays the same for the project, as
   TeX Live 2025, the one arXiv compiles with. Choosing the latest's year
@@ -160,7 +200,7 @@ upload to arXiv:
   since arXiv runs neither BibTeX nor Biber (and the index and glossaries:
   `.ind`, `.gls`, `.acr`, `.sls` or `.nls`, when there are some);
 - a `00README.json` file telling arXiv the main document, the compiler
-  (pdfLaTeX or XeLaTeX) and the TeX Live year. If the project has its own
+  (pdfLaTeX, LaTeX or XeLaTeX) and the TeX Live year. If the project has its own
   `00README`, that one goes.
 
 The menu then says what the archive holds and what arXiv may refuse:

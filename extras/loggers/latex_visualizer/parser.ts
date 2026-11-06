@@ -9,6 +9,8 @@ export interface ParsedError {
 	file?: string;
 	lineContent?: string;
 	fullMessage?: string;
+	/** The lines TeX shows between the message and the line, for hints. */
+	context?: string;
 	/** What it means and how to fix it, for the common ones. */
 	hint?: string;
 }
@@ -308,6 +310,7 @@ function extractGenericError(
 	const errorMessage = line.substring(2).trim();
 	let lineNumber: number | undefined;
 	let lineContent: string | undefined;
+	const context: string[] = [];
 
 	for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
 		const lineMatch = lines[j].match(/^l\.(\d+)\s*(.*)/);
@@ -316,6 +319,7 @@ function extractGenericError(
 			lineContent = lineMatch[2];
 			break;
 		}
+		context.push(lines[j]);
 	}
 
 	return {
@@ -324,6 +328,7 @@ function extractGenericError(
 		line: lineNumber,
 		file: contextFile,
 		lineContent,
+		...(context.length > 0 ? { context: context.join('\n') } : {}),
 	};
 }
 

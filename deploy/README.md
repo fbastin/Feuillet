@@ -57,6 +57,7 @@ settings, for instance to work offline.
 ```
 browser ──https──▶ Apache ── /                  ▶ /var/www/feuillet.slashbin.net (deploy/publish.sh)
                          ├─ /collab/  (wss, http) ▶ 127.0.0.1:1234 feuillet-collab  (Docker)
+                         ├─ /docs     (http)      ▶ 127.0.0.1:1234 (« Ouvrir dans Feuillet »)
                          └─ /texlive/ (wss, http) ▶ /var/lib/feuillet/texlive-socket/texlive.sock
                                                      feuillet-texlive (Docker, no network)
                                                        └─▶ texlive-2025.sock

@@ -52,6 +52,44 @@ avec TeX Live dès sa création.
 - d'une adresse web (dépôt ou archive);
 - de la galerie de modèles de TeXlyre.
 
+### Ouvrir dans Feuillet
+
+Comme « Open in Overleaf », un lien ou un formulaire d'une autre page crée un
+projet dans Feuillet. L'adresse est `https://feuillet.slashbin.net/docs`, avec
+les mêmes champs que celle d'Overleaf (`https://www.overleaf.com/docs`) :
+remplacer l'une par l'autre suffit.
+
+- `snip_uri` : l'adresse d'un fichier (`.tex`, `.bib`, image…) ou d'une
+  archive `.zip`, ou une adresse `data:`. Plusieurs fichiers :
+  `snip_uri[]=…&snip_uri[]=…`;
+- `snip` ou `encoded_snip` : du code LaTeX, tel quel ou encodé
+  (`encodeURIComponent`). Sans `\documentclass`, il est placé dans le
+  préambule d'Overleaf (article 12 pt, `amsmath`, `tikz`);
+- `snip_name` (ou `snip_name[]`) : le nom de chaque fichier, dans l'ordre;
+- `engine` : `pdflatex`, `latex_dvipdf` (le moteur LaTeX), `xelatex` ou
+  `lualatex`;
+- `main_document` : le document principal;
+- `visual_editor=true` : propose l'éditeur visuel.
+
+Le lien se suit en GET; un formulaire s'envoie en POST
+(`application/x-www-form-urlencoded`, jusqu'à 10 Mo). Feuillet montre les
+fichiers et leur provenance, et ne crée le projet que si vous le demandez;
+sans compte ouvert, il demande d'abord de se connecter. Le serveur
+télécharge les fichiers des autres sites pour votre compte, comme l'ajout
+d'un fichier **Depuis une URL externe**. Il garde la demande 30
+minutes, en mémoire seulement : passé ce délai, rouvrez le lien.
+
+Pour un dépôt GitHub public, ce badge ouvre une copie du dépôt (remplacez
+`PROPRIETAIRE/DEPOT`) :
+
+```markdown
+[![Ouvrir dans Feuillet](https://feuillet.slashbin.net/badges/ouvrir-dans-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/PROPRIETAIRE/DEPOT/archive/HEAD.zip)
+```
+
+Le badge anglais est `badges/open-in-feuillet.svg`. Pour garder le projet
+lié au dépôt et y pousser vos changements, importez plutôt le dépôt depuis
+GitHub (voir [GitHub](github.md)).
+
 ## L'éditeur
 
 - À gauche, l'arbre des **Fichiers**, avec la **Recherche** dans tout le
@@ -104,8 +142,11 @@ l'éditeur passent dans le menu **…**.
 **Ctrl+Entrée** (ou **Cmd+Entrée**) compile le projet avec TeX Live, sur le
 serveur de Feuillet. Le menu à côté du bouton de compilation offre :
 
-- le **document principal** du projet et le **moteur** (pdfLaTeX, XeLaTeX
-  ou LuaLaTeX), communs à tous les collaborateurs;
+- le **document principal** du projet et le **moteur** (pdfLaTeX, LaTeX,
+  XeLaTeX ou LuaLaTeX), communs à tous les collaborateurs. Comme sur
+  Overleaf et sur arXiv, **LaTeX** passe par le DVI et le PostScript (`latex`,
+  `dvips`, puis `ps2pdf`) : c'est le moteur de PSTricks, et les images sont
+  alors en EPS;
 - la **version de TeX Live**, elle aussi commune : **La plus récente**, par
   défaut, suit les mises à jour de Feuillet; une année reste la même pour le
   projet, comme TeX Live 2025, celle avec laquelle arXiv compile. Choisir
@@ -171,7 +212,7 @@ prête à téléverser sur arXiv :
   le demande, car arXiv ne lance ni BibTeX ni Biber (et aussi l'index et les
   glossaires : `.ind`, `.gls`, `.acr`, `.sls` ou `.nls`, s'il y en a);
 - un fichier `00README.json` qui indique à arXiv le document principal, le
-  compilateur (pdfLaTeX ou XeLaTeX) et l'année de TeX Live. Si le projet a
+  compilateur (pdfLaTeX, LaTeX ou XeLaTeX) et l'année de TeX Live. Si le projet a
   déjà son propre `00README`, c'est le sien qui part.
 
 Le menu dit ensuite ce que contient l'archive et ce qu'arXiv pourrait

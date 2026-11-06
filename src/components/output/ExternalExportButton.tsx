@@ -468,7 +468,9 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 											? 'XeLaTeX'
 											: arxivMade.compiler === 'pdflatex'
 												? 'pdfLaTeX'
-												: 'LuaLaTeX',
+												: arxivMade.compiler === 'latex'
+													? 'LaTeX'
+													: 'LuaLaTeX',
 									year: arxivMade.texLiveVersion,
 								},
 							)}

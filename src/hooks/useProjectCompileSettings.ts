@@ -29,7 +29,7 @@ type FieldValue = string | number | boolean;
 /** Where each browser kept these settings before they were the project's. */
 export const localMainFilePropertyId = (providerId: string) =>
 	`external-${providerId}-main-file`;
-const localFieldPropertyId = (providerId: string, key: string) =>
+export const localFieldPropertyId = (providerId: string, key: string) =>
 	`external-${providerId}-${key}`;
 
 const sharedFieldsOf = (provider: TypesetterProvider): TypesetterUIField[] => {
