@@ -63,3 +63,29 @@ from; Feuillet refuses the pushes of a clone of the GitHub repository.
 For a project kept only in your browser, without the server, the window
 gives the GitHub repository's `git clone` command instead: clone it, push
 your commits to GitHub, then **Pull from GitHub** in Feuillet.
+
+## An "Open in Feuillet" badge
+
+In a public repository's `README.md`, this badge lets anyone open it in
+Feuillet in one click (replace `OWNER/REPO`):
+
+```markdown
+[![Open in Feuillet](https://feuillet.slashbin.net/badges/open-in-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/OWNER/REPO/archive/HEAD.zip)
+```
+
+The badge looks like this: ![Open in Feuillet](../../public/badges/open-in-feuillet.svg).
+For French readers, use `badges/ouvrir-dans-feuillet.svg`.
+
+Feuillet shows what the link holds, then creates the project, named after
+the repository, when asked; one signs in first if needed. The project is a
+**copy** of the repository, not linked to it: to push your changes to the
+repository, import it from GitHub instead (**Import** in the project list)
+or link a project to the repository (see above).
+
+- `HEAD` takes the default branch; for another branch, write
+  `archive/refs/heads/BRANCH.zip`.
+- Feuillet's server downloads the archive without your GitHub token: the
+  badge only works for a public repository.
+- The link follows the "Open in Overleaf" format: other options (LaTeX code
+  in the link, several files, engine, main document) are described in
+  [Open in Feuillet](getting-started.md#open-in-feuillet).

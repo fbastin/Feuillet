@@ -66,3 +66,29 @@ Pour un projet qui n'est que dans votre navigateur, sans le serveur, la
 fenêtre donne plutôt la commande `git clone` du dépôt GitHub : clonez-le,
 poussez vos commits vers GitHub, puis **Récupérer depuis GitHub** dans
 Feuillet.
+
+## Un badge « Ouvrir dans Feuillet »
+
+Dans le `README.md` d'un dépôt public, ce badge permet à quiconque de
+l'ouvrir dans Feuillet d'un clic (remplacez `PROPRIETAIRE/DEPOT`) :
+
+```markdown
+[![Ouvrir dans Feuillet](https://feuillet.slashbin.net/badges/ouvrir-dans-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/PROPRIETAIRE/DEPOT/archive/HEAD.zip)
+```
+
+Le badge s'affiche ainsi : ![Ouvrir dans Feuillet](../../public/badges/ouvrir-dans-feuillet.svg).
+Pour un public anglophone, prenez `badges/open-in-feuillet.svg`.
+
+Feuillet montre ce que contient le lien, puis crée le projet, nommé d'après
+le dépôt, si on le demande; il faut d'abord se connecter si on ne l'est pas.
+Le projet est une **copie** du dépôt, sans lien avec lui : pour envoyer vos
+modifications vers le dépôt, importez-le plutôt depuis GitHub (**Importer**
+dans la liste des projets) ou liez un projet au dépôt (voir plus haut).
+
+- `HEAD` prend la branche par défaut; pour une autre branche, écrivez
+  `archive/refs/heads/BRANCHE.zip`.
+- Le serveur de Feuillet télécharge l'archive sans votre jeton GitHub : le
+  badge ne fonctionne que pour un dépôt public.
+- Le lien suit le format « Open in Overleaf » : d'autres possibilités (code
+  LaTeX dans le lien, plusieurs fichiers, moteur, document principal) sont
+  décrites dans [Ouvrir dans Feuillet](demarrer.md#ouvrir-dans-feuillet).

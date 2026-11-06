@@ -17,7 +17,8 @@ guide nomme les boutons tels qu'ils s'affichent en français.
 
 ## Sommaire
 
-1. [Premiers pas](demarrer.md) : compte, projets, éditeur, compilation.
+1. [Premiers pas](demarrer.md) : compte, projets, liens « Ouvrir dans
+   Feuillet », éditeur, compilation.
 2. [Collaborer](collaborer.md) : partager un projet, inviter, rôles, voir
    qui travaille où, discussion.
 3. [Relecture](relecture.md) : commentaires, suivi des modifications,
@@ -25,7 +26,8 @@ guide nomme les boutons tels qu'ils s'affichent en français.
 4. [Versions](versions.md) : historique du projet, étiquettes, comparer,
    restaurer.
 5. [GitHub](github.md) : lier un projet à un dépôt, envoyer, récupérer,
-   travailler sur son ordinateur.
+   travailler sur son ordinateur, badge « Ouvrir dans Feuillet » pour un
+   README.
 6. [Git](git.md) : cloner un projet avec Git, tirer et pousser, sans GitHub.
 7. [Claude](claude.md) : laisser Claude lire, compiler, commenter et proposer
    des modifications.

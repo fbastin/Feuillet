@@ -15,15 +15,15 @@ guide names the buttons as they read in English.
 
 ## Contents
 
-1. [Getting started](getting-started.md): account, projects, editor,
-   compiling.
+1. [Getting started](getting-started.md): account, projects, "Open in
+   Feuillet" links, editor, compiling.
 2. [Collaborating](collaborating.md): sharing a project, inviting, roles,
    seeing who works where, chat.
 3. [Review](review.md): comments, tracked changes, accepting or rejecting.
 4. [Versions](versions.md): the project's history, labels, comparing,
    restoring.
 5. [GitHub](github.md): linking a project to a repository, pushing, pulling,
-   working on your computer.
+   working on your computer, an "Open in Feuillet" badge for a README.
 6. [Git](git.md): cloning a project with Git, pulling and pushing, without
    GitHub.
 7. [Claude](claude.md): letting Claude read, compile, comment on and suggest
