@@ -10,6 +10,11 @@ import { fileStoreService } from '../../../services/FileStoreService';
 import { filePathCacheService } from '../../../services/FilePathCacheService';
 import { BibtexParser } from '../../../utils/bibtexParser';
 import { isLatexFile, isTypstFile } from '../../../utils/fileUtils';
+import {
+	authorsLabel,
+	displayText,
+	searchReferences,
+} from '../../../utils/referenceSearch';
 import { citationCommandPatterns, bibtexEntryPatterns } from './patterns';
 
 const moduleLog = createNamedLogger('BibliographyCompletionHandler');
@@ -46,16 +51,9 @@ export class BibliographyCompletionHandler {
 
 	// Returns ranked citation completion options filtered by the given partial.
 	getCitationOptions(partial: string) {
-		const filtered = this.bibliographyCache.filter(
-			(entry) =>
-				!partial ||
-				entry.key.toLowerCase().includes(partial.toLowerCase()) ||
-				entry.title.toLowerCase().includes(partial.toLowerCase()) ||
-				entry.authors.some((author) =>
-					author.toLowerCase().includes(partial.toLowerCase()),
-				),
+		return this.createCitationOptions(
+			searchReferences(this.bibliographyCache, partial),
 		);
-		return this.createCitationOptions(filtered, partial);
 	}
 
 	private async getLocalBibliographyEntries(): Promise<BibliographyEntry[]> {
@@ -201,17 +199,9 @@ export class BibliographyCompletionHandler {
 		cache: BibliographyEntry[],
 	): CompletionResult | null {
 		const partial = citationInfo.partial;
-		const filteredEntries = cache.filter(
-			(entry) =>
-				!partial ||
-				entry.key.toLowerCase().includes(partial.toLowerCase()) ||
-				entry.title.toLowerCase().includes(partial.toLowerCase()) ||
-				entry.authors.some((author) =>
-					author.toLowerCase().includes(partial.toLowerCase()),
-				),
+		const options = this.createCitationOptions(
+			searchReferences(cache, partial),
 		);
-
-		const options = this.createCitationOptions(filteredEntries, partial);
 		if (options.length === 0) return null;
 
 		const partialStart = this.getCitationCompletionStart(
@@ -219,10 +209,12 @@ export class BibliographyCompletionHandler {
 			citationCommandPatterns,
 		);
 
+		// Found by author, title, year or journal too, as on Overleaf: the
+		// list stays as ranked here, and is asked again as one types.
 		return {
 			from: partialStart,
 			options,
-			validFor: /^[^}]*$/,
+			filter: false,
 		};
 	}
 
@@ -232,17 +224,9 @@ export class BibliographyCompletionHandler {
 		cache: BibliographyEntry[],
 	): CompletionResult | null {
 		const partial = citationInfo.partial;
-		const filteredEntries = cache.filter(
-			(entry) =>
-				!partial ||
-				entry.key.toLowerCase().includes(partial.toLowerCase()) ||
-				entry.title.toLowerCase().includes(partial.toLowerCase()) ||
-				entry.authors.some((author) =>
-					author.toLowerCase().includes(partial.toLowerCase()),
-				),
+		const options = this.createCitationOptions(
+			searchReferences(cache, partial),
 		);
-
-		const options = this.createCitationOptions(filteredEntries, partial);
 		if (options.length === 0) return null;
 
 		const partialStart = this.getCitationCompletionStart(
@@ -253,54 +237,38 @@ export class BibliographyCompletionHandler {
 		return {
 			from: partialStart,
 			options,
-			validFor: /^[^>">]*$/,
+			filter: false,
 		};
 	}
 
-	private createCitationOptions(entries: BibliographyEntry[], partial: string) {
-		return entries
-			.sort((a, b) => {
-				const aStartsWith = a.key
-					.toLowerCase()
-					.startsWith(partial.toLowerCase());
-				const bStartsWith = b.key
-					.toLowerCase()
-					.startsWith(partial.toLowerCase());
-				if (aStartsWith && !bStartsWith) return -1;
-				if (!aStartsWith && bStartsWith) return 1;
-				return a.key.localeCompare(b.key);
-			})
-			.slice(0, 20)
-			.map((entry) => {
-				const displayTitle =
-					entry.title.length > 50
-						? `${entry.title.substring(0, 47)}...`
-						: entry.title;
+	/** Options for entries already ranked by searchReferences. */
+	private createCitationOptions(entries: BibliographyEntry[]) {
+		return entries.map((entry) => {
+			const title = displayText(entry.title);
+			const displayTitle =
+				title.length > 50 ? `${title.substring(0, 47)}...` : title;
 
-				const authors =
-					entry.authors.length > 0
-						? entry.authors.join(', ')
-						: 'Unknown author';
+			const authors = authorsLabel(entry.authors) || 'Unknown author';
 
-				return {
-					label: entry.key,
-					detail: `${displayTitle} ✓`,
-					info: `Local | ${authors} (${entry.year})\n${entry.journal}`,
-					apply: (
-						view: EditorView,
-						completion: any,
-						from: number,
-						to: number,
-					) => {
-						const insertText = entry.key;
-						view.dispatch({
-							changes: { from, to, insert: insertText },
-							selection: { anchor: from + insertText.length },
-						});
-					},
-					boost: 10,
-				};
-			});
+			return {
+				label: entry.key,
+				detail: `${displayTitle} ✓`,
+				info: `Local | ${authors} (${entry.year})\n${displayText(entry.journal ?? '')}`,
+				apply: (
+					view: EditorView,
+					completion: any,
+					from: number,
+					to: number,
+				) => {
+					const insertText = entry.key;
+					view.dispatch({
+						changes: { from, to, insert: insertText },
+						selection: { anchor: from + insertText.length },
+					});
+				},
+				boost: 10,
+			};
+		});
 	}
 
 	private getCitationCompletionStart(

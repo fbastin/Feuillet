@@ -114,6 +114,13 @@ figure for an image, `\input` for a `.tex` file, `\bibliography` (or
 `\addbibresource` with biblatex) for a `.bib`, `#include` or
 `#bibliography` in Typst, else its path.
 
+In `\cite{…}` (and `\citep`, `\parencite`…), as Overleaf's advanced
+reference search, the editor offers the entries of the project's `.bib` files
+from any words of their key, authors, title, year or journal, in any order
+and whatever the accents: `\cite{einstein 1905`, or `\cite{schrodinger` for
+`Schr{\"o}dinger`. **Enter** replaces the words with the chosen key; after a
+comma, you search for the next reference.
+
 The spell checker underlines mistakes in LaTeX and Typst text; a right click
 offers corrections. Its language follows the document's: babel's or
 polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst. The words added

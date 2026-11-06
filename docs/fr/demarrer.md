@@ -117,6 +117,14 @@ ce qui y renvoie : une figure pour une image, `\input` pour un fichier
 `.tex`, `\bibliography` (ou `\addbibresource` avec biblatex) pour un
 `.bib`, `#include` ou `#bibliography` en Typst, sinon son chemin.
 
+Dans `\cite{…}` (et `\citep`, `\parencite`…), comme la recherche avancée de
+références d'Overleaf, l'éditeur propose les entrées des fichiers `.bib` du
+projet d'après n'importe quels mots de leur clé, de leurs auteurs, de leur
+titre, de leur année ou de leur revue, dans n'importe quel ordre et sans
+égard aux accents : `\cite{einstein 1905`, ou `\cite{schrodinger` pour
+`Schr{\"o}dinger`. **Entrée** remplace les mots par la clé choisie; après
+une virgule, on cherche la référence suivante.
+
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
 Typst; un clic droit propose des corrections. La langue suit celle du
 document : celle de babel ou de polyglossia en LaTeX, celle de
