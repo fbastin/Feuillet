@@ -164,6 +164,8 @@ const AppRouter: React.FC = () => {
 	);
 
 	const processedProjectHashRef = useRef<string | null>(null);
+	// The link whose project is being looked for or added to the list.
+	const checkingDocUrlRef = useRef<string | null>(null);
 
 	const createProjectForDocument = useCallback(
 		async (
@@ -470,14 +472,20 @@ const AppRouter: React.FC = () => {
 	);
 
 	useEffect(() => {
+		// A project opened from its link joins the person's list (and their
+		// account's). Marked done once it is there: a check cut short, as when
+		// signing in opens the editor twice, is made again rather than
+		// leaving the project out of the list.
 		const checkAndCreateProject = async () => {
 			if (isAuthenticated && !isInitializing && docUrl) {
-				const lastCheckedUrl = sessionStorage.getItem('lastCheckedDocUrl');
-				if (lastCheckedUrl === docUrl) {
+				if (checkingDocUrlRef.current === docUrl) return;
+				if (
+					sessionStorage.getItem('lastCheckedDocUrl') === docUrl &&
+					sessionStorage.getItem('currentProjectId')
+				) {
 					return;
 				}
-
-				sessionStorage.setItem('lastCheckedDocUrl', docUrl);
+				checkingDocUrlRef.current = docUrl;
 
 				try {
 					const existingProjects = await getProjects();
@@ -491,27 +499,25 @@ const AppRouter: React.FC = () => {
 					} else {
 						const metadata = await collabService.getDocumentMetadata(docUrl);
 
-						if (metadata) {
-							createProjectForDocument(
-								docUrl,
-								metadata.name || 'Untitled Project',
-								metadata.description || '',
-								metadata.type || 'latex',
-							);
-						} else {
-							createProjectForDocument(
-								docUrl,
-								'Shared Document',
-								'Shared via URL',
-								'latex',
-							);
-						}
+						await createProjectForDocument(
+							docUrl,
+							metadata
+								? metadata.name || 'Untitled Project'
+								: 'Shared Document',
+							metadata ? metadata.description || '' : 'Shared via URL',
+							metadata?.type || 'latex',
+						);
 					}
+					sessionStorage.setItem('lastCheckedDocUrl', docUrl);
 				} catch (error) {
 					moduleLog.error(
 						'Error checking/creating project for shared document:',
 						error,
 					);
+				} finally {
+					if (checkingDocUrlRef.current === docUrl) {
+						checkingDocUrlRef.current = null;
+					}
 				}
 			}
 		};
