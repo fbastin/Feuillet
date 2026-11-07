@@ -77,6 +77,29 @@ change for every collaborator, and those who linked the repository from
 their browser follow the same branch. Comments and tracked changes stay
 attached to the text that does not change.
 
+## Compiling on GitHub at each push
+
+For the repository to always have an up-to-date PDF, changes made outside
+Feuillet included, the **Compile on GitHub at each push** section adds a
+GitHub Actions file to the repository, `.github/workflows/feuillet.yml`. It
+compiles the project as Feuillet does: same main document, engine and year
+of TeX Live (TeX Live's official Docker images), glossaries and
+nomenclatures included.
+
+- **Add the file on GitHub** writes it on the linked branch; it then comes
+  into the project like any change made on GitHub.
+- Each push and each pull request starts a compile, in the repository's
+  **Actions** tab. The PDF is in each run, under **Artifacts**. A compile
+  error shows as a failed check on the pull request.
+- When the project's main document, engine or TeX Live change, the section
+  offers to **update the file**. A file of that name that Feuillet did not
+  make is left as it is.
+
+GitHub accepts this file only from a token that has the **workflow** scope
+as well as **repo**. Otherwise it refuses it and nothing changes in the
+project; the section then offers to **change the token**, and the token
+creation link ticks both scopes.
+
 ## Publishing a release
 
 Once the project is linked, the **Publish a release on GitHub** section of

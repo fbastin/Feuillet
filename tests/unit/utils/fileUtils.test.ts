@@ -17,6 +17,16 @@ describe('File Utils', () => {
             expect(isTemporaryFile('/images/figure.png')).toBe(false);
         });
 
+        it('keeps Git\'s own folder apart from a repository\'s .github and .gitignore', () => {
+            expect(isTemporaryFile('/.git')).toBe(true);
+            expect(isTemporaryFile('/.git/config')).toBe(true);
+            expect(isTemporaryFile('/node_modules/x/index.js')).toBe(true);
+            expect(isTemporaryFile('/.github/workflows/feuillet.yml')).toBe(false);
+            expect(isTemporaryFile('/.gitignore')).toBe(false);
+            expect(isTemporaryFile('/.gitattributes')).toBe(false);
+            expect(isTemporaryFile('/node_modules_notes.txt')).toBe(false);
+        });
+
         it('should handle edge cases', () => {
             expect(isTemporaryFile('')).toBe(false);
             expect(isTemporaryFile('/')).toBe(false);

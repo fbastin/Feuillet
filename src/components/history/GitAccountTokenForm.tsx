@@ -19,6 +19,8 @@ interface GitAccountTokenFormProps {
 	/** Resolves to true when the token was accepted. */
 	onSubmit: (token: string) => Promise<boolean>;
 	onCancel?: () => void;
+	/** The token must also write GitHub Actions files (« workflow »). */
+	workflowScope?: boolean;
 }
 
 const GitAccountTokenForm: React.FC<GitAccountTokenFormProps> = ({
@@ -26,6 +28,7 @@ const GitAccountTokenForm: React.FC<GitAccountTokenFormProps> = ({
 	isBusy,
 	onSubmit,
 	onCancel,
+	workflowScope = false,
 }) => {
 	const [token, setToken] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,7 +52,9 @@ const GitAccountTokenForm: React.FC<GitAccountTokenFormProps> = ({
 
 	const startSignIn = async () => {
 		setSignInError(null);
-		const attempt = gitHubOAuthService.signIn(server);
+		const attempt = gitHubOAuthService.signIn(server, {
+			workflow: workflowScope,
+		});
 		setSignIn(attempt);
 		try {
 			const value = await attempt.token;
@@ -141,7 +146,9 @@ const GitAccountTokenForm: React.FC<GitAccountTokenFormProps> = ({
 			{provider.getTokenCreationUrl ? (
 				<p className='ui-note'>
 					<a
-						href={provider.getTokenCreationUrl(APP_NAME)}
+						href={provider.getTokenCreationUrl(APP_NAME, {
+							workflow: workflowScope,
+						})}
 						target='_blank'
 						rel='noreferrer'
 					>

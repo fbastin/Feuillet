@@ -199,6 +199,34 @@ export interface GitRemotePullRequests {
 	): Promise<GitRemotePullRequest>;
 }
 
+/**
+ * One file of a branch, written on the provider itself: the GitHub Actions
+ * workflow, which a token may write only with the « workflow » scope.
+ */
+export interface GitRemoteWorkflows {
+	/** The token's scopes when the provider tells them, else null. */
+	tokenScopes(token: string): Promise<string[] | null>;
+	readFile(
+		token: string,
+		repositoryId: string,
+		branch: string,
+		path: string,
+	): Promise<{ sha: string; text: string } | null>;
+	writeFile(
+		token: string,
+		repositoryId: string,
+		input: {
+			branch: string;
+			path: string;
+			text: string;
+			message: string;
+			sha?: string;
+		},
+	): Promise<void>;
+	/** Where the runs are seen. */
+	runsUrl(repositoryId: string): string;
+}
+
 export interface GitRemoteProvider {
 	id: string;
 	displayName: string;
@@ -225,8 +253,12 @@ export interface GitRemoteProvider {
 		input: GitRemoteCreateRepositoryInput,
 	): Promise<GitRemoteRepository>;
 	getRepositoryUrl?(repositoryId: string, branch?: string): string;
-	getTokenCreationUrl?(appName: string): string;
+	getTokenCreationUrl?(
+		appName: string,
+		options?: { workflow?: boolean },
+	): string;
 	releases?: GitRemoteReleases;
 	pullRequests?: GitRemotePullRequests;
+	workflows?: GitRemoteWorkflows;
 	historyTransport: GitRemoteHistoryTransport;
 }

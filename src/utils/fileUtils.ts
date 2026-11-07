@@ -760,19 +760,19 @@ export function isBinaryFile(fileName: string): boolean {
 	return !textExtensions.has(extension);
 }
 
-export function isTemporaryFile(fileName: string): boolean {
-	const temporaryPaths = [
-		// '/.texlyre_src',
-		// '/.texlyre_cache',
-		// '/.texlyre_temp',
-		'/.texlyre',
-		'/.git',
-		'/.svn',
-		'/node_modules',
-		'/.DS_Store',
-	];
+// Feuillet's own folders: .texlyre, .texlyre_cache, .texlyre-temp…
+const TEMPORARY_PREFIXES = ['/.texlyre'];
+// Whole entries only: « /.git » is not « /.github » nor « /.gitignore »,
+// which a repository holds and Git must see (else a push deleted them).
+const TEMPORARY_ENTRIES = ['/.git', '/.svn', '/node_modules', '/.DS_Store'];
 
-	return temporaryPaths.some((tempPath) => fileName.startsWith(tempPath));
+export function isTemporaryFile(fileName: string): boolean {
+	return (
+		TEMPORARY_PREFIXES.some((prefix) => fileName.startsWith(prefix)) ||
+		TEMPORARY_ENTRIES.some(
+			(entry) => fileName === entry || fileName.startsWith(`${entry}/`),
+		)
+	);
 }
 
 export function isLatexFile(pathOrName?: string): boolean {

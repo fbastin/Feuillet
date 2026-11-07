@@ -120,7 +120,12 @@ const createGitHub = ({
 		const authorize = new URL(`${base}/login/oauth/authorize`);
 		authorize.searchParams.set('client_id', clientId);
 		authorize.searchParams.set('redirect_uri', callbackUrl);
-		authorize.searchParams.set('scope', 'repo');
+		// « repo » to push and pull; « workflow » too only when asked for it,
+		// to add the GitHub Actions file that compiles the PDF on GitHub.
+		authorize.searchParams.set(
+			'scope',
+			params.get('workflow') === '1' ? 'repo workflow' : 'repo',
+		);
 		authorize.searchParams.set('state', state);
 		authorize.searchParams.set('allow_signup', 'false');
 		res.writeHead(302, {

@@ -81,6 +81,30 @@ relié le dépôt depuis leur navigateur suivent la même branche. Les
 commentaires et les modifications suivies restent attachés au texte qui ne
 change pas.
 
+## Compiler sur GitHub à chaque envoi
+
+Pour que le dépôt ait toujours un PDF à jour, y compris pour les
+modifications faites hors de Feuillet, la section **Compiler sur GitHub à
+chaque envoi** ajoute au dépôt un fichier GitHub Actions,
+`.github/workflows/feuillet.yml`. Il compile le projet comme Feuillet : même
+document principal, même moteur, même année de TeX Live (les images Docker
+officielles de TeX Live), glossaires et nomenclatures compris.
+
+- **Ajouter le fichier sur GitHub** l'écrit sur la branche liée; il arrive
+  ensuite dans le projet comme toute modification faite sur GitHub.
+- Chaque envoi et chaque demande de fusion lancent une compilation, dans
+  l'onglet **Actions** du dépôt. Le PDF est dans chaque exécution, sous
+  **Artifacts**. Une erreur de compilation apparaît comme une vérification
+  échouée sur la demande de fusion.
+- Quand le document principal, le moteur ou TeX Live du projet changent, la
+  section propose de **mettre à jour le fichier**. Un fichier du même nom
+  que Feuillet n'a pas créé est laissé tel quel.
+
+GitHub n'accepte ce fichier que d'un jeton qui a la portée **workflow** en
+plus de **repo**. Sinon, il le refuse et rien ne change dans le projet; la
+section propose alors de **changer de jeton**, et le lien de création de
+jeton coche les deux portées.
+
 ## Publier une version
 
 Une fois le projet lié, la section **Publier une version sur GitHub** de la

@@ -3,6 +3,7 @@ import type {
 	GitRemotePullRequest,
 	GitRemotePullRequests,
 	GitRemoteReleases,
+	GitRemoteWorkflows,
 	GitRemoteSignature,
 	GitRemoteTreeEntry,
 } from '@/types/gitRemote';
@@ -425,6 +426,73 @@ const pullRequests: GitRemotePullRequests = {
 	},
 };
 
+const contentsPath = (path: string) =>
+	path.split('/').map(encodeURIComponent).join('/');
+
+// The GitHub Actions workflow, written on GitHub itself: a token without
+// « workflow » is refused there, and nothing changes in the project.
+const workflows: GitRemoteWorkflows = {
+	tokenScopes: async (token) => {
+		try {
+			const response = await fetch(`${gitHubAPIService.getBaseUrl()}/user`, {
+				headers: {
+					Authorization: `token ${token}`,
+					Accept: 'application/vnd.github.v3+json',
+				},
+			});
+			const header = response.ok
+				? response.headers.get('x-oauth-scopes')
+				: null;
+			return header === null
+				? null
+				: header
+						.split(',')
+						.map((scope) => scope.trim())
+						.filter(Boolean);
+		} catch {
+			return null;
+		}
+	},
+	readFile: async (token, repositoryId, branch, path) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		try {
+			const file = await request<{ sha: string; content?: string }>(
+				token,
+				`repos/${owner}/${repo}/contents/${contentsPath(path)}?ref=${encodeURIComponent(branch)}`,
+			);
+			return {
+				sha: file.sha,
+				text: new TextDecoder().decode(
+					base64ToBytes((file.content ?? '').replace(/\s+/g, '')),
+				),
+			};
+		} catch (error) {
+			if ((error as { status?: number }).status === 404) return null;
+			throw error;
+		}
+	},
+	writeFile: async (token, repositoryId, input) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		await request(
+			token,
+			`repos/${owner}/${repo}/contents/${contentsPath(input.path)}`,
+			{
+				method: 'PUT',
+				body: JSON.stringify({
+					message: input.message,
+					content: toBase64(input.text),
+					branch: input.branch,
+					...(input.sha ? { sha: input.sha } : {}),
+				}),
+			},
+		);
+	},
+	runsUrl: (repositoryId) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		return `${webBaseUrl()}/${owner}/${repo}/actions`;
+	},
+};
+
 export const gitHubGitRemoteProvider: GitRemoteProvider = {
 	id: 'github',
 	displayName: 'GitHub',
@@ -502,9 +570,10 @@ export const gitHubGitRemoteProvider: GitRemoteProvider = {
 		const base = `${webBaseUrl()}/${owner}/${repo}`;
 		return branch ? `${base}/tree/${encodeURIComponent(branch)}` : base;
 	},
-	getTokenCreationUrl: (appName) =>
-		`${webBaseUrl()}/settings/tokens/new?scopes=repo&description=${encodeURIComponent(appName)}`,
+	getTokenCreationUrl: (appName, options) =>
+		`${webBaseUrl()}/settings/tokens/new?scopes=${options?.workflow ? 'repo,workflow' : 'repo'}&description=${encodeURIComponent(appName)}`,
 	releases,
 	pullRequests,
+	workflows,
 	historyTransport,
 };

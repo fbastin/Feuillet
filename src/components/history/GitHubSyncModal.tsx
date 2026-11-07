@@ -43,6 +43,7 @@ import type { SharedGitRemote } from '@/types/documents';
 import type { PendingGitImport } from '@/utils/gitPendingImport';
 import { ensureGitRemoteBranch, isRejectedToken } from '@/utils/gitUtils';
 import GitAccountTokenForm from './GitAccountTokenForm';
+import GitHubActionsSection from './GitHubActionsSection';
 import GitHubBranchSection from './GitHubBranchSection';
 import GitHubReleaseSection from './GitHubReleaseSection';
 import { OPEN_GIT_CLONE_EVENT } from './GitCloneButton';
@@ -120,6 +121,8 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	const gitAccount = useGitRemoteAccount(provider, isOpen && !remote);
 	const { account, createActionSecrets, readToken } = gitAccount;
 	const [showTokenForm, setShowTokenForm] = useState(false);
+	// The token asked for may write GitHub Actions files (GitHubActionsSection).
+	const [workflowScope, setWorkflowScope] = useState(false);
 
 	const [linkMode, setLinkMode] = useState<LinkMode>('create');
 	const [repositoryName, setRepositoryName] = useState(() =>
@@ -555,6 +558,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		<GitAccountTokenForm
 			provider={provider}
 			isBusy={isBusy}
+			workflowScope={workflowScope}
 			onCancel={gitAccount.hasToken ? () => setShowTokenForm(false) : undefined}
 			onSubmit={async (value) => {
 				const connected = await run('token', () =>
@@ -960,6 +964,25 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				run={run}
 				readToken={readToken}
 				createActionSecrets={createActionSecrets}
+			/>
+
+			<GitHubActionsSection
+				provider={provider}
+				config={config}
+				remoteName={remoteName}
+				projectId={projectId}
+				user={user}
+				isBusy={isBusy}
+				busyAction={busyAction}
+				commitMessage={() => commitMessage.trim() || defaultCommitMessage()}
+				run={run}
+				readToken={readToken}
+				createActionSecrets={createActionSecrets}
+				onChanged={refreshStatus}
+				onNeedWorkflowToken={() => {
+					setWorkflowScope(true);
+					setShowTokenForm(true);
+				}}
 			/>
 
 			<div className='github-sync-footer ui-stack' data-gap='sm'>

@@ -26,9 +26,10 @@ class GitHubOAuthService {
 	/** Whether the collaboration server has a GitHub OAuth App. */
 	isAvailable = availabilityCache('/github/config');
 
-	signIn(baseUrl: string): GitHubSignIn {
+	/** @param workflow Ask GitHub for « workflow » too (GitHub Actions files). */
+	signIn(baseUrl: string, { workflow = false } = {}): GitHubSignIn {
 		const { result, cancel } = openOAuthPopup<string>({
-			loginUrl: `${baseUrl}/github/login`,
+			loginUrl: `${baseUrl}/github/login${workflow ? '?workflow=1' : ''}`,
 			channel: 'feuillet-github-oauth',
 			windowName: 'feuillet-github',
 			take: (message) =>
