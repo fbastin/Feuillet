@@ -81,6 +81,9 @@ jest.mock('isomorphic-git', () => ({
 	readCommit: mockReadCommit,
 	readTree: mockReadTree,
 	readBlob: mockReadBlob,
+	walk: jest.fn(async () => []),
+	STAGE: jest.fn(() => ({})),
+	updateIndex: jest.fn(async () => undefined),
 }));
 
 import { gitService } from '@src/services/GitService';

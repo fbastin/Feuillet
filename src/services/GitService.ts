@@ -568,6 +568,71 @@ class GitService {
 				await git.add({ ...options, filepath });
 			}
 		}
+		await this.stageSubmodulesFromHead(projectId);
+	}
+
+	// Feuillet never changes a submodule: a commit keeps the ones HEAD has.
+	// The index can lag behind HEAD there (a merge moves HEAD without
+	// touching it, and statusMatrix skips submodules), which would drop a
+	// submodule a pull brought, or put back an older commit of it.
+	private async stageSubmodulesFromHead(projectId: string): Promise<void> {
+		const git = await getGit();
+		const { options } = this.repo(projectId);
+		const head = await this.getHeadOid(projectId);
+		const wanted = head
+			? await this.readSubmodules(projectId, head)
+			: new Map<string, string>();
+		const staged = new Map<string, string>();
+		await git.walk({
+			...options,
+			trees: [git.STAGE()],
+			map: async (filepath, [entry]) => {
+				if (entry && (await entry.type()) === 'commit') {
+					staged.set(filepath, await entry.oid());
+				}
+				return true;
+			},
+		});
+		for (const [filepath, oid] of wanted) {
+			if (staged.get(filepath) === oid) continue;
+			await git.updateIndex({
+				...options,
+				filepath,
+				oid,
+				mode: 0o160000,
+				add: true,
+			});
+		}
+		for (const filepath of staged.keys()) {
+			if (wanted.has(filepath)) continue;
+			await git.updateIndex({
+				...options,
+				filepath,
+				remove: true,
+				force: true,
+			});
+		}
+	}
+
+	/** A commit's submodules: path → the commit each points to. */
+	private async readSubmodules(
+		projectId: string,
+		commitOid: string,
+	): Promise<Map<string, string>> {
+		const git = await getGit();
+		const { options } = this.repo(projectId);
+		const { commit } = await git.readCommit({ ...options, oid: commitOid });
+		const submodules = new Map<string, string>();
+		const walk = async (treeOid: string, prefix = ''): Promise<void> => {
+			const { tree } = await git.readTree({ ...options, oid: treeOid });
+			for (const entry of tree) {
+				const path = prefix ? `${prefix}/${entry.path}` : entry.path;
+				if (entry.type === 'tree') await walk(entry.oid, path);
+				else if (entry.type === 'commit') submodules.set(path, entry.oid);
+			}
+		};
+		await walk(commit.tree);
+		return submodules;
 	}
 
 	async commit(
