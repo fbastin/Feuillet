@@ -239,6 +239,45 @@ describe('GitHubGitRemoteProvider', () => {
 		});
 	});
 
+	it('refuses a file over 100 MB before sending anything, naming it', async () => {
+		const fetchMock = jest.fn();
+		globalThis.fetch = fetchMock as unknown as typeof fetch;
+		const signature = {
+			name: 'Author',
+			email: 'author@example.com',
+			date: '2026-09-15T10:00:00Z',
+		};
+
+		await expect(
+			gitHubGitRemoteProvider.historyTransport.createCommit('token', 'owner/repo', {
+				branch: 'main',
+				parents: ['parent-sha'],
+				expectedBranchHead: 'parent-sha',
+				updateBranch: true,
+				message: 'Message',
+				author: signature,
+				committer: signature,
+				changes: [
+					{
+						path: 'main.tex',
+						type: 'update',
+						mode: '100644',
+						content: new TextEncoder().encode('texte'),
+					},
+					{
+						path: 'données/mesures.csv',
+						type: 'create',
+						mode: '100644',
+						content: new Uint8Array(101 * 1024 * 1024),
+					},
+				],
+			}),
+		).rejects.toThrow(
+			'données/mesures.csv is 101.0 MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller.',
+		);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
 	describe('reading a history', () => {
 		const listed = (sha: string, parent: string | null) => ({
 			sha,

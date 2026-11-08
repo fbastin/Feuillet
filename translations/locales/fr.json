@@ -3810,5 +3810,6 @@
   "{provider} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».": "{{provider}} a refusé : le jeton n'a pas le droit de modifier ce dépôt. Un jeton à granularité fine doit y avoir « Contents: Read and write », un jeton classique la portée « repo ». Changez de jeton avec « Changer de jeton ».",
   "Show older commits": "Afficher les commits plus anciens",
   "Keep {app}'s version": "Conserver la version de {{app}}",
-  "Keep the version of {remote}": "Conserver la version de {{remote}}"
+  "Keep the version of {remote}": "Conserver la version de {{remote}}",
+  "{path} is {size} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller.": "{{path}} fait {{size}} Mo, et GitHub ne prend aucun fichier de plus de 100 Mo. Listez-le dans .gitignore pour le laisser hors du dépôt, ou réduisez-le."
 }

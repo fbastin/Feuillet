@@ -4075,5 +4075,6 @@
   "{provider} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».": "{{provider}} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».",
   "Show older commits": "Show older commits",
   "Keep {app}'s version": "Keep {{app}}'s version",
-  "Keep the version of {remote}": "Keep the version of {{remote}}"
+  "Keep the version of {remote}": "Keep the version of {{remote}}",
+  "{path} is {size} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller.": "{{path}} is {{size}} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller."
 }

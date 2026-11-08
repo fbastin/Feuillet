@@ -8,6 +8,7 @@ import type {
 	GitRemoteSignature,
 	GitRemoteTreeEntry,
 } from '@/types/gitRemote';
+import { t } from '@/i18n';
 import { forEachLimited } from '@/utils/asyncLimit';
 import { toBase64 } from '@/utils/fileUtils';
 import {
@@ -101,6 +102,9 @@ const graphql = async <T>(
 	return result.data;
 };
 const MAX_LISTED_COMMITS = 5000;
+
+// The largest file GitHub accepts.
+const MAX_GITHUB_FILE_BYTES = 100 * 1024 * 1024;
 
 // Pushing: text up to this much in all goes in the tree request.
 const MAX_INLINE_BYTES = 4 * 1024 * 1024;
@@ -511,6 +515,24 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 	},
 	createCommit: async (token, repositoryId, input) => {
 		const [owner, repo] = repositoryParts(repositoryId);
+		// GitHub takes no file over 100 MB: said before anything is sent,
+		// with the file's name, rather than after the others went up.
+		const tooLarge = input.changes.find(
+			(change) =>
+				change.type !== 'delete' &&
+				(change.content?.length ?? 0) > MAX_GITHUB_FILE_BYTES,
+		);
+		if (tooLarge) {
+			throw new Error(
+				t(
+					'{path} is {size} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller.',
+					{
+						path: tooLarge.path,
+						size: ((tooLarge.content?.length ?? 0) / (1024 * 1024)).toFixed(1),
+					},
+				),
+			);
+		}
 		const bootstrapHead =
 			input.parents.length === 0
 				? await bootstrapEmptyRepository(token, owner, repo, input.branch)
