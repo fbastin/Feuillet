@@ -155,9 +155,12 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 	// checked now and then without asking for the password.
 	const { getSecret } = useSecrets();
 	const [remoteChanged, setRemoteChanged] = useState(false);
+	// The linked branch was deleted on GitHub: the window says what to do.
+	const [branchGone, setBranchGone] = useState(false);
 	const checkStatus = useCallback(async () => {
 		if (!projectId || !gitSyncService.getConfig(projectId)) {
 			setRemoteChanged(false);
+			setBranchGone(false);
 			return;
 		}
 		try {
@@ -166,6 +169,7 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 					getSecret(pluginId, secretKey, { ...options, prompt: false }),
 			});
 			setRemoteChanged(status.remoteChanged);
+			setBranchGone(status.branchGone);
 		} catch {
 			// No token at hand yet, or offline: nothing to show.
 		}
@@ -190,16 +194,21 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 	const Icon = plugin.icon ?? GitRemoteIcon;
 	const linked = remote ?? shared;
 	const provider = plugin.gitRemote.displayName;
-	const title = remoteChanged
-		? t('{provider} has changes that are not in this project yet.', {
+	const title = branchGone
+		? t('The branch {branch} no longer exists on {provider}.', {
+				branch: remote?.branch ?? '',
 				provider,
 			})
-		: linked
-			? t('Linked to {repository} ({branch})', {
-					repository: linked.repositoryLabel,
-					branch: linked.branch,
+		: remoteChanged
+			? t('{provider} has changes that are not in this project yet.', {
+					provider,
 				})
-			: t('Sync this project with {provider}', { provider });
+			: linked
+				? t('Linked to {repository} ({branch})', {
+						repository: linked.repositoryLabel,
+						branch: linked.branch,
+					})
+				: t('Sync this project with {provider}', { provider });
 
 	return (
 		<>
@@ -207,7 +216,8 @@ const GitHubSyncButton: React.FC<GitHubSyncButtonProps> = ({
 				type='button'
 				className={`button github-sync-button ${className}`}
 				data-linked={remote ? 'true' : shared ? 'shared' : 'false'}
-				data-remote-changes={remoteChanged || undefined}
+				data-remote-changes={remoteChanged || branchGone || undefined}
+				data-branch-gone={branchGone || undefined}
 				title={title}
 				onClick={() => setIsOpen(true)}
 			>

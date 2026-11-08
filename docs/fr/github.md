@@ -83,12 +83,29 @@ GitHub).
    montre ensuite l'état de la demande, avec un lien vers elle.
 4. Une fois la demande fusionnée, **Revenir sur main** (ou la branche visée)
    remet le projet sur cette branche : ses fichiers deviennent ceux de la
-   branche, qui contient maintenant vos modifications.
+   branche, qui contient maintenant vos modifications. Ce que vous avez
+   écrit après la demande, et qui n'est pas encore sur GitHub, vous suit :
+   Feuillet le fusionne avec les fichiers de main, et vous l'envoyez ensuite
+   vers main quand c'est prêt.
 
 **Passer à une autre branche** fait de même avec n'importe quelle branche du
 dépôt, par exemple celle d'un coauteur. Ce qui n'est pas encore sur GitHub
 est d'abord envoyé sur la branche que l'on quitte, pour que rien ne se
 perde; puis les fichiers du projet deviennent ceux de l'autre branche.
+
+### Une branche supprimée sur GitHub
+
+Beaucoup de dépôts suppriment la branche d'une demande dès qu'elle est
+fusionnée (l'option *Automatically delete head branches*), et un coauteur
+peut aussi en supprimer une. Feuillet ne la recrée pas en douce au prochain
+envoi : le bouton GitHub porte un point, et la fenêtre dit que la branche
+n'existe plus. Rien n'est perdu, et deux choix sont offerts :
+
+- **Revenir sur main** (ou sur une autre branche) : vos modifications qui
+  n'étaient pas sur GitHub vous suivent, fusionnées avec les fichiers de
+  cette branche, et vous les envoyez ensuite.
+- **La recréer sur GitHub** : la branche revient, avec tout ce que le projet
+  a de plus, et le projet continue de la suivre.
 
 La branche est celle du projet, pas seulement la vôtre : quand vous en
 changez, les fichiers changent pour tous les collaborateurs, et ceux qui ont

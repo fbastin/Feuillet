@@ -3791,5 +3791,15 @@
   "{path}: a submodule, at commit {commit}. Its files are not in the project, so a compile here does not have them.": "{{path}} : un sous-module, au commit {{commit}}. Ses fichiers ne sont pas dans le projet; une compilation ici ne les a donc pas.",
   "{path}: kept with Git LFS. The project has only its pointer, a few lines of text; a file put in its place here is pushed without LFS.": "{{path}} : gardé avec Git LFS. Le projet n'en a que le pointeur, quelques lignes de texte; un fichier mis à sa place ici est envoyé sans LFS.",
   "{path}: a symbolic link to {target}.": "{{path}} : un lien symbolique vers {{target}}.",
-  "Pushes from {app} leave them as they are on {provider}.": "Les envois depuis {{app}} les laissent tels quels sur {{provider}}."
+  "Pushes from {app} leave them as they are on {provider}.": "Les envois depuis {{app}} les laissent tels quels sur {{provider}}.",
+  "The branch {branch} no longer exists on {provider}. Go back to another branch, or make it again, in the Branch part of the {provider} window.": "La branche {{branch}} n'existe plus sur {{provider}}. Revenez sur une autre branche, ou recréez-la, dans la partie Branche de la fenêtre {{provider}}.",
+  "The project now follows {branch}. Your changes that were not on {provider} came along, merged with the files of the branch: push them to {branch} when they are ready.": "Le projet suit maintenant {{branch}}. Vos modifications qui n'étaient pas sur {{provider}} ont suivi, fusionnées avec les fichiers de la branche : envoyez-les vers {{branch}} quand elles sont prêtes.",
+  "The branch was not made again: the merge with the {provider} changes was not completed.": "La branche n'a pas été recréée : la fusion avec les modifications de {{provider}} n'a pas été terminée.",
+  "The branch {branch} was made again on {provider}, with every change of the project.": "La branche {{branch}} a été recréée sur {{provider}}, avec toutes les modifications du projet.",
+  "Your changes that are not on {provider} come along, to push to {base}.": "Vos modifications qui ne sont pas sur {{provider}} vous suivent, pour les envoyer ensuite vers {{base}}.",
+  "The branch {branch} no longer exists on {provider}.": "La branche {{branch}} n'existe plus sur {{provider}}.",
+  "It may have been deleted once its pull request was merged.": "Elle a peut-être été supprimée après la fusion de sa demande de fusion.",
+  "Nothing is lost: the project keeps its files and its history. Go back to another branch with them, or make this one again on {provider}.": "Rien n'est perdu : le projet garde ses fichiers et son historique. Revenez sur une autre branche avec eux, ou recréez celle-ci sur {{provider}}.",
+  "Make it again on {provider}": "La recréer sur {{provider}}",
+  "What is not on {provider} yet comes along, merged with the files of the branch chosen, for every collaborator.": "Ce qui n'est pas encore sur {{provider}} vous suit, fusionné avec les fichiers de la branche choisie, pour tous les collaborateurs."
 }

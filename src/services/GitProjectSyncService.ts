@@ -4,6 +4,7 @@ import { createNamedLogger } from '@/logging';
 import type { SecretsContextType } from '../contexts/SecretsContext';
 import type { User } from '../types/auth';
 import type { SharedGitRemote } from '../types/documents';
+import type { GitRemoteConfig } from '../types/gitRemote';
 import { stripAnnotationTagsWithSpans } from '../utils/annotationTagUtils';
 import { branchNameProblem } from '../utils/gitBranch';
 import { collabService } from './CollabService';
@@ -44,12 +45,25 @@ export interface GitBranchSwitchResult {
 	/** The merge before that push was not completed: nothing changed. */
 	cancelled: boolean;
 	branch: string;
+	/**
+	 * The changes the branch left had were brought along, merged with the
+	 * files of the new one, and are to be pushed there: true when some were.
+	 */
+	carried?: boolean;
 }
 
 export interface GitProjectSyncOptions {
 	secrets: GitSyncSecrets;
 	user: User | null;
 	commitMessage: string;
+}
+
+export interface GitBranchSwitchOptions extends GitProjectSyncOptions {
+	/**
+	 * Bring the changes along instead of pushing them to the branch left:
+	 * for a branch already merged, or deleted on the remote.
+	 */
+	carry?: boolean;
 }
 
 const notifyHistoryChanged = () =>
@@ -339,7 +353,7 @@ class GitProjectSyncService {
 	async switchBranch(
 		projectId: string,
 		target: string,
-		{ secrets, user, commitMessage }: GitProjectSyncOptions,
+		{ secrets, user, commitMessage, carry = false }: GitBranchSwitchOptions,
 	): Promise<GitBranchSwitchResult> {
 		return this.withLatestDocuments(projectId, async () => {
 			const config = gitSyncService.getConfig(projectId);
@@ -353,9 +367,20 @@ class GitProjectSyncService {
 			const head = initialized ? await gitService.getHeadOid(projectId) : null;
 			const pending =
 				initialized && (await gitService.getChanges(projectId)).length > 0;
-			const ahead =
-				head !== null &&
-				(await gitSyncService.getSyncStatus(projectId, secrets)).localAhead;
+			const status =
+				head !== null
+					? await gitSyncService.getSyncStatus(projectId, secrets)
+					: null;
+			// Deleted on the remote, the branch left cannot take a push: what it
+			// had comes along instead.
+			if (head !== null && (carry || status?.branchGone)) {
+				return this.carryToBranch(projectId, config, target, {
+					secrets,
+					user,
+					commitMessage,
+				});
+			}
+			const ahead = Boolean(status?.localAhead);
 			if (!head || pending || ahead) {
 				pushed = await this.commitPullAndPush(
 					projectId,
@@ -397,6 +422,73 @@ class GitProjectSyncService {
 			shareBranch(projectId);
 			notifyHistoryChanged();
 			return { pushed, cancelled: false, branch: target };
+		});
+	}
+
+	/**
+	 * Moves the project to `target` with what it has, as `git switch` with
+	 * a merge: pending edits are committed, then the branch is pulled into
+	 * the project's history. What the branch left had that `target` has
+	 * not stays in the project, to push there. Called with the documents
+	 * up to date.
+	 */
+	private async carryToBranch(
+		projectId: string,
+		previous: GitRemoteConfig,
+		target: string,
+		{ secrets, user, commitMessage }: GitProjectSyncOptions,
+	): Promise<GitBranchSwitchResult> {
+		await this.commitChanges(projectId, commitMessage, user);
+		gitSyncService.linkBranch(projectId, target);
+		let pulled: GitProjectPullResult;
+		try {
+			pulled = await this.pull(projectId, secrets, user);
+		} catch (error) {
+			gitSyncService.restoreConfig(projectId, previous);
+			throw error;
+		}
+		if (pulled.status === 'cancelled') {
+			gitSyncService.restoreConfig(projectId, previous);
+			return { pushed: null, cancelled: true, branch: previous.branch };
+		}
+		if (pulled.status === 'empty-remote') {
+			gitSyncService.restoreConfig(projectId, previous);
+			throw new Error(
+				t('The branch {branch} has no commit yet.', { branch: target }),
+			);
+		}
+		shareBranch(projectId);
+		notifyHistoryChanged();
+		const { localAhead } = await gitSyncService.getSyncStatus(
+			projectId,
+			secrets,
+		);
+		return {
+			pushed: null,
+			cancelled: false,
+			branch: target,
+			carried: localAhead,
+		};
+	}
+
+	/**
+	 * Makes the linked branch again on the remote after it was deleted
+	 * there, and pushes to it what the project has.
+	 */
+	async recreateBranch(
+		projectId: string,
+		{ secrets, user, commitMessage }: GitProjectSyncOptions,
+	): Promise<GitProjectPushResult> {
+		return this.withLatestDocuments(projectId, async () => {
+			await gitSyncService.recreateBranch(projectId, secrets);
+			const result = await this.commitPullAndPush(
+				projectId,
+				secrets,
+				user,
+				commitMessage,
+			);
+			shareBranch(projectId);
+			return result;
 		});
 	}
 

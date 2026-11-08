@@ -4056,5 +4056,15 @@
   "{path}: a submodule, at commit {commit}. Its files are not in the project, so a compile here does not have them.": "{{path}}: a submodule, at commit {{commit}}. Its files are not in the project, so a compile here does not have them.",
   "{path}: kept with Git LFS. The project has only its pointer, a few lines of text; a file put in its place here is pushed without LFS.": "{{path}}: kept with Git LFS. The project has only its pointer, a few lines of text; a file put in its place here is pushed without LFS.",
   "{path}: a symbolic link to {target}.": "{{path}}: a symbolic link to {{target}}.",
-  "Pushes from {app} leave them as they are on {provider}.": "Pushes from {{app}} leave them as they are on {{provider}}."
+  "Pushes from {app} leave them as they are on {provider}.": "Pushes from {{app}} leave them as they are on {{provider}}.",
+  "The branch {branch} no longer exists on {provider}. Go back to another branch, or make it again, in the Branch part of the {provider} window.": "The branch {{branch}} no longer exists on {{provider}}. Go back to another branch, or make it again, in the Branch part of the {{provider}} window.",
+  "The project now follows {branch}. Your changes that were not on {provider} came along, merged with the files of the branch: push them to {branch} when they are ready.": "The project now follows {{branch}}. Your changes that were not on {{provider}} came along, merged with the files of the branch: push them to {{branch}} when they are ready.",
+  "The branch was not made again: the merge with the {provider} changes was not completed.": "The branch was not made again: the merge with the {{provider}} changes was not completed.",
+  "The branch {branch} was made again on {provider}, with every change of the project.": "The branch {{branch}} was made again on {{provider}}, with every change of the project.",
+  "Your changes that are not on {provider} come along, to push to {base}.": "Your changes that are not on {{provider}} come along, to push to {{base}}.",
+  "The branch {branch} no longer exists on {provider}.": "The branch {{branch}} no longer exists on {{provider}}.",
+  "It may have been deleted once its pull request was merged.": "It may have been deleted once its pull request was merged.",
+  "Nothing is lost: the project keeps its files and its history. Go back to another branch with them, or make this one again on {provider}.": "Nothing is lost: the project keeps its files and its history. Go back to another branch with them, or make this one again on {{provider}}.",
+  "Make it again on {provider}": "Make it again on {{provider}}",
+  "What is not on {provider} yet comes along, merged with the files of the branch chosen, for every collaborator.": "What is not on {{provider}} yet comes along, merged with the files of the branch chosen, for every collaborator."
 }

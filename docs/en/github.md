@@ -80,12 +80,28 @@ project is on (it is GitHub's alone).
    it.
 4. Once the pull request is merged, **Go back to main** (or the branch it
    went into) puts the project back on that branch: its files become the
-   branch's, which now holds your changes.
+   branch's, which now holds your changes. What you wrote after the pull
+   request, and is not on GitHub yet, comes along: Feuillet merges it with
+   the files of main, and you push it to main when it is ready.
 
 **Switch to another branch** does the same with any branch of the
 repository, a coauthor's for instance. What is not on GitHub yet is pushed
 first to the branch being left, so that nothing is lost; then the project's
 files become those of the other branch.
+
+### A branch deleted on GitHub
+
+Many repositories delete the branch of a pull request as soon as it is
+merged (the *Automatically delete head branches* option), and a coauthor may
+delete one too. Feuillet does not quietly make it again at the next push:
+the GitHub button shows a dot, and the window says the branch no longer
+exists. Nothing is lost, and two choices are offered:
+
+- **Go back to main** (or to another branch): your changes that were not on
+  GitHub come along, merged with the files of that branch, and you push them
+  then.
+- **Make it again on GitHub**: the branch comes back, with everything the
+  project has since, and the project keeps following it.
 
 The branch is the project's, not only yours: when you change it, the files
 change for every collaborator, and those who linked the repository from

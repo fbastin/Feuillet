@@ -19,6 +19,10 @@ const mockGitSyncService = {
 		remoteChanged: false,
 		localAhead: true,
 	})),
+	getConfig: jest.fn(),
+	linkBranch: jest.fn(),
+	restoreConfig: jest.fn(),
+	checkoutFetched: jest.fn(async () => undefined),
 	push: jest.fn(async () => ({
 		providerName: 'GitHub',
 		repositoryLabel: 'owner/repo',
@@ -304,5 +308,151 @@ describe('GitProjectSyncService', () => {
 			}),
 		).rejects.toThrow('The project has no files to push yet.');
 		expect(mockGitSyncService.push).not.toHaveBeenCalled();
+	});
+
+	describe('switching branches', () => {
+		const feature = {
+			providerId: 'github',
+			repositoryId: 'owner/repo',
+			repositoryLabel: 'owner/repo',
+			branch: 'feature',
+			syncBase: { localOid: 'feature-tip', remoteOid: 'feature-tip' },
+		};
+		const conflicts = {
+			status: 'conflicts' as const,
+			plan: {
+				oursBranch: 'main',
+				theirsBranch: 'origin/main',
+				oursOid: 'local-head',
+				theirsOid: 'remote-head',
+				conflicts: [
+					{
+						path: 'main.tex',
+						isBinary: false,
+						baseContent: 'base',
+						localContent: 'local',
+						remoteContent: 'remote',
+						baseExists: true,
+						localExists: true,
+						remoteExists: true,
+					},
+				],
+			},
+		};
+
+		beforeEach(() => {
+			mockGitSyncService.getConfig.mockReturnValue(feature);
+			mockGitService.getChanges.mockResolvedValue([
+				{ path: 'main.tex', type: 'modified' },
+			]);
+		});
+
+		it('brings the changes along when the branch left was deleted on the remote', async () => {
+			mockGitSyncService.getSyncStatus
+				.mockResolvedValueOnce({
+					remoteHead: null,
+					remoteChanged: false,
+					localAhead: false,
+					branchGone: true,
+				})
+				.mockResolvedValue({
+					remoteHead: 'remote-head',
+					remoteChanged: false,
+					localAhead: true,
+					branchGone: false,
+				});
+
+			const result = await gitProjectSyncService.switchBranch(
+				'project-1',
+				'main',
+				{ secrets, user, commitMessage: 'Update' },
+			);
+
+			expect(mockGitService.commit).toHaveBeenCalledWith(
+				'project-1',
+				'Update',
+				user,
+			);
+			expect(mockGitSyncService.linkBranch).toHaveBeenCalledWith(
+				'project-1',
+				'main',
+			);
+			expect(mockGitService.mergeBranch).toHaveBeenCalled();
+			expect(mockGitSyncService.checkoutFetched).not.toHaveBeenCalled();
+			expect(mockGitSyncService.push).not.toHaveBeenCalled();
+			expect(mockGitSyncService.restoreConfig).not.toHaveBeenCalled();
+			expect(result).toEqual({
+				pushed: null,
+				cancelled: false,
+				branch: 'main',
+				carried: true,
+			});
+		});
+
+		it('brings them along from a merged branch too, when asked', async () => {
+			mockGitSyncService.getSyncStatus.mockResolvedValue({
+				remoteHead: 'remote-head',
+				remoteChanged: false,
+				localAhead: true,
+				branchGone: false,
+			});
+
+			const result = await gitProjectSyncService.switchBranch(
+				'project-1',
+				'main',
+				{ secrets, user, commitMessage: 'Update', carry: true },
+			);
+
+			expect(mockGitSyncService.push).not.toHaveBeenCalled();
+			expect(result.carried).toBe(true);
+		});
+
+		it('puts the link back when the merge of the changes brought along is cancelled', async () => {
+			mockGitSyncService.getSyncStatus.mockResolvedValue({
+				remoteHead: null,
+				remoteChanged: false,
+				localAhead: false,
+				branchGone: true,
+			});
+			mockGitService.mergeBranch.mockResolvedValue(conflicts);
+			mockMergeResolutionService.resolveConflicts.mockResolvedValue(null);
+
+			const result = await gitProjectSyncService.switchBranch(
+				'project-1',
+				'main',
+				{ secrets, user, commitMessage: 'Update' },
+			);
+
+			expect(result).toEqual({
+				pushed: null,
+				cancelled: true,
+				branch: 'feature',
+			});
+			expect(mockGitSyncService.restoreConfig).toHaveBeenCalledWith(
+				'project-1',
+				feature,
+			);
+			expect(mockGitService.resetAll).not.toHaveBeenCalled();
+		});
+
+		it('still pushes to a branch that exists before leaving it', async () => {
+			mockGitSyncService.getSyncStatus.mockResolvedValue({
+				remoteHead: 'feature-tip',
+				remoteChanged: false,
+				localAhead: true,
+				branchGone: false,
+			});
+
+			const result = await gitProjectSyncService.switchBranch(
+				'project-1',
+				'main',
+				{ secrets, user, commitMessage: 'Update' },
+			);
+
+			expect(mockGitSyncService.push).toHaveBeenCalled();
+			expect(mockGitSyncService.checkoutFetched).toHaveBeenCalled();
+			expect(mockGitService.mergeBranch).not.toHaveBeenCalled();
+			expect(result.carried).toBeUndefined();
+		});
 	});
 });

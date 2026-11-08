@@ -787,6 +787,14 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 				}),
 			);
 		}
+		if (syncStatus.branchGone && remote) {
+			lines.push(
+				t('The branch {branch} no longer exists on {provider}.', {
+					branch: remote.branch,
+					provider: remoteName,
+				}),
+			);
+		}
 		if (lines.length === 0) {
 			lines.push(t('Up to date with {provider}.', { provider: remoteName }));
 		}

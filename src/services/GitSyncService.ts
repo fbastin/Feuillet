@@ -1,3 +1,5 @@
+import { t } from '@/i18n';
+import { createNamedLogger } from '@/logging';
 import type { SecretsContextType } from '../contexts/SecretsContext';
 import { APP_NAME } from '../branding';
 import type {
@@ -22,6 +24,8 @@ const REMOTE_STORAGE_PREFIX = 'texlyre-git-remote:';
 type GitRemoteListener = (config: GitRemoteConfig | undefined) => void;
 
 type GitTreeMode = '100644' | '100755' | '040000' | '160000' | '120000';
+
+const moduleLog = createNamedLogger('GitSyncService');
 
 let gitPromise: Promise<typeof import('isomorphic-git')> | null = null;
 const getGit = () => (gitPromise ??= import('isomorphic-git'));
@@ -50,6 +54,31 @@ export interface GitRemoteSyncStatus {
 	remoteHead: string | null;
 	remoteChanged: boolean;
 	localAhead: boolean;
+	/**
+	 * The linked branch, pushed or pulled before, is no longer on the
+	 * remote: deleted there, as GitHub does once a pull request is merged.
+	 */
+	branchGone: boolean;
+}
+
+/**
+ * The linked branch was deleted on the remote. Pushing would make it again
+ * behind the user's back, and pulling has nothing to bring: the project
+ * goes back to another branch, or makes this one again, on purpose.
+ */
+export class GitBranchGoneError extends Error {
+	readonly branch: string;
+
+	constructor(branch: string, provider: string) {
+		super(
+			t(
+				'The branch {branch} no longer exists on {provider}. Go back to another branch, or make it again, in the Branch part of the {provider} window.',
+				{ branch, provider },
+			),
+		);
+		this.name = 'GitBranchGoneError';
+		this.branch = branch;
+	}
 }
 
 export interface GitPushSummary {
@@ -707,6 +736,75 @@ class GitSyncService {
 		return this.resolveTransport(projectId, secrets);
 	}
 
+	/**
+	 * Whether the linked branch was deleted on the remote: synchronized
+	 * before, it has no head now, and the repository itself still answers
+	 * with its branches (a repository gone or out of reach is another
+	 * matter, which listing them reports).
+	 */
+	private async isBranchGone(
+		transport: ResolvedTransport,
+		remoteHead: string | null,
+	): Promise<boolean> {
+		if (remoteHead !== null || !transport.config.syncBase) return false;
+		const branches = await transport.provider.listBranches(
+			transport.token,
+			transport.config.repositoryId,
+		);
+		return !branches.some((branch) => branch.name === transport.config.branch);
+	}
+
+	private branchGoneError(transport: ResolvedTransport): GitBranchGoneError {
+		return new GitBranchGoneError(
+			transport.config.branch,
+			transport.config.providerName ?? transport.provider.displayName,
+		);
+	}
+
+	/**
+	 * Makes the linked branch again on the remote, after it was deleted
+	 * there: at the commit last synchronized, so that the next push sends
+	 * only what the project has since. When the remote no longer has that
+	 * commit, the next push sends the history and makes the branch with it.
+	 */
+	async recreateBranch(
+		projectId: string,
+		secrets: GitSecretReader,
+	): Promise<void> {
+		const transport = await this.resolveTransport(projectId, secrets);
+		const { config, provider, token } = transport;
+		const remoteHead = await provider.historyTransport.getHead(
+			token,
+			config.repositoryId,
+			config.branch,
+		);
+		if (!(await this.isBranchGone(transport, remoteHead))) return;
+		const syncBase = config.syncBase;
+		if (!syncBase) return;
+		if (provider.createBranchAtCommit) {
+			try {
+				await provider.createBranchAtCommit(
+					token,
+					config.repositoryId,
+					config.branch,
+					syncBase.remoteOid,
+				);
+				return;
+			} catch (error) {
+				moduleLog.warn(
+					'The remote no longer has the last synchronized commit:',
+					error,
+				);
+			}
+		}
+		this.setSyncBase(projectId, undefined);
+	}
+
+	/** Puts back a link saved before an operation that did not complete. */
+	restoreConfig(projectId: string, config: GitRemoteConfig): void {
+		this.setConfig(projectId, config);
+	}
+
 	private async hasCommit(projectId: string, oid: string): Promise<boolean> {
 		const git = await getGit();
 		const { options } = this.repo(projectId);
@@ -1248,6 +1346,7 @@ class GitSyncService {
 				remoteHead !== null &&
 				(syncBase ? remoteHead !== syncBase.remoteOid : !remoteKnownLocally),
 			localAhead: headOid !== null && headOid !== localBaseOid,
+			branchGone: await this.isBranchGone(transport, remoteHead),
 		};
 	}
 
@@ -1261,7 +1360,12 @@ class GitSyncService {
 			transport.config.repositoryId,
 			transport.config.branch,
 		);
-		if (!remoteOid) return null;
+		if (!remoteOid) {
+			if (await this.isBranchGone(transport, remoteOid)) {
+				throw this.branchGoneError(transport);
+			}
+			return null;
+		}
 
 		if (!(await gitService.isInitialized(projectId))) {
 			await gitService.initialize(projectId);
@@ -1514,6 +1618,9 @@ class GitSyncService {
 		const syncBase = transport.config.syncBase;
 		let localBaseOid: string | null = null;
 		if (syncBase) {
+			if (await this.isBranchGone(transport, remoteHead)) {
+				throw this.branchGoneError(transport);
+			}
 			if (remoteHead !== syncBase.remoteOid) {
 				throw new Error(
 					'Remote branch changed since the last synchronization. Pull first.',

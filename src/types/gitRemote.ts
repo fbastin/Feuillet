@@ -248,6 +248,13 @@ export interface GitRemoteProvider {
 		branch: string,
 		sourceRef: string,
 	): Promise<void>;
+	/** Makes `branch` point at a commit the remote has, by its id. */
+	createBranchAtCommit?(
+		token: string,
+		repositoryId: string,
+		branch: string,
+		oid: string,
+	): Promise<void>;
 	normalizeRepositoryInput?(input: string): string;
 	getAccount?(token: string): Promise<GitRemoteAccount>;
 	createRepository?(

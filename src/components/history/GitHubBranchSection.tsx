@@ -152,6 +152,9 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 	const others = branches.filter((name) => name !== branch);
 	const base = pull?.base ?? defaultBranch ?? '';
 	const unpushed = pendingChangeCount > 0 || Boolean(syncStatus?.localAhead);
+	// Deleted on GitHub, as it does once a pull request is merged: the
+	// project's changes cannot go there any more.
+	const gone = Boolean(syncStatus?.branchGone);
 
 	const startBranch = () =>
 		run('start-branch', async (secrets) => {
@@ -167,12 +170,15 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 			await onChanged(secrets);
 		});
 
-	const switchTo = (name: string) =>
+	// `carry`: the branch left is merged or deleted, so what it has that
+	// is not on GitHub comes along instead of being pushed there.
+	const switchTo = (name: string, carry = false) =>
 		run('switch-branch', async (secrets) => {
 			const result = await gitProjectSyncService.switchBranch(projectId, name, {
 				secrets,
 				user,
 				commitMessage: commitMessage(),
+				carry,
 			});
 			if (result.cancelled) {
 				setNotice(
@@ -184,6 +190,16 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 				return;
 			}
 			setTarget('');
+			if (result.carried) {
+				setNotice(
+					t(
+						'The project now follows {branch}. Your changes that were not on {provider} came along, merged with the files of the branch: push them to {branch} when they are ready.',
+						{ branch: name, provider: remoteName },
+					),
+				);
+				await onChanged(secrets);
+				return;
+			}
 			setNotice(
 				`${
 					result.pushed?.push && result.pushed.push.pushedCommits > 0
@@ -199,6 +215,31 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 				)}`,
 			);
 			await onChanged(secrets);
+		});
+
+	const recreateBranch = () =>
+		run('restore-branch', async (secrets) => {
+			const result = await gitProjectSyncService.recreateBranch(projectId, {
+				secrets,
+				user,
+				commitMessage: commitMessage(),
+			});
+			if (!result.push) {
+				throw new Error(
+					t(
+						'The branch was not made again: the merge with the {provider} changes was not completed.',
+						{ provider: remoteName },
+					),
+				);
+			}
+			setNotice(
+				t(
+					'The branch {branch} was made again on {provider}, with every change of the project.',
+					{ branch, provider: remoteName },
+				),
+			);
+			await onChanged(secrets);
+			await load(secrets);
 		});
 
 	const openPullRequest = () =>
@@ -244,6 +285,20 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 		</a>
 	);
 
+	const restoreButton = (
+		<button
+			type='button'
+			className='button secondary'
+			data-action='restore-branch'
+			disabled={isBusy}
+			onClick={() => void recreateBranch()}
+		>
+			{busyAction === 'restore-branch'
+				? t('Creating...')
+				: t('Make it again on {provider}', { provider: remoteName })}
+		</button>
+	);
+
 	const renderPull = () => {
 		if (!pulls || onDefault || defaultBranch === null) return null;
 		if (pull === undefined) {
@@ -284,21 +339,42 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 						})}{' '}
 						{pullLink(pull)}
 					</p>
-					<button
-						type='button'
-						className='button primary'
-						data-action='back-to-base'
-						disabled={isBusy}
-						onClick={() => void switchTo(pull.base)}
-					>
-						<GitBranchIcon />
-						{busyAction === 'switch-branch'
-							? t('Switching...')
-							: t('Go back to {branch}', { branch: pull.base })}
-					</button>
+					{gone ? (
+						<p data-role='branch-gone'>
+							{t('The branch {branch} no longer exists on {provider}.', {
+								branch,
+								provider: remoteName,
+							})}
+						</p>
+					) : null}
+					{unpushed ? (
+						<p className='ui-note'>
+							{t(
+								'Your changes that are not on {provider} come along, to push to {base}.',
+								{ provider: remoteName, base: pull.base },
+							)}
+						</p>
+					) : null}
+					<div className='ui-actions'>
+						<button
+							type='button'
+							className='button primary'
+							data-action='back-to-base'
+							disabled={isBusy}
+							onClick={() => void switchTo(pull.base, true)}
+						>
+							<GitBranchIcon />
+							{busyAction === 'switch-branch'
+								? t('Switching...')
+								: t('Go back to {branch}', { branch: pull.base })}
+						</button>
+						{gone ? restoreButton : null}
+					</div>
 				</div>
 			);
 		}
+		// Nothing to propose from a branch GitHub no longer has.
+		if (gone) return null;
 		return (
 			<div className='ui-stack' data-gap='sm' data-role='pull-request-form'>
 				{pull?.state === 'closed' ? (
@@ -365,6 +441,46 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 		);
 	};
 
+	// A merged pull request says so in its own message.
+	const renderGone = () => {
+		if (!gone || pull?.state === 'merged') return null;
+		const back = base && base !== branch ? base : null;
+		return (
+			<div className='ui-message' data-tone='warning' data-role='branch-gone'>
+				<p>
+					{t('The branch {branch} no longer exists on {provider}.', {
+						branch,
+						provider: remoteName,
+					})}{' '}
+					{t('It may have been deleted once its pull request was merged.')}
+				</p>
+				<p className='ui-note'>
+					{t(
+						'Nothing is lost: the project keeps its files and its history. Go back to another branch with them, or make this one again on {provider}.',
+						{ provider: remoteName },
+					)}
+				</p>
+				<div className='ui-actions'>
+					{back ? (
+						<button
+							type='button'
+							className='button primary'
+							data-action='leave-gone-branch'
+							disabled={isBusy}
+							onClick={() => void switchTo(back, true)}
+						>
+							<GitBranchIcon />
+							{busyAction === 'switch-branch'
+								? t('Switching...')
+								: t('Go back to {branch}', { branch: back })}
+						</button>
+					) : null}
+					{restoreButton}
+				</div>
+			</div>
+		);
+	};
+
 	return (
 		<section
 			className='ui-card ui-stack'
@@ -390,6 +506,7 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 					{notice}
 				</div>
 			) : null}
+			{renderGone()}
 			{renderPull()}
 
 			<details className='github-sync-branch' data-role='new-branch'>
@@ -446,10 +563,15 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 					<summary>{t('Switch to another branch')}</summary>
 					<div className='ui-stack' data-gap='sm'>
 						<p className='ui-note'>
-							{t(
-								'What is not on {provider} yet is pushed to {branch} first; then the project’s files become those of the branch chosen, for every collaborator.',
-								{ provider: remoteName, branch },
-							)}
+							{gone
+								? t(
+										'What is not on {provider} yet comes along, merged with the files of the branch chosen, for every collaborator.',
+										{ provider: remoteName },
+									)
+								: t(
+										'What is not on {provider} yet is pushed to {branch} first; then the project’s files become those of the branch chosen, for every collaborator.',
+										{ provider: remoteName, branch },
+									)}
 						</p>
 						<select
 							className='ui-field-control'
@@ -473,7 +595,7 @@ const GitHubBranchSection: React.FC<GitHubBranchSectionProps> = ({
 							className='button secondary'
 							data-action='switch-branch'
 							disabled={isBusy || !target}
-							onClick={() => void switchTo(target)}
+							onClick={() => void switchTo(target, gone)}
 						>
 							<GitBranchIcon />
 							{busyAction === 'switch-branch'

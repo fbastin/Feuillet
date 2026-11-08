@@ -72,7 +72,10 @@ jest.mock('../../src/services/FileStoreService', () => ({
 	fileStoreService: { getAllFiles: jest.fn(async () => []) },
 }));
 
-import { gitSyncService } from '../../src/services/GitSyncService';
+import {
+	GitBranchGoneError,
+	gitSyncService,
+} from '../../src/services/GitSyncService';
 
 const remoteCommit = {
 	oid: 'remote-head',
@@ -1394,6 +1397,7 @@ describe('GitSyncService sync status', () => {
 			remoteHead: 'remote-tip',
 			remoteChanged: false,
 			localAhead: false,
+			branchGone: false,
 		});
 	});
 
@@ -1407,6 +1411,7 @@ describe('GitSyncService sync status', () => {
 			remoteHead: 'remote-newer',
 			remoteChanged: true,
 			localAhead: true,
+			branchGone: false,
 		});
 	});
 
@@ -1420,6 +1425,7 @@ describe('GitSyncService sync status', () => {
 			remoteHead: 'remote-base',
 			remoteChanged: false,
 			localAhead: true,
+			branchGone: false,
 		});
 	});
 
@@ -1433,7 +1439,113 @@ describe('GitSyncService sync status', () => {
 			remoteHead: 'remote-unknown',
 			remoteChanged: true,
 			localAhead: true,
+			branchGone: false,
 		});
+	});
+
+	it('reports a branch deleted on the remote after it was synchronized', async () => {
+		storeConfig({ localOid: 'local-head', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue(null);
+		provider.listBranches.mockResolvedValue([
+			{ name: 'other', commit: 'remote-other' },
+		]);
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).resolves.toEqual({
+			remoteHead: null,
+			remoteChanged: false,
+			localAhead: false,
+			branchGone: true,
+		});
+	});
+
+	it('does not call a branch gone while the remote still lists it', async () => {
+		storeConfig({ localOid: 'local-head', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue(null);
+		provider.listBranches.mockResolvedValue([
+			{ name: 'main', commit: 'remote-tip' },
+		]);
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).resolves.toMatchObject({ branchGone: false });
+	});
+
+	it('reports a repository out of reach instead of a deleted branch', async () => {
+		storeConfig({ localOid: 'local-head', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue(null);
+		provider.listBranches.mockRejectedValue(
+			Object.assign(new Error('Not Found'), { status: 404 }),
+		);
+
+		await expect(
+			gitSyncService.getSyncStatus('project-1', secrets),
+		).rejects.toThrow('Not Found');
+	});
+
+	it('refuses to push to a deleted branch instead of making it again', async () => {
+		storeConfig({ localOid: 'remote-base', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue(null);
+		provider.listBranches.mockResolvedValue([]);
+
+		await expect(gitSyncService.push('project-1', secrets)).rejects.toThrow(
+			GitBranchGoneError,
+		);
+		expect(transport.createCommit).not.toHaveBeenCalled();
+	});
+
+	it('refuses to pull from a deleted branch instead of calling it empty', async () => {
+		storeConfig({ localOid: 'local-head', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue(null);
+		provider.listBranches.mockResolvedValue([]);
+
+		await expect(
+			gitSyncService.fetchForMerge('project-1', secrets),
+		).rejects.toThrow(GitBranchGoneError);
+	});
+
+	it('makes a deleted branch again at the commit last synchronized', async () => {
+		storeConfig({ localOid: 'local-head', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue(null);
+		provider.listBranches.mockResolvedValue([]);
+		const createBranchAtCommit = jest.fn(async () => undefined);
+		mockGetGitRemoteProviders.mockReturnValue([
+			{ ...provider, createBranchAtCommit },
+		]);
+
+		await gitSyncService.recreateBranch('project-1', secrets);
+
+		expect(createBranchAtCommit).toHaveBeenCalledWith(
+			'secret-token',
+			'owner/repo',
+			'main',
+			'remote-tip',
+		);
+		expect(gitSyncService.getConfig('project-1')?.syncBase).toEqual({
+			localOid: 'local-head',
+			remoteOid: 'remote-tip',
+		});
+	});
+
+	it('pushes the whole history when the remote lost the last synchronized commit', async () => {
+		storeConfig({ localOid: 'local-head', remoteOid: 'remote-tip' });
+		transport.getHead.mockResolvedValue(null);
+		provider.listBranches.mockResolvedValue([]);
+		mockGetGitRemoteProviders.mockReturnValue([
+			{
+				...provider,
+				createBranchAtCommit: jest.fn(async () => {
+					throw Object.assign(new Error('Object does not exist'), {
+						status: 422,
+					});
+				}),
+			},
+		]);
+
+		await gitSyncService.recreateBranch('project-1', secrets);
+
+		expect(gitSyncService.getConfig('project-1')?.syncBase).toBeUndefined();
 	});
 
 	it('reports only local commits for an empty remote branch', async () => {
@@ -1446,6 +1558,7 @@ describe('GitSyncService sync status', () => {
 			remoteHead: null,
 			remoteChanged: false,
 			localAhead: true,
+			branchGone: false,
 		});
 	});
 });

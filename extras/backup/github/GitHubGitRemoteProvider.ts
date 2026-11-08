@@ -556,6 +556,13 @@ export const gitHubGitRemoteProvider: GitRemoteProvider = {
 			}),
 		});
 	},
+	createBranchAtCommit: async (token, repositoryId, branch, oid) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		await request(token, `repos/${owner}/${repo}/git/refs`, {
+			method: 'POST',
+			body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: oid }),
+		});
+	},
 	normalizeRepositoryInput: normalizeGitRepositoryInput,
 	getAccount: async (token) => {
 		const user = await gitHubAPIService.getAuthenticatedUser(token);
