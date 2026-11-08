@@ -43,13 +43,15 @@ const Modal: React.FC<ModalProps> = ({
 		const handleClickOutside = (event: MouseEvent) => {
 			if (!closeOnClickOutside) return;
 
-			if (
-				modalRef.current &&
-				!modalRef.current.contains(event.target as Node)
-			) {
-				const clickedElement = event.target as Element;
-				const isInsideAnyModal = clickedElement.closest(
-					'[data-role="modal"], .popover-panel',
+			// Where the click was when it happened: a button the click itself
+			// removes (an editor's gutter redrawn) is out of the page by now,
+			// and a click inside another window would pass for one outside.
+			const path = event.composedPath();
+			if (modalRef.current && !path.includes(modalRef.current)) {
+				const isInsideAnyModal = path.some(
+					(node) =>
+						node instanceof Element &&
+						node.matches('[data-role="modal"], .popover-panel'),
 				);
 
 				if (!isInsideAnyModal) {

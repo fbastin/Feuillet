@@ -1,6 +1,7 @@
 // src/services/GitProjectSyncService.ts
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
+import { APP_NAME } from '../branding';
 import type { SecretsContextType } from '../contexts/SecretsContext';
 import type { User } from '../types/auth';
 import type { SharedGitRemote } from '../types/documents';
@@ -143,6 +144,7 @@ class GitProjectSyncService {
 	async resolveMergeConflicts(
 		plan: GitMergePlan,
 		remoteLabel = plan.theirsBranch,
+		keepLabels?: { keepLocal: string; keepRemote: string },
 	): Promise<Map<string, string> | null> {
 		const unsupported = plan.conflicts.find(
 			(conflict) =>
@@ -181,7 +183,7 @@ class GitProjectSyncService {
 
 		const resolutions = await mergeResolutionService.resolveConflicts(
 			conflicts,
-			{
+			keepLabels ?? {
 				keepLocal: t('Keep {branch}', { branch: plan.oursBranch }),
 				keepRemote: t('Keep {branch}', { branch: remoteLabel }),
 			},
@@ -241,9 +243,17 @@ class GitProjectSyncService {
 					{ allowUnrelatedHistories: true },
 				);
 				if (result.status === 'conflicts') {
+					// Said as the project and the repository, not as the local
+					// branch's name, which nothing shows elsewhere.
 					const resolved = await this.resolveMergeConflicts(
 						result.plan,
 						remoteLabel,
+						{
+							keepLocal: t("Keep {app}'s version", { app: APP_NAME }),
+							keepRemote: t('Keep the version of {remote}', {
+								remote: remoteLabel,
+							}),
+						},
 					);
 					if (!resolved) return { status: 'cancelled', remoteLabel };
 					result = await gitService.completeBranchMerge(

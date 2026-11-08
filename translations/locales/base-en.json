@@ -4073,5 +4073,7 @@
   "Files from {provider}: {done} of {total}": "Files from {{provider}}: {{done}} of {{total}}",
   "{provider} kept receiving other changes while this push was being made. Push again in a moment.": "{{provider}} kept receiving other changes while this push was being made. Push again in a moment.",
   "{provider} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».": "{{provider}} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».",
-  "Show older commits": "Show older commits"
+  "Show older commits": "Show older commits",
+  "Keep {app}'s version": "Keep {{app}}'s version",
+  "Keep the version of {remote}": "Keep the version of {{remote}}"
 }

@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { act } from 'react';
+import { act, useEffect, useRef } from 'react';
 import Modal from '@src/components/common/Modal';
 
 describe('Modal Component', () => {
@@ -42,6 +42,70 @@ describe('Modal Component', () => {
         });
 
         expect(onClose).toHaveBeenCalled();
+    });
+
+    describe('clicks outside', () => {
+        // A window over the first one, with a button the click removes, as an
+        // editor's gutter redrawn on the click (the merge window's arrows).
+        // CodeMirror redraws at once: the button is out of the page before
+        // the click reaches the document.
+        const Above = () => {
+            const holder = useRef<HTMLDivElement>(null);
+            useEffect(() => {
+                if (!holder.current || holder.current.childElementCount > 0) return;
+                const button = document.createElement('button');
+                button.textContent = 'Take this change';
+                button.addEventListener('mousedown', () => {
+                    button.replaceWith(Object.assign(document.createElement('span'), { textContent: 'Taken' }));
+                });
+                holder.current?.append(button);
+            }, []);
+            return (
+                <Modal isOpen onClose={jest.fn()} title="Above" closeOnClickOutside={false}>
+                    <div ref={holder} />
+                </Modal>
+            );
+        };
+
+        it('closes the window for a click outside any window', () => {
+            const onClose = jest.fn();
+            render(
+                <Modal isOpen onClose={onClose} title="Below">
+                    <div>Below content</div>
+                </Modal>,
+            );
+            fireEvent.mouseDown(document.body);
+            expect(onClose).toHaveBeenCalledTimes(1);
+        });
+
+        it('keeps it for a click inside another window', () => {
+            const onClose = jest.fn();
+            render(
+                <>
+                    <Modal isOpen onClose={onClose} title="Below">
+                        <div>Below content</div>
+                    </Modal>
+                    <Above />
+                </>,
+            );
+            fireEvent.mouseDown(screen.getByText('Above'));
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        it('keeps it when the click removes what it clicked, in another window', () => {
+            const onClose = jest.fn();
+            render(
+                <>
+                    <Modal isOpen onClose={onClose} title="Below">
+                        <div>Below content</div>
+                    </Modal>
+                    <Above />
+                </>,
+            );
+            fireEvent.mouseDown(screen.getByText('Take this change'));
+            expect(screen.getByText('Taken')).toBeInTheDocument();
+            expect(onClose).not.toHaveBeenCalled();
+        });
     });
 
     it('should render different sizes', () => {
