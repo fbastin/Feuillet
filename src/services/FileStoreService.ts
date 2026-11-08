@@ -415,6 +415,10 @@ class FileStoreService {
 		file.createdAt =
 			existingFile?.createdAt ?? file.createdAt ?? file.lastModified;
 
+		// The record this one replaces, removed in the same transaction as
+		// the new one is written: in between, the file would be missing for
+		// whoever reads it then (Git's lstat during a checkout got ENOENT).
+		let replacedId: string | null = null;
 		if (showDialog) {
 			if (
 				existingFile &&
@@ -445,12 +449,12 @@ class FileStoreService {
 							throw new FileOperationCancelledError();
 						}
 						file = merged;
-						await this.db?.delete(this.FILES_STORE, existingFile.id);
+						replacedId = existingFile.id;
 						break;
 					}
 
 					case 'overwrite':
-						await this.db?.delete(this.FILES_STORE, existingFile.id);
+						replacedId = existingFile.id;
 						break;
 				}
 			} else if (existingFile && !existingFile.isDeleted) {
@@ -460,14 +464,19 @@ class FileStoreService {
 				file.isDeleted = false;
 			}
 		} else if (existingFile) {
+			// Same id: writing it replaces the record.
 			file.id = existingFile.id;
 			if (existingFile.isDeleted && file.isDeleted === undefined) {
 				file.isDeleted = false;
 			}
-			await this.db?.delete(this.FILES_STORE, existingFile.id);
 		}
 		await this.guardWrite(async () => {
-			await this.db?.put(this.FILES_STORE, file);
+			const tx = this.requireDb().transaction(this.FILES_STORE, 'readwrite');
+			if (replacedId && replacedId !== file.id) {
+				await tx.store.delete(replacedId);
+			}
+			await tx.store.put(file);
+			await tx.done;
 		});
 		await fileHandlerService.mirrorFiles([file]);
 		fileStorageEventEmitter.emitChange();
