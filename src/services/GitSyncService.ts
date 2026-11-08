@@ -14,7 +14,7 @@ import type {
 } from '../types/gitRemote';
 import { forEachLimited } from '../utils/asyncLimit';
 import { isBinaryFile } from '../utils/fileUtils';
-import { isRateLimited } from '../utils/gitUtils';
+import { GitRemoteMovedError, isRateLimited } from '../utils/gitUtils';
 import { fileHandlerService } from './FileHandlerService';
 import { fileStoreService } from './FileStoreService';
 import { gitFileSystemService } from './GitFileSystemService';
@@ -1840,7 +1840,7 @@ class GitSyncService {
 				throw this.branchGoneError(transport);
 			}
 			if (remoteHead !== syncBase.remoteOid) {
-				throw new Error(
+				throw new GitRemoteMovedError(
 					'Remote branch changed since the last synchronization. Pull first.',
 				);
 			}
@@ -1933,7 +1933,7 @@ class GitSyncService {
 					(parent, parentIndex) => parent !== parents[parentIndex],
 				)
 			) {
-				throw new Error(
+				throw new GitRemoteMovedError(
 					'Remote branch changed while the push was being created. Pull before pushing again.',
 				);
 			}
@@ -1971,7 +1971,7 @@ class GitSyncService {
 				transport.config.branch,
 			);
 		if (confirmedRemoteHead !== canonicalRemoteOid) {
-			throw new Error(
+			throw new GitRemoteMovedError(
 				'Remote branch changed before the push completed. Pull before pushing again.',
 			);
 		}

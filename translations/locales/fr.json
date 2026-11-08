@@ -3805,5 +3805,6 @@
   "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again after {time}.": "{{provider}} limite le nombre de requêtes d'un compte, et celui-ci a atteint la limite pour l'instant. Réessayez après {{time}}.",
   "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.": "{{provider}} limite le nombre de requêtes d'un compte, et celui-ci a atteint la limite pour l'instant. Réessayez dans quelques minutes.",
   "History from {provider}: {done} of {total} commits": "Historique de {{provider}} : {{done}} commits sur {{total}}",
-  "Files from {provider}: {done} of {total}": "Fichiers de {{provider}} : {{done}} sur {{total}}"
+  "Files from {provider}: {done} of {total}": "Fichiers de {{provider}} : {{done}} sur {{total}}",
+  "{provider} kept receiving other changes while this push was being made. Push again in a moment.": "{{provider}} a reçu d'autres modifications à plusieurs reprises pendant cet envoi. Envoyez de nouveau dans un moment."
 }

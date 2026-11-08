@@ -11,6 +11,7 @@ import type {
 import { forEachLimited } from '@/utils/asyncLimit';
 import { toBase64 } from '@/utils/fileUtils';
 import {
+	GitRemoteMovedError,
 	base64ToBytes,
 	gitRemoteApiRequest,
 	gitRepositoryParts,
@@ -566,22 +567,35 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 					!input.expectedBranchHead,
 			);
 			if (!isBootstrapHead && currentHead !== input.expectedBranchHead) {
-				throw new Error(
+				throw new GitRemoteMovedError(
 					'Remote branch changed while preparing the push. Pull first.',
 				);
 			}
 			if (currentHead) {
-				await request(
-					token,
-					`repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(input.branch)}`,
-					{
-						method: 'PATCH',
-						body: JSON.stringify({
-							sha: created.sha,
-							force: isBootstrapHead,
-						}),
-					},
-				);
+				try {
+					await request(
+						token,
+						`repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(input.branch)}`,
+						{
+							method: 'PATCH',
+							body: JSON.stringify({
+								sha: created.sha,
+								force: isBootstrapHead,
+							}),
+						},
+					);
+				} catch (error) {
+					// Moved between the check and the update: not a fast forward.
+					if (
+						(error as { status?: number }).status === 422 &&
+						/fast.?forward/i.test(String(error))
+					) {
+						throw new GitRemoteMovedError(
+							'Remote branch changed while the push was being made. Pull first.',
+						);
+					}
+					throw error;
+				}
 			} else {
 				await request(token, `repos/${owner}/${repo}/git/refs`, {
 					method: 'POST',

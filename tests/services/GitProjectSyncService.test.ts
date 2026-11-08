@@ -23,6 +23,7 @@ const mockGitSyncService = {
 	linkBranch: jest.fn(),
 	restoreConfig: jest.fn(),
 	checkoutFetched: jest.fn(async () => undefined),
+	remoteAccess: jest.fn(),
 	push: jest.fn(async () => ({
 		providerName: 'GitHub',
 		repositoryLabel: 'owner/repo',
@@ -290,6 +291,78 @@ describe('GitProjectSyncService', () => {
 		).resolves.toEqual({ status: 'empty-remote' });
 		expect(mockGitService.resetAll).not.toHaveBeenCalled();
 		expect(mockGitSyncService.discardFetched).not.toHaveBeenCalled();
+	});
+
+	it('pulls and pushes again when someone pushed at the same moment', async () => {
+		const { GitRemoteMovedError } = jest.requireActual(
+			'../../src/utils/gitUtils',
+		);
+		mockGitSyncService.push
+			.mockRejectedValueOnce(
+				new GitRemoteMovedError('Remote branch changed while preparing the push.'),
+			)
+			.mockResolvedValueOnce({
+				providerName: 'GitHub',
+				repositoryLabel: 'owner/repo',
+				localBranch: 'main',
+				remoteBranch: 'main',
+				previousLocalOid: 'merge-commit',
+				canonicalOid: 'merge-commit',
+				pushedCommits: 2,
+			});
+
+		const result = await gitProjectSyncService.push('project-1', {
+			secrets,
+			user,
+			commitMessage: 'Update',
+		});
+
+		expect(mockGitSyncService.push).toHaveBeenCalledTimes(2);
+		expect(mockGitSyncService.fetchForMerge).toHaveBeenCalledTimes(1);
+		expect(mockGitService.mergeBranch).toHaveBeenCalledTimes(1);
+		expect(result.pull?.status).toBe('merged');
+		expect(result.push?.pushedCommits).toBe(2);
+	});
+
+	it('says so plainly when the branch keeps moving under the push', async () => {
+		const { GitRemoteMovedError } = jest.requireActual(
+			'../../src/utils/gitUtils',
+		);
+		const moved = new GitRemoteMovedError(
+			'Remote branch changed while preparing the push.',
+		);
+		mockGitSyncService.push
+			.mockRejectedValueOnce(moved)
+			.mockRejectedValueOnce(moved)
+			.mockRejectedValueOnce(moved);
+		mockGitSyncService.remoteAccess.mockResolvedValue({
+			provider: { displayName: 'GitHub' },
+		});
+
+		await expect(
+			gitProjectSyncService.push('project-1', {
+				secrets,
+				user,
+				commitMessage: 'Update',
+			}),
+		).rejects.toThrow(
+			'GitHub kept receiving other changes while this push was being made. Push again in a moment.',
+		);
+		expect(mockGitSyncService.push).toHaveBeenCalledTimes(3);
+	});
+
+	it('does not retry a push refused for another reason', async () => {
+		mockGitSyncService.push.mockRejectedValueOnce(new Error('Bad credentials'));
+
+		await expect(
+			gitProjectSyncService.push('project-1', {
+				secrets,
+				user,
+				commitMessage: 'Update',
+			}),
+		).rejects.toThrow('Bad credentials');
+		expect(mockGitSyncService.push).toHaveBeenCalledTimes(1);
+		expect(mockGitSyncService.fetchForMerge).not.toHaveBeenCalled();
 	});
 
 	it('refuses to push a project without any commit', async () => {

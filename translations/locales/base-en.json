@@ -4070,5 +4070,6 @@
   "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again after {time}.": "{{provider}} limits how many requests an account makes, and this one reached the limit for now. Try again after {{time}}.",
   "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.": "{{provider}} limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.",
   "History from {provider}: {done} of {total} commits": "History from {{provider}}: {{done}} of {{total}} commits",
-  "Files from {provider}: {done} of {total}": "Files from {{provider}}: {{done}} of {{total}}"
+  "Files from {provider}: {done} of {total}": "Files from {{provider}}: {{done}} of {{total}}",
+  "{provider} kept receiving other changes while this push was being made. Push again in a moment.": "{{provider}} kept receiving other changes while this push was being made. Push again in a moment."
 }

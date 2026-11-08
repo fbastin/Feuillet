@@ -60,6 +60,21 @@ export function gitRemoteRequestError(
 	return Object.assign(new Error(message), { status });
 }
 
+/**
+ * The remote branch moved while a push was being made (someone else pushed
+ * at the same time): pulling what came, then pushing again, settles it.
+ */
+export class GitRemoteMovedError extends Error {
+	constructor(detail: string) {
+		super(detail);
+		this.name = 'GitRemoteMovedError';
+	}
+}
+
+export const isRemoteMoved = (error: unknown): boolean =>
+	error instanceof GitRemoteMovedError ||
+	(error as { name?: string } | null)?.name === 'GitRemoteMovedError';
+
 /** Whether a Git host refused requests for going too fast. */
 export const isRateLimited = (error: unknown): boolean =>
 	(error as { rateLimited?: boolean } | null)?.rateLimited === true;

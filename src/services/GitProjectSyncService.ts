@@ -7,6 +7,7 @@ import type { SharedGitRemote } from '../types/documents';
 import type { GitRemoteConfig } from '../types/gitRemote';
 import { stripAnnotationTagsWithSpans } from '../utils/annotationTagUtils';
 import { branchNameProblem } from '../utils/gitBranch';
+import { isRemoteMoved } from '../utils/gitUtils';
 import { collabService } from './CollabService';
 import { gitFileSystemService } from './GitFileSystemService';
 import { type GitMergePlan, gitService } from './GitService';
@@ -65,6 +66,9 @@ export interface GitBranchSwitchOptions extends GitProjectSyncOptions {
 	 */
 	carry?: boolean;
 }
+
+// How many times a push is made again after the branch moved under it.
+const PUSH_RETRIES = 2;
 
 const notifyHistoryChanged = () =>
 	document.dispatchEvent(new CustomEvent('git-history-changed'));
@@ -517,9 +521,36 @@ class GitProjectSyncService {
 		if (!(await gitService.getHeadOid(projectId))) {
 			throw new Error(t('The project has no files to push yet.'));
 		}
-		const push = await gitSyncService.push(projectId, secrets);
-		notifyHistoryChanged();
-		return { committedOid, pull, push };
+		// Someone pushed at the same moment: what came is pulled (merged as
+		// any pull), then the push is made again, as Git users do by hand.
+		for (let attempt = 1; ; attempt++) {
+			try {
+				const push = await gitSyncService.push(projectId, secrets);
+				notifyHistoryChanged();
+				return { committedOid, pull, push };
+			} catch (error) {
+				if (!isRemoteMoved(error)) throw error;
+				if (attempt > PUSH_RETRIES) {
+					const { provider } = await gitSyncService.remoteAccess(
+						projectId,
+						secrets,
+					);
+					throw new Error(
+						t(
+							'{provider} kept receiving other changes while this push was being made. Push again in a moment.',
+							{ provider: provider.displayName },
+						),
+					);
+				}
+				moduleLog.info(
+					'The remote branch moved during the push: pulling first.',
+				);
+				pull = await this.pull(projectId, secrets, user);
+				if (pull.status === 'cancelled') {
+					return { committedOid, pull, push: null };
+				}
+			}
+		}
 	}
 }
 
