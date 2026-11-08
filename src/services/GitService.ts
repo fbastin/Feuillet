@@ -6,6 +6,7 @@ import type { User } from '../types/auth';
 import type { FileNode } from '../types/files';
 import { isBinaryFile } from '../utils/fileUtils';
 import { isLfsPointer, lfsMatcher } from '../utils/gitAttributes';
+import { autoMergeDriver, autoMergeText } from '../utils/gitMergeUtils';
 import { fileHandlerService } from './FileHandlerService';
 import { fileStoreService } from './FileStoreService';
 import { gitFileSystemService } from './GitFileSystemService';
@@ -860,6 +861,9 @@ class GitService {
 			path: string;
 			contents: string[];
 		}) => {
+			// Changes on different lines merge on their own, as in Git.
+			const merged = autoMergeText(path, contents);
+			if (merged) return merged;
 			conflictPaths.add(path);
 			return { cleanMerge: false, mergedText: contents[1] ?? '' };
 		};
@@ -940,6 +944,7 @@ class GitService {
 				abortOnConflict: true,
 				allowUnrelatedHistories: Boolean(mergeOptions.allowUnrelatedHistories),
 				author: authorForUser(user),
+				mergeDriver: autoMergeDriver,
 			}),
 		);
 		const headOid = mergeResult.oid ?? (await this.getHeadOid(projectId));
@@ -1000,7 +1005,7 @@ class GitService {
 				}) => {
 					const mergedText = resolvedText.get(path);
 					if (mergedText === undefined) {
-						return { cleanMerge: false, mergedText: contents[1] ?? '' };
+						return autoMergeDriver({ path, contents });
 					}
 					return { cleanMerge: true, mergedText };
 				},
