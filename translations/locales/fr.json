@@ -3807,5 +3807,6 @@
   "History from {provider}: {done} of {total} commits": "Historique de {{provider}} : {{done}} commits sur {{total}}",
   "Files from {provider}: {done} of {total}": "Fichiers de {{provider}} : {{done}} sur {{total}}",
   "{provider} kept receiving other changes while this push was being made. Push again in a moment.": "{{provider}} a reçu d'autres modifications à plusieurs reprises pendant cet envoi. Envoyez de nouveau dans un moment.",
-  "{provider} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».": "{{provider}} a refusé : le jeton n'a pas le droit de modifier ce dépôt. Un jeton à granularité fine doit y avoir « Contents: Read and write », un jeton classique la portée « repo ». Changez de jeton avec « Changer de jeton »."
+  "{provider} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».": "{{provider}} a refusé : le jeton n'a pas le droit de modifier ce dépôt. Un jeton à granularité fine doit y avoir « Contents: Read and write », un jeton classique la portée « repo ». Changez de jeton avec « Changer de jeton ».",
+  "Show older commits": "Afficher les commits plus anciens"
 }

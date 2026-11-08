@@ -71,6 +71,8 @@ export interface GitProjectState {
 	worktreeChanges: GitChange[];
 	history: GitHistoryEntry[];
 	branches: GitBranch[];
+	/** Older commits than those in `history` exist. */
+	historyHasMore?: boolean;
 }
 
 export interface GitRestoreResult {
@@ -489,7 +491,20 @@ class GitService {
 	}
 
 	async getHistory(projectId: string, depth = 50): Promise<GitHistoryEntry[]> {
-		if (!(await this.isInitialized(projectId))) return [];
+		return (await this.readHistory(projectId, depth)).entries;
+	}
+
+	/**
+	 * The latest `depth` commits of each branch, and whether older ones
+	 * exist (a history imported from GitHub may hold thousands).
+	 */
+	private async readHistory(
+		projectId: string,
+		depth: number,
+	): Promise<{ entries: GitHistoryEntry[]; hasMore: boolean }> {
+		if (!(await this.isInitialized(projectId))) {
+			return { entries: [], hasMore: false };
+		}
 
 		const git = await getGit();
 		const { options } = this.repo(projectId);
@@ -511,6 +526,7 @@ class GitService {
 		if (!currentBranch || refs.length === 0) refs.unshift('HEAD');
 
 		const entries = new Map<string, GitHistoryEntry>();
+		let hasMore = false;
 		for (const ref of [...new Set(refs)]) {
 			try {
 				const logEntries = await git.log({
@@ -519,6 +535,10 @@ class GitService {
 					depth,
 					includeChanges: true,
 				});
+				const last = logEntries[logEntries.length - 1];
+				if (logEntries.length >= depth && last?.commit.parent.length) {
+					hasMore = true;
+				}
 				for (const entry of logEntries) {
 					if (entries.has(entry.oid)) continue;
 					const changes = (
@@ -551,7 +571,7 @@ class GitService {
 			}
 		}
 
-		return this.orderHistory(entries, headOid);
+		return { entries: this.orderHistory(entries, headOid), hasMore };
 	}
 
 	private async stageAll(projectId: string): Promise<void> {
@@ -1244,7 +1264,7 @@ class GitService {
 		};
 	}
 
-	async getState(projectId: string): Promise<GitProjectState> {
+	async getState(projectId: string, depth = 50): Promise<GitProjectState> {
 		const initialized = await this.isInitialized(projectId);
 		if (!initialized) {
 			return {
@@ -1273,7 +1293,7 @@ class GitService {
 			this.getWorktreeBaseOid(projectId),
 			this.getChanges(projectId),
 			this.getWorktreeChanges(projectId),
-			this.getHistory(projectId),
+			this.readHistory(projectId, depth),
 			this.getBranches(projectId),
 		]);
 
@@ -1284,8 +1304,9 @@ class GitService {
 			worktreeBaseOid,
 			changes,
 			worktreeChanges,
-			history,
+			history: history.entries,
 			branches,
+			historyHasMore: history.hasMore,
 		};
 	}
 }

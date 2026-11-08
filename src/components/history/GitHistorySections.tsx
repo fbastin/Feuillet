@@ -257,6 +257,8 @@ interface GitHistorySectionsProps {
 	onOpenCurrentChange: (change: GitChange) => void;
 	onCompareCommit: (entry: GitHistoryEntry) => void;
 	onOpenCommitFile: (entry: GitHistoryEntry, path: string) => void;
+	/** Shows older commits, when there are. */
+	onShowOlder?: () => void;
 }
 
 const GitHistorySections: React.FC<GitHistorySectionsProps> = ({
@@ -284,6 +286,7 @@ const GitHistorySections: React.FC<GitHistorySectionsProps> = ({
 	onOpenCurrentChange,
 	onCompareCommit,
 	onOpenCommitFile,
+	onShowOlder,
 }) => {
 	const graph = useMemo(
 		() => buildGitGraphRows(state.history),
@@ -836,6 +839,17 @@ const GitHistorySections: React.FC<GitHistorySectionsProps> = ({
 												</div>
 											);
 										})}
+										{state.historyHasMore && onShowOlder ? (
+											<button
+												type='button'
+												className='button secondary git-history-show-older'
+												data-action='show-older-commits'
+												disabled={isLoading}
+												onClick={onShowOlder}
+											>
+												{isLoading ? t('Loading...') : t('Show older commits')}
+											</button>
+										) : null}
 									</div>
 								)}
 							</div>

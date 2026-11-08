@@ -41,6 +41,10 @@ export { buildGitGraphRows, shortGitOid } from './GitHistorySections';
 const moduleLog = createNamedLogger('GitHistoryPanel');
 const DEFAULT_SECTION_SIZES = { branches: 34, changes: 26, history: 40 };
 
+// Commits shown at first, and added each time older ones are asked for.
+const HISTORY_PAGE = 50;
+const HISTORY_MORE = 100;
+
 const emptyState: GitProjectState = {
 	initialized: false,
 	branch: null,
@@ -118,6 +122,11 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 	const [historyCollapsed, setHistoryCollapsed] = useState(false);
 	const [sectionSizes, setSectionSizes] = useState(DEFAULT_SECTION_SIZES);
 	const [state, setState] = useState<GitProjectState>(emptyState);
+	// How many commits the graph shows, more on request; back to the first
+	// page for another project.
+	const [shown, setShown] = useState({ projectId, depth: HISTORY_PAGE });
+	const historyDepth =
+		shown.projectId === projectId ? shown.depth : HISTORY_PAGE;
 	const [message, setMessage] = useState('');
 	const [compareSource, setCompareSource] = useState<{
 		oid: string;
@@ -244,7 +253,7 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 		setIsLoading(true);
 		setError(null);
 		try {
-			const nextState = await gitService.getState(projectId);
+			const nextState = await gitService.getState(projectId, historyDepth);
 			if (generation === loadGenerationRef.current) setState(nextState);
 		} catch (loadError) {
 			moduleLog.error('Failed to load Git history:', loadError);
@@ -254,7 +263,7 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 		} finally {
 			if (generation === loadGenerationRef.current) setIsLoading(false);
 		}
-	}, [projectId]);
+	}, [projectId, historyDepth]);
 
 	useEffect(() => {
 		void load();
@@ -1022,6 +1031,9 @@ const GitHistoryPanel: React.FC<GitHistoryPanelProps> = ({
 					onOpenCurrentChange={(change) => void openCurrentChange(change)}
 					onCompareCommit={compareCommit}
 					onOpenCommitFile={(entry, path) => void openCommitFile(entry, path)}
+					onShowOlder={() =>
+						setShown({ projectId, depth: historyDepth + HISTORY_MORE })
+					}
 				/>
 			)}
 

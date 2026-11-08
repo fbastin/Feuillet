@@ -210,3 +210,20 @@ describe('GitService merges', () => {
 		expect(result.status).toBe('conflicts');
 	});
 });
+
+describe('GitService history', () => {
+	it('shows the latest commits first and tells when older ones exist', async () => {
+		await startRepository({ 'main.tex': 'v\n' });
+		for (let index = 1; index < 60; index++) {
+			await editAndCommit(`v${'+'.repeat(index)}\n`);
+		}
+
+		const first = await gitService.getState('project-1');
+		expect(first.history).toHaveLength(50);
+		expect(first.historyHasMore).toBe(true);
+
+		const all = await gitService.getState('project-1', 150);
+		expect(all.history).toHaveLength(60);
+		expect(all.historyHasMore).toBe(false);
+	}, 60000);
+});
