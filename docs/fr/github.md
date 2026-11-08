@@ -41,6 +41,11 @@ GitHub pas encore dans le projet.
   projet. Quand les mêmes lignes ont changé des deux côtés, Feuillet montre
   les conflits à résoudre; vous pouvez aussi annuler la fusion.
 
+Tous les fichiers du dépôt sont gardés tels quels, fichiers binaires,
+exécutables, `.gitignore` et dossier `.github` compris. Les liens
+symboliques sont conservés sur GitHub, mais n'apparaissent pas dans le
+projet.
+
 Par défaut, les commentaires et les modifications suivies ne vont pas sur
 GitHub : seul le texte y est envoyé, tel qu'il serait une fois les
 modifications acceptées.

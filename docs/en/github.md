@@ -40,6 +40,10 @@ in the project.
   same lines changed on both sides, Feuillet shows the conflicts to resolve;
   you may also cancel the merge.
 
+Every file of the repository is kept as it is, binary files, executables,
+`.gitignore` and the `.github` folder included. Symbolic links are kept on
+GitHub, but do not show in the project.
+
 By default, comments and tracked changes do not go to GitHub: only the text
 is pushed, as it would be once the changes are accepted.
 

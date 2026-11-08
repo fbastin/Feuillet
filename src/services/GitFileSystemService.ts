@@ -26,7 +26,7 @@ type EncodingOptions = string | { encoding?: string | null } | null | undefined;
 type WritableData = string | Uint8Array | ArrayBuffer;
 
 type GitFsStat = {
-	type: 'file' | 'dir';
+	type: 'file' | 'dir' | 'symlink';
 	mode: number;
 	size: number;
 	ino: number;
@@ -184,6 +184,36 @@ function makeStat(
 		isSymbolicLink: () => false,
 	};
 }
+
+// A repository's symbolic links: the project's files cannot hold them, so
+// Git keeps them on this device, beside its own data, and sees them in the
+// worktree unchanged; a push keeps them on the remote as links. They do not
+// show in the project.
+const SYMLINKS_PATH = `${GIT_DIR}/feuillet-symlinks.json`;
+
+type SymlinkMap = Record<string, { target: string; time: number }>;
+
+function makeLinkStat(path: string, target: string, time: number): GitFsStat {
+	return {
+		type: 'symlink',
+		mode: 0o120000,
+		size: new TextEncoder().encode(target).byteLength,
+		ino: pathInode(path),
+		mtimeMs: time,
+		ctimeMs: time,
+		uid: 1,
+		gid: 1,
+		dev: 1,
+		isFile: () => false,
+		isDirectory: () => false,
+		isSymbolicLink: () => true,
+	};
+}
+
+const parentOf = (path: string): string => {
+	const index = path.lastIndexOf('/');
+	return index <= 0 ? '/' : path.slice(0, index);
+};
 
 class GitFileSystem {
 	private readonly privateFs: LightningFS;
@@ -405,6 +435,63 @@ class GitFileSystem {
 		}
 	}
 
+	// Read again after a moment: a status walk asks for it at every entry,
+	// and another tab of the project may change it.
+	private symlinkCache: { map: SymlinkMap; at: number } | null = null;
+
+	private async readSymlinks(): Promise<SymlinkMap> {
+		if (this.symlinkCache && Date.now() - this.symlinkCache.at < 2000) {
+			return { ...this.symlinkCache.map };
+		}
+		let map: SymlinkMap = {};
+		try {
+			const text = await this.privateFs.promises.readFile(SYMLINKS_PATH, {
+				encoding: 'utf8',
+			} as never);
+			map = JSON.parse(String(text)) as SymlinkMap;
+		} catch {
+			// None yet.
+		}
+		this.symlinkCache = { map, at: Date.now() };
+		return { ...map };
+	}
+
+	private async writeSymlinks(map: SymlinkMap): Promise<void> {
+		this.symlinkCache = { map: { ...map }, at: Date.now() };
+		if (Object.keys(map).length === 0) {
+			await this.privateFs.promises.unlink(SYMLINKS_PATH).catch(() => {});
+			return;
+		}
+		await this.privateFs.promises.writeFile(
+			SYMLINKS_PATH,
+			JSON.stringify(map) as never,
+			{ encoding: 'utf8' } as never,
+		);
+	}
+
+	/** The folders that exist only to hold links. */
+	private linkFolders(map: SymlinkMap): Set<string> {
+		const folders = new Set<string>();
+		for (const path of Object.keys(map)) {
+			for (
+				let folder = parentOf(path);
+				folder !== '/';
+				folder = parentOf(folder)
+			) {
+				folders.add(folder);
+			}
+		}
+		return folders;
+	}
+
+	private async forgetSymlink(path: string): Promise<boolean> {
+		const map = await this.readSymlinks();
+		if (!map[path]) return false;
+		delete map[path];
+		await this.writeSymlinks(map);
+		return true;
+	}
+
 	private async unlinkWorktree(path: string): Promise<void> {
 		const normalized = normalizePath(path);
 		const file = await this.getWorktreeFile(normalized);
@@ -432,6 +519,20 @@ class GitFileSystem {
 		return (await fileStoreService.getChildrenByPath(normalized))
 			.filter((file) => this.isVisibleWorktreeNode(file))
 			.map((file) => file.name);
+	}
+
+	private async statWorktreeOrLink(path: string): Promise<GitFsStat> {
+		const links = await this.readSymlinks();
+		const link = links[path];
+		if (link) return makeLinkStat(path, link.target, link.time);
+		try {
+			return await this.statWorktree(path);
+		} catch (error) {
+			if (this.linkFolders(links).has(path)) {
+				return makeStat(path, 'dir', 0, Date.now());
+			}
+			throw error;
+		}
 	}
 
 	private async statWorktree(path: string): Promise<GitFsStat> {
@@ -959,6 +1060,11 @@ class GitFileSystem {
 				if (isGitPath(normalized)) {
 					return this.privateFs.promises.readFile(normalized, options as never);
 				}
+				const link = (await this.readSymlinks())[normalized];
+				if (link) {
+					const bytes = new TextEncoder().encode(link.target);
+					return getEncoding(options) ? link.target : bytes;
+				}
 				return this.readWorktreeFile(normalized, options);
 			},
 			writeFile: async (
@@ -976,6 +1082,8 @@ class GitFileSystem {
 					return;
 				}
 				await this.writeWorktreeFile(normalized, data);
+				// A file in place of a link.
+				await this.forgetSymlink(normalized);
 			},
 			unlink: async (path: string) => {
 				const normalized = normalizePath(path);
@@ -983,6 +1091,7 @@ class GitFileSystem {
 					await this.privateFs.promises.unlink(normalized);
 					return;
 				}
+				if (await this.forgetSymlink(normalized)) return;
 				await this.unlinkWorktree(normalized);
 			},
 			readdir: async (path: string) => {
@@ -991,7 +1100,23 @@ class GitFileSystem {
 					return this.privateFs.promises.readdir(normalized);
 				}
 
-				const entries = await this.readdirWorktree(normalized);
+				const links = await this.readSymlinks();
+				const folders = this.linkFolders(links);
+				let entries: string[];
+				try {
+					entries = await this.readdirWorktree(normalized);
+				} catch (error) {
+					if (normalized !== '/' && !folders.has(normalized)) throw error;
+					entries = [];
+				}
+				const prefix = normalized === '/' ? '/' : `${normalized}/`;
+				for (const path of [...Object.keys(links), ...folders]) {
+					if (!path.startsWith(prefix)) continue;
+					const name = path.slice(prefix.length);
+					if (name && !name.includes('/') && !entries.includes(name)) {
+						entries.push(name);
+					}
+				}
 				if (normalized === '/' && (await this.privateExists(GIT_DIR))) {
 					return entries.includes('.git') ? entries : [...entries, '.git'];
 				}
@@ -1024,6 +1149,13 @@ class GitFileSystem {
 					await this.privateFs.promises.rename(source, target);
 					return;
 				}
+				const links = await this.readSymlinks();
+				if (links[source]) {
+					links[target] = links[source];
+					delete links[source];
+					await this.writeSymlinks(links);
+					return;
+				}
 				await this.renameWorktree(source, target);
 			},
 			stat: async (path: string, options?: unknown) => {
@@ -1031,20 +1163,22 @@ class GitFileSystem {
 				if (isGitPath(normalized)) {
 					return this.privateFs.promises.stat(normalized, options as never);
 				}
-				return this.statWorktree(normalized);
+				return this.statWorktreeOrLink(normalized);
 			},
 			lstat: async (path: string, options?: unknown) => {
 				const normalized = normalizePath(path);
 				if (isGitPath(normalized)) {
 					return this.privateFs.promises.lstat(normalized, options as never);
 				}
-				return this.statWorktree(normalized);
+				return this.statWorktreeOrLink(normalized);
 			},
 			readlink: async (path: string) => {
 				const normalized = normalizePath(path);
 				if (isGitPath(normalized)) {
 					return this.privateFs.promises.readlink(normalized);
 				}
+				const link = (await this.readSymlinks())[normalized];
+				if (link) return link.target;
 				throw fsError('EINVAL', normalized);
 			},
 			symlink: async (target: string, path: string) => {
@@ -1053,7 +1187,9 @@ class GitFileSystem {
 					await this.privateFs.promises.symlink(target, normalized);
 					return;
 				}
-				throw fsError('ENOTSUP', normalized);
+				const links = await this.readSymlinks();
+				links[normalized] = { target, time: Date.now() };
+				await this.writeSymlinks(links);
 			},
 		},
 	};

@@ -308,6 +308,39 @@ describe('GitFileSystemService', () => {
 		expect(mockStoreFile).not.toHaveBeenCalled();
 	});
 
+	it('keeps a repository\'s symbolic links beside Git\'s data, unchanged for Git', async () => {
+		const fs = gitFileSystemService.get('links-project').fs;
+		const results = (LightningFS as unknown as jest.Mock).mock.results;
+		const privateFs = results[results.length - 1].value.promises;
+		const stored = new Map<string, string>();
+		privateFs.writeFile.mockImplementation(async (path: string, data: string) => {
+			stored.set(path, data);
+		});
+		privateFs.readFile.mockImplementation(async (path: string) => {
+			if (!stored.has(path)) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+			return stored.get(path);
+		});
+		privateFs.unlink.mockImplementation(async (path: string) => {
+			stored.delete(path);
+		});
+
+		await fs.promises.symlink('chapitres/intro.tex', '/liens/intro.tex');
+		expect(mockStoreFile).not.toHaveBeenCalled();
+		expect(await fs.promises.readlink('/liens/intro.tex')).toBe('chapitres/intro.tex');
+		const stat = await fs.promises.lstat('/liens/intro.tex');
+		expect(stat.isSymbolicLink()).toBe(true);
+		expect(stat.mode).toBe(0o120000);
+		expect((await fs.promises.stat('/liens')).isDirectory()).toBe(true);
+		expect(await fs.promises.readdir('/')).toContain('liens');
+		expect(await fs.promises.readdir('/liens')).toEqual(['intro.tex']);
+
+		await fs.promises.rename('/liens/intro.tex', '/liens/debut.tex');
+		expect(await fs.promises.readlink('/liens/debut.tex')).toBe('chapitres/intro.tex');
+		await fs.promises.unlink('/liens/debut.tex');
+		await expect(fs.promises.readlink('/liens/debut.tex')).rejects.toThrow();
+		expect(stored.has('/.git/feuillet-symlinks.json')).toBe(false);
+	});
+
 	it('keeps .git writes out of FileStore', async () => {
 		const fs = gitFileSystemService.get('project-1').fs;
 		await fs.promises.writeFile('/.git/HEAD', 'ref: refs/heads/main\n');
