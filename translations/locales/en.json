@@ -3801,5 +3801,9 @@
   "It may have been deleted once its pull request was merged.": "It may have been deleted once its pull request was merged.",
   "Nothing is lost: the project keeps its files and its history. Go back to another branch with them, or make this one again on {provider}.": "Nothing is lost: the project keeps its files and its history. Go back to another branch with them, or make this one again on {{provider}}.",
   "Make it again on {provider}": "Make it again on {{provider}}",
-  "What is not on {provider} yet comes along, merged with the files of the branch chosen, for every collaborator.": "What is not on {{provider}} yet comes along, merged with the files of the branch chosen, for every collaborator."
+  "What is not on {provider} yet comes along, merged with the files of the branch chosen, for every collaborator.": "What is not on {{provider}} yet comes along, merged with the files of the branch chosen, for every collaborator.",
+  "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again after {time}.": "{{provider}} limits how many requests an account makes, and this one reached the limit for now. Try again after {{time}}.",
+  "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.": "{{provider}} limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.",
+  "History from {provider}: {done} of {total} commits": "History from {{provider}}: {{done}} of {{total}} commits",
+  "Files from {provider}: {done} of {total}": "Files from {{provider}}: {{done}} of {{total}}"
 }

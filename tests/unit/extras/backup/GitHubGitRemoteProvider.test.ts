@@ -18,6 +18,15 @@ const commitBody = (sha: string, tree: string, parents: string[]) => ({
 	committer: { name: 'Author', email: 'author@example.com', date: '2026-09-15T10:00:00Z' },
 });
 
+const commitObject = (treeOid: string) => ({
+	oid: 'commit',
+	message: 'Message',
+	parents: [],
+	author: { name: 'A', email: 'a@example.com', date: '2026-09-15T10:00:00Z' },
+	committer: { name: 'A', email: 'a@example.com', date: '2026-09-15T10:00:00Z' },
+	treeOid,
+});
+
 const originalFetch = globalThis.fetch;
 
 describe('GitHubGitRemoteProvider', () => {
@@ -133,7 +142,7 @@ describe('GitHubGitRemoteProvider', () => {
 		});
 	});
 
-	it('sends a submodule as the commit it points to, with nothing uploaded', async () => {
+	it('sends a submodule as the commit it points to, text in the tree request, and uploads only the other files', async () => {
 		const fetchMock = jest.fn(
 			async (
 				input: Parameters<typeof fetch>[0],
@@ -189,7 +198,19 @@ describe('GitHubGitRemoteProvider', () => {
 						path: 'main.tex',
 						type: 'update',
 						mode: '100644',
-						content: new TextEncoder().encode('text'),
+						content: new TextEncoder().encode('\ufeffÉté\r\n'),
+					},
+					{
+						path: 'figure.png',
+						type: 'create',
+						mode: '100644',
+						content: Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2]),
+					},
+					{
+						path: 'latin1.tex',
+						type: 'create',
+						mode: '100644',
+						content: Uint8Array.from([0x45, 0x74, 0xe9]),
 					},
 				],
 			},
@@ -198,7 +219,7 @@ describe('GitHubGitRemoteProvider', () => {
 		const blobs = fetchMock.mock.calls.filter(([input]) =>
 			String(input).endsWith('/git/blobs'),
 		);
-		expect(blobs).toHaveLength(1);
+		expect(blobs).toHaveLength(2);
 		const treeCall = fetchMock.mock.calls.find(([input]) =>
 			String(input).endsWith('/git/trees'),
 		);
@@ -206,8 +227,150 @@ describe('GitHubGitRemoteProvider', () => {
 			base_tree: 'parent-tree',
 			tree: [
 				{ path: 'lib/theme', mode: '160000', type: 'commit', sha: '2'.repeat(40) },
-				{ path: 'main.tex', mode: '100644', type: 'blob', sha: 'blob-sha' },
+				{
+					path: 'main.tex',
+					mode: '100644',
+					type: 'blob',
+					content: '\ufeffÉté\r\n',
+				},
+				{ path: 'figure.png', mode: '100644', type: 'blob', sha: 'blob-sha' },
+				{ path: 'latin1.tex', mode: '100644', type: 'blob', sha: 'blob-sha' },
 			],
+		});
+	});
+
+	describe('reading a history', () => {
+		const listed = (sha: string, parent: string | null) => ({
+			sha,
+			commit: {
+				message: `Commit ${sha}\n`,
+				tree: { sha: `tree-${sha}` },
+				author: {
+					name: 'Author',
+					email: 'author@example.com',
+					date: '2026-09-15T10:00:00Z',
+				},
+				committer: {
+					name: 'Author',
+					email: 'author@example.com',
+					date: '2026-09-15T10:00:00Z',
+				},
+				verification: { signature: null, payload: null },
+			},
+			parents: parent ? [{ sha: parent }] : [],
+		});
+
+		it('lists commits a hundred a request, and stops at the first page holding a known one', async () => {
+			const history = Array.from({ length: 250 }, (_, index) =>
+				listed(`c${250 - index}`, index === 249 ? null : `c${249 - index}`),
+			);
+			const fetchMock = jest.fn(async (input: Parameters<typeof fetch>[0]) => {
+				const url = new URL(String(input));
+				const page = Number(url.searchParams.get('page'));
+				const size = Number(url.searchParams.get('per_page'));
+				return response(200, history.slice((page - 1) * size, page * size));
+			});
+			globalThis.fetch = fetchMock as typeof fetch;
+
+			const commits =
+				await gitHubGitRemoteProvider.historyTransport.listCommits?.(
+					'token',
+					'owner/repo',
+					'c250',
+					{ known: async (oid) => oid === 'c120' },
+				);
+
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			expect(String(fetchMock.mock.calls[0][0])).toContain(
+				'/repos/owner/repo/commits?sha=c250&per_page=100&page=1',
+			);
+			expect(commits).toHaveLength(200);
+			expect(commits?.[0]).toEqual({
+				oid: 'c250',
+				message: 'Commit c250\n',
+				parents: ['c249'],
+				author: {
+					name: 'Author',
+					email: 'author@example.com',
+					date: '2026-09-15T10:00:00Z',
+				},
+				committer: {
+					name: 'Author',
+					email: 'author@example.com',
+					date: '2026-09-15T10:00:00Z',
+				},
+				treeOid: 'tree-c250',
+			});
+		});
+
+		it('reads a whole tree in one request', async () => {
+			const fetchMock = jest.fn(async () =>
+				response(200, {
+					tree: [
+						{ path: 'main.tex', mode: '100644', type: 'blob', sha: 'b1' },
+						{ path: 'chapitres', mode: '040000', type: 'tree', sha: 't1' },
+						{
+							path: 'chapitres/intro.tex',
+							mode: '100644',
+							type: 'blob',
+							sha: 'b2',
+						},
+						{ path: 'lib/theme', mode: '160000', type: 'commit', sha: 's1' },
+					],
+					truncated: false,
+				}),
+			);
+			globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+			const entries = await gitHubGitRemoteProvider.historyTransport.getTree(
+				'token',
+				'owner/repo',
+				commitObject('root-tree'),
+			);
+
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			expect(String(fetchMock.mock.calls[0][0])).toContain(
+				'/git/trees/root-tree?recursive=1',
+			);
+			expect(entries).toEqual([
+				{ path: 'main.tex', mode: '100644', type: 'blob', oid: 'b1' },
+				{ path: 'chapitres/intro.tex', mode: '100644', type: 'blob', oid: 'b2' },
+				{ path: 'lib/theme', mode: '160000', type: 'commit', oid: 's1' },
+			]);
+		});
+
+		it('walks the tree folder by folder when GitHub cuts the whole one short', async () => {
+			const fetchMock = jest.fn(async (input: Parameters<typeof fetch>[0]) => {
+				const url = String(input);
+				if (url.includes('recursive=1')) {
+					return response(200, { tree: [], truncated: true });
+				}
+				if (url.includes('/git/trees/root-tree')) {
+					return response(200, {
+						tree: [
+							{ path: 'main.tex', mode: '100644', type: 'blob', sha: 'b1' },
+							{ path: 'chapitres', mode: '040000', type: 'tree', sha: 't1' },
+						],
+					});
+				}
+				return response(200, {
+					tree: [
+						{ path: 'intro.tex', mode: '100644', type: 'blob', sha: 'b2' },
+					],
+				});
+			});
+			globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+			const entries = await gitHubGitRemoteProvider.historyTransport.getTree(
+				'token',
+				'owner/repo',
+				commitObject('root-tree'),
+			);
+
+			expect(entries.map((entry) => entry.path)).toEqual([
+				'main.tex',
+				'chapitres/intro.tex',
+			]);
 		});
 	});
 });

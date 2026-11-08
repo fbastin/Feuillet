@@ -1,5 +1,5 @@
 import { createNamedLogger } from '@/logging';
-import { gitRemoteRequestError } from '@/utils/gitUtils';
+import { gitRemoteRequestError, rateLimitResetOf } from '@/utils/gitUtils';
 const moduleLog = createNamedLogger('GitHubAPIService');
 
 // extras/backup/github/GitHubAPIService.ts
@@ -87,6 +87,7 @@ export class GitHubAPIService {
 					endpoint,
 					response.status,
 					errorData.message || response.statusText,
+					rateLimitResetOf(response),
 				);
 			}
 

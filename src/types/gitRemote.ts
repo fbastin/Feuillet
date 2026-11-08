@@ -118,6 +118,21 @@ export interface GitRemoteHistoryTransport {
 		repositoryId: string,
 		oid: string,
 	): Promise<GitRemoteCommitObject>;
+	/**
+	 * The commits reachable from `head`, newest first, a page at a time, up
+	 * to `limit`: the listing ends with the first page holding a commit
+	 * `known` says is already here. An import asks for a hundred commits at
+	 * once this way, instead of one each.
+	 */
+	listCommits?(
+		token: string,
+		repositoryId: string,
+		head: string,
+		options: {
+			known?: (oid: string) => Promise<boolean>;
+			limit?: number;
+		},
+	): Promise<GitRemoteCommitObject[]>;
 	getTree(
 		token: string,
 		repositoryId: string,

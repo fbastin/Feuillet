@@ -6,12 +6,50 @@ import type { GitRemoteBranch, GitRemoteProvider } from '../types/gitRemote';
  * the host refuses (401) says so plainly, so that one connects again rather
  * than reading "Bad credentials".
  */
+/**
+ * When a host that refused requests for going too fast lets them through
+ * again, from its answer's headers (GitHub's X-RateLimit-Reset, or
+ * Retry-After for its per-minute limit).
+ */
+export const rateLimitResetOf = (response: Response): number | undefined => {
+	const headers = response.headers;
+	if (!headers) return undefined;
+	const reset = Number(headers.get('X-RateLimit-Reset'));
+	if (reset > 0 && headers.get('X-RateLimit-Remaining') === '0') {
+		return reset * 1000;
+	}
+	const retry = Number(headers.get('Retry-After'));
+	return retry > 0 ? Date.now() + retry * 1000 : undefined;
+};
+
 export function gitRemoteRequestError(
 	providerName: string,
 	endpoint: string,
 	status: number,
 	detail?: string,
-): Error & { status: number } {
+	retryAt?: number,
+): Error & { status: number; rateLimited?: boolean } {
+	if ((status === 403 || status === 429) && /rate limit/i.test(detail ?? '')) {
+		const message = retryAt
+			? t(
+					'{provider} limits how many requests an account makes, and this one reached the limit for now. Try again after {time}.',
+					{
+						provider: providerName,
+						time: new Date(retryAt).toLocaleTimeString(undefined, {
+							hour: '2-digit',
+							minute: '2-digit',
+						}),
+					},
+				)
+			: t(
+					'{provider} limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.',
+					{ provider: providerName },
+				);
+		return Object.assign(new Error(message), {
+			status,
+			rateLimited: true,
+		});
+	}
 	const message =
 		status === 401
 			? t(
@@ -21,6 +59,10 @@ export function gitRemoteRequestError(
 			: `${providerName} API request to '${endpoint.split('?')[0]}' failed (${status})${detail ? `: ${detail}` : ''}`;
 	return Object.assign(new Error(message), { status });
 }
+
+/** Whether a Git host refused requests for going too fast. */
+export const isRateLimited = (error: unknown): boolean =>
+	(error as { rateLimited?: boolean } | null)?.rateLimited === true;
 
 /** Whether a Git host refused the saved token. */
 export const isRejectedToken = (error: unknown): boolean =>
@@ -72,6 +114,7 @@ export async function gitRemoteApiRequest<T>({
 				endpoint,
 				response.status,
 				detail || response.statusText,
+				rateLimitResetOf(response),
 			);
 		}
 		return response.status === 204 ? (undefined as T) : response.json();

@@ -10,7 +10,10 @@ import type {
 	GitRemoteCredentialRef,
 	GitRemoteProvider,
 	GitRemoteSignature,
+	GitRemoteTreeEntry,
 } from '../types/gitRemote';
+import { forEachLimited } from '../utils/asyncLimit';
+import { isRateLimited } from '../utils/gitUtils';
 import { fileHandlerService } from './FileHandlerService';
 import { fileStoreService } from './FileStoreService';
 import { gitFileSystemService } from './GitFileSystemService';
@@ -26,6 +29,42 @@ type GitRemoteListener = (config: GitRemoteConfig | undefined) => void;
 type GitTreeMode = '100644' | '100755' | '040000' | '160000' | '120000';
 
 const moduleLog = createNamedLogger('GitSyncService');
+
+// Requests to the provider at a time while bringing a history in: GitHub
+// answers each in a quarter of a second, one after another would take
+// minutes for a few hundred commits. They also start at least
+// FETCH_SPACING_MS apart: GitHub refuses more than 900 a minute for a while
+// (its secondary rate limit), and this keeps under 750.
+const FETCH_CONCURRENCY = 6;
+const FETCH_SPACING_MS = 80;
+
+/**
+ * How far a long import from the remote is, told on `document` for the
+ * window to show: commits listed and their trees, then the files.
+ */
+export const GIT_REMOTE_PROGRESS_EVENT = 'git-remote-progress';
+
+export interface GitRemoteProgress {
+	projectId: string;
+	phase: 'commits' | 'files';
+	done: number;
+	total: number;
+}
+
+const tellProgress = (progress: GitRemoteProgress) => {
+	if (typeof document === 'undefined') return;
+	document.dispatchEvent(
+		new CustomEvent<GitRemoteProgress>(GIT_REMOTE_PROGRESS_EVENT, {
+			detail: progress,
+		}),
+	);
+};
+
+/** What an import fetched ahead: commits by id, and their trees. */
+interface PrefetchedHistory {
+	commits: Map<string, GitRemoteCommitObject>;
+	trees: Map<string, GitRemoteTreeEntry[]>;
+}
 
 let gitPromise: Promise<typeof import('isomorphic-git')> | null = null;
 const getGit = () => (gitPromise ??= import('isomorphic-git'));
@@ -1137,12 +1176,141 @@ class GitSyncService {
 		return git.writeTree({ ...options, tree: tree as never });
 	}
 
+	/**
+	 * Brings a remote commit and the history behind it into the local
+	 * repository, as `importRemoteCommit`, after fetching ahead what is
+	 * missing: the commits a hundred at a time, their trees whole, and the
+	 * files, several requests at once.
+	 */
+	private async importRemoteHistory(
+		projectId: string,
+		transport: ResolvedTransport,
+		oid: string,
+		remoteToLocal = new Map<string, string>(),
+	): Promise<string> {
+		const prefetched = await this.prefetchHistory(
+			projectId,
+			transport,
+			oid,
+			remoteToLocal,
+		).catch((error) => {
+			// Going on commit by commit would only ask more of a host that
+			// refuses for now.
+			if (isRateLimited(error)) throw error;
+			// Otherwise the commit-by-commit way still works; it is slower.
+			moduleLog.warn('Could not fetch the remote history ahead:', error);
+			return undefined;
+		});
+		return this.importRemoteCommit(
+			projectId,
+			transport,
+			oid,
+			remoteToLocal,
+			new Set<string>(),
+			prefetched,
+		);
+	}
+
+	private async prefetchHistory(
+		projectId: string,
+		transport: ResolvedTransport,
+		head: string,
+		remoteToLocal: Map<string, string>,
+	): Promise<PrefetchedHistory | undefined> {
+		const { provider, config, token } = transport;
+		const history = provider.historyTransport;
+		if (!history.listCommits) return undefined;
+		// Already here, as importRemoteCommit tells it.
+		const known = async (oid: string): Promise<boolean> => {
+			const mapped = remoteToLocal.get(oid);
+			if (mapped && (await this.hasCommit(projectId, mapped))) return true;
+			if (
+				config.syncBase?.remoteOid === oid &&
+				(await this.hasCommit(projectId, config.syncBase.localOid))
+			) {
+				return true;
+			}
+			return history.preservesCommitOids && this.hasCommit(projectId, oid);
+		};
+		if (await known(head)) return undefined;
+
+		const listed = await history.listCommits(token, config.repositoryId, head, {
+			known,
+		});
+		const commits = new Map<string, GitRemoteCommitObject>();
+		const needed: GitRemoteCommitObject[] = [];
+		for (const commit of listed) {
+			commits.set(commit.oid, commit);
+			if (!(await known(commit.oid))) needed.push(commit);
+		}
+
+		const trees = new Map<string, GitRemoteTreeEntry[]>();
+		const progress = (phase: GitRemoteProgress['phase'], total: number) => {
+			let done = 0;
+			tellProgress({ projectId, phase, done, total });
+			return () => tellProgress({ projectId, phase, done: ++done, total });
+		};
+		const treeDone = progress('commits', needed.length);
+		await forEachLimited(
+			needed,
+			FETCH_CONCURRENCY,
+			async (commit) => {
+				trees.set(
+					commit.oid,
+					await history.getTree(token, config.repositoryId, commit),
+				);
+				treeDone();
+			},
+			FETCH_SPACING_MS,
+		);
+
+		const wanted = new Set<string>();
+		for (const entries of trees.values()) {
+			for (const entry of entries) {
+				if (entry.type === 'blob' && normalizeMode(entry.mode) !== '160000') {
+					wanted.add(entry.oid);
+				}
+			}
+		}
+		const missing: string[] = [];
+		for (const oid of wanted) {
+			if (!(await this.hasBlob(projectId, oid))) missing.push(oid);
+		}
+		const git = await getGit();
+		const { options } = this.repo(projectId);
+		// Fetched several at a time, written one after another.
+		const fileDone = progress('files', missing.length);
+		let writing: Promise<void> = Promise.resolve();
+		await forEachLimited(
+			missing,
+			FETCH_CONCURRENCY,
+			async (oid) => {
+				const content = await history.getBlob(token, config.repositoryId, oid);
+				const written = writing.then(async () => {
+					const localOid = await git.writeBlob({ ...options, blob: content });
+					if (localOid !== oid) {
+						throw new Error(
+							`Remote blob ${oid} could not be reproduced locally (got ${localOid})`,
+						);
+					}
+				});
+				writing = written.catch(() => undefined);
+				await written;
+				fileDone();
+			},
+			FETCH_SPACING_MS,
+		);
+		await writing;
+		return { commits, trees };
+	}
+
 	private async importRemoteCommit(
 		projectId: string,
 		transport: ResolvedTransport,
 		oid: string,
 		remoteToLocal = new Map<string, string>(),
 		active = new Set<string>(),
+		prefetched?: PrefetchedHistory,
 	): Promise<string> {
 		const mapped = remoteToLocal.get(oid);
 		if (mapped && (await this.hasCommit(projectId, mapped))) return mapped;
@@ -1167,11 +1335,13 @@ class GitSyncService {
 		active.add(oid);
 
 		const { provider, config, token } = transport;
-		const remote = await provider.historyTransport.getCommit(
-			token,
-			config.repositoryId,
-			oid,
-		);
+		const remote =
+			prefetched?.commits.get(oid) ??
+			(await provider.historyTransport.getCommit(
+				token,
+				config.repositoryId,
+				oid,
+			));
 		const localParents: string[] = [];
 		for (const parent of remote.parents) {
 			localParents.push(
@@ -1181,17 +1351,20 @@ class GitSyncService {
 					parent,
 					remoteToLocal,
 					active,
+					prefetched,
 				),
 			);
 		}
 
 		const git = await getGit();
 		const { options } = this.repo(projectId);
-		const entries = await provider.historyTransport.getTree(
-			token,
-			config.repositoryId,
-			remote,
-		);
+		const entries =
+			prefetched?.trees.get(remote.oid) ??
+			(await provider.historyTransport.getTree(
+				token,
+				config.repositoryId,
+				remote,
+			));
 		const root = this.treeNode();
 		for (const entry of entries) {
 			if (entry.type === 'tree') continue;
@@ -1383,7 +1556,7 @@ class GitSyncService {
 				transport.config.syncBase.localOid,
 			);
 		}
-		const localOid = await this.importRemoteCommit(
+		const localOid = await this.importRemoteHistory(
 			projectId,
 			transport,
 			remoteOid,
@@ -1507,12 +1680,12 @@ class GitSyncService {
 		let base = remoteOid ?? head;
 		let localOid: string;
 		try {
-			localOid = await this.importRemoteCommit(projectId, transport, base);
+			localOid = await this.importRemoteHistory(projectId, transport, base);
 		} catch (error) {
 			// The last synced commit is gone (a force push): start from the head.
 			if (base === head) throw error;
 			base = head;
-			localOid = await this.importRemoteCommit(projectId, transport, base);
+			localOid = await this.importRemoteHistory(projectId, transport, base);
 		}
 
 		const git = await getGit();

@@ -30,6 +30,8 @@ import {
 import { type GitKeptEntries, gitService } from '@/services/GitService';
 import { projectSeedService } from '@/services/ProjectSeedService';
 import {
+	GIT_REMOTE_PROGRESS_EVENT,
+	type GitRemoteProgress,
 	type GitRemoteSyncStatus,
 	gitSyncService,
 } from '@/services/GitSyncService';
@@ -93,6 +95,9 @@ const isFreshRepositoryError = (error: unknown): boolean => {
 	return status === 404 || status === 409;
 };
 
+// Progress shows for histories at least this long.
+const PROGRESS_FROM = 20;
+
 const wait = (ms: number) =>
 	new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
@@ -146,6 +151,8 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	const [keptEntries, setKeptEntries] = useState<GitKeptEntries | null>(null);
 
 	const [busyAction, setBusyAction] = useState<string | null>(null);
+	// A long history coming from GitHub: how far it is.
+	const [progress, setProgress] = useState<GitRemoteProgress | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 	const importStartedRef = useRef(false);
@@ -168,11 +175,22 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		if (gitAccount.tokenRejected) setShowTokenForm(true);
 	}, [gitAccount.tokenRejected]);
 
+	useEffect(() => {
+		const onProgress = (event: Event) => {
+			const detail = (event as CustomEvent<GitRemoteProgress>).detail;
+			if (detail.projectId === projectId) setProgress(detail);
+		};
+		document.addEventListener(GIT_REMOTE_PROGRESS_EVENT, onProgress);
+		return () =>
+			document.removeEventListener(GIT_REMOTE_PROGRESS_EVENT, onProgress);
+	}, [projectId]);
+
 	const run = async (
 		label: string,
 		action: (secrets: GitActionSecrets) => Promise<void>,
 	): Promise<boolean> => {
 		setBusyAction(label);
+		setProgress(null);
 		setError(null);
 		setNotice(null);
 		try {
@@ -186,6 +204,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			return false;
 		} finally {
 			setBusyAction(null);
+			setProgress(null);
 		}
 	};
 
@@ -540,6 +559,31 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			? provider.getRepositoryUrl(remote.repositoryId)
 			: null;
 
+	// Shown for a history long enough to take a while.
+	const renderProgress = () => {
+		if (!busyAction || !progress || progress.total < PROGRESS_FROM) {
+			return null;
+		}
+		return (
+			<div className='ui-message' data-tone='info' data-role='remote-progress'>
+				<p>
+					{progress.phase === 'commits'
+						? t('History from {provider}: {done} of {total} commits', {
+								provider: remoteName,
+								done: progress.done,
+								total: progress.total,
+							})
+						: t('Files from {provider}: {done} of {total}', {
+								provider: remoteName,
+								done: progress.done,
+								total: progress.total,
+							})}
+				</p>
+				<progress value={progress.done} max={progress.total} />
+			</div>
+		);
+	};
+
 	const renderMessages = () => (
 		<>
 			{busyAction === 'link' && pendingImport ? (
@@ -549,6 +593,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 					})}
 				</div>
 			) : null}
+			{renderProgress()}
 			{error || gitAccount.error ? (
 				<div className='ui-message' data-tone='error'>
 					{error ?? gitAccount.error}

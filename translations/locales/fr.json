@@ -3801,5 +3801,9 @@
   "It may have been deleted once its pull request was merged.": "Elle a peut-être été supprimée après la fusion de sa demande de fusion.",
   "Nothing is lost: the project keeps its files and its history. Go back to another branch with them, or make this one again on {provider}.": "Rien n'est perdu : le projet garde ses fichiers et son historique. Revenez sur une autre branche avec eux, ou recréez celle-ci sur {{provider}}.",
   "Make it again on {provider}": "La recréer sur {{provider}}",
-  "What is not on {provider} yet comes along, merged with the files of the branch chosen, for every collaborator.": "Ce qui n'est pas encore sur {{provider}} vous suit, fusionné avec les fichiers de la branche choisie, pour tous les collaborateurs."
+  "What is not on {provider} yet comes along, merged with the files of the branch chosen, for every collaborator.": "Ce qui n'est pas encore sur {{provider}} vous suit, fusionné avec les fichiers de la branche choisie, pour tous les collaborateurs.",
+  "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again after {time}.": "{{provider}} limite le nombre de requêtes d'un compte, et celui-ci a atteint la limite pour l'instant. Réessayez après {{time}}.",
+  "{provider} limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.": "{{provider}} limite le nombre de requêtes d'un compte, et celui-ci a atteint la limite pour l'instant. Réessayez dans quelques minutes.",
+  "History from {provider}: {done} of {total} commits": "Historique de {{provider}} : {{done}} commits sur {{total}}",
+  "Files from {provider}: {done} of {total}": "Fichiers de {{provider}} : {{done}} sur {{total}}"
 }

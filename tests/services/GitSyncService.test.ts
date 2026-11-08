@@ -522,6 +522,74 @@ describe('GitSyncService API transport', () => {
 		expect(result?.remoteOid).toBe('remote-head');
 	});
 
+	it('fetches the history ahead: the commits listed, then each tree and file once', async () => {
+		transport.getHead.mockResolvedValue('remote-head');
+		const listCommits = jest.fn(
+			async (
+				_token: string,
+				_repo: string,
+				_head: string,
+				{ known }: { known: (oid: string) => Promise<boolean> },
+			) => {
+				expect(await known('remote-base')).toBe(true);
+				expect(await known('remote-head')).toBe(false);
+				return [
+					{ ...remoteCommit, oid: 'remote-head', parents: ['remote-base'] },
+					{
+						...remoteCommit,
+						oid: 'remote-base',
+						parents: [],
+						treeOid: 'base-tree',
+					},
+				];
+			},
+		);
+		Object.assign(transport, { listCommits });
+		// Written, a file is in the repository from then on.
+		mockGit.writeBlob.mockImplementation(async ({ blob }: { blob: Uint8Array }) => {
+			localBlobs.set('remote-blob', blob);
+			return 'remote-blob';
+		});
+		try {
+			const result = await gitSyncService.fetchForMerge('project-1', secrets);
+
+			expect(listCommits).toHaveBeenCalledWith(
+				'secret-token',
+				'owner/repo',
+				'remote-head',
+				expect.objectContaining({ known: expect.any(Function) }),
+			);
+			expect(transport.getCommit).not.toHaveBeenCalled();
+			expect(transport.getTree).toHaveBeenCalledTimes(1);
+			expect(transport.getBlob).toHaveBeenCalledTimes(1);
+			expect(mockGit.writeBlob).toHaveBeenCalledTimes(1);
+			expect(result?.remoteOid).toBe('remote-head');
+		} finally {
+			Reflect.deleteProperty(transport, 'listCommits');
+		}
+	});
+
+	it('still imports commit by commit when the history cannot be listed', async () => {
+		transport.getHead.mockResolvedValue('remote-head');
+		Object.assign(transport, {
+			listCommits: jest.fn(async () => {
+				throw new Error('listing refused');
+			}),
+		});
+		try {
+			const result = await gitSyncService.fetchForMerge('project-1', secrets);
+
+			expect(transport.getCommit).toHaveBeenCalledWith(
+				'secret-token',
+				'owner/repo',
+				'remote-head',
+			);
+			expect(result?.remoteOid).toBe('remote-head');
+		} finally {
+			Reflect.deleteProperty(transport, 'listCommits');
+		}
+	});
+
 	it('keeps remote and local sync identities separate for normalized providers', async () => {
 		transport.preservesCommitOids = false;
 		transport.getHead.mockResolvedValue('gitlab-remote-head');

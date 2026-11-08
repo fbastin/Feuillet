@@ -1,4 +1,5 @@
 import type {
+	GitRemoteCommitObject,
 	GitRemoteProvider,
 	GitRemotePullRequest,
 	GitRemotePullRequests,
@@ -7,6 +8,7 @@ import type {
 	GitRemoteSignature,
 	GitRemoteTreeEntry,
 } from '@/types/gitRemote';
+import { forEachLimited } from '@/utils/asyncLimit';
 import { toBase64 } from '@/utils/fileUtils';
 import {
 	base64ToBytes,
@@ -43,6 +45,40 @@ const request = <T>(
 		// and releases change on GitHub between two looks.
 		options: { cache: 'no-cache', ...options },
 	});
+
+// A commit as GitHub's Git data API and its commits list both give it.
+interface GitHubGitCommit {
+	message: string;
+	tree: { sha: string };
+	parents?: Array<{ sha: string }>;
+	author: { name?: string; email?: string; date?: string };
+	committer: { name?: string; email?: string; date?: string };
+	verification?: { signature?: string | null; payload?: string | null };
+}
+
+const COMMITS_PAGE_SIZE = 100;
+const MAX_LISTED_COMMITS = 5000;
+
+// Pushing: text up to this much in all goes in the tree request.
+const MAX_INLINE_BYTES = 4 * 1024 * 1024;
+const MAX_INLINE_FILE_BYTES = 1024 * 1024;
+const UPLOAD_CONCURRENCY = 4;
+const UNSPACED_UPLOADS = 40;
+const UPLOAD_SPACING_MS = 800;
+
+const strictUtf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+
+/** A file's text, when it is UTF-8 and small enough to send as such. */
+const inlineText = (content: Uint8Array): string | null => {
+	if (content.length > MAX_INLINE_FILE_BYTES || content.includes(0)) {
+		return null;
+	}
+	try {
+		return strictUtf8.decode(content);
+	} catch {
+		return null;
+	}
+};
 
 const normalizeSignature = (signature: {
 	name?: string;
@@ -165,6 +201,25 @@ const releases: GitRemoteReleases = {
 	},
 };
 
+const commitObjectOf = (
+	sha: string,
+	data: GitHubGitCommit,
+	parents: Array<{ sha: string }> = [],
+): GitRemoteCommitObject => ({
+	oid: sha,
+	message: data.message,
+	parents: parents.map((parent) => parent.sha),
+	author: normalizeSignature(data.author),
+	committer: normalizeSignature(data.committer),
+	treeOid: data.tree.sha,
+	...(data.verification?.signature
+		? { gpgsig: data.verification.signature }
+		: {}),
+	...(data.verification?.payload
+		? { unsignedPayload: data.verification.payload }
+		: {}),
+});
+
 const historyTransport: GitRemoteProvider['historyTransport'] = {
 	preservesCommitOids: true,
 	supportsMergeCommits: true,
@@ -188,35 +243,77 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 	},
 	getCommit: async (token, repositoryId, oid) => {
 		const [owner, repo] = repositoryParts(repositoryId);
-		const data = await request<{
-			sha: string;
-			message: string;
-			tree: { sha: string };
-			parents: Array<{ sha: string }>;
-			author: { name?: string; email?: string; date?: string };
-			committer: { name?: string; email?: string; date?: string };
-			verification?: { signature?: string | null; payload?: string | null };
-		}>(token, `repos/${owner}/${repo}/git/commits/${encodeURIComponent(oid)}`);
-		return {
-			oid: data.sha,
-			message: data.message,
-			parents: data.parents.map((parent) => parent.sha),
-			author: normalizeSignature(data.author),
-			committer: normalizeSignature(data.committer),
-			treeOid: data.tree.sha,
-			...(data.verification?.signature
-				? { gpgsig: data.verification.signature }
-				: {}),
-			...(data.verification?.payload
-				? { unsignedPayload: data.verification.payload }
-				: {}),
-		};
+		const data = await request<GitHubGitCommit & { sha: string }>(
+			token,
+			`repos/${owner}/${repo}/git/commits/${encodeURIComponent(oid)}`,
+		);
+		return commitObjectOf(data.sha, data, data.parents);
+	},
+	// The commits list gives each commit as the Git data API does (checked
+	// against it: message, tree, signatures, dates, parents), a hundred a
+	// request.
+	listCommits: async (
+		token,
+		repositoryId,
+		head,
+		{ known, limit = MAX_LISTED_COMMITS },
+	) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const commits: GitRemoteCommitObject[] = [];
+		for (let page = 1; commits.length < limit; page++) {
+			const batch = await request<
+				Array<{
+					sha: string;
+					commit: GitHubGitCommit;
+					parents: Array<{ sha: string }>;
+				}>
+			>(
+				token,
+				`repos/${owner}/${repo}/commits?sha=${encodeURIComponent(head)}&per_page=${COMMITS_PAGE_SIZE}&page=${page}`,
+			);
+			let reachedKnown = false;
+			for (const item of batch) {
+				commits.push(commitObjectOf(item.sha, item.commit, item.parents));
+				if (!reachedKnown && known && (await known(item.sha))) {
+					reachedKnown = true;
+				}
+			}
+			if (reachedKnown || batch.length < COMMITS_PAGE_SIZE) break;
+		}
+		return commits;
 	},
 	getTree: async (token, repositoryId, commit) => {
 		const [owner, repo] = repositoryParts(repositoryId);
 		if (!commit.treeOid)
 			throw new Error('GitHub commit did not include a tree');
 		const entries: GitRemoteTreeEntry[] = [];
+
+		// The whole tree in one request; folder by folder only when GitHub
+		// cuts it short (beyond 100,000 entries).
+		const whole = await request<{
+			tree: Array<{
+				path: string;
+				mode: string;
+				type: 'blob' | 'tree' | 'commit';
+				sha: string;
+			}>;
+			truncated?: boolean;
+		}>(
+			token,
+			`repos/${owner}/${repo}/git/trees/${encodeURIComponent(commit.treeOid)}?recursive=1`,
+		);
+		if (!whole.truncated) {
+			for (const entry of whole.tree) {
+				if (entry.type === 'tree') continue;
+				entries.push({
+					path: entry.path,
+					mode: entry.mode,
+					type: entry.type,
+					oid: entry.sha,
+				});
+			}
+			return entries;
+		}
 
 		const walk = async (treeOid: string, prefix = ''): Promise<void> => {
 			const data = await request<{
@@ -277,43 +374,80 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 		if (baseCommit && !baseCommit.treeOid) {
 			throw new Error('GitHub parent commit did not include a tree');
 		}
-		const tree = await Promise.all(
-			input.changes.map(async (change) => {
-				if (change.type === 'delete') {
-					return {
-						path: change.path,
-						mode: change.mode ?? '100644',
-						type: change.mode === '160000' ? 'commit' : 'blob',
-						sha: null,
-					};
-				}
-				if (change.mode === '160000') {
-					// A submodule: the commit it points to, nothing to upload.
-					return {
-						path: change.path,
-						mode: '160000',
-						type: 'commit',
-						sha: change.oid ?? null,
-					};
-				}
+		// Text goes in the tree request itself, which GitHub writes byte for
+		// byte (checked: BOM, CRLF, CR, accents, no final newline): one
+		// request for all of it. Other files are uploaded a few at a time;
+		// many of them, spaced, for GitHub refuses more than 80 such
+		// requests a minute.
+		const tree: Array<{
+			path: string;
+			mode: string;
+			type: 'blob' | 'commit';
+			sha?: string | null;
+			content?: string;
+		}> = [];
+		const uploads: Array<{ index: number; content: Uint8Array }> = [];
+		let inlined = 0;
+		for (const change of input.changes) {
+			if (change.type === 'delete') {
+				tree.push({
+					path: change.path,
+					mode: change.mode ?? '100644',
+					type: change.mode === '160000' ? 'commit' : 'blob',
+					sha: null,
+				});
+				continue;
+			}
+			if (change.mode === '160000') {
+				// A submodule: the commit it points to, nothing to upload.
+				tree.push({
+					path: change.path,
+					mode: '160000',
+					type: 'commit',
+					sha: change.oid ?? null,
+				});
+				continue;
+			}
+			const content = change.content ?? new Uint8Array();
+			const text =
+				inlined + content.length <= MAX_INLINE_BYTES
+					? inlineText(content)
+					: null;
+			if (text !== null) {
+				inlined += content.length;
+				tree.push({
+					path: change.path,
+					mode: change.mode ?? '100644',
+					type: 'blob',
+					content: text,
+				});
+				continue;
+			}
+			uploads.push({ index: tree.length, content });
+			tree.push({
+				path: change.path,
+				mode: change.mode ?? '100644',
+				type: 'blob',
+			});
+		}
+		await forEachLimited(
+			uploads,
+			UPLOAD_CONCURRENCY,
+			async ({ index, content }) => {
 				const blob = await request<{ sha: string }>(
 					token,
 					`repos/${owner}/${repo}/git/blobs`,
 					{
 						method: 'POST',
 						body: JSON.stringify({
-							content: toBase64(change.content ?? new Uint8Array()),
+							content: toBase64(content),
 							encoding: 'base64',
 						}),
 					},
 				);
-				return {
-					path: change.path,
-					mode: change.mode ?? '100644',
-					type: change.mode === '160000' ? 'commit' : 'blob',
-					sha: blob.sha,
-				};
-			}),
+				tree[index].sha = blob.sha;
+			},
+			uploads.length > UNSPACED_UPLOADS ? UPLOAD_SPACING_MS : 0,
 		);
 		const remoteTree = await request<{ sha: string }>(
 			token,

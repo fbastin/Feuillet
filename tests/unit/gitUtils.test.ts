@@ -1,6 +1,7 @@
 import {
 	gitRemoteApiRequest,
 	gitRemoteRequestError,
+	isRateLimited,
 	isRejectedToken,
 	normalizeGitRepositoryInput,
 } from '../../src/utils/gitUtils';
@@ -77,6 +78,62 @@ describe('gitUtils', () => {
 					status: 404,
 				}),
 			);
+		});
+
+		it('says when the host refuses requests for going too fast, and until when', async () => {
+			const reset = Date.UTC(2026, 10, 8, 15, 30) / 1000;
+			global.fetch = jest.fn(async () =>
+				({
+					ok: false,
+					status: 403,
+					statusText: 'Forbidden',
+					headers: new Headers({
+						'X-RateLimit-Remaining': '0',
+						'X-RateLimit-Reset': String(reset),
+					}),
+					json: async () => ({
+						message: 'API rate limit exceeded for user ID 1.',
+					}),
+				}) as Response,
+			) as typeof fetch;
+
+			const refused = await gitRemoteApiRequest({
+				providerName: 'GitHub',
+				baseUrl: 'https://api.github.com',
+				token: 'secret',
+				endpoint: 'repos/a/b/git/trees/t',
+				requestTimeout: 30,
+				authHeaders: () => ({}),
+			}).catch((error) => error);
+
+			const time = new Date(reset * 1000).toLocaleTimeString(undefined, {
+				hour: '2-digit',
+				minute: '2-digit',
+			});
+			expect(refused.message).toBe(
+				`GitHub limits how many requests an account makes, and this one reached the limit for now. Try again after ${time}.`,
+			);
+			expect(refused.status).toBe(403);
+			expect(isRateLimited(refused)).toBe(true);
+			expect(isRateLimited(new Error('other'))).toBe(false);
+		});
+
+		it('says so too for the per-minute limit, without a time when none is given', () => {
+			const error = gitRemoteRequestError(
+				'GitHub',
+				'repos/a/b/git/blobs/x',
+				429,
+				'You have exceeded a secondary rate limit.',
+			);
+			expect(error.message).toBe(
+				'GitHub limits how many requests an account makes, and this one reached the limit for now. Try again in a few minutes.',
+			);
+			expect(isRateLimited(error)).toBe(true);
+			expect(
+				isRateLimited(
+					gitRemoteRequestError('GitHub', 'repos/a/b', 403, 'Resource not accessible'),
+				),
+			).toBe(false);
 		});
 
 		it('says plainly when the host refuses the saved token', async () => {

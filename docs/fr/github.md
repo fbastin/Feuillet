@@ -26,6 +26,13 @@ demande un autre (**Changer de jeton**).
 Pour créer un projet à partir d'un dépôt, utilisez plutôt **Importer** dans
 la liste des projets.
 
+Feuillet récupère tout l'historique du dépôt, avec les mêmes commits que sur
+GitHub. Pour un long historique, la fenêtre montre où il en est (commits,
+puis fichiers) : comptez environ une minute pour 300 commits. GitHub limite
+le nombre de requêtes de chaque compte, par minute et par heure; Feuillet
+reste en deçà, et si la limite est tout de même atteinte, il dit à quelle
+heure réessayer.
+
 ## Envoyer et récupérer
 
 Une fois le projet lié, la fenêtre indique où il en est : fichiers modifiés
