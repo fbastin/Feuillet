@@ -23,6 +23,19 @@ export interface FileDeletedDetail {
 export const isAtOrUnder = (path: string, root: string): boolean =>
 	path === root || path.startsWith(`${root}/`);
 
+/**
+ * Whether `path` is right inside the folder `folder` (`/` for the
+ * project's root): /chap1/intro.tex is in /chap1, /chap10 is not.
+ */
+export const isDirectChild = (path: string, folder: string): boolean => {
+	const prefix = folder.endsWith('/') ? folder : `${folder}/`;
+	return (
+		path.length > prefix.length &&
+		path.startsWith(prefix) &&
+		!path.slice(prefix.length).includes('/')
+	);
+};
+
 /** Where a path is once `from` has moved to `to`, if it moved with it. */
 export function movedPath(
 	path: string | undefined,

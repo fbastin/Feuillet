@@ -42,6 +42,7 @@ import {
 	FILE_MOVED_EVENT,
 	type FileDeletedDetail,
 	type FileMovedDetail,
+	isAtOrUnder,
 	movedPath,
 } from '../utils/fileEvents';
 import { isReadOnlyDocUrl, isReviewDocUrl } from '../utils/urlUtils';
@@ -543,9 +544,10 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 
 				for (const file of filesToDelete) {
 					if (file.type === 'directory') {
+						// Inside the folder only: chap10 is not in chap1.
 						const linkedFilesInDirectory = allFiles.filter(
 							(f) =>
-								f.path.startsWith(file.path) &&
+								isAtOrUnder(f.path, file.path) &&
 								f.path !== file.path &&
 								f.documentId,
 						);
@@ -559,7 +561,7 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 						}
 
 						const childrenToDelete = allFiles.filter(
-							(f) => f.path.startsWith(file.path) && f.path !== file.path,
+							(f) => isAtOrUnder(f.path, file.path) && f.path !== file.path,
 						);
 						allFilesToDelete.push(...childrenToDelete.map((c) => c.id));
 					}

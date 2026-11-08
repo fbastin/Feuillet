@@ -7,7 +7,11 @@ import { createNamedLogger } from '@/logging';
 import type { FileNode } from '../types/files';
 import { isRootLatexDocument } from '../utils/compilerUtils';
 import { isBinaryFile, toArrayBuffer } from '../utils/fileUtils';
-import { FILE_MOVED_EVENT, type FileMovedDetail } from '../utils/fileEvents';
+import {
+	FILE_MOVED_EVENT,
+	type FileMovedDetail,
+	isDirectChild,
+} from '../utils/fileEvents';
 import {
 	type FileConflict,
 	mergeResolutionService,
@@ -1151,18 +1155,11 @@ class FileStoreService {
 		const index = tx.store.index('path');
 		const files: FileNode[] = [];
 
+		// The folder's own entries: /chap10 is not inside /chap1.
 		let cursor = await index.openCursor();
 		while (cursor) {
 			const file = cursor.value as FileNode;
-			const filePath = file.path;
-
-			if (
-				filePath.startsWith(path) &&
-				filePath !== path &&
-				!filePath.slice(path.length + 1).includes('/')
-			) {
-				files.push(file);
-			}
+			if (isDirectChild(file.path, path)) files.push(file);
 
 			cursor = await cursor.continue();
 		}
