@@ -68,8 +68,55 @@ const tellProgress = (progress: GitRemoteProgress) => {
 /** What an import fetched ahead: commits by id, and their trees. */
 interface PrefetchedHistory {
 	commits: Map<string, GitRemoteCommitObject>;
+	/** Whole trees by commit id, read one request each. */
 	trees: Map<string, GitRemoteTreeEntry[]>;
+	/** Trees one level each by tree id, read many at a time. */
+	levels: Map<string, GitRemoteTreeEntry[]>;
 }
+
+/**
+ * A tree's files at every depth, from trees read one level each; null when
+ * a level is missing.
+ */
+const flattenLevels = (
+	levels: Map<string, GitRemoteTreeEntry[]>,
+	treeOid: string,
+	prefix = '',
+): GitRemoteTreeEntry[] | null => {
+	const level = levels.get(treeOid);
+	if (!level) return null;
+	const files: GitRemoteTreeEntry[] = [];
+	for (const entry of level) {
+		const path = prefix ? `${prefix}/${entry.path}` : entry.path;
+		if (entry.type === 'tree') {
+			const below = flattenLevels(levels, entry.oid, path);
+			if (!below) return null;
+			files.push(...below);
+		} else {
+			files.push({ ...entry, path });
+		}
+	}
+	return files;
+};
+
+/** Whether every level under a tree was read (each tree checked once). */
+const levelsComplete = (
+	levels: Map<string, GitRemoteTreeEntry[]>,
+	treeOid: string,
+	known: Map<string, boolean>,
+): boolean => {
+	const seen = known.get(treeOid);
+	if (seen !== undefined) return seen;
+	const level = levels.get(treeOid);
+	const complete =
+		level !== undefined &&
+		level.every(
+			(entry) =>
+				entry.type !== 'tree' || levelsComplete(levels, entry.oid, known),
+		);
+	known.set(treeOid, complete);
+	return complete;
+};
 
 let gitPromise: Promise<typeof import('isomorphic-git')> | null = null;
 const getGit = () => (gitPromise ??= import('isomorphic-git'));
@@ -1250,14 +1297,41 @@ class GitSyncService {
 		}
 
 		const trees = new Map<string, GitRemoteTreeEntry[]>();
+		const levels = new Map<string, GitRemoteTreeEntry[]>();
 		const progress = (phase: GitRemoteProgress['phase'], total: number) => {
 			let done = 0;
 			tellProgress({ projectId, phase, done, total });
 			return () => tellProgress({ projectId, phase, done: ++done, total });
 		};
 		const treeDone = progress('commits', needed.length);
+		// The trees many at a time where the provider can: each folder once,
+		// however many commits share it. The commits whose whole tree came
+		// that way need no request of their own.
+		let oneByOneTrees = needed;
+		if (history.getTreeLevels) {
+			try {
+				const read = await history.getTreeLevels(
+					token,
+					config.repositoryId,
+					needed.flatMap((commit) => (commit.treeOid ? [commit.treeOid] : [])),
+				);
+				for (const [oid, entries] of read) levels.set(oid, entries);
+				const complete = new Map<string, boolean>();
+				oneByOneTrees = needed.filter(
+					(commit) =>
+						!commit.treeOid ||
+						!levelsComplete(levels, commit.treeOid, complete),
+				);
+				for (let index = oneByOneTrees.length; index < needed.length; index++) {
+					treeDone();
+				}
+			} catch (error) {
+				if (isRateLimited(error)) throw error;
+				moduleLog.warn('Could not read the trees many at a time:', error);
+			}
+		}
 		await forEachLimited(
-			needed,
+			oneByOneTrees,
 			FETCH_CONCURRENCY,
 			async (commit) => {
 				trees.set(
@@ -1271,7 +1345,7 @@ class GitSyncService {
 
 		// Each file once, with a path and size to tell text from the rest.
 		const wanted = new Map<string, GitRemoteTreeEntry>();
-		for (const entries of trees.values()) {
+		for (const entries of [...trees.values(), ...levels.values()]) {
 			for (const entry of entries) {
 				if (entry.type === 'blob' && normalizeMode(entry.mode) !== '160000') {
 					wanted.set(entry.oid, entry);
@@ -1346,7 +1420,7 @@ class GitSyncService {
 			FETCH_SPACING_MS,
 		);
 		await writing;
-		return { commits, trees };
+		return { commits, trees, levels };
 	}
 
 	private async importRemoteCommit(
@@ -1401,15 +1475,65 @@ class GitSyncService {
 			);
 		}
 
+		const ahead =
+			prefetched?.trees.get(remote.oid) ??
+			(prefetched && remote.treeOid
+				? flattenLevels(prefetched.levels, remote.treeOid)
+				: null);
+		let treeOid = await this.writeRemoteTree(
+			projectId,
+			transport,
+			ahead ??
+				(await provider.historyTransport.getTree(
+					token,
+					config.repositoryId,
+					remote,
+				)),
+		);
+		// A tree put together from what was read ahead that does not give the
+		// commit's own: read it again, whole.
+		if (ahead && remote.treeOid && treeOid !== remote.treeOid) {
+			moduleLog.warn(`Reading the tree of ${remote.oid} again, whole.`);
+			treeOid = await this.writeRemoteTree(
+				projectId,
+				transport,
+				await provider.historyTransport.getTree(
+					token,
+					config.repositoryId,
+					remote,
+				),
+			);
+		}
+		if (
+			provider.historyTransport.preservesCommitOids &&
+			remote.treeOid &&
+			treeOid !== remote.treeOid
+		) {
+			throw new Error(
+				`Remote tree ${remote.treeOid} could not be reproduced locally (got ${treeOid})`,
+			);
+		}
+		return this.writeImportedCommit(
+			projectId,
+			transport,
+			remote,
+			oid,
+			treeOid,
+			localParents,
+			remoteToLocal,
+			active,
+		);
+	}
+
+	/** Writes a remote commit's files and folders; gives the tree's id. */
+	private async writeRemoteTree(
+		projectId: string,
+		transport: ResolvedTransport,
+		entries: GitRemoteTreeEntry[],
+	): Promise<string> {
+		const { provider, config, token } = transport;
 		const git = await getGit();
 		const { options } = this.repo(projectId);
-		const entries =
-			prefetched?.trees.get(remote.oid) ??
-			(await provider.historyTransport.getTree(
-				token,
-				config.repositoryId,
-				remote,
-			));
 		const root = this.treeNode();
 		for (const entry of entries) {
 			if (entry.type === 'tree') continue;
@@ -1443,17 +1567,23 @@ class GitSyncService {
 				oid: entry.oid,
 			});
 		}
-		const treeOid = await this.writeTreeNode(projectId, root);
-		if (
-			provider.historyTransport.preservesCommitOids &&
-			remote.treeOid &&
-			treeOid !== remote.treeOid
-		) {
-			throw new Error(
-				`Remote tree ${remote.treeOid} could not be reproduced locally (got ${treeOid})`,
-			);
-		}
+		return this.writeTreeNode(projectId, root);
+	}
 
+	/** Writes the commit itself, its tree and parents already here. */
+	private async writeImportedCommit(
+		projectId: string,
+		transport: ResolvedTransport,
+		remote: GitRemoteCommitObject,
+		oid: string,
+		treeOid: string,
+		localParents: string[],
+		remoteToLocal: Map<string, string>,
+		active: Set<string>,
+	): Promise<string> {
+		const { provider } = transport;
+		const git = await getGit();
+		const { options } = this.repo(projectId);
 		if (!provider.historyTransport.preservesCommitOids) {
 			const localOid = await git.writeCommit({
 				...options,

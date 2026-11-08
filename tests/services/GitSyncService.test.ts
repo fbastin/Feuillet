@@ -644,6 +644,70 @@ describe('GitSyncService API transport', () => {
 		}
 	});
 
+	it('puts each commit\'s tree together from levels read many at a time', async () => {
+		transport.getHead.mockResolvedValue('remote-head');
+		const listCommits = jest.fn(async () => [
+			{ ...remoteCommit, oid: 'remote-head', parents: ['remote-base'] },
+		]);
+		const getTreeLevels = jest.fn(
+			async () =>
+				new Map([
+					[
+						'remote-tree',
+						[{ path: 'main.tex', mode: '100644', type: 'blob', oid: 'remote-blob' }],
+					],
+				]),
+		);
+		Object.assign(transport, { listCommits, getTreeLevels });
+		try {
+			const result = await gitSyncService.fetchForMerge('project-1', secrets);
+
+			expect(getTreeLevels).toHaveBeenCalledWith('secret-token', 'owner/repo', [
+				'remote-tree',
+			]);
+			expect(transport.getTree).not.toHaveBeenCalled();
+			expect(transport.getBlob).toHaveBeenCalledWith(
+				'secret-token',
+				'owner/repo',
+				'remote-blob',
+			);
+			expect(result?.remoteOid).toBe('remote-head');
+		} finally {
+			Reflect.deleteProperty(transport, 'listCommits');
+			Reflect.deleteProperty(transport, 'getTreeLevels');
+		}
+	});
+
+	it('reads a tree again, whole, when the levels do not make the commit\'s own', async () => {
+		transport.getHead.mockResolvedValue('remote-head');
+		Object.assign(transport, {
+			listCommits: jest.fn(async () => [
+				{ ...remoteCommit, oid: 'remote-head', parents: ['remote-base'] },
+			]),
+			getTreeLevels: jest.fn(
+				async () =>
+					new Map([
+						[
+							'remote-tree',
+							[{ path: 'autre.tex', mode: '100644', type: 'blob', oid: 'remote-blob' }],
+						],
+					]),
+			),
+		});
+		mockGit.writeTree
+			.mockResolvedValueOnce('not-the-remote-tree')
+			.mockResolvedValue('remote-tree');
+		try {
+			const result = await gitSyncService.fetchForMerge('project-1', secrets);
+
+			expect(transport.getTree).toHaveBeenCalledTimes(1);
+			expect(result?.remoteOid).toBe('remote-head');
+		} finally {
+			Reflect.deleteProperty(transport, 'listCommits');
+			Reflect.deleteProperty(transport, 'getTreeLevels');
+		}
+	});
+
 	it('still imports commit by commit when the history cannot be listed', async () => {
 		transport.getHead.mockResolvedValue('remote-head');
 		Object.assign(transport, {

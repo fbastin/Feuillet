@@ -380,6 +380,64 @@ describe('GitHubGitRemoteProvider', () => {
 			expect(new TextDecoder().decode(texts?.get('oid59'))).toBe('Été oid59\r\n');
 		});
 
+		it('reads trees one level each, fifty a request, and a shared folder once', async () => {
+			const levels: Record<string, Array<Record<string, unknown>>> = {
+				rootA: [
+					{ name: 'main.tex', mode: 33188, type: 'blob', oid: 'b1', size: 10 },
+					{ name: 'chapitres', mode: 16384, type: 'tree', oid: 'sub', size: 0 },
+					{ name: 'lien', mode: 40960, type: 'blob', oid: 'b3', size: 4 },
+				],
+				rootB: [
+					{ name: 'main.tex', mode: 33261, type: 'blob', oid: 'b4', size: 12 },
+					{ name: 'chapitres', mode: 16384, type: 'tree', oid: 'sub', size: 0 },
+					{ name: 'theme', mode: 57344, type: 'commit', oid: 's1', size: 0 },
+				],
+				sub: [{ name: 'intro.tex', mode: 33188, type: 'blob', oid: 'b2', size: 5 }],
+			};
+			const asked: string[][] = [];
+			globalThis.fetch = jest.fn(
+				async (
+					_input: Parameters<typeof fetch>[0],
+					init?: Parameters<typeof fetch>[1],
+				) => {
+					const body = JSON.parse(String(init?.body));
+					const aliases = [
+						...String(body.query).matchAll(/(\w+): object\(oid: "(\w+)"\)/g),
+					];
+					asked.push(aliases.map(([, , oid]) => oid));
+					return response(200, {
+						data: {
+							repository: Object.fromEntries(
+								aliases.map(([, alias, oid]) => [
+									alias,
+									levels[oid] ? { entries: levels[oid] } : null,
+								]),
+							),
+						},
+					});
+				},
+			) as unknown as typeof fetch;
+
+			const read = await gitHubGitRemoteProvider.historyTransport.getTreeLevels?.(
+				'token',
+				'owner/repo',
+				['rootA', 'rootB', 'rootA'],
+			);
+
+			expect(asked).toEqual([['rootA', 'rootB'], ['sub']]);
+			expect(read?.get('rootA')).toEqual([
+				{ path: 'main.tex', mode: '100644', type: 'blob', oid: 'b1', size: 10 },
+				{ path: 'chapitres', mode: '040000', type: 'tree', oid: 'sub' },
+				{ path: 'lien', mode: '120000', type: 'blob', oid: 'b3', size: 4 },
+			]);
+			expect(read?.get('rootB')?.map((entry) => entry.mode)).toEqual([
+				'100755',
+				'040000',
+				'160000',
+			]);
+			expect(read?.get('sub')).toHaveLength(1);
+		});
+
 		it('says so when GraphQL answers with errors only', async () => {
 			globalThis.fetch = jest.fn(async () =>
 				response(200, { errors: [{ message: 'Something went wrong' }] }),

@@ -146,6 +146,17 @@ export interface GitRemoteHistoryTransport {
 		oid: string,
 	): Promise<Uint8Array>;
 	/**
+	 * Trees by id, one level each, many at a time (GitHub's GraphQL API:
+	 * fifty a request), with the trees under them: each tree once, however
+	 * many commits share it. A tree missing from the result could not be
+	 * read that way.
+	 */
+	getTreeLevels?(
+		token: string,
+		repositoryId: string,
+		treeOids: string[],
+	): Promise<Map<string, GitRemoteTreeEntry[]>>;
+	/**
 	 * Text files, many at a time (GitHub's GraphQL API: fifty a request).
 	 * Gives those it could read as text; the caller checks each against its
 	 * id and fetches the others one by one with getBlob.

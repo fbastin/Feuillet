@@ -61,6 +61,10 @@ const COMMITS_PAGE_SIZE = 100;
 // GitHub's GraphQL API reads fifty files for one point of its limit, and
 // cuts texts short past about 512 KB (said by isTruncated).
 const TEXT_BLOBS_PER_QUERY = 50;
+const TREES_PER_QUERY = 50;
+// GraphQL requests at once: far below GitHub's 100 at a time and 2,000
+// points a minute.
+const GRAPHQL_CONCURRENCY = 3;
 
 /**
  * Where GitHub's GraphQL endpoint is, beside its REST one: /graphql for
@@ -392,12 +396,74 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 		await walk(commit.treeOid);
 		return entries;
 	},
+	getTreeLevels: async (token, repositoryId, treeOids) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const levels = new Map<string, GitRemoteTreeEntry[]>();
+		let queue = [...new Set(treeOids)];
+		while (queue.length > 0) {
+			const next = new Set<string>();
+			const parts: string[][] = [];
+			for (let start = 0; start < queue.length; start += TREES_PER_QUERY) {
+				parts.push(queue.slice(start, start + TREES_PER_QUERY));
+			}
+			await forEachLimited(parts, GRAPHQL_CONCURRENCY, async (part) => {
+				const fields = part
+					.map(
+						(oid, index) =>
+							`t${index}: object(oid: ${JSON.stringify(oid)}) { ... on Tree { entries { name mode type oid size } } }`,
+					)
+					.join(' ');
+				const data = await graphql<{
+					repository: Record<
+						string,
+						{
+							entries?: Array<{
+								name: string;
+								mode: number;
+								type: 'blob' | 'tree' | 'commit';
+								oid: string;
+								size: number;
+							}>;
+						} | null
+					> | null;
+				}>(
+					token,
+					`query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { ${fields} } }`,
+					{ owner, name: repo },
+				);
+				part.forEach((oid, index) => {
+					const entries = data.repository?.[`t${index}`]?.entries;
+					if (!entries) return;
+					levels.set(
+						oid,
+						entries.map((entry) => ({
+							path: entry.name,
+							mode: entry.mode.toString(8).padStart(6, '0'),
+							type: entry.type,
+							oid: entry.oid,
+							...(entry.type === 'blob' ? { size: entry.size } : {}),
+						})),
+					);
+					for (const entry of entries) {
+						if (entry.type === 'tree' && !levels.has(entry.oid)) {
+							next.add(entry.oid);
+						}
+					}
+				});
+			});
+			queue = [...next].filter((oid) => !levels.has(oid));
+		}
+		return levels;
+	},
 	getTextBlobs: async (token, repositoryId, oids) => {
 		const [owner, repo] = repositoryParts(repositoryId);
 		const texts = new Map<string, Uint8Array>();
 		const encoder = new TextEncoder();
+		const parts: string[][] = [];
 		for (let start = 0; start < oids.length; start += TEXT_BLOBS_PER_QUERY) {
-			const part = oids.slice(start, start + TEXT_BLOBS_PER_QUERY);
+			parts.push(oids.slice(start, start + TEXT_BLOBS_PER_QUERY));
+		}
+		await forEachLimited(parts, GRAPHQL_CONCURRENCY, async (part) => {
 			const fields = part
 				.map(
 					(oid, index) =>
@@ -429,7 +495,7 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 					texts.set(oid, encoder.encode(blob.text));
 				}
 			});
-		}
+		});
 		return texts;
 	},
 	getBlob: async (token, repositoryId, oid) => {
