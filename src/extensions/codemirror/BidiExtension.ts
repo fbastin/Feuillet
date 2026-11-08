@@ -39,18 +39,37 @@ const isolate = Decoration.mark({
 	bidiIsolate: Direction.LTR,
 });
 
+// Letters written right to left (Hebrew, Arabic, Syriac, Thaana, NKo,
+// Samaritan, Mandaic and their presentation forms). Without any, isolating
+// commands changes nothing on screen.
+const RIGHT_TO_LEFT = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+
 function rangesOverlap(r1: TextRange, r2: TextRange): boolean {
 	return r1.from < r2.to && r2.from < r1.to;
 }
 
 class LatexTypstBidiIsolatesValue {
 	decorations: DecorationSet;
+	// Whether the document has right-to-left letters: looked for once, then
+	// only in what is typed (a letter deleted later leaves it true). Until
+	// then nothing is built: the build reads the whole document at every
+	// keystroke, 15 ms a key in a thesis chapter of 6,000 lines.
+	private rightToLeft: boolean;
 
 	constructor(readonly view: EditorView) {
-		this.decorations = this.build(view);
+		this.rightToLeft = RIGHT_TO_LEFT.test(view.state.doc.toString());
+		this.decorations = this.rightToLeft ? this.build(view) : Decoration.none;
 	}
 
 	update(update: ViewUpdate) {
+		if (!this.rightToLeft && update.docChanged) {
+			update.changes.iterChanges((_fromA, _toA, _fromB, _toB, inserted) => {
+				if (!this.rightToLeft && RIGHT_TO_LEFT.test(inserted.toString())) {
+					this.rightToLeft = true;
+				}
+			});
+		}
+		if (!this.rightToLeft) return;
 		if (update.docChanged || update.viewportChanged) {
 			this.decorations = this.build(update.view);
 		}
