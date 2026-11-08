@@ -4076,5 +4076,6 @@
   "Show older commits": "Show older commits",
   "Keep {app}'s version": "Keep {{app}}'s version",
   "Keep the version of {remote}": "Keep the version of {{remote}}",
-  "{path} is {size} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller.": "{{path}} is {{size}} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller."
+  "{path} is {size} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller.": "{{path}} is {{size}} MB, and GitHub takes no file over 100 MB. List it in .gitignore to leave it out of the repository, or make it smaller.",
+  "the files sent to the TeX Live server stay in a folder of your connection's own, erased when it closes, after 15 minutes without use at the latest. A copy of each project's files is kept apart, for that project alone, so that reopening it does not send them all again: it is erased 7 days after the project's last compile, even if the project was deleted in between.": "the files sent to the TeX Live server stay in a folder of your connection's own, erased when it closes, after 15 minutes without use at the latest. A copy of each project's files is kept apart, for that project alone, so that reopening it does not send them all again: it is erased 7 days after the project's last compile, even if the project was deleted in between."
 }

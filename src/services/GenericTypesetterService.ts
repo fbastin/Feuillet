@@ -38,6 +38,11 @@ export interface TypesetterCompileRequest {
 	format: string;
 	files: TypesetterFile[];
 	options?: Record<string, string | number | boolean>;
+	/**
+	 * The project, for a server that keeps its files between connections:
+	 * reopened, the project sends only what the server lacks.
+	 */
+	cacheScope?: string;
 }
 
 export interface TypesetterCompileResult {
@@ -47,6 +52,8 @@ export interface TypesetterCompileResult {
 	mimeType?: string;
 	output?: Uint8Array;
 	artifacts?: CompileArtifact[];
+	/** The files a server said it lacks (with status -2). */
+	missing?: string[];
 }
 
 interface ManifestEntry {
@@ -85,6 +92,7 @@ interface WireCompileResult {
 	mimeType?: string;
 	output?: string;
 	artifacts?: WireArtifact[];
+	missing?: unknown;
 }
 
 const MISSING_FILES_STATUS = -2;
@@ -232,9 +240,14 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 
 		const manifest = await this.buildManifest(configId, request.files);
 		const sent = this.sentHashes.get(configId);
-		const changed = request.files.filter(
-			(file) => sent?.get(file.path) !== manifest.get(file.path),
-		);
+		// A new connection to a server that may keep the project's files:
+		// the list first, then only what it says it lacks.
+		const changed =
+			!sent && request.cacheScope
+				? []
+				: request.files.filter(
+						(file) => sent?.get(file.path) !== manifest.get(file.path),
+					);
 		const result = await this.send(
 			configId,
 			config,
@@ -246,14 +259,23 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 
 		if (result.status === MISSING_FILES_STATUS) {
 			this.sentHashes.delete(configId);
-			return this.send(
+			const lacking = new Set(result.missing ?? []);
+			const files =
+				result.missing && lacking.size < request.files.length
+					? request.files.filter((file) => lacking.has(file.path))
+					: request.files;
+			const retried = await this.send(
 				configId,
 				config,
 				connection,
 				request,
-				request.files,
+				files,
 				manifest,
 			);
+			if (retried.status !== MISSING_FILES_STATUS) {
+				this.sentHashes.set(configId, manifest);
+			}
+			return retried;
 		}
 
 		this.sentHashes.set(configId, manifest);
@@ -290,6 +312,7 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 						format: request.format,
 						options: request.options ?? {},
 						...(manifest ? { manifest: this.serializeManifest(manifest) } : {}),
+						...(request.cacheScope ? { cacheScope: request.cacheScope } : {}),
 						files: files.map((file) => ({
 							path: file.path,
 							content: this.encodeBytes(file.content),
@@ -428,6 +451,13 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 				mimeType: payload.mimeType,
 				output,
 				artifacts,
+				...(Array.isArray(payload.missing)
+					? {
+							missing: payload.missing.filter(
+								(entry): entry is string => typeof entry === 'string',
+							),
+						}
+					: {}),
 			});
 		} catch (error) {
 			pending.reject(error instanceof Error ? error : new Error(String(error)));

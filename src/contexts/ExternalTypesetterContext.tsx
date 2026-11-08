@@ -227,6 +227,8 @@ export const ExternalTypesetterProvider: React.FC<
 					mainFile: mainFileName,
 					format,
 					files,
+					// The server may keep the project's files between visits.
+					cacheScope: projectKey || undefined,
 					options,
 				});
 
@@ -343,6 +345,8 @@ export const ExternalTypesetterProvider: React.FC<
 					mainFile: mainFileName,
 					format,
 					files,
+					// The server may keep the project's files between visits.
+					cacheScope: projectKey || undefined,
 					options: { ...(exportOptions.options ?? {}), export: true },
 				});
 
@@ -389,7 +393,7 @@ export const ExternalTypesetterProvider: React.FC<
 				setIsExporting(false);
 			}
 		},
-		[loadFiles],
+		[loadFiles, projectKey],
 	);
 
 	const exportArxivPackage = useCallback(
@@ -406,6 +410,8 @@ export const ExternalTypesetterProvider: React.FC<
 					mainFile: mainFileName,
 					format: 'pdf',
 					files,
+					// The server may keep the project's files between visits.
+					cacheScope: projectKey || undefined,
 					options: { ...options, export: true },
 				});
 				setCompileLog(result.log);
@@ -449,7 +455,7 @@ export const ExternalTypesetterProvider: React.FC<
 				setIsExporting(false);
 			}
 		},
-		[loadFiles],
+		[loadFiles, projectKey],
 	);
 
 	const downloadOutputFile = useCallback(

@@ -83,13 +83,13 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					<li>
 						<strong>{t('Git:')}</strong>&nbsp;
 						{t(
-							"a hash of each of your Git tokens, with what it is for and when it was last used; and for each project cloned with Git, a Git repository of its files and their commits, which keep the name and address Git gave those who pushed them, as all who clone the project see. It is erased with the project.",
+							'a hash of each of your Git tokens, with what it is for and when it was last used; and for each project cloned with Git, a Git repository of its files and their commits, which keep the name and address Git gave those who pushed them, as all who clone the project see. It is erased with the project.',
 						)}
 					</li>
 					<li>
 						<strong>{t('When compiling:')}</strong>&nbsp;
 						{t(
-							"the files sent to the TeX Live server stay in a folder of your connection's own, erased when it closes, after 15 minutes without use at the latest.",
+							"the files sent to the TeX Live server stay in a folder of your connection's own, erased when it closes, after 15 minutes without use at the latest. A copy of each project's files is kept apart, for that project alone, so that reopening it does not send them all again: it is erased 7 days after the project's last compile, even if the project was deleted in between.",
 						)}
 					</li>
 					<li>

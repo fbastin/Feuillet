@@ -19,6 +19,12 @@ x-texlive-environment: &texlive-environment
   MAX_CONCURRENT: "2"
   COMPILE_TIMEOUT_MS: "180000"
   SHELL_ESCAPE: "full"
+  # Each project's files, by content, so that a project reopened sends only
+  # what changed (server/texlive/server.js): files unused for 7 days go, the
+  # oldest past 2 GB in all. Only the servers read it, not the compiles.
+  FILE_CACHE_DIR: "/file-cache"
+  FILE_CACHE_DAYS: "7"
+  FILE_CACHE_MB: "2048"
 
 x-texlive: &texlive
   restart: unless-stopped
@@ -26,6 +32,7 @@ x-texlive: &texlive
   network_mode: none
   volumes:
     - /var/lib/feuillet/texlive-socket:/socket
+    - texlive-file-cache:/file-cache
   tmpfs:
     - /work:size=2g,mode=0711
     - /tmp:size=256m
@@ -92,7 +99,8 @@ services:
 
   # Compiles documents written by anyone who can open Feuillet: each
   # connection under its own uid, bounded in memory, processes and disk, and
-  # keeping nothing between runs. As on Overleaf, documents may run programs
+  # keeping nothing between runs but each project's files, a week at most
+  # (FILE_CACHE_DIR above). As on Overleaf, documents may run programs
   # (shell escape): the container has no network at all, not even this
   # machine's, and is reached through its Unix socket, in a directory the
   # compiles cannot open. Its server refuses full shell escape if it finds a
@@ -162,3 +170,4 @@ volumes:
   collab-history:
   collab-mcp:
   collab-git:
+  texlive-file-cache:

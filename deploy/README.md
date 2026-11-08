@@ -488,6 +488,13 @@ bounded (`docker-compose.yml`) and connections are kept apart:
   socket library.
 - At most `MAX_CONCURRENT` (2) compiles run at once, others wait in a queue of
   20; each compile stops after `COMPILE_TIMEOUT_MS` (3 minutes).
+- Each project's files are kept by content in the volume `texlive-file-cache`
+  (`FILE_CACHE_DIR`), for that project alone (the page sends a key only its
+  members know) and readable by the servers only (0700), so that a project
+  reopened sends only what changed. Files unused for `FILE_CACHE_DAYS` (7)
+  go, and the oldest beyond `FILE_CACHE_MB` (2 GB in all). Files are written
+  into a connection's working tree without following the links a compile
+  may have left there.
 - 4 GB of memory, 4 CPUs, 256 processes, and a 2 GB in-memory working area
   that is emptied when the container restarts; each other year's server has
   the same bounds, with 3 GB, 3 CPUs and one compile at a time.

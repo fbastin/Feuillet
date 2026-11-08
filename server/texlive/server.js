@@ -270,6 +270,75 @@ const exists = (filePath) =>
 		() => false,
 	);
 
+// Project files kept between connections, by content, for each project (the
+// client's cacheScope, which only its members know): a project reopened
+// sends only what changed since, not all of it again. Only this server reads
+// the folder (0700): compiles, with shell escape, run under other uids. Files
+// unused for FILE_CACHE_DAYS go, and the oldest past FILE_CACHE_MB in all.
+const fileCacheDir = process.env.FILE_CACHE_DIR
+	? path.resolve(process.env.FILE_CACHE_DIR)
+	: '';
+const fileCacheBytes = readInt('FILE_CACHE_MB', 2048) * 1024 * 1024;
+const fileCacheDays = readInt('FILE_CACHE_DAYS', 7);
+const sha256 = (data) => crypto.createHash('sha256').update(data).digest('hex');
+
+const fileCache = {
+	enabled: Boolean(fileCacheDir),
+	added: 0,
+	scopeDir(scope) {
+		return path.join(fileCacheDir, sha256(`feuillet-scope:${scope}`).slice(0, 40));
+	},
+	// Kept under its own hash, whatever a client says it is.
+	async put(scope, bytes) {
+		const dir = this.scopeDir(scope);
+		const target = path.join(dir, sha256(bytes));
+		if (await exists(target)) {
+			await this.touch(target);
+			return;
+		}
+		await fs.mkdir(dir, { recursive: true, mode: 0o700 });
+		const partial = `${target}.${crypto.randomUUID()}.part`;
+		await fs.writeFile(partial, bytes, { mode: 0o600 });
+		await fs.rename(partial, target);
+		this.added += bytes.length;
+		if (this.added > fileCacheBytes / 10) {
+			this.added = 0;
+			void this.prune().catch((error) => log('file cache prune:', error.message));
+		}
+	},
+	// The file of that hash, if the project's cache has it.
+	async read(scope, hash) {
+		if (!/^[0-9a-f]{64}$/.test(String(hash))) return null;
+		const source = path.join(this.scopeDir(scope), hash);
+		const bytes = await fs.readFile(source).catch(() => null);
+		if (bytes) await this.touch(source);
+		return bytes;
+	},
+	async touch(file) {
+		const now = new Date();
+		await fs.utimes(file, now, now).catch(() => {});
+	},
+	async prune() {
+		const files = [];
+		for (const scope of await fs.readdir(fileCacheDir).catch(() => [])) {
+			const dir = path.join(fileCacheDir, scope);
+			for (const name of await fs.readdir(dir).catch(() => [])) {
+				const file = path.join(dir, name);
+				const stat = await fs.stat(file).catch(() => null);
+				if (stat?.isFile()) files.push({ file, size: stat.size, used: stat.mtimeMs });
+			}
+		}
+		const oldest = Date.now() - fileCacheDays * 24 * 3600 * 1000;
+		files.sort((a, b) => a.used - b.used);
+		let total = files.reduce((sum, entry) => sum + entry.size, 0);
+		for (const entry of files) {
+			if (entry.used >= oldest && total <= fileCacheBytes * 0.9) break;
+			await fs.rm(entry.file, { force: true });
+			total -= entry.size;
+		}
+	},
+};
+
 // When a file was last written, or null if there is none.
 const writtenAt = (filePath) =>
 	fs.stat(filePath).then(
@@ -373,6 +442,50 @@ class Session {
 		}
 	}
 
+	// Writes a project file at its path in the working tree without going
+	// through a link: compiles (with shell escape) may have put links there,
+	// and this server writes as root. Each folder on the way is a real one
+	// (a link or a file in its place is removed); the file is written new,
+	// then renamed onto its path, which replaces a link rather than follow
+	// it.
+	async placeFile(relative, bytes) {
+		let parent = this.dir;
+		const parts = relative.split('/');
+		for (const part of parts.slice(0, -1)) {
+			const next = path.join(parent, part);
+			const stat = await fs.lstat(next).catch(() => null);
+			if (stat && !stat.isDirectory()) {
+				await fs.rm(next, { recursive: true, force: true });
+			}
+			if (!stat || !stat.isDirectory()) {
+				await fs.mkdir(next, { mode: 0o700 });
+				await this.own(next);
+			}
+			parent = next;
+		}
+		const target = path.join(parent, parts[parts.length - 1]);
+		const partial = path.join(parent, `.feuillet-${crypto.randomUUID()}`);
+		const handle = await fs.open(
+			partial,
+			fsConstants.O_WRONLY |
+				fsConstants.O_CREAT |
+				fsConstants.O_EXCL |
+				fsConstants.O_NOFOLLOW,
+			0o644,
+		);
+		try {
+			await handle.writeFile(bytes);
+		} finally {
+			await handle.close();
+		}
+		await this.own(partial);
+		const existing = await fs.lstat(target).catch(() => null);
+		if (existing?.isDirectory()) {
+			await fs.rm(target, { recursive: true, force: true });
+		}
+		await fs.rename(partial, target);
+	}
+
 	// Links files prepared with the image into a directory of the session
 	// uid, where the programs using them can add files of their own.
 	async linkInto(source, target, keep) {
@@ -422,7 +535,8 @@ class Session {
 
 	// Without a manifest the request holds the whole project; with one, it
 	// holds the changed files and lists every file the project should have.
-	async sync(files, manifest) {
+	async sync(files, manifest, scope = null) {
+		const cached = Boolean(scope) && fileCache.enabled;
 		if (!manifest) await this.reset();
 		await this.makeDir(this.dir);
 		await this.makeDir(this.tmp);
@@ -440,19 +554,33 @@ class Session {
 		}
 
 		for (const file of files) {
-			const { relative, absolute } = this.resolve(file.path);
-			await this.makeDir(path.dirname(absolute));
-			await fs.writeFile(absolute, Buffer.from(file.content, 'base64'));
-			await this.own(absolute);
+			const { relative } = this.resolve(file.path);
+			const bytes = Buffer.from(file.content, 'base64');
+			await this.placeFile(relative, bytes);
 			this.tracked.add(relative);
+			if (cached) {
+				await fileCache.put(scope, bytes).catch((error) => log('file cache:', error.message));
+			}
 		}
 
 		if (!manifest) return [];
 		const missing = [];
 		for (const entry of manifest) {
 			const { relative, absolute } = this.resolve(entry.path);
-			if (await exists(absolute)) this.tracked.add(relative);
-			else missing.push(entry.path);
+			if (await exists(absolute)) {
+				this.tracked.add(relative);
+				continue;
+			}
+			// Sent before, in another connection: from the project's cache.
+			if (cached) {
+				const bytes = await fileCache.read(scope, entry.hash);
+				if (bytes) {
+					await this.placeFile(relative, bytes);
+					this.tracked.add(relative);
+					continue;
+				}
+			}
+			missing.push(entry.path);
 		}
 		return missing;
 	}
@@ -755,7 +883,13 @@ class Session {
 		}
 
 		const manifest = Array.isArray(request.manifest) ? request.manifest : null;
-		const missing = await this.sync(request.files, manifest);
+		const scope =
+			typeof request.cacheScope === 'string' &&
+			request.cacheScope.length > 0 &&
+			request.cacheScope.length <= 200
+				? request.cacheScope
+				: null;
+		const missing = await this.sync(request.files, manifest, scope);
 		if (missing.length > 0) {
 			return { status: MISSING_FILES_STATUS, log: '', format, missing };
 		}
@@ -1034,6 +1168,15 @@ wss.on('connection', (conn, req) => {
 const start = async () => {
 	// Working trees of a previous run belong to closed connections. WORK_DIR
 	// itself may be a mount point, so only its entries are removed.
+	if (fileCacheDir) {
+		await fs.mkdir(fileCacheDir, { recursive: true, mode: 0o700 });
+		await fs.chmod(fileCacheDir, 0o700);
+		await fileCache.prune().catch((error) => log('file cache prune:', error.message));
+		setInterval(
+			() => void fileCache.prune().catch((error) => log('file cache prune:', error.message)),
+			3600 * 1000,
+		).unref();
+	}
 	await fs.mkdir(workDir, { recursive: true });
 	for (const entry of await fs.readdir(workDir)) {
 		await fs.rm(path.join(workDir, entry), { recursive: true, force: true });
