@@ -22,12 +22,15 @@ export const rateLimitResetOf = (response: Response): number | undefined => {
 	return retry > 0 ? Date.now() + retry * 1000 : undefined;
 };
 
+const WRITES = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+
 export function gitRemoteRequestError(
 	providerName: string,
 	endpoint: string,
 	status: number,
 	detail?: string,
 	retryAt?: number,
+	method?: string,
 ): Error & { status: number; rateLimited?: boolean } {
 	if ((status === 403 || status === 429) && /rate limit/i.test(detail ?? '')) {
 		const message = retryAt
@@ -50,13 +53,29 @@ export function gitRemoteRequestError(
 			rateLimited: true,
 		});
 	}
+	// A token without the right to write: GitHub says « not accessible by
+	// personal access token » (fine-grained), or answers 404 to a write in a
+	// repository (classic token without the repo scope).
+	// A refusal naming a scope (« workflow ») is left as it is: the Actions
+	// part of the window asks for that scope itself.
+	const tokenCannotWrite =
+		!/scope|workflow/i.test(detail ?? '') &&
+		((status === 403 && /not accessible by/i.test(detail ?? '')) ||
+			((status === 403 || status === 404) &&
+				WRITES.has((method ?? '').toUpperCase()) &&
+				/^\/?repos\//.test(endpoint)));
 	const message =
 		status === 401
 			? t(
 					'{provider} refused the saved token: it has expired or was revoked. Connect to {provider} again.',
 					{ provider: providerName },
 				)
-			: `${providerName} API request to '${endpoint.split('?')[0]}' failed (${status})${detail ? `: ${detail}` : ''}`;
+			: tokenCannotWrite
+				? t(
+						'{provider} refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».',
+						{ provider: providerName },
+					)
+				: `${providerName} API request to '${endpoint.split('?')[0]}' failed (${status})${detail ? `: ${detail}` : ''}`;
 	return Object.assign(new Error(message), { status });
 }
 
@@ -130,6 +149,7 @@ export async function gitRemoteApiRequest<T>({
 				response.status,
 				detail || response.statusText,
 				rateLimitResetOf(response),
+				options.method,
 			);
 		}
 		return response.status === 204 ? (undefined as T) : response.json();

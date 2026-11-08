@@ -88,6 +88,7 @@ export class GitHubAPIService {
 					response.status,
 					errorData.message || response.statusText,
 					rateLimitResetOf(response),
+					options.method,
 				);
 			}
 

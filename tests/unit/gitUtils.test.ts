@@ -118,6 +118,40 @@ describe('gitUtils', () => {
 			expect(isRateLimited(new Error('other'))).toBe(false);
 		});
 
+		it('says what a token not allowed to write needs', () => {
+			const fineGrained = gitRemoteRequestError(
+				'GitHub',
+				'repos/a/b/git/blobs',
+				403,
+				'Resource not accessible by personal access token',
+				undefined,
+				'POST',
+			);
+			expect(fineGrained.message).toBe(
+				'GitHub refused: the token is not allowed to change this repository. A fine-grained token needs « Contents: Read and write » on it, a classic token the « repo » scope. Change the token with « Change token ».',
+			);
+			expect(fineGrained.status).toBe(403);
+			// A classic token without « repo » gets a 404 to a write.
+			expect(
+				gitRemoteRequestError('GitHub', 'repos/a/b/git/refs', 404, 'Not Found', undefined, 'POST').message,
+			).toBe(fineGrained.message);
+			// A missing scope is said by the refusal itself (Actions asks for it).
+			expect(
+				gitRemoteRequestError(
+					'GitHub',
+					'repos/a/b/contents/.github/workflows/feuillet.yml',
+					403,
+					'refusing to allow a Personal Access Token to create or update workflow `.github/workflows/feuillet.yml` without `workflow` scope',
+					undefined,
+					'PUT',
+				).message,
+			).toMatch(/without `workflow` scope/);
+			// A read that finds nothing is not about the token.
+			expect(
+				gitRemoteRequestError('GitHub', 'repos/a/b/branches/x', 404, 'Not Found', undefined, 'GET').message,
+			).toBe("GitHub API request to 'repos/a/b/branches/x' failed (404): Not Found");
+		});
+
 		it('says so too for the per-minute limit, without a time when none is given', () => {
 			const error = gitRemoteRequestError(
 				'GitHub',

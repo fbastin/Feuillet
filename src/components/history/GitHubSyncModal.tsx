@@ -201,6 +201,12 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			setError(errorMessage(actionError, t('Git action failed')));
 			// An expired or revoked token: connect again right here.
 			if (isRejectedToken(actionError)) setShowTokenForm(true);
+			// What a failed action left (a commit made before the push was
+			// refused, for one) shows, not the state from before it.
+			else
+				void refreshStatus().catch((statusError) => {
+					moduleLog.warn('Failed to refresh the status:', statusError);
+				});
 			return false;
 		} finally {
 			setBusyAction(null);
