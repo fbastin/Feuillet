@@ -39,7 +39,9 @@ const request = <T>(
 			Authorization: `token ${credential}`,
 			Accept: 'application/vnd.github.v3+json',
 		}),
-		options,
+		// Fresh answers, as in GitHubAPIService: pull requests, workflow files
+		// and releases change on GitHub between two looks.
+		options: { cache: 'no-cache', ...options },
 	});
 
 const normalizeSignature = (signature: {

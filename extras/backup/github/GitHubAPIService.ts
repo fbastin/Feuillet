@@ -68,7 +68,11 @@ export class GitHubAPIService {
 		const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
 
 		try {
+			// GitHub lets the browser keep its answers for 60 seconds: a branch
+			// just made or deleted, or a pull request just merged, would not
+			// show. Asking again each time costs a 304 when nothing changed.
 			const response = await fetch(url, {
+				cache: 'no-cache',
 				...options,
 				headers,
 				signal: controller.signal,
