@@ -57,6 +57,44 @@ interface GitHubGitCommit {
 }
 
 const COMMITS_PAGE_SIZE = 100;
+// GitHub's GraphQL API reads fifty files for one point of its limit, and
+// cuts texts short past about 512 KB (said by isTruncated).
+const TEXT_BLOBS_PER_QUERY = 50;
+
+/**
+ * Where GitHub's GraphQL endpoint is, beside its REST one: /graphql for
+ * api.github.com, /api/graphql for an Enterprise server's /api/v3.
+ */
+const graphqlBase = (): string =>
+	apiConfiguration.endpoint.replace(/\/$/, '').replace(/\/api\/v3$/i, '/api');
+
+const graphql = async <T>(
+	token: string,
+	query: string,
+	variables: Record<string, unknown>,
+): Promise<T> => {
+	const result = await gitRemoteApiRequest<{
+		data?: T;
+		errors?: Array<{ message?: string }>;
+	}>({
+		providerName: 'GitHub',
+		baseUrl: graphqlBase(),
+		token,
+		endpoint: 'graphql',
+		requestTimeout: apiConfiguration.requestTimeout,
+		authHeaders: (credential) => ({ Authorization: `bearer ${credential}` }),
+		options: {
+			method: 'POST',
+			body: JSON.stringify({ query, variables }),
+		},
+	});
+	if (!result.data) {
+		throw new Error(
+			`GitHub GraphQL request failed: ${result.errors?.[0]?.message ?? 'no data'}`,
+		);
+	}
+	return result.data;
+};
 const MAX_LISTED_COMMITS = 5000;
 
 // Pushing: text up to this much in all goes in the tree request.
@@ -296,6 +334,7 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 				mode: string;
 				type: 'blob' | 'tree' | 'commit';
 				sha: string;
+				size?: number;
 			}>;
 			truncated?: boolean;
 		}>(
@@ -310,6 +349,7 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 					mode: entry.mode,
 					type: entry.type,
 					oid: entry.sha,
+					...(typeof entry.size === 'number' ? { size: entry.size } : {}),
 				});
 			}
 			return entries;
@@ -350,6 +390,46 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 
 		await walk(commit.treeOid);
 		return entries;
+	},
+	getTextBlobs: async (token, repositoryId, oids) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		const texts = new Map<string, Uint8Array>();
+		const encoder = new TextEncoder();
+		for (let start = 0; start < oids.length; start += TEXT_BLOBS_PER_QUERY) {
+			const part = oids.slice(start, start + TEXT_BLOBS_PER_QUERY);
+			const fields = part
+				.map(
+					(oid, index) =>
+						`b${index}: object(oid: ${JSON.stringify(oid)}) { ... on Blob { text isBinary isTruncated } }`,
+				)
+				.join(' ');
+			const data = await graphql<{
+				repository: Record<
+					string,
+					{
+						text: string | null;
+						isBinary: boolean;
+						isTruncated: boolean;
+					} | null
+				> | null;
+			}>(
+				token,
+				`query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { ${fields} } }`,
+				{ owner, name: repo },
+			);
+			part.forEach((oid, index) => {
+				const blob = data.repository?.[`b${index}`];
+				if (
+					blob &&
+					!blob.isBinary &&
+					!blob.isTruncated &&
+					typeof blob.text === 'string'
+				) {
+					texts.set(oid, encoder.encode(blob.text));
+				}
+			});
+		}
+		return texts;
 	},
 	getBlob: async (token, repositoryId, oid) => {
 		const [owner, repo] = repositoryParts(repositoryId);

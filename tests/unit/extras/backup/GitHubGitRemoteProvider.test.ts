@@ -339,6 +339,61 @@ describe('GitHubGitRemoteProvider', () => {
 			]);
 		});
 
+		it('reads text files fifty a GraphQL request, leaving binaries and cut texts out', async () => {
+			const oids = Array.from({ length: 60 }, (_, index) => `oid${index}`);
+			const fetchMock = jest.fn(
+				async (
+					input: Parameters<typeof fetch>[0],
+					init?: Parameters<typeof fetch>[1],
+				) => {
+					expect(String(input)).toBe('https://api.github.com/graphql');
+					const body = JSON.parse(String(init?.body));
+					expect(body.variables).toEqual({ owner: 'owner', name: 'repo' });
+					const aliases = [
+						...String(body.query).matchAll(/(\w+): object\(oid: "(\w+)"\)/g),
+					];
+					const repository = Object.fromEntries(
+						aliases.map(([, alias, oid]) => [
+							alias,
+							oid === 'oid1'
+								? { text: null, isBinary: true, isTruncated: false }
+								: oid === 'oid2'
+									? { text: 'début', isBinary: false, isTruncated: true }
+									: { text: `Été ${oid}\r\n`, isBinary: false, isTruncated: false },
+						]),
+					);
+					return response(200, { data: { repository } });
+				},
+			);
+			globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+			const texts = await gitHubGitRemoteProvider.historyTransport.getTextBlobs?.(
+				'token',
+				'owner/repo',
+				oids,
+			);
+
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			expect(texts?.size).toBe(58);
+			expect(texts?.has('oid1')).toBe(false);
+			expect(texts?.has('oid2')).toBe(false);
+			expect(new TextDecoder().decode(texts?.get('oid59'))).toBe('Été oid59\r\n');
+		});
+
+		it('says so when GraphQL answers with errors only', async () => {
+			globalThis.fetch = jest.fn(async () =>
+				response(200, { errors: [{ message: 'Something went wrong' }] }),
+			) as unknown as typeof fetch;
+
+			await expect(
+				gitHubGitRemoteProvider.historyTransport.getTextBlobs?.(
+					'token',
+					'owner/repo',
+					['oid'],
+				),
+			).rejects.toThrow('Something went wrong');
+		});
+
 		it('walks the tree folder by folder when GitHub cuts the whole one short', async () => {
 			const fetchMock = jest.fn(async (input: Parameters<typeof fetch>[0]) => {
 				const url = String(input);

@@ -13,6 +13,7 @@ import type {
 	GitRemoteTreeEntry,
 } from '../types/gitRemote';
 import { forEachLimited } from '../utils/asyncLimit';
+import { isBinaryFile } from '../utils/fileUtils';
 import { isRateLimited } from '../utils/gitUtils';
 import { fileHandlerService } from './FileHandlerService';
 import { fileStoreService } from './FileStoreService';
@@ -37,6 +38,10 @@ const moduleLog = createNamedLogger('GitSyncService');
 // (its secondary rate limit), and this keeps under 750.
 const FETCH_CONCURRENCY = 6;
 const FETCH_SPACING_MS = 80;
+// Text files read many at a time: up to this size (GitHub cuts texts
+// short past about 512 KB), this many per call.
+const TEXT_BLOB_MAX_BYTES = 400 * 1024;
+const TEXT_BLOBS_PER_CALL = 200;
 
 /**
  * How far a long import from the remote is, told on `document` for the
@@ -1264,25 +1269,65 @@ class GitSyncService {
 			FETCH_SPACING_MS,
 		);
 
-		const wanted = new Set<string>();
+		// Each file once, with a path and size to tell text from the rest.
+		const wanted = new Map<string, GitRemoteTreeEntry>();
 		for (const entries of trees.values()) {
 			for (const entry of entries) {
 				if (entry.type === 'blob' && normalizeMode(entry.mode) !== '160000') {
-					wanted.add(entry.oid);
+					wanted.set(entry.oid, entry);
 				}
 			}
 		}
 		const missing: string[] = [];
-		for (const oid of wanted) {
+		for (const oid of wanted.keys()) {
 			if (!(await this.hasBlob(projectId, oid))) missing.push(oid);
 		}
 		const git = await getGit();
 		const { options } = this.repo(projectId);
-		// Fetched several at a time, written one after another.
 		const fileDone = progress('files', missing.length);
+
+		// Text first, many files a request where the provider can; each kept
+		// only if it is exactly the file (its id is its content's hash).
+		const oneByOne = new Set(missing);
+		const textual = history.getTextBlobs
+			? missing.filter((oid) => {
+					const entry = wanted.get(oid);
+					return (
+						entry !== undefined &&
+						(entry.size ?? Number.POSITIVE_INFINITY) <= TEXT_BLOB_MAX_BYTES &&
+						!isBinaryFile(entry.path)
+					);
+				})
+			: [];
+		try {
+			for (
+				let start = 0;
+				history.getTextBlobs && start < textual.length;
+				start += TEXT_BLOBS_PER_CALL
+			) {
+				const texts = await history.getTextBlobs(
+					token,
+					config.repositoryId,
+					textual.slice(start, start + TEXT_BLOBS_PER_CALL),
+				);
+				for (const [oid, content] of texts) {
+					if (!oneByOne.has(oid)) continue;
+					const localOid = await git.writeBlob({ ...options, blob: content });
+					if (localOid === oid) {
+						oneByOne.delete(oid);
+						fileDone();
+					}
+				}
+			}
+		} catch (error) {
+			if (isRateLimited(error)) throw error;
+			moduleLog.warn('Could not read the text files many at a time:', error);
+		}
+
+		// The rest one by one, several at a time, written one after another.
 		let writing: Promise<void> = Promise.resolve();
 		await forEachLimited(
-			missing,
+			[...oneByOne],
 			FETCH_CONCURRENCY,
 			async (oid) => {
 				const content = await history.getBlob(token, config.repositoryId, oid);

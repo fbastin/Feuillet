@@ -70,6 +70,8 @@ export interface GitRemoteTreeEntry {
 	mode: string;
 	type: GitRemoteTreeEntryType;
 	oid: string;
+	/** A file's size in bytes, when the provider tells it. */
+	size?: number;
 }
 
 export interface GitRemoteCommitObject {
@@ -143,6 +145,16 @@ export interface GitRemoteHistoryTransport {
 		repositoryId: string,
 		oid: string,
 	): Promise<Uint8Array>;
+	/**
+	 * Text files, many at a time (GitHub's GraphQL API: fifty a request).
+	 * Gives those it could read as text; the caller checks each against its
+	 * id and fetches the others one by one with getBlob.
+	 */
+	getTextBlobs?(
+		token: string,
+		repositoryId: string,
+		oids: string[],
+	): Promise<Map<string, Uint8Array>>;
 	createCommit(
 		token: string,
 		repositoryId: string,

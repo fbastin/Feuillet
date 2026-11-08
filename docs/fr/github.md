@@ -28,7 +28,8 @@ la liste des projets.
 
 Feuillet récupère tout l'historique du dépôt, avec les mêmes commits que sur
 GitHub. Pour un long historique, la fenêtre montre où il en est (commits,
-puis fichiers) : comptez environ une minute pour 300 commits. GitHub limite
+puis fichiers) : comptez moins d'une minute pour 300 commits, et une
+trentaine de secondes pour 500 fichiers. GitHub limite
 le nombre de requêtes de chaque compte, par minute et par heure; Feuillet
 reste en deçà, et si la limite est tout de même atteinte, il dit à quelle
 heure réessayer.

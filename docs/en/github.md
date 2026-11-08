@@ -27,7 +27,8 @@ instead.
 
 Feuillet brings in the repository's whole history, with the same commits as
 on GitHub. For a long history, the window shows how far it is (commits, then
-files): count about a minute for 300 commits. GitHub limits how many
+files): count under a minute for 300 commits, and about thirty seconds for
+500 files. GitHub limits how many
 requests each account makes, per minute and per hour; Feuillet stays below,
 and if the limit is reached anyway, it says at what time to try again.
 

@@ -569,6 +569,81 @@ describe('GitSyncService API transport', () => {
 		}
 	});
 
+	it('reads the text files many at a time, and one by one any that does not match its id', async () => {
+		transport.getHead.mockResolvedValue('remote-head');
+		transport.getTree.mockImplementation(async (_token, _repo, commit: any) =>
+			commit.oid === 'remote-base'
+				? []
+				: [
+						{
+							path: 'main.tex',
+							mode: '100644',
+							type: 'blob',
+							oid: 'text-blob',
+							size: 6,
+						},
+						{
+							path: 'figure.png',
+							mode: '100644',
+							type: 'blob',
+							oid: 'image-blob',
+							size: 6,
+						},
+						{
+							path: 'wrong.tex',
+							mode: '100644',
+							type: 'blob',
+							oid: 'wrong-blob',
+							size: 6,
+						},
+					],
+		);
+		const listCommits = jest.fn(async () => [
+			{ ...remoteCommit, oid: 'remote-head', parents: ['remote-base'] },
+		]);
+		const getTextBlobs = jest.fn(
+			async () =>
+				new Map([
+					['text-blob', new TextEncoder().encode('texte')],
+					['wrong-blob', new TextEncoder().encode('autre')],
+				]),
+		);
+		Object.assign(transport, { listCommits, getTextBlobs });
+		mockGit.writeBlob.mockImplementation(
+			async ({ blob }: { blob: Uint8Array }) => {
+				const text = new TextDecoder().decode(blob);
+				const oid =
+					text === 'texte'
+						? 'text-blob'
+						: text === 'image'
+							? 'image-blob'
+							: text === 'exact'
+								? 'wrong-blob'
+								: 'mismatch';
+				if (oid !== 'mismatch') localBlobs.set(oid, blob);
+				return oid;
+			},
+		);
+		transport.getBlob.mockImplementation(async (_token, _repo, oid) =>
+			new TextEncoder().encode(oid === 'image-blob' ? 'image' : 'exact'),
+		);
+		try {
+			await gitSyncService.fetchForMerge('project-1', secrets);
+
+			expect(getTextBlobs).toHaveBeenCalledWith('secret-token', 'owner/repo', [
+				'text-blob',
+				'wrong-blob',
+			]);
+			expect(transport.getBlob.mock.calls.map((call) => call[2]).sort()).toEqual([
+				'image-blob',
+				'wrong-blob',
+			]);
+		} finally {
+			Reflect.deleteProperty(transport, 'listCommits');
+			Reflect.deleteProperty(transport, 'getTextBlobs');
+		}
+	});
+
 	it('still imports commit by commit when the history cannot be listed', async () => {
 		transport.getHead.mockResolvedValue('remote-head');
 		Object.assign(transport, {
