@@ -764,12 +764,12 @@ class GitSyncService {
 					await walk(entry.oid, path);
 					continue;
 				}
-				if (entry.type === 'commit') {
-					throw new Error(
-						`Git API synchronization does not support submodules (${path})`,
-					);
-				}
-				files.push({ path, mode: entry.mode, oid: entry.oid });
+				// A submodule (gitlink) is kept as it is: the commit it points to.
+				files.push({
+					path,
+					mode: entry.type === 'commit' ? '160000' : entry.mode,
+					oid: entry.oid,
+				});
 			}
 		};
 		await walk(commit.tree);
@@ -791,6 +791,17 @@ class GitSyncService {
 			: object.object;
 	}
 
+	// What a created or changed entry becomes: a file's content, or the
+	// commit a submodule points to.
+	private async changeTarget(
+		projectId: string,
+		file: LocalCommitFile,
+	): Promise<{ content: Uint8Array } | { oid: string }> {
+		return file.mode === '160000'
+			? { oid: file.oid }
+			: { content: await this.readLocalBlob(projectId, file.oid) };
+	}
+
 	private async changesBetween(
 		projectId: string,
 		previous: LocalCommitFile[],
@@ -808,7 +819,7 @@ class GitSyncService {
 					path,
 					type: 'create',
 					mode: newFile.mode,
-					content: await this.readLocalBlob(projectId, newFile.oid),
+					...(await this.changeTarget(projectId, newFile)),
 				});
 				continue;
 			}
@@ -833,7 +844,7 @@ class GitSyncService {
 					mode: newFile.mode,
 					previousMode: oldFile.mode,
 					previousOid: oldFile.oid,
-					content: await this.readLocalBlob(projectId, newFile.oid),
+					...(await this.changeTarget(projectId, newFile)),
 				});
 			}
 		}

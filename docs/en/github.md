@@ -41,8 +41,19 @@ in the project.
   you may also cancel the merge.
 
 Every file of the repository is kept as it is, binary files, executables,
-`.gitignore` and the `.github` folder included. Symbolic links are kept on
-GitHub, but do not show in the project.
+`.gitignore` and the `.github` folder included. Three kinds of entries stay
+on GitHub without being in the project; the GitHub window names them, under
+**On GitHub, not in the project**:
+
+- a **submodule** shows as an empty folder. Feuillet keeps the commit it
+  points to, and updates it when it changes on GitHub, but does not have its
+  files: a compile in Feuillet does not have them;
+- a file kept with **Git LFS** is only its pointer, a few lines of text; an
+  LFS image therefore shows empty. A file put in its place in Feuillet is
+  pushed without LFS;
+- a **symbolic link** does not show.
+
+Pushes from Feuillet leave them as they are on GitHub.
 
 By default, comments and tracked changes do not go to GitHub: only the text
 is pushed, as it would be once the changes are accepted.

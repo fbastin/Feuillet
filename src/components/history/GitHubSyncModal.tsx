@@ -27,7 +27,7 @@ import {
 	type GitProjectPullResult,
 	gitProjectSyncService,
 } from '@/services/GitProjectSyncService';
-import { gitService } from '@/services/GitService';
+import { type GitKeptEntries, gitService } from '@/services/GitService';
 import { projectSeedService } from '@/services/ProjectSeedService';
 import {
 	type GitRemoteSyncStatus,
@@ -46,6 +46,7 @@ import GitAccountTokenForm from './GitAccountTokenForm';
 import GitHubActionsSection from './GitHubActionsSection';
 import GitHubBranchSection from './GitHubBranchSection';
 import GitHubReleaseSection from './GitHubReleaseSection';
+import GitKeptEntriesNote from './GitKeptEntriesNote';
 import { OPEN_GIT_CLONE_EVENT } from './GitCloneButton';
 import GitRepositoryPicker, {
 	type GitRepositorySelection,
@@ -142,6 +143,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		null,
 	);
 	const [pendingChangeCount, setPendingChangeCount] = useState(0);
+	const [keptEntries, setKeptEntries] = useState<GitKeptEntries | null>(null);
 
 	const [busyAction, setBusyAction] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -192,6 +194,12 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			if (!gitSyncService.getConfig(projectId)) return;
 			if (await gitService.isInitialized(projectId)) {
 				setPendingChangeCount((await gitService.getChanges(projectId)).length);
+				setKeptEntries(
+					await gitService.getKeptEntries(projectId).catch((keptError) => {
+						moduleLog.warn('Failed to list submodules and links:', keptError);
+						return null;
+					}),
+				);
 			}
 			setSyncStatus(await gitSyncService.getSyncStatus(projectId, secrets));
 		},
@@ -814,6 +822,7 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 					</span>
 				</div>
 				{renderStatus()}
+				<GitKeptEntriesNote kept={keptEntries} remoteName={remoteName} />
 				{offersGit ? (
 					<details className='github-sync-clone' data-role='clone-with-git'>
 						<summary>{t('Work on it on your computer')}</summary>

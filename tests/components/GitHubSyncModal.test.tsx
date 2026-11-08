@@ -52,6 +52,7 @@ const mockGitService = {
 	isInitialized: jest.fn(async () => true),
 	getChanges: jest.fn(async () => [] as Array<{ path: string }>),
 	getHeadOid: jest.fn(async () => 'local-head' as string | null),
+	getKeptEntries: jest.fn(async () => ({ submodules: [], links: [], lfs: [] })),
 };
 
 jest.mock('@src/services/GitService', () => ({ gitService: mockGitService }));

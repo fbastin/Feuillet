@@ -1053,6 +1053,13 @@
 	margin-bottom: var(--space-xs);
 }
 
+/* What the repository has that the project does not show (GitKeptEntriesNote) */
+.github-sync-kept {
+	margin: 0 0 var(--space-xs);
+	padding-left: 1.2em;
+	overflow-wrap: anywhere;
+}
+
 /* Publishing a release with the PDF (GitHubReleaseSection) */
 .github-sync-release summary {
 	cursor: pointer;

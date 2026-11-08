@@ -90,6 +90,8 @@ export interface GitRemoteCommitChange {
 	previousMode?: string;
 	previousOid?: string;
 	content?: Uint8Array;
+	/** For a submodule (mode 160000): the commit it points to, no content. */
+	oid?: string;
 }
 
 export interface GitRemoteCreateCommitInput {

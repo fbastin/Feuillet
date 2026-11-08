@@ -397,6 +397,68 @@ describe('GitSyncService API transport', () => {
 		);
 	});
 
+	it('pushes past a submodule that did not change', async () => {
+		const gitlink = (oid: string) => ({
+			path: 'theme',
+			type: 'commit',
+			mode: '160000',
+			oid,
+		});
+		localTrees.set('base-tree', [
+			...localTrees.get('base-tree')!,
+			gitlink('1'.repeat(40)),
+		]);
+		localTrees.set('local-tree', [
+			...localTrees.get('local-tree')!,
+			gitlink('1'.repeat(40)),
+		]);
+
+		// What is sent is the point here, not adopting the mock's reply.
+		await gitSyncService.push('project-1', secrets).catch(() => undefined);
+
+		expect(transport.createCommit).toHaveBeenCalledWith(
+			'secret-token',
+			'owner/repo',
+			expect.objectContaining({
+				changes: [
+					expect.objectContaining({ path: 'main.tex', type: 'update' }),
+				],
+			}),
+		);
+
+	});
+
+	it('sends a submodule that moved as the commit it points to', async () => {
+		const gitlink = (oid: string) => ({
+			path: 'theme',
+			type: 'commit',
+			mode: '160000',
+			oid,
+		});
+		localTrees.set('base-tree', [
+			...localTrees.get('base-tree')!,
+			gitlink('1'.repeat(40)),
+		]);
+		localTrees.set('local-tree', [
+			...localTrees.get('base-tree')!.filter((entry) => entry.path !== 'theme'),
+			gitlink('2'.repeat(40)),
+		]);
+
+		await gitSyncService.push('project-1', secrets).catch(() => undefined);
+
+		const input = (transport.createCommit.mock.calls[0] as any[])[2];
+		expect(input.changes).toEqual([
+			{
+				path: 'theme',
+				type: 'update',
+				mode: '160000',
+				previousMode: '160000',
+				previousOid: '1'.repeat(40),
+				oid: '2'.repeat(40),
+			},
+		]);
+	});
+
 	it('does not pull over local uncommitted changes', async () => {
 		mockGitService.getChanges.mockResolvedValue([
 			{ path: 'main.tex', type: 'modified' },

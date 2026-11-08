@@ -42,9 +42,19 @@ GitHub pas encore dans le projet.
   les conflits à résoudre; vous pouvez aussi annuler la fusion.
 
 Tous les fichiers du dépôt sont gardés tels quels, fichiers binaires,
-exécutables, `.gitignore` et dossier `.github` compris. Les liens
-symboliques sont conservés sur GitHub, mais n'apparaissent pas dans le
-projet.
+exécutables, `.gitignore` et dossier `.github` compris. Trois sortes
+d'éléments restent sur GitHub sans être dans le projet; la fenêtre GitHub
+les nomme, sous **Sur GitHub, mais pas dans le projet** :
+
+- un **sous-module** apparaît comme un dossier vide. Feuillet garde le
+  commit qu'il désigne, et le met à jour quand il change sur GitHub, mais
+  n'a pas ses fichiers : une compilation dans Feuillet ne les a donc pas;
+- un fichier gardé avec **Git LFS** n'est que son pointeur, quelques lignes
+  de texte; une image LFS s'affiche donc vide. Un fichier mis à sa place
+  dans Feuillet est envoyé sans LFS;
+- un **lien symbolique** n'apparaît pas.
+
+Les envois depuis Feuillet les laissent tels quels sur GitHub.
 
 Par défaut, les commentaires et les modifications suivies ne vont pas sur
 GitHub : seul le texte y est envoyé, tel qu'il serait une fois les

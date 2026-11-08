@@ -285,6 +285,15 @@ const historyTransport: GitRemoteProvider['historyTransport'] = {
 						sha: null,
 					};
 				}
+				if (change.mode === '160000') {
+					// A submodule: the commit it points to, nothing to upload.
+					return {
+						path: change.path,
+						mode: '160000',
+						type: 'commit',
+						sha: change.oid ?? null,
+					};
+				}
 				const blob = await request<{ sha: string }>(
 					token,
 					`repos/${owner}/${repo}/git/blobs`,

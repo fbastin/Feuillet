@@ -5,6 +5,7 @@ import { APP_NAME } from '../branding';
 import type { User } from '../types/auth';
 import type { FileNode } from '../types/files';
 import { isBinaryFile } from '../utils/fileUtils';
+import { isLfsPointer, lfsMatcher } from '../utils/gitAttributes';
 import { fileHandlerService } from './FileHandlerService';
 import { fileStoreService } from './FileStoreService';
 import { gitFileSystemService } from './GitFileSystemService';
@@ -29,6 +30,20 @@ export interface GitChange {
 	path: string;
 	type: GitChangeType;
 }
+
+/**
+ * What the current commit has that the project does not show: submodules
+ * (only the commit they point to is kept), symbolic links, and files kept
+ * with Git LFS (the project has their pointer, a few lines of text).
+ */
+export interface GitKeptEntries {
+	submodules: Array<{ path: string; commit: string }>;
+	links: Array<{ path: string; target: string }>;
+	lfs: string[];
+}
+
+/** No more LFS candidates are read than this: a hint, not an inventory. */
+const MAX_LFS_CHECKS = 200;
 
 export interface GitBranch {
 	name: string;
@@ -356,6 +371,55 @@ class GitService {
 	async getHeadOid(projectId: string): Promise<string | null> {
 		if (!(await this.isInitialized(projectId))) return null;
 		return this.tryResolveRef(projectId, 'HEAD');
+	}
+
+	async getKeptEntries(projectId: string): Promise<GitKeptEntries> {
+		const kept: GitKeptEntries = { submodules: [], links: [], lfs: [] };
+		const head = await this.getHeadOid(projectId);
+		if (!head) return kept;
+		const git = await getGit();
+		const { options } = this.repo(projectId);
+		const { commit } = await git.readCommit({ ...options, oid: head });
+		const blobs: Array<{ path: string; oid: string }> = [];
+		const attributes: Array<{ folder: string; oid: string }> = [];
+
+		const walk = async (treeOid: string, prefix = ''): Promise<void> => {
+			const { tree } = await git.readTree({ ...options, oid: treeOid });
+			for (const entry of tree) {
+				const path = prefix ? `${prefix}/${entry.path}` : entry.path;
+				if (entry.type === 'tree') {
+					await walk(entry.oid, path);
+				} else if (entry.type === 'commit') {
+					kept.submodules.push({ path, commit: entry.oid });
+				} else if (entry.mode === '120000') {
+					const { blob } = await git.readBlob({ ...options, oid: entry.oid });
+					kept.links.push({ path, target: new TextDecoder().decode(blob) });
+				} else {
+					blobs.push({ path, oid: entry.oid });
+					if (entry.path === '.gitattributes') {
+						attributes.push({ folder: prefix, oid: entry.oid });
+					}
+				}
+			}
+		};
+		await walk(commit.tree);
+
+		if (attributes.length > 0) {
+			const matchers = await Promise.all(
+				attributes.map(async ({ folder, oid }) => {
+					const { blob } = await git.readBlob({ ...options, oid });
+					return lfsMatcher(new TextDecoder().decode(blob), folder);
+				}),
+			);
+			const candidates = blobs
+				.filter(({ path }) => matchers.some((matches) => matches(path)))
+				.slice(0, MAX_LFS_CHECKS);
+			for (const { path, oid } of candidates) {
+				const { blob } = await git.readBlob({ ...options, oid });
+				if (isLfsPointer(blob)) kept.lfs.push(path);
+			}
+		}
+		return kept;
 	}
 
 	async getBranches(projectId: string): Promise<GitBranch[]> {

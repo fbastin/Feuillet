@@ -9,6 +9,15 @@ const response = (status: number, body: unknown): Response =>
 		json: jest.fn(async () => body),
 	}) as unknown as Response;
 
+const commitBody = (sha: string, tree: string, parents: string[]) => ({
+	sha,
+	message: 'Message',
+	tree: { sha: tree },
+	parents: parents.map((parent) => ({ sha: parent })),
+	author: { name: 'Author', email: 'author@example.com', date: '2026-09-15T10:00:00Z' },
+	committer: { name: 'Author', email: 'author@example.com', date: '2026-09-15T10:00:00Z' },
+});
+
 const originalFetch = globalThis.fetch;
 
 describe('GitHubGitRemoteProvider', () => {
@@ -121,6 +130,84 @@ describe('GitHubGitRemoteProvider', () => {
 		expect(JSON.parse(String(patch?.[1]?.body))).toEqual({
 			sha: 'root-sha',
 			force: true,
+		});
+	});
+
+	it('sends a submodule as the commit it points to, with nothing uploaded', async () => {
+		const fetchMock = jest.fn(
+			async (
+				input: Parameters<typeof fetch>[0],
+				init?: Parameters<typeof fetch>[1],
+			) => {
+				const url = String(input);
+				const method = init?.method ?? 'GET';
+				if (url.endsWith('/git/commits/parent-sha') && method === 'GET') {
+					return response(200, commitBody('parent-sha', 'parent-tree', []));
+				}
+				if (url.endsWith('/git/blobs') && method === 'POST') {
+					return response(201, { sha: 'blob-sha' });
+				}
+				if (url.endsWith('/git/trees') && method === 'POST') {
+					return response(201, { sha: 'tree-sha' });
+				}
+				if (url.endsWith('/git/commits') && method === 'POST') {
+					return response(201, { sha: 'new-sha' });
+				}
+				if (url.endsWith('/git/commits/new-sha') && method === 'GET') {
+					return response(200, commitBody('new-sha', 'tree-sha', ['parent-sha']));
+				}
+				throw new Error(`Unexpected request: ${method} ${url}`);
+			},
+		);
+		globalThis.fetch = fetchMock as typeof fetch;
+		const signature = {
+			name: 'Author',
+			email: 'author@example.com',
+			date: '2026-09-15T10:00:00Z',
+		};
+
+		await gitHubGitRemoteProvider.historyTransport.createCommit(
+			'token',
+			'owner/repo',
+			{
+				branch: 'main',
+				parents: ['parent-sha'],
+				expectedBranchHead: 'parent-sha',
+				updateBranch: false,
+				message: 'Message',
+				author: signature,
+				committer: signature,
+				changes: [
+					{
+						path: 'lib/theme',
+						type: 'update',
+						mode: '160000',
+						previousMode: '160000',
+						oid: '2'.repeat(40),
+					},
+					{
+						path: 'main.tex',
+						type: 'update',
+						mode: '100644',
+						content: new TextEncoder().encode('text'),
+					},
+				],
+			},
+		);
+
+		const blobs = fetchMock.mock.calls.filter(([input]) =>
+			String(input).endsWith('/git/blobs'),
+		);
+		expect(blobs).toHaveLength(1);
+		const treeCall = fetchMock.mock.calls.find(([input]) =>
+			String(input).endsWith('/git/trees'),
+		);
+		expect(JSON.parse(String(treeCall?.[1]?.body))).toEqual({
+			base_tree: 'parent-tree',
+			tree: [
+				{ path: 'lib/theme', mode: '160000', type: 'commit', sha: '2'.repeat(40) },
+				{ path: 'main.tex', mode: '100644', type: 'blob', sha: 'blob-sha' },
+			],
 		});
 	});
 });

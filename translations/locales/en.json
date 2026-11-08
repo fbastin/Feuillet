@@ -3786,5 +3786,10 @@
   "Sending...": "Sending...",
   "Add the file on {provider}": "Add the file on {{provider}}",
   "Update the file on {provider}": "Update the file on {{provider}}",
-  "The file, {path}, then comes into the project like any change made on {provider}.": "The file, {{path}}, then comes into the project like any change made on {{provider}}."
+  "The file, {path}, then comes into the project like any change made on {provider}.": "The file, {{path}}, then comes into the project like any change made on {{provider}}.",
+  "On {provider}, not in the project": "On {{provider}}, not in the project",
+  "{path}: a submodule, at commit {commit}. Its files are not in the project, so a compile here does not have them.": "{{path}}: a submodule, at commit {{commit}}. Its files are not in the project, so a compile here does not have them.",
+  "{path}: kept with Git LFS. The project has only its pointer, a few lines of text; a file put in its place here is pushed without LFS.": "{{path}}: kept with Git LFS. The project has only its pointer, a few lines of text; a file put in its place here is pushed without LFS.",
+  "{path}: a symbolic link to {target}.": "{{path}}: a symbolic link to {{target}}.",
+  "Pushes from {app} leave them as they are on {provider}.": "Pushes from {{app}} leave them as they are on {{provider}}."
 }

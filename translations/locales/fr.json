@@ -3786,5 +3786,10 @@
   "Sending...": "Envoi…",
   "Add the file on {provider}": "Ajouter le fichier sur {{provider}}",
   "Update the file on {provider}": "Mettre à jour le fichier sur {{provider}}",
-  "The file, {path}, then comes into the project like any change made on {provider}.": "Le fichier, {{path}}, arrive ensuite dans le projet comme toute modification faite sur {{provider}}."
+  "The file, {path}, then comes into the project like any change made on {provider}.": "Le fichier, {{path}}, arrive ensuite dans le projet comme toute modification faite sur {{provider}}.",
+  "On {provider}, not in the project": "Sur {{provider}}, mais pas dans le projet",
+  "{path}: a submodule, at commit {commit}. Its files are not in the project, so a compile here does not have them.": "{{path}} : un sous-module, au commit {{commit}}. Ses fichiers ne sont pas dans le projet; une compilation ici ne les a donc pas.",
+  "{path}: kept with Git LFS. The project has only its pointer, a few lines of text; a file put in its place here is pushed without LFS.": "{{path}} : gardé avec Git LFS. Le projet n'en a que le pointeur, quelques lignes de texte; un fichier mis à sa place ici est envoyé sans LFS.",
+  "{path}: a symbolic link to {target}.": "{{path}} : un lien symbolique vers {{target}}.",
+  "Pushes from {app} leave them as they are on {provider}.": "Les envois depuis {{app}} les laissent tels quels sur {{provider}}."
 }
