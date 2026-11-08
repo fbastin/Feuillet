@@ -36,6 +36,27 @@ export interface FileStorageChange {
 type FileStorageListener = (change: FileStorageChange) => void;
 const listeners: FileStorageListener[] = [];
 
+// The file tree, the editor's document map and others read every file's
+// record again on « refresh-file-tree »: a checkout or an upload of hundreds
+// of files told it once per file, reading the whole project each time. The
+// first change of a burst is told at once, the rest at most every
+// TREE_REFRESH_MS, the last one always.
+const TREE_REFRESH_MS = 200;
+let treeRefreshTold = 0;
+let treeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+const tellTreeRefresh = () => {
+	if (typeof document === 'undefined') return;
+	const dispatch = () => {
+		treeRefreshTimer = null;
+		treeRefreshTold = Date.now();
+		document.dispatchEvent(new CustomEvent('refresh-file-tree'));
+	};
+	if (treeRefreshTimer) return;
+	const wait = treeRefreshTold + TREE_REFRESH_MS - Date.now();
+	if (wait <= 0) dispatch();
+	else treeRefreshTimer = setTimeout(dispatch, wait);
+};
+
 export const fileStorageEventEmitter = {
 	onChange(listener: FileStorageListener) {
 		listeners.push(listener);
@@ -52,7 +73,7 @@ export const fileStorageEventEmitter = {
 		}
 
 		if (change.kind === 'structure') {
-			document.dispatchEvent(new CustomEvent('refresh-file-tree'));
+			tellTreeRefresh();
 		} else {
 			document.dispatchEvent(
 				new CustomEvent<FileStorageChange>('file-content-changed', {
