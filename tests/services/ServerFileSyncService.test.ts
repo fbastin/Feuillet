@@ -158,6 +158,79 @@ describe('ServerFileSyncService', () => {
 		);
 	});
 
+	it('receives many files a few at a time, stored batch by batch', async () => {
+		mockPeerFileSync.getLocalFileSyncInfo.mockResolvedValue([]);
+		const doc = new Y.Doc();
+		for (let index = 0; index < 65; index++) {
+			const content = bytes(`section ${index}`);
+			server.set(`project-1/${sha(content)}`, content);
+			doc.getMap(FILE_MANIFEST_KEY).set(`/parties/s${index}.tex`, {
+				path: `/parties/s${index}.tex`,
+				checksum: sha(content),
+				size: content.byteLength,
+				lastModified: index,
+				deleted: false,
+				updatedBy: 'bob',
+			});
+		}
+		let running = 0;
+		let most = 0;
+		global.fetch = jest.fn(async (url: string, init?: RequestInit) => {
+			running++;
+			most = Math.max(most, running);
+			await new Promise((resolve) => setTimeout(resolve, 2));
+			running--;
+			return fetchMock(url, init);
+		}) as never;
+
+		const result = await serverFileSyncService.synchronize(options(doc));
+
+		expect(result).toEqual({ published: 0, applied: 65, failures: [] });
+		expect(most).toBeGreaterThan(1);
+		expect(most).toBeLessThanOrEqual(6);
+		const sizes = mockFileStore.batchStoreFiles.mock.calls.map(
+			(call) => (call as unknown as [unknown[]])[0].length,
+		);
+		expect(sizes).toEqual([30, 30, 5]);
+	});
+
+	it('sends many files a few at a time, listing each batch once it is on the server', async () => {
+		const local = Array.from({ length: 35 }, (_, index) => {
+			const content = bytes(`texte ${index}`);
+			return {
+				content,
+				info: {
+					fileId: `f${index}`,
+					fileName: `t${index}.tex`,
+					filePath: `/t${index}.tex`,
+					lastModified: 100 + index,
+					size: content.byteLength,
+					checksum: sha(content),
+					userId: 'alice-id',
+					username: 'alice',
+				},
+			};
+		});
+		mockPeerFileSync.getLocalFileSyncInfo.mockResolvedValue(
+			local.map((file) => file.info),
+		);
+		mockFileStore.getFile.mockImplementation(async (id: string) => ({
+			content: local.find((file) => file.info.fileId === id)?.content.slice()
+				.buffer,
+		}));
+		const doc = new Y.Doc();
+		const listed: number[] = [];
+		doc
+			.getMap(FILE_MANIFEST_KEY)
+			.observe(() => listed.push(doc.getMap(FILE_MANIFEST_KEY).size));
+
+		const result = await serverFileSyncService.synchronize(options(doc));
+
+		expect(result.published).toBe(35);
+		expect(listed).toEqual([30, 35]);
+		expect(server.size).toBe(35);
+	});
+
 	it('stores the files linked to documents before the others', async () => {
 		const image = bytes('image');
 		const tex = bytes('\\documentclass{article}');

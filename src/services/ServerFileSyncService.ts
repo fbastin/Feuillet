@@ -6,6 +6,7 @@ import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import type { User } from '../types/auth';
 import type { FileNode } from '../types/files';
+import { forEachLimited } from '../utils/asyncLimit';
 import { getMimeType, isBinaryFile } from '../utils/fileUtils';
 import {
 	type FileManifestEntry,
@@ -35,6 +36,19 @@ interface SynchronizeOptions {
 	baseUrl: string;
 	user: User;
 }
+
+// Files to or from the collaboration server: this many requests at once (a
+// browser opens six connections to a server), in batches of this many.
+const TRANSFER_CONCURRENCY = 6;
+const TRANSFER_BATCH = 30;
+
+const batchesOf = <T>(items: readonly T[], size: number): T[][] => {
+	const batches: T[][] = [];
+	for (let start = 0; start < items.length; start += size) {
+		batches.push(items.slice(start, start + size));
+	}
+	return batches;
+};
 
 const errorText = (error: unknown) =>
 	error instanceof Error ? error.message : String(error);
@@ -126,38 +140,43 @@ class ServerFileSyncService {
 
 		// Through a read-only or review link, files only come in.
 		const toPublish = projectLinkKind(projectId) === 'edit' ? plan.publish : [];
-		const published: FileManifestEntry[] = [];
-		for (const file of toPublish) {
-			try {
-				if (!file.deleted) {
-					await this.uploadContent(
-						baseUrl,
-						projectId,
-						file.checksum,
-						await this.readLocalContent(file.fileId),
+		let published = 0;
+		// A few files at a time, each batch listed in the manifest as soon as
+		// it is on the server: collaborators get the first files while the
+		// rest are still going up.
+		for (const batch of batchesOf(toPublish, TRANSFER_BATCH)) {
+			const sent: FileManifestEntry[] = [];
+			await forEachLimited(batch, TRANSFER_CONCURRENCY, async (file) => {
+				try {
+					if (!file.deleted) {
+						await this.uploadContent(
+							baseUrl,
+							projectId,
+							file.checksum,
+							await this.readLocalContent(file.fileId),
+						);
+					}
+					sent.push(manifestEntryFor(file, user.username));
+				} catch (error) {
+					moduleLog.warn(`Failed to publish ${file.filePath}:`, error);
+					failures.push(
+						t('Could not share {path}: {message}', {
+							path: file.filePath,
+							message: errorText(error),
+						}),
 					);
 				}
-				published.push(manifestEntryFor(file, user.username));
-			} catch (error) {
-				moduleLog.warn(`Failed to publish ${file.filePath}:`, error);
-				failures.push(
-					t('Could not share {path}: {message}', {
-						path: file.filePath,
-						message: errorText(error),
-					}),
-				);
-			}
-		}
-
-		if (published.length > 0) {
+			});
+			if (sent.length === 0) continue;
 			doc.transact(() => {
-				for (const entry of published) {
+				for (const entry of sent) {
 					const current = manifest.get(entry.path);
 					if (!current || current.lastModified <= entry.lastModified) {
 						manifest.set(entry.path, entry);
 					}
 				}
 			}, LOCAL_MANIFEST_ORIGIN);
+			published += sent.length;
 		}
 
 		// Files linked to documents come first: the editor waits for the file
@@ -177,7 +196,7 @@ class ServerFileSyncService {
 				failures,
 			);
 		}
-		return { published: published.length, applied, failures };
+		return { published, applied, failures };
 	}
 
 	private async applyEntries(
@@ -187,64 +206,87 @@ class ServerFileSyncService {
 		baseUrl: string,
 		failures: string[],
 	): Promise<number> {
-		const filesToStore: FileNode[] = [];
-		let deleted = 0;
-
-		for (const entry of entries) {
-			try {
-				if (entry.deleted) {
-					await fileStoreService.initialize(docUrl);
-					await fileStoreService.deleteFileByPath(entry.path, {
-						showDeleteDialog: false,
-						hardDelete: false,
-						allowLinkedFileDelete: true,
-					});
-					deleted += 1;
-					continue;
-				}
-
-				const content = await this.downloadContent(
-					baseUrl,
-					projectId,
-					entry.checksum,
-				);
-				await fileStoreService.initialize(docUrl);
-				await fileStoreService.createDirectoryPath(entry.path);
-				const existing = await fileStoreService.getFileByPath(entry.path, true);
-				const name = entry.path.split('/').pop() || entry.path;
-				filesToStore.push({
-					id: existing?.id ?? nanoid(),
-					name,
+		const failed = (entry: FileManifestEntry, error: unknown) => {
+			moduleLog.warn(`Failed to receive ${entry.path}:`, error);
+			failures.push(
+				t('Could not receive {path}: {message}', {
 					path: entry.path,
-					type: 'file',
-					content,
-					lastModified: entry.lastModified,
-					size: content.byteLength,
-					mimeType: getMimeType(name),
-					isBinary: isBinaryFile(name),
-					isDeleted: false,
-					documentId: entry.documentId,
+					message: errorText(error),
+				}),
+			);
+		};
+		let applied = 0;
+
+		for (const entry of entries.filter((item) => item.deleted)) {
+			try {
+				await fileStoreService.initialize(docUrl);
+				await fileStoreService.deleteFileByPath(entry.path, {
+					showDeleteDialog: false,
+					hardDelete: false,
+					allowLinkedFileDelete: true,
 				});
+				applied += 1;
 			} catch (error) {
-				moduleLog.warn(`Failed to receive ${entry.path}:`, error);
-				failures.push(
-					t('Could not receive {path}: {message}', {
-						path: entry.path,
-						message: errorText(error),
-					}),
-				);
+				failed(entry, error);
 			}
 		}
 
-		if (filesToStore.length > 0) {
+		// A few downloads at a time; each batch stored once it is in, so the
+		// files show as they come instead of all at the end.
+		const incoming = entries.filter((item) => !item.deleted);
+		for (const batch of batchesOf(incoming, TRANSFER_BATCH)) {
+			const contents = new Map<FileManifestEntry, ArrayBuffer>();
+			await forEachLimited(batch, TRANSFER_CONCURRENCY, async (entry) => {
+				try {
+					contents.set(
+						entry,
+						await this.downloadContent(baseUrl, projectId, entry.checksum),
+					);
+				} catch (error) {
+					failed(entry, error);
+				}
+			});
+			// Folders and ids one after another: two files of a new folder
+			// must not make it twice.
+			const filesToStore: FileNode[] = [];
+			for (const entry of batch) {
+				const content = contents.get(entry);
+				if (!content) continue;
+				try {
+					await fileStoreService.initialize(docUrl);
+					await fileStoreService.createDirectoryPath(entry.path);
+					const existing = await fileStoreService.getFileByPath(
+						entry.path,
+						true,
+					);
+					const name = entry.path.split('/').pop() || entry.path;
+					filesToStore.push({
+						id: existing?.id ?? nanoid(),
+						name,
+						path: entry.path,
+						type: 'file',
+						content,
+						lastModified: entry.lastModified,
+						size: content.byteLength,
+						mimeType: getMimeType(name),
+						isBinary: isBinaryFile(name),
+						isDeleted: false,
+						documentId: entry.documentId,
+					});
+				} catch (error) {
+					failed(entry, error);
+				}
+			}
+			if (filesToStore.length === 0) continue;
 			await fileStoreService.initialize(docUrl);
 			await fileStoreService.batchStoreFiles(filesToStore, {
 				preserveTimestamp: true,
 				showConflictDialog: false,
 				preserveDeletionStatus: false,
 			});
+			applied += filesToStore.length;
 		}
-		return filesToStore.length + deleted;
+		return applied;
 	}
 }
 
