@@ -289,9 +289,9 @@ const fileCache = {
 		return path.join(fileCacheDir, sha256(`feuillet-scope:${scope}`).slice(0, 40));
 	},
 	// Kept under its own hash, whatever a client says it is.
-	async put(scope, bytes) {
+	async put(scope, bytes, hash = sha256(bytes)) {
 		const dir = this.scopeDir(scope);
-		const target = path.join(dir, sha256(bytes));
+		const target = path.join(dir, hash);
 		if (await exists(target)) {
 			await this.touch(target);
 			return;
@@ -407,6 +407,9 @@ class Session {
 			'names',
 		);
 		this.tracked = new Set();
+		// The hash of each project file this session holds, as written: a
+		// file at its path but of another hash is not the one listed.
+		this.hashes = new Map();
 		this.child = null;
 		this.closed = false;
 		// Requests are numbered as they arrive: a stop stops those before it.
@@ -550,16 +553,19 @@ class Session {
 				if (listed.has(relative)) continue;
 				await fs.rm(path.join(this.dir, relative), { force: true });
 				this.tracked.delete(relative);
+				this.hashes.delete(relative);
 			}
 		}
 
 		for (const file of files) {
 			const { relative } = this.resolve(file.path);
 			const bytes = Buffer.from(file.content, 'base64');
+			const hash = sha256(bytes);
 			await this.placeFile(relative, bytes);
 			this.tracked.add(relative);
+			this.hashes.set(relative, hash);
 			if (cached) {
-				await fileCache.put(scope, bytes).catch((error) => log('file cache:', error.message));
+				await fileCache.put(scope, bytes, hash).catch((error) => log('file cache:', error.message));
 			}
 		}
 
@@ -567,7 +573,11 @@ class Session {
 		const missing = [];
 		for (const entry of manifest) {
 			const { relative, absolute } = this.resolve(entry.path);
-			if (await exists(absolute)) {
+			const held = this.hashes.get(relative);
+			if (
+				(await exists(absolute)) &&
+				(typeof entry.hash !== 'string' || held === undefined || held === entry.hash)
+			) {
 				this.tracked.add(relative);
 				continue;
 			}
@@ -577,6 +587,7 @@ class Session {
 				if (bytes) {
 					await this.placeFile(relative, bytes);
 					this.tracked.add(relative);
+					this.hashes.set(relative, entry.hash);
 					continue;
 				}
 			}
@@ -1102,13 +1113,16 @@ wss.on('connection', (conn, req) => {
 			let response;
 			if (to !== target) {
 				target = to;
-				// That server's files are not this project's latest: all of them
-				// are sent again, as to a new connection.
+				// That server's files may not be this project's latest. Without
+				// hashes to check them by, all of them are sent again, as to a
+				// new connection; with them, that server tells what it lacks
+				// (taking what it can from its own cache).
 				const { files, manifest } = request;
 				if (
 					Array.isArray(manifest) &&
 					Array.isArray(files) &&
-					files.length < manifest.length
+					files.length < manifest.length &&
+					!manifest.every((entry) => typeof entry?.hash === 'string')
 				) {
 					response = {
 						status: MISSING_FILES_STATUS,
