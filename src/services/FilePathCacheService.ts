@@ -12,6 +12,10 @@ import {
 	fileStorageEventEmitter,
 	type FileStorageChange,
 } from './FileStoreService';
+import {
+	findLatexDefinitions,
+	type LatexDefinitions,
+} from '../utils/latexDefinitions';
 
 const moduleLog = createNamedLogger('FilePathCacheService');
 
@@ -54,8 +58,11 @@ class FilePathCacheService {
 			lastModified: number;
 			format: LabelFormat;
 			labelsByFormat: Partial<Record<LabelFormat, string[]>>;
+			definitions?: LatexDefinitions;
 		}
 	>();
+	// What each LaTeX file defines (\newcommand…), for the autocompletion.
+	private texDefinitions = new Map<string, LatexDefinitions>();
 	private readonly MAX_LABEL_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 	private consumers = 0;
 	private unsubscribeStorageChange: (() => void) | null = null;
@@ -134,6 +141,10 @@ class FilePathCacheService {
 
 	getLabelsByFormat(): LabelsByFormat {
 		return this.labelCache.labelsByFormat;
+	}
+
+	getTexDefinitions(): ReadonlyMap<string, LatexDefinitions> {
+		return this.texDefinitions;
 	}
 
 	getBibliographyFiles(): FileNode[] {
@@ -531,6 +542,11 @@ class FilePathCacheService {
 			typst: new Map(),
 			markdown: new Map(),
 		};
+		const definitions = new Map<string, LatexDefinitions>();
+		const keepDefinitions = (path: string, found?: LatexDefinitions) => {
+			if (found && (found.commands.length || found.environments.length))
+				definitions.set(path, found);
+		};
 
 		for (const file of this.flattenFiles(this.cachedFiles)) {
 			const format = this.getLabelFormat(file.name);
@@ -555,6 +571,7 @@ class FilePathCacheService {
 					if (cachedLabels && cachedLabels.length > 0) {
 						labelsByFormat[format].set(file.path, cachedLabels);
 					}
+					keepDefinitions(file.path, cached.definitions);
 					continue;
 				}
 
@@ -573,11 +590,16 @@ class FilePathCacheService {
 					lastModified: number;
 					format: LabelFormat;
 					labelsByFormat: Partial<Record<LabelFormat, string[]>>;
+					definitions?: LatexDefinitions;
 				} = {
 					lastModified: file.lastModified ?? 0,
 					format,
 					labelsByFormat: { [format]: labels },
+					...(format === 'tex'
+						? { definitions: findLatexDefinitions(content) }
+						: {}),
 				};
+				keepDefinitions(file.path, entry.definitions);
 
 				if (labels.length > 0) {
 					labelsByFormat[format].set(file.path, labels);
@@ -596,6 +618,7 @@ class FilePathCacheService {
 			labelsByFormat,
 			lastUpdate: Date.now(),
 		};
+		this.texDefinitions = definitions;
 
 		this.labelsUpdateCallbacks.forEach((callback) => {
 			callback(labelsByFormat);
@@ -661,6 +684,7 @@ class FilePathCacheService {
 			lastUpdate: 0,
 		};
 		this.labelContentCache.clear();
+		this.texDefinitions = new Map();
 		this.pendingContentCacheNotify = false;
 		if (this.cacheUpdateTimeout) {
 			clearTimeout(this.cacheUpdateTimeout);

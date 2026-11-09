@@ -4241,5 +4241,6 @@
   "Search symbols": "Rechercher des symboles",
   "Close the symbol palette": "Fermer la palette de symboles",
   "Click a symbol to insert it.": "Cliquez sur un symbole pour l'insérer.",
-  "Double turnstile": "Double taquet (modélise)"
+  "Double turnstile": "Double taquet (modélise)",
+  "defined in {file}": "défini dans {{file}}"
 }

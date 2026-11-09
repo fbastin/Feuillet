@@ -85,6 +85,7 @@ import {
 	setCurrentFilePath,
 	refreshBibliographyCache,
 } from '../../extensions/codemirror/PathAndBibAutocompleteExtension';
+import { latexDefinitionsCompletion } from '../../extensions/codemirror/autocomplete/latexDefinitionsCompletion';
 import {
 	getGenericLSPExtensionsForFile,
 	getGenericLSPCompletionSources,
@@ -582,6 +583,8 @@ export const useEditorView = (
 
 				if (info.isLatex) {
 					completionSources.push(latexCompletionSource(true));
+					// The project's own commands and environments, as on Overleaf.
+					completionSources.push(latexDefinitionsCompletion(fileName ?? ''));
 				} else if (info.isTypst) {
 					completionSources.push(typstCompletionSource);
 				}

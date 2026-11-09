@@ -4241,5 +4241,6 @@
   "Search symbols": "Search symbols",
   "Close the symbol palette": "Close the symbol palette",
   "Click a symbol to insert it.": "Click a symbol to insert it.",
-  "Double turnstile": "Double turnstile"
+  "Double turnstile": "Double turnstile",
+  "defined in {file}": "defined in {{file}}"
 }
