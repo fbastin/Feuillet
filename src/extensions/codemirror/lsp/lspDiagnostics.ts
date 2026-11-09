@@ -125,5 +125,8 @@ export function createLSPDiagnosticsExtension(fileName: string): Extension {
 		},
 	);
 
-	return [diagnosticsPlugin, linter(() => mergedDiagnostics, { delay: 0 })];
+	// No delay of its own: the editor's linters share the longest one given,
+	// and 0 here had the code check read the whole file at every key. What
+	// a server sends is shown at once all the same (setDiagnostics above).
+	return [diagnosticsPlugin, linter(() => mergedDiagnostics)];
 }

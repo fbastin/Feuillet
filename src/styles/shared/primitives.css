@@ -1935,8 +1935,17 @@ textarea:focus,
 /* Control groups on one line, the least used in a « … » menu when narrow. */
 .overflow-controls {
 	display: flex;
+	/* When even what never goes into « … » does not fit (a narrow editor),
+	   the rest goes on a line below rather than past the header's edge. */
+	flex-wrap: wrap;
+	min-width: 0;
 	align-items: center;
 	gap: var(--ui-plugin-controls-gap, 0.1rem);
+}
+
+.ui-toolbar-actions:has(> .overflow-controls) {
+	flex-shrink: 1;
+	min-width: 0;
 }
 
 .overflow-controls > *,

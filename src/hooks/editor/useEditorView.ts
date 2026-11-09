@@ -102,7 +102,6 @@ import {
 } from '../../extensions/codemirror/VisualLatexExtension';
 import { createPasteExtension } from '../../extensions/codemirror/PasteExtension';
 import { createListingsExtension } from '../../extensions/codemirror/ListingsExtension';
-import { createBurstDeferredLanguage } from '../../extensions/codemirror/BurstDeferLanguage';
 import {
 	collaboratorFlashExtension,
 	showCollaborator,
@@ -241,7 +240,6 @@ export const useEditorView = (
 	const [provider, setProvider] = useState<CollabProvider | null>(null);
 	const hasEmittedReadyRef = useRef<boolean>(false);
 	const undoManagerRef = useRef<UndoManager | null>(null);
-	const highlightExtensionRef = useRef<Extension>([]);
 	const toolbarControllerRef = useRef<ToolbarController | null>(null);
 	const [toolbarController, setToolbarController] =
 		useState<ToolbarController | null>(null);
@@ -896,18 +894,7 @@ export const useEditorView = (
 
 		extensions.push(base.of(buildBaseExtensions(info)));
 		extensions.push(language.of(buildLanguageExtension(info)));
-		const highlightExtension = buildHighlightExtension();
-		highlightExtensionRef.current = highlightExtension;
-		extensions.push(highlight.of(highlightExtension));
-		extensions.push(
-			createBurstDeferredLanguage(
-				() => [language.reconfigure([]), highlight.reconfigure([])],
-				() => [
-					language.reconfigure(buildLanguageExtension(info)),
-					highlight.reconfigure(highlightExtensionRef.current),
-				],
-			),
-		);
+		extensions.push(highlight.of(buildHighlightExtension()));
 
 		if (fileName) {
 			extensions.push(
@@ -1110,7 +1097,6 @@ export const useEditorView = (
 				: [];
 
 		const highlightExtension = buildHighlightExtension();
-		highlightExtensionRef.current = highlightExtension;
 
 		view.dispatch({
 			effects: [
@@ -1139,7 +1125,6 @@ export const useEditorView = (
 		if (!view) return;
 
 		const highlightExtension = buildHighlightExtension();
-		highlightExtensionRef.current = highlightExtension;
 		view.dispatch({
 			effects:
 				compartmentsRef.current.highlight.reconfigure(highlightExtension),

@@ -121,20 +121,34 @@ const OverflowControls: React.FC<OverflowControlsProps> = ({ items }) => {
 		);
 	}, []);
 
-	// After every render: items come and go with the file opened.
+	// Items come and go with the file opened: measured before the first
+	// paint without them. Measuring after every render instead made the
+	// browser lay the whole page out again at each of the editor's renders.
+	const keys = items.map((item) => item.key).join('\n');
+	// biome-ignore lint/correctness/useExhaustiveDependencies: keys stands for items
 	useLayoutEffect(() => {
 		layout();
-	});
+	}, [layout, keys]);
 
+	// Otherwise, when a size changes: the header's, an item's (a label or a
+	// count), or that of what shares the line (the collaborators). Read
+	// once the browser has laid the page out, this costs no layout of its own.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the row's children change with keys and hidden
 	useEffect(() => {
 		const row = rowRef.current;
+		const container = row?.parentElement;
 		const header = row?.closest<HTMLElement>('.ui-panel-header');
-		if (!row || !header || typeof ResizeObserver === 'undefined') return;
+		if (!row || !container || !header || typeof ResizeObserver === 'undefined')
+			return;
 		const observer = new ResizeObserver(() => layout());
 		observer.observe(header);
 		observer.observe(row);
+		for (const element of row.children) observer.observe(element);
+		for (const sibling of container.children) {
+			if (sibling !== row) observer.observe(sibling);
+		}
 		return () => observer.disconnect();
-	}, [layout]);
+	}, [layout, keys, hidden]);
 
 	useEffect(() => {
 		if (hidden.length === 0) setMenuOpen(false);
