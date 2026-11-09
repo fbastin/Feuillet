@@ -2,6 +2,8 @@
 import { nanoid } from 'nanoid';
 
 import type { ClientTransport, TransportConfig } from '@chelys/types/transport';
+import { t } from '@/i18n';
+import { createNamedLogger } from '@/logging';
 import { toArrayBuffer } from '../utils/fileUtils';
 import type {
 	CompileArtifact,
@@ -13,6 +15,20 @@ import {
 	ExternalServiceBase,
 	type ExternalServiceConfig,
 } from './ExternalServiceBase';
+
+const moduleLog = createNamedLogger('GenericTypesetterService');
+
+// Why a compile could not start: no connection, or the server out of reach.
+const unreachableMessage = (name: string): string =>
+	typeof navigator !== 'undefined' && navigator.onLine === false
+		? t(
+				'You are offline: compiling needs the {name} server. Compile again once connected.',
+				{ name },
+			)
+		: t(
+				'The {name} server could not be reached. Check your connection, then compile again.',
+				{ name },
+			);
 
 export interface TypesetterServerConfig extends ExternalServiceConfig {
 	incrementalSync?: boolean;
@@ -385,10 +401,16 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 	private async createConnection(
 		config: TypesetterServerConfig,
 	): Promise<Connection> {
-		const transport = await this.openTransport(config);
+		let transport: Awaited<ReturnType<typeof this.openTransport>>;
+		try {
+			transport = await this.openTransport(config);
+		} catch (error) {
+			moduleLog.warn(`Could not connect to ${config.name}:`, error);
+			throw new Error(unreachableMessage(config.name));
+		}
 		if (!transport.isOpen) {
 			this.closeTransport(config.id);
-			throw new Error(`Connection closed while opening ${config.name}`);
+			throw new Error(unreachableMessage(config.name));
 		}
 
 		const connection: Connection = { transport, pending: new Map() };

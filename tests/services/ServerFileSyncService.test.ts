@@ -83,11 +83,60 @@ describe('ServerFileSyncService', () => {
 
 		const result = await serverFileSyncService.synchronize(options(doc));
 
-		expect(result).toEqual({ published: 1, applied: 0, failures: [] });
+		expect(result).toEqual({
+			published: 1,
+			applied: 0,
+			failures: [],
+			unreachable: false,
+		});
 		expect(server.get(`project-1/${sha(content)}`)).toEqual(content);
 		expect(doc.getMap(FILE_MANIFEST_KEY).get('/main.tex')).toEqual(
 			expect.objectContaining({ checksum: sha(content), updatedBy: 'alice' }),
 		);
+	});
+
+	it('says nothing per file when the server cannot be reached, and stops there', async () => {
+		const files = Array.from({ length: 40 }, (_, i) => {
+			const content = bytes(`chapitre ${i}`);
+			return {
+				fileId: `f${i}`,
+				fileName: `c${i}.tex`,
+				filePath: `/c${i}.tex`,
+				lastModified: 100,
+				size: content.byteLength,
+				checksum: sha(content),
+				userId: 'alice-id',
+				username: 'alice',
+			};
+		});
+		mockPeerFileSync.getLocalFileSyncInfo.mockResolvedValue(files);
+		mockFileStore.getFile.mockResolvedValue({ content: bytes('x').buffer });
+		// Offline: fetch rejects, as browsers do (« Failed to fetch »).
+		const offline = jest.fn(async () => {
+			throw new TypeError('Failed to fetch');
+		});
+		global.fetch = offline as never;
+		const doc = new Y.Doc();
+		doc.getMap(FILE_MANIFEST_KEY).set('/figure.png', {
+			path: '/figure.png',
+			checksum: sha(bytes('figure')),
+			size: 6,
+			lastModified: 42,
+			deleted: false,
+			updatedBy: 'bob',
+		});
+
+		const result = await serverFileSyncService.synchronize(options(doc));
+
+		expect(result).toEqual({
+			published: 0,
+			applied: 0,
+			failures: [],
+			unreachable: true,
+		});
+		// The first batch tried, not the next one, nor any download.
+		expect(offline.mock.calls.length).toBeLessThanOrEqual(30);
+		expect(doc.getMap(FILE_MANIFEST_KEY).has('/c0.tex')).toBe(false);
 	});
 
 	it('never shares local files through a read-only link', async () => {
@@ -114,7 +163,12 @@ describe('ServerFileSyncService', () => {
 			docUrl: `yjs:${view}`,
 		});
 
-		expect(result).toEqual({ published: 0, applied: 0, failures: [] });
+		expect(result).toEqual({
+			published: 0,
+			applied: 0,
+			failures: [],
+			unreachable: false,
+		});
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(doc.getMap(FILE_MANIFEST_KEY).size).toBe(0);
 	});
@@ -136,7 +190,12 @@ describe('ServerFileSyncService', () => {
 
 		const result = await serverFileSyncService.synchronize(options(doc));
 
-		expect(result).toEqual({ published: 0, applied: 1, failures: [] });
+		expect(result).toEqual({
+			published: 0,
+			applied: 1,
+			failures: [],
+			unreachable: false,
+		});
 		expect(mockFileStore.createDirectoryPath).toHaveBeenCalledWith(
 			'/figures/plot.png',
 		);
@@ -185,7 +244,12 @@ describe('ServerFileSyncService', () => {
 
 		const result = await serverFileSyncService.synchronize(options(doc));
 
-		expect(result).toEqual({ published: 0, applied: 65, failures: [] });
+		expect(result).toEqual({
+			published: 0,
+			applied: 65,
+			failures: [],
+			unreachable: false,
+		});
 		expect(most).toBeGreaterThan(1);
 		expect(most).toBeLessThanOrEqual(6);
 		const sizes = mockFileStore.batchStoreFiles.mock.calls.map(

@@ -4282,5 +4282,8 @@
   "Verify '{crossref}' provides: {fields}": "Verify '{{crossref}}' provides: {{fields}}",
   "Missing required fields: {fields}": "Missing required fields: {{fields}}",
   "Recommended fields missing: {fields}": "Recommended fields missing: {{fields}}",
-  "Show older versions ({count} more)": "Show older versions ({{count}} more)"
+  "Show older versions ({count} more)": "Show older versions ({{count}} more)",
+  "The collaboration server could not be reached.": "The collaboration server could not be reached.",
+  "You are offline: compiling needs the {name} server. Compile again once connected.": "You are offline: compiling needs the {{name}} server. Compile again once connected.",
+  "The {name} server could not be reached. Check your connection, then compile again.": "The {{name}} server could not be reached. Check your connection, then compile again."
 }

@@ -27,7 +27,27 @@ export interface ServerFileSyncResult {
 	published: number;
 	applied: number;
 	failures: string[];
+	/** The server could not be reached (offline): the rest waits. */
+	unreachable: boolean;
 }
+
+/** A request that did not reach the server: no answer, not a refusal. */
+export class ServerUnreachableError extends Error {
+	constructor(cause: unknown) {
+		super(t('The collaboration server could not be reached.'));
+		this.name = 'ServerUnreachableError';
+		this.cause = cause;
+	}
+}
+
+// fetch rejects only when no answer came: offline, or the server down.
+const request = async (url: string, init?: RequestInit): Promise<Response> => {
+	try {
+		return await fetch(url, init);
+	} catch (error) {
+		throw new ServerUnreachableError(error);
+	}
+};
 
 interface SynchronizeOptions {
 	doc: Y.Doc;
@@ -80,10 +100,10 @@ class ServerFileSyncService {
 		content: ArrayBuffer,
 	): Promise<void> {
 		const url = this.fileUrl(baseUrl, projectId, checksum);
-		const existing = await fetch(url, { method: 'HEAD' });
+		const existing = await request(url, { method: 'HEAD' });
 		if (existing.ok) return;
 
-		const response = await fetch(url, {
+		const response = await request(url, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/octet-stream' },
 			body: content,
@@ -105,7 +125,7 @@ class ServerFileSyncService {
 		projectId: string,
 		checksum: string,
 	): Promise<ArrayBuffer> {
-		const response = await fetch(this.fileUrl(baseUrl, projectId, checksum));
+		const response = await request(this.fileUrl(baseUrl, projectId, checksum));
 		if (!response.ok) {
 			throw new Error(
 				t('The collaboration server has no copy of this file ({status}).', {
@@ -137,6 +157,9 @@ class ServerFileSyncService {
 		);
 		const plan = planServerFileSync(localFiles, new Map(manifest.entries()));
 		const failures: string[] = [];
+		// Offline, or the server down: no message per file, the next sync
+		// sends and receives what is left.
+		const reach = { lost: false };
 
 		// Through a read-only or review link, files only come in.
 		const toPublish = projectLinkKind(projectId) === 'edit' ? plan.publish : [];
@@ -145,6 +168,7 @@ class ServerFileSyncService {
 		// it is on the server: collaborators get the first files while the
 		// rest are still going up.
 		for (const batch of batchesOf(toPublish, TRANSFER_BATCH)) {
+			if (reach.lost) break;
 			const sent: FileManifestEntry[] = [];
 			await forEachLimited(batch, TRANSFER_CONCURRENCY, async (file) => {
 				try {
@@ -158,6 +182,10 @@ class ServerFileSyncService {
 					}
 					sent.push(manifestEntryFor(file, user.username));
 				} catch (error) {
+					if (error instanceof ServerUnreachableError) {
+						reach.lost = true;
+						return;
+					}
 					moduleLog.warn(`Failed to publish ${file.filePath}:`, error);
 					failures.push(
 						t('Could not share {path}: {message}', {
@@ -188,15 +216,17 @@ class ServerFileSyncService {
 			plan.apply.filter(isLinked),
 			plan.apply.filter((entry) => !isLinked(entry)),
 		]) {
+			if (reach.lost) break;
 			applied += await this.applyEntries(
 				entries,
 				projectId,
 				docUrl,
 				baseUrl,
 				failures,
+				reach,
 			);
 		}
-		return { published, applied, failures };
+		return { published, applied, failures, unreachable: reach.lost };
 	}
 
 	private async applyEntries(
@@ -205,8 +235,13 @@ class ServerFileSyncService {
 		docUrl: string,
 		baseUrl: string,
 		failures: string[],
+		reach: { lost: boolean },
 	): Promise<number> {
 		const failed = (entry: FileManifestEntry, error: unknown) => {
+			if (error instanceof ServerUnreachableError) {
+				reach.lost = true;
+				return;
+			}
 			moduleLog.warn(`Failed to receive ${entry.path}:`, error);
 			failures.push(
 				t('Could not receive {path}: {message}', {
@@ -235,6 +270,7 @@ class ServerFileSyncService {
 		// files show as they come instead of all at the end.
 		const incoming = entries.filter((item) => !item.deleted);
 		for (const batch of batchesOf(incoming, TRANSFER_BATCH)) {
+			if (reach.lost) break;
 			const contents = new Map<FileManifestEntry, ArrayBuffer>();
 			await forEachLimited(batch, TRANSFER_CONCURRENCY, async (entry) => {
 				try {

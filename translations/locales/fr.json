@@ -4017,5 +4017,8 @@
   "Verify '{crossref}' provides: {fields}": "Vérifiez que « {{crossref}} » fournit : {{fields}}",
   "Missing required fields: {fields}": "Champs obligatoires manquants : {{fields}}",
   "Recommended fields missing: {fields}": "Champs recommandés manquants : {{fields}}",
-  "Show older versions ({count} more)": "Afficher les versions plus anciennes ({{count}} de plus)"
+  "Show older versions ({count} more)": "Afficher les versions plus anciennes ({{count}} de plus)",
+  "The collaboration server could not be reached.": "Le serveur de collaboration est injoignable.",
+  "You are offline: compiling needs the {name} server. Compile again once connected.": "Vous êtes hors ligne : la compilation passe par le serveur {{name}}. Compilez de nouveau une fois connecté.",
+  "The {name} server could not be reached. Check your connection, then compile again.": "Le serveur {{name}} est injoignable. Vérifiez votre connexion, puis compilez de nouveau."
 }

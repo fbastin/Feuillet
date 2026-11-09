@@ -22,6 +22,7 @@ import { peerFileSyncService } from '../services/PeerFileSyncService';
 import {
 	FILE_MANIFEST_KEY,
 	LOCAL_MANIFEST_ORIGIN,
+	ServerUnreachableError,
 	serverFileSyncService,
 } from '../services/ServerFileSyncService';
 import type { CollabProvider } from '../types/collab';
@@ -112,6 +113,8 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 	const runSync = useCallback(async () => {
 		const doc = docRef.current;
 		if (!doc || !readyRef.current || !user || !isEnabled) return;
+		// Offline: nothing can go through; back online, a sync runs at once.
+		if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
 		if (runningRef.current) {
 			pendingRef.current = true;
 			return;
@@ -140,10 +143,12 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 				peerFileSyncService.showErrorNotification(failure, { duration: 6000 });
 				addNotification({ type: 'sync_error', message: failure });
 			}
+			if (result.unreachable) return;
 			setLastSync(Date.now());
 			// A file that could not be received may be the one of a document.
 			if (result.failures.length === 0) setReceivedProjectId(projectId);
 		} catch (error) {
+			if (error instanceof ServerUnreachableError) return;
 			moduleLog.error('File sync through the server failed:', error);
 			addNotification({
 				type: 'sync_error',
@@ -224,10 +229,12 @@ export const ServerFileSyncProvider: React.FC<ServerFileSyncProviderProps> = ({
 		if (!isEnabled) return;
 		const unsubscribe = fileStorageEventEmitter.onChange(scheduleSync);
 		const interval = setInterval(scheduleSync, intervalSeconds * 1000);
+		window.addEventListener('online', scheduleSync);
 		scheduleSync();
 		return () => {
 			unsubscribe();
 			clearInterval(interval);
+			window.removeEventListener('online', scheduleSync);
 		};
 	}, [intervalSeconds, isEnabled, scheduleSync]);
 
