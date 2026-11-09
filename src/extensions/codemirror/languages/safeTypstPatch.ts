@@ -23,9 +23,10 @@ import {
 	typst_lezer,
 	typstLezerFoldService,
 	typstLezerIndentService,
-	typstLezerLinter,
 	typstLezerListKeymap,
 } from 'codemirror-lang-typst/lezer';
+
+import { typstSyntaxCheck } from './typstSyntaxCheck';
 
 interface ParseRange {
 	from: number;
@@ -167,6 +168,7 @@ export function safeTypst(options: SafeTypstOptions = {}): LanguageSupport {
 		typstLezerIndentService,
 		typstLezerListKeymap,
 		typstLezerFoldService,
-		...(options.enableLinting === false ? [] : [typstLezerLinter]),
+		// The package's syntax check, its messages in the user's language.
+		...(options.enableLinting === false ? [] : [typstSyntaxCheck]),
 	]);
 }

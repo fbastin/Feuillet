@@ -14,6 +14,9 @@ import { bibtex } from 'codemirror-lang-bib';
 import { latex } from 'codemirror-lang-latex';
 
 import { withAnnotationMasking } from './annotations/annotationMasking';
+import { createBibtexCheck } from './BibtexCheckExtension';
+import { bibtexHoverDocs } from './languageDocs/bibtexDocs';
+import { latexHoverDocs } from './languageDocs/latexDocs';
 import { createLatexCodeCheck } from './LatexCodeCheckExtension';
 import { safeTypst as typst } from './languages/safeTypstPatch';
 import { rst } from './languages/rstMode';
@@ -54,12 +57,14 @@ export const createLanguageExtension = (
 						enableAutocomplete: false,
 						// Feuillet's code check replaces the bundled linter.
 						enableLinting: false,
-						enableTooltips,
+						// Feuillet's tooltips say the same in the user's language.
+						enableTooltips: false,
 						fileName: options.fileName,
 						nestedEnvironments: latexNestedEnvironments,
 					}),
 				),
 				...(enableLinting ? [createLatexCodeCheck(options.fileName)] : []),
+				...(enableTooltips ? [latexHoverDocs] : []),
 			];
 		case 'typst':
 			return [withAnnotationMasking(typst({ enableLinting }))];
@@ -69,10 +74,13 @@ export const createLanguageExtension = (
 					bibtex({
 						autoCloseBrackets: false,
 						enableAutocomplete: false,
-						enableLinting,
-						enableTooltips,
+						// The same checks and tooltips, in the user's language.
+						enableLinting: false,
+						enableTooltips: false,
 					}),
 				),
+				...(enableLinting ? [createBibtexCheck()] : []),
+				...(enableTooltips ? [bibtexHoverDocs] : []),
 			];
 		case 'markdown':
 			return [
