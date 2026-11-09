@@ -4016,5 +4016,6 @@
   "Empty value for field '{field}'": "Valeur vide pour le champ « {{field}} »",
   "Verify '{crossref}' provides: {fields}": "Vérifiez que « {{crossref}} » fournit : {{fields}}",
   "Missing required fields: {fields}": "Champs obligatoires manquants : {{fields}}",
-  "Recommended fields missing: {fields}": "Champs recommandés manquants : {{fields}}"
+  "Recommended fields missing: {fields}": "Champs recommandés manquants : {{fields}}",
+  "Show older versions ({count} more)": "Afficher les versions plus anciennes ({{count}} de plus)"
 }

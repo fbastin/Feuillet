@@ -406,12 +406,17 @@ body:has([data-layout="texlyre-mobile"]) .texlyre-mobile-nav {
 	display: none !important;
 }
 
+/* The outline open and maximized: the explorer keeps its tabs, its view
+   (files, search, review, people) is folded away. The view is named, not
+   « all but the tabs »: with :has() in the selector, a rule for any element
+   had Chrome restyle the whole page at each change anywhere in it (a key
+   typed, a list item drawn), mobile layout or not. The outline follows the
+   explorer in the sidebar: it is looked for among the explorer's next
+   siblings. */
 [data-layout="texlyre-mobile"]
 	body.mobile-view-explorer
-	.main-content[data-mobile-outline-maximized="true"]:has(
-		.outline-panel:not([data-collapsed="true"])
-	)
-	.explorer-container {
+	.main-content[data-mobile-outline-maximized="true"]
+	.explorer-container:has(~ .outline-panel:not([data-collapsed="true"])) {
 	height: auto;
 	min-height: 0;
 	flex: 0 0 auto;
@@ -419,10 +424,8 @@ body:has([data-layout="texlyre-mobile"]) .texlyre-mobile-nav {
 
 [data-layout="texlyre-mobile"]
 	body.mobile-view-explorer
-	.main-content[data-mobile-outline-maximized="true"]:has(
-		.outline-panel:not([data-collapsed="true"])
-	)
-	.explorer-container
+	.main-content[data-mobile-outline-maximized="true"]
+	.explorer-container:has(~ .outline-panel:not([data-collapsed="true"]))
 	> .panel-content {
 	height: auto;
 	min-height: 0;
@@ -431,21 +434,17 @@ body:has([data-layout="texlyre-mobile"]) .texlyre-mobile-nav {
 
 [data-layout="texlyre-mobile"]
 	body.mobile-view-explorer
-	.main-content[data-mobile-outline-maximized="true"]:has(
-		.outline-panel:not([data-collapsed="true"])
-	)
-	.explorer-container
+	.main-content[data-mobile-outline-maximized="true"]
+	.explorer-container:has(~ .outline-panel:not([data-collapsed="true"]))
 	> .panel-content
-	> :not(.ui-tab-list[data-role="explorer-view"]) {
+	> :is(.ui-panel, .collaborators-panel) {
 	display: none;
 }
 
 [data-layout="texlyre-mobile"]
 	body.mobile-view-explorer
-	.main-content[data-mobile-outline-maximized="true"]:has(
-		.outline-panel:not([data-collapsed="true"])
-	)
-	.outline-panel {
+	.main-content[data-mobile-outline-maximized="true"]
+	.outline-panel:not([data-collapsed="true"]) {
 	max-height: none;
 	flex: 1 1 auto;
 }

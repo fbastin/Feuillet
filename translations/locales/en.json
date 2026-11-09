@@ -4016,5 +4016,6 @@
   "Empty value for field '{field}'": "Empty value for field '{{field}}'",
   "Verify '{crossref}' provides: {fields}": "Verify '{{crossref}}' provides: {{fields}}",
   "Missing required fields: {fields}": "Missing required fields: {{fields}}",
-  "Recommended fields missing: {fields}": "Recommended fields missing: {{fields}}"
+  "Recommended fields missing: {fields}": "Recommended fields missing: {{fields}}",
+  "Show older versions ({count} more)": "Show older versions ({{count}} more)"
 }
