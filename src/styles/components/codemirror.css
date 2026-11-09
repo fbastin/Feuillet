@@ -157,15 +157,18 @@
 	);
 }
 
-.cm-editor:has(.cm-panel.cm-search) .cm-scroller {
+/* With the symbol palette open too, the search stays with it under the
+   text (symbol-palette.css). */
+.cm-editor:has(.cm-panel.cm-search):not(:has(.cm-symbol-palette)) .cm-scroller {
 	scroll-padding-top: var(--cm-search-overlay-space);
 }
 
-.cm-editor:has(.cm-panel.cm-search) .cm-content {
+.cm-editor:has(.cm-panel.cm-search):not(:has(.cm-symbol-palette)) .cm-content {
 	padding-top: calc(var(--cm-search-overlay-space) + var(--space-sm));
 }
 
-.cm-editor > .cm-panels-bottom:has(> .cm-search),
+.cm-editor
+	> .cm-panels-bottom:has(> .cm-search):not(:has(> .cm-symbol-palette)),
 .cm-editor > .cm-panels-top:has(> .cm-search) {
 	position: absolute;
 	top: 0;

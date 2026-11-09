@@ -2606,6 +2606,23 @@ export const ToolbarEquationIcon: React.FC = () => (
 	</svg>
 );
 
+// The symbol palette's Ω.
+export const ToolbarSymbolIcon: React.FC = () => (
+	<svg
+		xmlns='http://www.w3.org/2000/svg'
+		width='14'
+		height='14'
+		viewBox='0 0 24 24'
+		fill='none'
+		stroke='currentColor'
+		strokeWidth='2'
+		strokeLinecap='round'
+		strokeLinejoin='round'
+	>
+		<path d='M5 19h4v-2.8A7 7 0 1 1 15 16.2V19h4' />
+	</svg>
+);
+
 export const ToolbarImageIcon: React.FC = () => (
 	<svg
 		xmlns='http://www.w3.org/2000/svg'

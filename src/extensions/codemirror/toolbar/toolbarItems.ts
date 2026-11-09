@@ -63,12 +63,15 @@ const colorScopeEntries = (
 	I.createColorRemove(fileType),
 ];
 
+// After the space: always shown, never folded into « … ».
 const endEntries = (
 	isFullScreen: boolean,
 	I: typeof CodeMirrorItemsNS,
 	undoManager?: UndoManager,
+	first: ToolbarSourceEntry[] = [],
 ): ToolbarSourceEntry[] => [
 	space,
+	...first,
 	I.createUndo(undoManager),
 	I.createRedo(undoManager),
 	split,
@@ -90,7 +93,17 @@ export function buildToolbarEntries(
 		...(scopedType && scope.inColor
 			? colorScopeEntries(scopedType, f.ColorScopeItems)
 			: []),
-		...endEntries(scope.isFullScreen, f.CodeMirrorItems, f.undoManager),
+		...endEntries(
+			scope.isFullScreen,
+			f.CodeMirrorItems,
+			f.undoManager,
+			// The symbol palette at the right, as on Overleaf.
+			fileType === 'latex'
+				? [f.LaTeXItems.createSymbolPalette(), split]
+				: fileType === 'typst'
+					? [f.TypstItems.createSymbolPalette(), split]
+					: [],
+		),
 	];
 
 	if (fileType === 'latex') {

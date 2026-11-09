@@ -20,6 +20,7 @@ import {
 	ToolbarMathInlineIcon,
 	ToolbarMathBlockIcon,
 	ToolbarEquationIcon,
+	ToolbarSymbolIcon,
 	ToolbarImageIcon,
 	ToolbarTableIcon,
 	ToolbarCodeInlineIcon,
@@ -35,6 +36,7 @@ import {
 	ToolbarQuoteIcon,
 } from '../../../components/common/Icons';
 import { getPendingImagePath } from '../PasteExtension';
+import { toggleSymbolPalette } from '../symbolPalette/SymbolPaletteExtension';
 import { wrapSelection, insertText } from './helpers';
 import type { ToolbarItem } from './types';
 import { createTableCommand } from './tableItems';
@@ -207,6 +209,14 @@ export const createEquation = (): ToolbarItem => ({
 		const text = '#math.equation[\n\t\n]';
 		return insertText(view, text, -2);
 	},
+});
+
+// Overleaf's symbol palette, under the editor.
+export const createSymbolPalette = (): ToolbarItem => ({
+	key: 'typst-symbol-palette',
+	label: t('Symbol palette'),
+	icon: renderToString(<ToolbarSymbolIcon />),
+	command: toggleSymbolPalette,
 });
 
 export const createFigure = (): ToolbarItem => ({

@@ -265,10 +265,10 @@ const PluginToolbar: React.FC<PluginToolbarProps> = ({
 				</>
 			)}
 
-			{tail.map((entry) =>
+			{tail.map((entry, index) =>
 				'type' in entry ? (
 					<span
-						key={`tail-${entry.type}`}
+						key={`tail-${entry.type}-${index}`}
 						className={
 							entry.type === 'split'
 								? 'ui-toolbar-separator'

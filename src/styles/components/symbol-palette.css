@@ -1,0 +1,158 @@
+/* The symbol palette under the editor (SymbolPaletteExtension.ts), as on
+   Overleaf: categories, a search, the symbols, and a line about the one
+   under the mouse or the keyboard. */
+
+.cm-editor .cm-symbol-palette {
+	display: flex;
+	flex-direction: column;
+	max-height: min(15rem, 40vh);
+	border-top: 1px solid var(--accent-border);
+	background: var(--pico-background);
+	color: var(--text-color);
+	font-family: var(
+		--texlyre-font-family,
+		var(
+			--slim-font-family,
+			var(
+				--mobile-font-family,
+				Inter,
+				system-ui,
+				Avenir,
+				Helvetica,
+				Arial,
+				sans-serif
+			)
+		)
+	);
+	font-size: var(--font-size-small);
+	pointer-events: auto;
+}
+
+.cm-editor .cm-symbol-palette-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-xs) var(--space-sm);
+	padding: var(--space-xs) var(--space-sm);
+	border-bottom: 1px solid var(--accent-border);
+}
+
+.cm-editor .cm-symbol-palette-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	margin-inline-end: auto;
+}
+
+.cm-editor .cm-symbol-palette button {
+	box-sizing: border-box;
+	width: auto;
+	margin: 0;
+	border: 1px solid transparent;
+	border-radius: var(--radius-sm);
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.cm-editor .cm-symbol-palette .cm-symbol-palette-tab {
+	padding: 2px var(--space-sm);
+	color: var(--pico-secondary);
+}
+
+.cm-editor .cm-symbol-palette .cm-symbol-palette-tab[aria-selected="true"] {
+	border-color: var(--accent-border);
+	background: var(--pico-primary-focus);
+	color: var(--text-color);
+	font-weight: 600;
+}
+
+.cm-editor .cm-symbol-palette button:hover,
+.cm-editor .cm-symbol-palette button:focus-visible {
+	background: var(--pico-primary-focus);
+	color: var(--text-color);
+	outline: 0;
+}
+
+.cm-editor .cm-symbol-palette button:focus-visible {
+	border-color: var(--pico-primary);
+}
+
+.cm-editor .cm-symbol-palette .cm-symbol-palette-search {
+	box-sizing: border-box;
+	width: 14rem;
+	max-width: 100%;
+	height: var(--ui-field-control-height, var(--button-height-md));
+	margin: 0;
+	padding: 0 var(--space-sm);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	background: var(--pico-background);
+	color: var(--text-color);
+	font: inherit;
+}
+
+.cm-editor .cm-symbol-palette .cm-symbol-palette-search:focus {
+	border-color: var(--pico-primary);
+	box-shadow: 0 0 0 2px var(--pico-primary-focus);
+	outline: 0;
+}
+
+.cm-editor .cm-symbol-palette .cm-symbol-palette-close {
+	width: 1.75rem;
+	height: 1.75rem;
+	padding: 0;
+	color: var(--pico-secondary);
+	font-size: 1.25rem;
+	line-height: 1;
+}
+
+.cm-editor .cm-symbol-palette-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));
+	gap: 2px;
+	min-height: 2.5rem;
+	padding: var(--space-xs) var(--space-sm);
+	overflow-y: auto;
+}
+
+.cm-editor .cm-symbol-palette .cm-symbol-palette-symbol {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 2.5rem;
+	padding: 0;
+	font-size: 1.15rem;
+}
+
+.cm-editor .cm-symbol-palette-symbol .katex {
+	font-size: 1em;
+	pointer-events: none;
+}
+
+.cm-editor .cm-symbol-palette-info {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--space-xs) var(--space-sm);
+	min-height: 1.5em;
+	padding: var(--space-xs) var(--space-sm);
+	border-top: 1px solid var(--accent-border);
+	color: var(--pico-secondary);
+}
+
+.cm-editor .cm-symbol-palette-command {
+	padding: 0 var(--space-xs);
+	font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+	border-radius: var(--radius-xs);
+	background: var(--pico-secondary-background);
+	color: var(--text-color);
+	font-size: var(--font-size-meta);
+}
+
+.cm-editor .cm-symbol-palette-description {
+	color: var(--text-color);
+}

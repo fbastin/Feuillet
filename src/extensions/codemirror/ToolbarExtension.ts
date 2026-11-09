@@ -17,6 +17,7 @@ import { detectTableScope } from './toolbar/tableScope';
 import * as ColorScopeItems from './toolbar/colorScopeItems';
 import { detectColorScope } from './toolbar/colorScope';
 import { buildToolbarEntries } from './toolbar/toolbarItems';
+import { symbolPalette } from './symbolPalette/SymbolPaletteExtension';
 import type { ToolbarSourceEntry } from './toolbar/types';
 
 export type FileType =
@@ -107,7 +108,7 @@ export const createToolbarController = (
 		for (const listener of listeners) listener();
 	};
 
-	const extension = ViewPlugin.fromClass(
+	const plugin = ViewPlugin.fromClass(
 		class {
 			private boundFullScreen: () => void;
 
@@ -148,6 +149,11 @@ export const createToolbarController = (
 			}
 		},
 	);
+
+	const extension: Extension =
+		fileType === 'latex' || fileType === 'typst'
+			? [plugin, symbolPalette(fileType)]
+			: plugin;
 
 	return {
 		extension,
