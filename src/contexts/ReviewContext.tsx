@@ -407,6 +407,24 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		[updateResponses],
 	);
 
+	const editResponse = useCallback(
+		(reviewId: string, responseId: string, content: string) => {
+			const currentUser = userRef.current;
+			if (!currentUser || readOnly || !content.trim()) return;
+			const review = reviewsRef.current.find((entry) => entry.id === reviewId);
+			const response = review?.responses.find(
+				(entry) => entry.id === responseId,
+			);
+			if (!review || response?.user !== currentUser.username) return;
+
+			updateResponses(
+				review,
+				reviewService.editResponse(review.responses, responseId, content),
+			);
+		},
+		[updateResponses, readOnly],
+	);
+
 	return (
 		<ReviewContext.Provider
 			value={{
@@ -430,6 +448,8 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 				resolveAllReviews,
 				addResponse,
 				deleteResponse,
+				editResponse,
+				username,
 				readOnly,
 				reviewOnly,
 			}}

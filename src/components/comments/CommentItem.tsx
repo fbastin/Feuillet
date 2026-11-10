@@ -7,7 +7,8 @@ import { useComments } from '../../hooks/useComments';
 import type { Comment } from '../../types/comments';
 import { formatDate } from '../../utils/dateUtils';
 import { gotoEditor } from '../../utils/editorNavigator';
-import { ResolveIcon, TrashIcon } from '../common/Icons';
+import { EditIcon, ResolveIcon, TrashIcon } from '../common/Icons';
+import MessageEditor from './MessageEditor';
 
 interface CommentItemProps {
 	comment: Comment;
@@ -22,13 +23,21 @@ const CommentItem: React.FC<CommentItemProps> = ({
 }) => {
 	const [newResponse, setNewResponse] = useState('');
 	const [isAddingResponse, setIsAddingResponse] = useState(false);
+	// The comment ('comment') or the reply (its id) being rewritten.
+	const [editing, setEditing] = useState<string | null>(null);
 	const {
 		addResponse,
 		deleteComment,
 		deleteResponse,
+		editComment,
+		editResponse,
+		username,
 		resolveComment,
 		readOnly,
 	} = useComments();
+	// One's own messages, while the thread is open.
+	const canEdit = (author: string) =>
+		!readOnly && !comment.resolved && !!username && author === username;
 
 	const handleAddResponse = () => {
 		if (newResponse.trim()) {
@@ -81,6 +90,19 @@ const CommentItem: React.FC<CommentItemProps> = ({
 				</div>
 				{!readOnly && (
 					<div className='ui-actions'>
+						{canEdit(comment.user) && editing !== 'comment' && (
+							<button
+								type='button'
+								className='ui-icon-button'
+								data-variant='ghost'
+								data-size='sm'
+								data-action='edit-comment'
+								onClick={() => setEditing('comment')}
+								title={t('Edit comment')}
+							>
+								<EditIcon />
+							</button>
+						)}
 						<button
 							type='button'
 							className='ui-icon-button'
@@ -124,7 +146,18 @@ const CommentItem: React.FC<CommentItemProps> = ({
 				</div>
 			)}
 
-			<div className='ui-item-content'>{comment.content}</div>
+			{editing === 'comment' ? (
+				<MessageEditor
+					initial={comment.content}
+					onSave={(content) => {
+						editComment(comment.id, content);
+						setEditing(null);
+					}}
+					onCancel={() => setEditing(null)}
+				/>
+			) : (
+				<div className='ui-item-content'>{comment.content}</div>
+			)}
 
 			{comment.responses.length > 0 && (
 				<div className='ui-thread'>
@@ -140,20 +173,46 @@ const CommentItem: React.FC<CommentItemProps> = ({
 									</div>
 								</div>
 								{!readOnly && (
-									<button
-										type='button'
-										className='ui-icon-button'
-										data-variant='ghost'
-										data-tone='danger'
-										data-size='xs'
-										onClick={() => handleDeleteResponse(response.id)}
-										title={t('Delete response')}
-									>
-										<TrashIcon />
-									</button>
+									<div className='ui-actions'>
+										{canEdit(response.user) && editing !== response.id && (
+											<button
+												type='button'
+												className='ui-icon-button'
+												data-variant='ghost'
+												data-size='xs'
+												data-action='edit-response'
+												onClick={() => setEditing(response.id)}
+												title={t('Edit response')}
+											>
+												<EditIcon />
+											</button>
+										)}
+										<button
+											type='button'
+											className='ui-icon-button'
+											data-variant='ghost'
+											data-tone='danger'
+											data-size='xs'
+											onClick={() => handleDeleteResponse(response.id)}
+											title={t('Delete response')}
+										>
+											<TrashIcon />
+										</button>
+									</div>
 								)}
 							</div>
-							<div className='ui-item-content'>{response.content}</div>
+							{editing === response.id ? (
+								<MessageEditor
+									initial={response.content}
+									onSave={(content) => {
+										editResponse(comment.id, response.id, content);
+										setEditing(null);
+									}}
+									onCancel={() => setEditing(null)}
+								/>
+							) : (
+								<div className='ui-item-content'>{response.content}</div>
+							)}
 						</div>
 					))}
 				</div>

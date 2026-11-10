@@ -237,6 +237,48 @@ export const CommentProvider: React.FC<CommentProviderProps> = ({
 		);
 	};
 
+	// Only the author rewrites a comment or a reply, as on Overleaf.
+	const editComment = (commentId: string, content: string) => {
+		if (!user || readOnly || !content.trim()) return;
+		const comment = comments.find((c) => c.id === commentId);
+		if (!comment || comment.user !== user.username) return;
+
+		const rawComment = commentService.updateCommentResponses({
+			...comment,
+			content,
+		});
+		document.dispatchEvent(
+			new CustomEvent('comment-update', {
+				detail: { commentId, rawComment },
+			}),
+		);
+	};
+
+	const editResponse = (
+		commentId: string,
+		responseId: string,
+		content: string,
+	) => {
+		if (!user || readOnly || !content.trim()) return;
+		const comment = comments.find((c) => c.id === commentId);
+		const response = comment?.responses.find((r) => r.id === responseId);
+		if (!comment || response?.user !== user.username) return;
+
+		const rawComment = commentService.updateCommentResponses({
+			...comment,
+			responses: commentService.editResponse(
+				comment.responses,
+				responseId,
+				content,
+			),
+		});
+		document.dispatchEvent(
+			new CustomEvent('comment-update', {
+				detail: { commentId, rawComment },
+			}),
+		);
+	};
+
 	const resolveComment = (commentId: string) => {
 		if (!user) return;
 
@@ -284,6 +326,9 @@ export const CommentProvider: React.FC<CommentProviderProps> = ({
 				addResponse,
 				deleteComment,
 				deleteResponse,
+				editComment,
+				editResponse,
+				username: user?.username,
 				resolveComment,
 				showComments,
 				toggleComments,

@@ -233,5 +233,38 @@ describe('CommentService', () => {
 			expect(remaining).toHaveLength(1);
 			expect(remaining[0].content).toBe('second');
 		});
+
+		it('rewrites a comment and a reply, keeping who wrote them and when', () => {
+			const raw = commentService.addComment('Préciser le contexe.', 'alice');
+			const [comment] = commentService.parseComments(
+				`Avant ${raw.openTag}texte${raw.closeTag} après`,
+			);
+			const responses = commentService.addResponse([], 'Demain, l\'été.', 'bob');
+			const rewritten = commentService.updateCommentResponses({
+				...comment,
+				content: 'Préciser le contexte, avec « guillemets » et \'apostrophes\'.',
+				responses: commentService.editResponse(
+					responses,
+					responses[0].id,
+					'Aujourd\'hui, ligne 1\nligne 2.',
+				),
+			});
+			const [parsed] = commentService.parseComments(
+				`Avant ${rewritten.openTag}texte${rewritten.closeTag} après`,
+			);
+
+			expect(parsed).toMatchObject({
+				id: comment.id,
+				user: 'alice',
+				timestamp: comment.timestamp,
+				content: 'Préciser le contexte, avec « guillemets » et \'apostrophes\'.',
+				commentedText: 'texte',
+			});
+			expect(parsed.responses).toEqual([
+				{ ...responses[0], content: 'Aujourd\'hui, ligne 1\nligne 2.' },
+			]);
+			// Another id leaves the replies as they are.
+			expect(commentService.editResponse(responses, 'other', 'x')).toEqual(responses);
+		});
 	});
 });

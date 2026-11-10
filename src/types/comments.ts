@@ -36,6 +36,15 @@ export interface CommentContextType {
 	addResponse: (commentId: string, content: string) => void;
 	deleteComment: (commentId: string) => void;
 	deleteResponse: (commentId: string, responseId: string) => void;
+	/** One's own comment or reply rewritten; others' are left as they are. */
+	editComment: (commentId: string, content: string) => void;
+	editResponse: (
+		commentId: string,
+		responseId: string,
+		content: string,
+	) => void;
+	/** Who is writing: their comments and replies can be edited. */
+	username?: string;
 	resolveComment: (commentId: string) => void;
 	showComments: boolean;
 	toggleComments: () => void;

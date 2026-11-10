@@ -122,6 +122,17 @@ class ReviewService {
 	): CommentResponse[] {
 		return responses.filter((response) => response.id !== responseId);
 	}
+
+	/** A reply rewritten by its author: same id, same time. */
+	editResponse(
+		responses: CommentResponse[],
+		responseId: string,
+		content: string,
+	): CommentResponse[] {
+		return responses.map((response) =>
+			response.id === responseId ? { ...response, content } : response,
+		);
+	}
 }
 
 export const reviewService = new ReviewService();

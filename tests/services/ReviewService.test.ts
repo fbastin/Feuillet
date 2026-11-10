@@ -93,5 +93,12 @@ describe('ReviewService', () => {
 			const responses = reviewService.addResponse([], 'note', 'reviewer');
 			expect(reviewService.deleteResponse(responses, responses[0].id)).toHaveLength(0);
 		});
+
+		it('rewrites a response, keeping its id, author and time', () => {
+			const responses = reviewService.addResponse([], 'note', 'reviewer');
+			expect(reviewService.editResponse(responses, responses[0].id, 'Note revue.')).toEqual([
+				{ ...responses[0], content: 'Note revue.' },
+			]);
+		});
 	});
 });

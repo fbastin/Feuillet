@@ -23,6 +23,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 		resolveReview,
 		addResponse,
 		deleteResponse,
+		editResponse,
+		username,
 		acceptAllReviews,
 		rejectAllReviews,
 		resolveAllReviews,
@@ -315,6 +317,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 								resolveReview={resolveReview}
 								addResponse={addResponse}
 								deleteResponse={deleteResponse}
+								editResponse={editResponse}
+								username={username}
 								readOnly={readOnly}
 								canDecide={!reviewOnly}
 								active={review.id === activeReviewId}

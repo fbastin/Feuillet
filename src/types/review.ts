@@ -69,6 +69,10 @@ export interface ReviewContextType {
 	resolveAllReviews: () => void;
 	addResponse: (reviewId: string, content: string) => void;
 	deleteResponse: (reviewId: string, responseId: string) => void;
+	/** One's own reply rewritten; others' are left as they are. */
+	editResponse: (reviewId: string, responseId: string, content: string) => void;
+	/** Who is writing: their replies can be edited. */
+	username?: string;
 	/** Changes can be read, not accepted, rejected, resolved or answered. */
 	readOnly: boolean;
 	/** A reviewer's: every change is tracked; changes can only be answered. */

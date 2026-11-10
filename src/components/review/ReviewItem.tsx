@@ -7,7 +7,14 @@ import { computeReviewSegments } from '../../extensions/codemirror/review/review
 import type { ReviewSnapshot } from '../../types/review';
 import { formatDate } from '../../utils/dateUtils';
 import { gotoEditor } from '../../utils/editorNavigator';
-import { CheckIcon, CloseIcon, ResolveIcon, TrashIcon } from '../common/Icons';
+import {
+	CheckIcon,
+	CloseIcon,
+	EditIcon,
+	ResolveIcon,
+	TrashIcon,
+} from '../common/Icons';
+import MessageEditor from '../comments/MessageEditor';
 
 interface ReviewItemProps {
 	review: ReviewSnapshot;
@@ -17,6 +24,13 @@ interface ReviewItemProps {
 	resolveReview: (reviewId: string) => void;
 	addResponse: (reviewId: string, content: string) => void;
 	deleteResponse: (reviewId: string, responseId: string) => void;
+	editResponse?: (
+		reviewId: string,
+		responseId: string,
+		content: string,
+	) => void;
+	/** Who is writing: their replies can be edited. */
+	username?: string;
 	readOnly?: boolean;
 	/** Whether it may be accepted, rejected or resolved: not by reviewers. */
 	canDecide?: boolean;
@@ -39,6 +53,8 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 			resolveReview,
 			addResponse,
 			deleteResponse,
+			editResponse,
+			username,
 			readOnly = false,
 			canDecide = true,
 			active = false,
@@ -47,6 +63,14 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 	) => {
 		const [newResponse, setNewResponse] = useState('');
 		const [isAddingResponse, setIsAddingResponse] = useState(false);
+		// The reply being rewritten, by its author.
+		const [editing, setEditing] = useState<string | null>(null);
+		const canEdit = (author: string) =>
+			!readOnly &&
+			!review.resolved &&
+			!!editResponse &&
+			!!username &&
+			author === username;
 
 		const segments = useMemo(
 			() => computeReviewSegments(review.originalText, review.currentText),
@@ -161,20 +185,46 @@ const ReviewItemBase = forwardRef<HTMLDivElement, ReviewItemProps>(
 										</div>
 									</div>
 									{!readOnly && (
-										<button
-											type='button'
-											className='ui-icon-button'
-											data-variant='ghost'
-											data-tone='danger'
-											data-size='xs'
-											onClick={() => deleteResponse(review.id, response.id)}
-											title={t('Delete response')}
-										>
-											<TrashIcon />
-										</button>
+										<div className='ui-actions'>
+											{canEdit(response.user) && editing !== response.id && (
+												<button
+													type='button'
+													className='ui-icon-button'
+													data-variant='ghost'
+													data-size='xs'
+													data-action='edit-response'
+													onClick={() => setEditing(response.id)}
+													title={t('Edit response')}
+												>
+													<EditIcon />
+												</button>
+											)}
+											<button
+												type='button'
+												className='ui-icon-button'
+												data-variant='ghost'
+												data-tone='danger'
+												data-size='xs'
+												onClick={() => deleteResponse(review.id, response.id)}
+												title={t('Delete response')}
+											>
+												<TrashIcon />
+											</button>
+										</div>
 									)}
 								</div>
-								<div className='ui-item-content'>{response.content}</div>
+								{editing === response.id ? (
+									<MessageEditor
+										initial={response.content}
+										onSave={(content) => {
+											editResponse?.(review.id, response.id, content);
+											setEditing(null);
+										}}
+										onCancel={() => setEditing(null)}
+									/>
+								) : (
+									<div className='ui-item-content'>{response.content}</div>
+								)}
 							</div>
 						))}
 					</div>
@@ -246,7 +296,9 @@ const ReviewItem = memo(
 		previous.rejectReview === next.rejectReview &&
 		previous.resolveReview === next.resolveReview &&
 		previous.addResponse === next.addResponse &&
-		previous.deleteResponse === next.deleteResponse,
+		previous.deleteResponse === next.deleteResponse &&
+		previous.editResponse === next.editResponse &&
+		previous.username === next.username,
 );
 
 export default ReviewItem;
