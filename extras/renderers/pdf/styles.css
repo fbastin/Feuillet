@@ -121,3 +121,59 @@
 .pdf-full-viewer-container .annotationLayer .linkAnnotation * {
 	cursor: pointer;
 }
+
+/* Presentation mode: the PDF alone on black, one page centred on the
+   screen, without the toolbar; the pointer hides when still. */
+.pdf-renderer-container[data-presenting="true"] {
+	background: #000;
+	outline: none;
+}
+
+.pdf-renderer-container[data-presenting="true"] .renderer-toolbar {
+	display: none;
+}
+
+.pdf-renderer-container[data-presenting="true"] .renderer-content {
+	background: #000;
+	overflow: hidden;
+	/* No room kept for a scrollbar: the slide is centred on the screen. */
+	scrollbar-gutter: auto;
+}
+
+.pdf-full-viewer-container.pdfPresentationMode {
+	overflow: hidden;
+	background: #000;
+	user-select: none;
+}
+
+.pdf-full-viewer-container.pdfPresentationMode .pdfViewer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	padding: 0;
+}
+
+.pdf-full-viewer-container.pdfPresentationMode .spread {
+	display: flex;
+	margin: 0;
+}
+
+.pdf-full-viewer-container.pdfPresentationMode .dummyPage {
+	display: none;
+}
+
+.pdf-full-viewer-container.pdfPresentationMode .pdfViewer .page {
+	margin: 0;
+	box-shadow: none;
+}
+
+.pdf-full-viewer-container.pdfPresentationMode .pdf-latex-ocg-notice {
+	display: none;
+}
+
+.pdf-renderer-container[data-presenting="true"][data-pointer-hidden="true"],
+.pdf-renderer-container[data-presenting="true"][data-pointer-hidden="true"] * {
+	/* biome-ignore lint/complexity/noImportantStyles: over every cursor of pdf.js's layers, as in its own presentation mode */
+	cursor: none !important;
+}

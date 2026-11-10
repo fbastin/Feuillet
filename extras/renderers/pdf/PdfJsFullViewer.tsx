@@ -12,6 +12,8 @@ import {
 	PDFFindController,
 	PDFViewer,
 	PDFSinglePageViewer,
+	ScrollMode,
+	SpreadMode,
 } from 'pdfjs-dist/web/pdf_viewer.mjs';
 import 'pdfjs-dist/web/pdf_viewer.css';
 
@@ -43,6 +45,12 @@ type Props = {
 	onLocationClick?: (page: number, x: number, y: number) => void;
 	onError: (error: Error) => void;
 	memoryOptimized?: boolean;
+	/**
+	 * Presentation mode, as on Overleaf: one page at a time, as large as the
+	 * screen allows, whatever the zoom of the panel. The renderer puts the
+	 * viewer in full screen; this shows the pages that way.
+	 */
+	presenting?: boolean;
 };
 
 export type PdfJsFullViewerHandle = {
@@ -72,6 +80,18 @@ const ANNOTATION_MODE = {
 	enabled: 2,
 } as const;
 
+// pdf.js's PresentationModeState, which pdf_viewer.mjs does not export.
+const PRESENTATION_STATE = {
+	normal: 1,
+	fullscreen: 3,
+} as const;
+
+type ViewBeforePresentation = {
+	scrollMode: number;
+	spreadMode: number;
+	scaleValue: string | number;
+};
+
 const MAX_CANVAS_PIXELS = 2 ** 24;
 const SCALE_DEBOUNCE_MS = 120;
 
@@ -97,6 +117,44 @@ function getPageDiv(pdfViewer: any, page: number): HTMLElement | null {
 		) as HTMLElement | null) ||
 		null
 	);
+}
+
+// What pdf.js's own presentation mode does: one page at a time, as large
+// as the container, with links working and forms disabled.
+function enterPresentation(
+	pdfViewer: any,
+	container: HTMLElement,
+	page: number,
+): void {
+	pdfViewer.presentationModeState = PRESENTATION_STATE.fullscreen;
+	pdfViewer.eventBus?.dispatch('presentationmodechanged', {
+		source: pdfViewer,
+		state: PRESENTATION_STATE.fullscreen,
+	});
+	container.classList.add('pdfPresentationMode');
+	pdfViewer.scrollMode = ScrollMode.PAGE;
+	pdfViewer.spreadMode = SpreadMode.NONE;
+	pdfViewer.currentScaleValue = 'page-fit';
+	// The same page again lays it out for the presentation.
+	pdfViewer.currentPageNumber = page;
+}
+
+function leavePresentation(
+	pdfViewer: any,
+	container: HTMLElement,
+	before: ViewBeforePresentation | null,
+): void {
+	pdfViewer.presentationModeState = PRESENTATION_STATE.normal;
+	pdfViewer.eventBus?.dispatch('presentationmodechanged', {
+		source: pdfViewer,
+		state: PRESENTATION_STATE.normal,
+	});
+	container.classList.remove('pdfPresentationMode');
+	const page = pdfViewer.currentPageNumber;
+	pdfViewer.scrollMode = before?.scrollMode ?? ScrollMode.VERTICAL;
+	pdfViewer.spreadMode = before?.spreadMode ?? SpreadMode.NONE;
+	pdfViewer.currentScaleValue = before?.scaleValue ?? 'page-width';
+	pdfViewer.currentPageNumber = page;
 }
 
 function clearHighlight(root: HTMLElement | null): void {
@@ -142,6 +200,7 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 			onLocationClick,
 			onError,
 			memoryOptimized = false,
+			presenting = false,
 		},
 		ref,
 	) => {
@@ -162,6 +221,10 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 		const pageSizesRef = useRef<Map<number, PageSize>>(new Map());
 		const suppressPageChangeUntilRef = useRef(0);
 		const keptScrollTopRef = useRef<number | null>(null);
+		const presentingRef = useRef(false);
+		const viewBeforePresentationRef = useRef<ViewBeforePresentation | null>(
+			null,
+		);
 
 		const propsRef = useRef({
 			scale,
@@ -258,6 +321,11 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 
 				pendingPageRef.current = null;
 
+				if (presentingRef.current) {
+					pdfViewer.currentPageNumber = target;
+					return;
+				}
+
 				try {
 					const viewerEl = pdfViewer.viewer as HTMLElement | undefined;
 					const laidOut = !!viewerEl && viewerEl.offsetParent !== null;
@@ -293,6 +361,10 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 		const setViewerScale = useCallback(
 			(nextScale: unknown): void => {
 				const scaleNumber = toNumber(nextScale, 1);
+
+				// The page fits the screen while presenting; the panel's zoom
+				// comes back after.
+				if (presentingRef.current) return;
 
 				if (!isViewerReady()) {
 					pendingScaleRef.current = scaleNumber;
@@ -358,7 +430,14 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 				goToPage: (page: number) => setViewerPage(page),
 				keepPlaceForNextDocument: () => {
 					const container = containerRef.current;
-					if (!scrollView || !isViewerReady() || !container) return false;
+					if (
+						!scrollView ||
+						presentingRef.current ||
+						!isViewerReady() ||
+						!container
+					) {
+						return false;
+					}
 					keptScrollTopRef.current = container.scrollTop;
 					return true;
 				},
@@ -370,7 +449,12 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 						getPagesCount(pdfViewer, pdfDocument) || 1,
 					);
 					const viewport = pdfViewer?._pages?.[target - 1]?.viewport;
-					if (!isViewerReady() || !container || !viewport?.scale) {
+					if (
+						presentingRef.current ||
+						!isViewerReady() ||
+						!container ||
+						!viewport?.scale
+					) {
 						setViewerPage(target);
 						return;
 					}
@@ -394,7 +478,7 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 				setScale: (nextScale: number) => setViewerScale(nextScale),
 				applyFitScale: (mode: 'fit-width' | 'fit-height') => {
 					const pdfViewer = pdfViewerRef.current;
-					if (!isViewerReady()) return null;
+					if (!isViewerReady() || presentingRef.current) return null;
 
 					cancelScaleDebounce();
 					scrollCorrectionPageRef.current = null;
@@ -531,6 +615,14 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 						1,
 					);
 
+					// A compile while presenting: the new pages are shown the
+					// same way.
+					if (presentingRef.current) {
+						keptScrollTopRef.current = null;
+						enterPresentation(pdfViewer, container, target);
+						return;
+					}
+
 					const keptScrollTop = keptScrollTopRef.current;
 					keptScrollTopRef.current = null;
 					requestAnimationFrame(() => {
@@ -644,6 +736,7 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 
 				pdfViewerRef.current = null;
 				linkServiceRef.current = null;
+				container.classList.remove('pdfPresentationMode');
 			};
 		}, [
 			pdfDocument,
@@ -684,12 +777,52 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 		}, [currentPage, pdfDocument, setViewerPage]);
 
 		useEffect(() => {
+			if (presentingRef.current === presenting) return;
+			presentingRef.current = presenting;
+			const pdfViewer = pdfViewerRef.current;
+			const container = containerRef.current;
+			// Not shown yet: 'pagesinit' presents the pages once there.
+			if (!pdfViewer || !container || !isViewerReady()) return;
+
+			cancelScaleDebounce();
+			scrollCorrectionPageRef.current = null;
+			if (presenting) {
+				viewBeforePresentationRef.current = {
+					scrollMode: pdfViewer.scrollMode,
+					spreadMode: pdfViewer.spreadMode,
+					scaleValue: pdfViewer.currentScaleValue,
+				};
+				enterPresentation(pdfViewer, container, pdfViewer.currentPageNumber);
+			} else {
+				leavePresentation(
+					pdfViewer,
+					container,
+					viewBeforePresentationRef.current,
+				);
+				viewBeforePresentationRef.current = null;
+			}
+			renderHighlight(pdfViewer, propsRef.current.highlight);
+		}, [presenting, isViewerReady, cancelScaleDebounce]);
+
+		useEffect(() => {
 			const container = containerRef.current;
 			if (!container) return;
 
 			let hadSize = container.clientHeight > 0;
+			let width = container.clientWidth;
+			let height = container.clientHeight;
 
 			const observer = new ResizeObserver(() => {
+				const resized =
+					container.clientWidth !== width || container.clientHeight !== height;
+				width = container.clientWidth;
+				height = container.clientHeight;
+				// Going to full screen takes a moment: the page follows the
+				// screen as it grows.
+				if (presentingRef.current && resized && isViewerReady()) {
+					pdfViewerRef.current.currentScaleValue = 'page-fit';
+				}
+
 				const hasSize = container.clientHeight > 0;
 				if (hasSize === hadSize) return;
 
@@ -718,7 +851,7 @@ export const PdfJsFullViewer = forwardRef<PdfJsFullViewerHandle, Props>(
 
 			const onClick = (event: MouseEvent) => {
 				const target = event.target as HTMLElement | null;
-				if (!target) return;
+				if (!target || presentingRef.current) return;
 				if (
 					target.closest('a, button, input, textarea, select, [role="button"]')
 				) {

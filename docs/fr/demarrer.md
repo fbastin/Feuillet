@@ -247,3 +247,18 @@ compilation. Pour que le `.bbl` soit celui qu'attend arXiv, choisissez
 Un double-clic dans le PDF mène à la ligne correspondante du texte. Le
 bouton de synchronisation de la barre de l'éditeur fait l'inverse : il montre
 dans le PDF l'endroit où se trouve le curseur.
+
+### Présenter des transparents
+
+Le bouton **Mode présentation** de la barre du PDF (l'écran sur son pied)
+montre le PDF seul, en plein écran sur fond noir, une page à la fois aussi
+grande que l'écran le permet, comme sur Overleaf; c'est fait pour les
+transparents Beamer. Les flèches, la barre d'espace, Page préc./Page suiv.
+(celles d'une télécommande de présentation), un clic ou la molette tournent
+les pages; Maj+clic revient en arrière, Début et Fin vont à la première et à
+la dernière. Les liens du PDF restent actifs, et le pointeur se cache quand
+la souris ne bouge plus. Échap termine la présentation, à la page atteinte.
+Pour présenter sur un projecteur en gardant l'éditeur sous les yeux, ouvrez
+d'abord le PDF dans une fenêtre à part (**Ouvrir la sortie dans une nouvelle
+fenêtre**, à côté du bouton de compilation), glissez-la sur le projecteur,
+puis lancez-y le mode présentation.

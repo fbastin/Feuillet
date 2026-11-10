@@ -234,3 +234,16 @@ TeX Live version before exporting.
 A double click in the PDF goes to the matching line of the text. The sync
 button of the editor's toolbar does the reverse: it shows in the PDF where
 the cursor is.
+
+### Presenting slides
+
+The **Presentation mode** button of the PDF toolbar (the screen on its stand)
+shows the PDF alone, full screen on black, one page at a time as large as the
+screen allows, as on Overleaf; it is made for Beamer slides. The arrows, the
+space bar, Page Up/Page Down (those of a presentation remote), a click or the
+wheel turn the pages; Shift+click goes back, Home and End go to the first and
+the last. Links in the PDF still work, and the pointer hides when the mouse
+stays still. Escape ends the presentation, at the page reached. To present on
+a projector while keeping the editor in view, first open the PDF in a
+separate window (**Open output in new window**, beside the compile button),
+drag it to the projector, then start presentation mode there.

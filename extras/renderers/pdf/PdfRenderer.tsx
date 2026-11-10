@@ -27,6 +27,7 @@ import {
 	ZoomOutIcon,
 	ExpandIcon,
 	MinimizeIcon,
+	PresentationIcon,
 } from '@/components/common/Icons';
 import { getPdfRendererSettings } from './settings';
 import { useSettings } from '@/hooks/useSettings';
@@ -67,6 +68,20 @@ const isZoomMode = (value: unknown): value is ZoomMode =>
 
 // Ctrl+wheel and pinching: about 16% a notch of the wheel.
 const WHEEL_ZOOM_BASE = 1.0015;
+
+// Presentation mode: a notch of the wheel turns a page, as in pdf.js's own
+// (a tenth of a page of scrolling, in its units), and a long swipe on a
+// touchpad does not race through the slides.
+const WHEEL_PIXELS_PER_PAGE_TURN = 90;
+const WHEEL_LINES_PER_PAGE_TURN = 3;
+const WHEEL_PAGE_TURN_COOLDOWN_MS = 250;
+// The pointer hides when it stays still this long, as in pdf.js.
+const PRESENTATION_CURSOR_DELAY_MS = 3000;
+
+// What a click must leave alone in presentation mode: links (a slide's
+// navigation, a URL), forms and the buttons of animations.
+const PRESENTATION_INTERACTIVE =
+	'a, button, input, textarea, select, [role="button"], .annotationLayer section';
 
 // Every byte counts: two compiles often give PDFs of the same length that
 // differ only inside, and the new one must replace the old.
@@ -135,6 +150,7 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	const [pdfDocument, setPdfDocument] = useState<any>(null);
 	const [scrollView, setScrollView] = useState(true);
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [isPresenting, setIsPresenting] = useState(false);
 	const [zoomMode, setZoomMode] = useState<ZoomMode | null>('page-width');
 	const [highlight, setHighlight] = useState<Highlight>(null);
 
@@ -151,6 +167,11 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	const zoomModeRef = useRef<ZoomMode | null>('page-width');
 	const applyZoomModeRef = useRef<(mode: ZoomMode) => void>(() => {});
 	const pointerInsideRef = useRef(false);
+	// Set at once, before React renders, so that nothing refits the page to
+	// the panel in between.
+	const presentingRef = useRef(false);
+	const wasPresentingRef = useRef(false);
+	const wheelTurnRef = useRef({ delta: 0, turnedAt: 0 });
 	const containerRef = useRef<HTMLDivElement>(null);
 	const contentElRef = useRef<HTMLDivElement>(null);
 	const fullViewerRef = useRef<PdfJsFullViewerHandle | null>(null);
@@ -442,6 +463,8 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	// The scale that makes the page as wide, or as high, as the panel now.
 	const applyZoomMode = useCallback(
 		(mode: ZoomMode) => {
+			// The screen, not the panel, sizes the page while presenting.
+			if (presentingRef.current) return;
 			const nextScale = computeFitScale(
 				mode === 'page-width' ? 'fit-width' : 'fit-height',
 			);
@@ -473,6 +496,10 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	const handleNextPage = useCallback(() => {
 		goToPage(lastStablePageRef.current + 1);
 	}, [goToPage]);
+
+	const turnPageRef = useRef<(step: number) => void>(() => {});
+	turnPageRef.current = (step: number) =>
+		goToPage(lastStablePageRef.current + step);
 
 	const handlePageInputKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -535,6 +562,28 @@ const PdfRenderer: React.FC<RendererProps> = ({
 		const element = contentElRef.current;
 		if (!element) return;
 		const handleWheel = (event: WheelEvent) => {
+			if (presentingRef.current) {
+				event.preventDefault();
+				const turn = wheelTurnRef.current;
+				const now = Date.now();
+				if (now - turn.turnedAt < WHEEL_PAGE_TURN_COOLDOWN_MS) return;
+				const delta =
+					event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+						? event.deltaY * WHEEL_PIXELS_PER_PAGE_TURN
+						: event.deltaMode === WheelEvent.DOM_DELTA_LINE
+							? (event.deltaY * WHEEL_PIXELS_PER_PAGE_TURN) /
+								WHEEL_LINES_PER_PAGE_TURN
+							: event.deltaY;
+				// Turning back cancels what was gathered the other way.
+				if (Math.sign(delta) !== Math.sign(turn.delta)) turn.delta = 0;
+				turn.delta += delta;
+				if (Math.abs(turn.delta) >= WHEEL_PIXELS_PER_PAGE_TURN) {
+					turnPageRef.current(turn.delta > 0 ? 1 : -1);
+					turn.delta = 0;
+					turn.turnedAt = now;
+				}
+				return;
+			}
 			if (!event.ctrlKey && !event.metaKey) return;
 			event.preventDefault();
 			const delta = clamp(
@@ -570,10 +619,93 @@ const PdfRenderer: React.FC<RendererProps> = ({
 		}
 	}, []);
 
+	// Presentation mode, as on Overleaf: the PDF alone in full screen, one
+	// page at a time as large as the screen allows. Arrows, space, Page
+	// Up/Down (a presenter's remote), a click or the wheel turn the pages;
+	// Escape ends it, back where the panel was, at the page reached.
+	const handleStartPresentation = useCallback(() => {
+		const container = containerRef.current;
+		if (!container || presentingRef.current) return;
+		const fullscreen = document.fullscreenElement;
+		if (fullscreen && fullscreen !== container) return;
+
+		presentingRef.current = true;
+		setIsPresenting(true);
+		// The keys turn the pages, rather than type in the editor behind.
+		if (document.activeElement instanceof HTMLElement) {
+			document.activeElement.blur();
+		}
+		container.focus({ preventScroll: true });
+		if (fullscreen) return;
+
+		container.requestFullscreen().catch((error) => {
+			moduleLog.warn('Presentation mode needs full screen:', error);
+			presentingRef.current = false;
+			setIsPresenting(false);
+		});
+	}, []);
+
+	// Back in the panel: its own zoom again, at the page reached.
+	useEffect(() => {
+		if (isPresenting) {
+			wasPresentingRef.current = true;
+			return;
+		}
+		if (!wasPresentingRef.current) return;
+		wasPresentingRef.current = false;
+		const frame = requestAnimationFrame(() => {
+			const mode = zoomModeRef.current;
+			if (mode) applyZoomModeRef.current(mode);
+			else fullViewerRef.current?.setScale(scaleRef.current);
+			fullViewerRef.current?.goToPage(lastStablePageRef.current);
+		});
+		return () => cancelAnimationFrame(frame);
+	}, [isPresenting]);
+
+	// The pointer hides when still, and shows again when moved.
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!isPresenting || !container) return;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const showPointer = () => {
+			container.removeAttribute('data-pointer-hidden');
+			clearTimeout(timer);
+			timer = setTimeout(
+				() => container.setAttribute('data-pointer-hidden', 'true'),
+				PRESENTATION_CURSOR_DELAY_MS,
+			);
+		};
+		showPointer();
+		container.addEventListener('mousemove', showPointer);
+		return () => {
+			clearTimeout(timer);
+			container.removeEventListener('mousemove', showPointer);
+			container.removeAttribute('data-pointer-hidden');
+		};
+	}, [isPresenting]);
+
+	// A click turns to the next page, Shift+click to the previous one.
+	const handlePresentationClick = useCallback(
+		(event: React.MouseEvent<HTMLDivElement>) => {
+			if (!presentingRef.current || event.button !== 0) return;
+			const target = event.target as HTMLElement | null;
+			if (target?.closest(PRESENTATION_INTERACTIVE)) return;
+			turnPageRef.current(event.shiftKey ? -1 : 1);
+		},
+		[],
+	);
+
 	useEffect(() => {
 		// A zoom following the panel follows it to full screen and back.
 		const handleFullscreenChange = () => {
 			setIsFullscreen(document.fullscreenElement === containerRef.current);
+			if (
+				presentingRef.current &&
+				document.fullscreenElement !== containerRef.current
+			) {
+				presentingRef.current = false;
+				setIsPresenting(false);
+			}
 		};
 
 		document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -620,18 +752,26 @@ const PdfRenderer: React.FC<RendererProps> = ({
 				active?.getAttribute('contenteditable') === 'true';
 
 			if (isTyping) return;
-			if (!document.fullscreenElement && !pointerInsideRef.current) return;
+			// In full screen, the viewer shown there; otherwise the one under
+			// the pointer. Another viewer of the page keeps its place.
+			const fullscreen = document.fullscreenElement;
+			const container = containerRef.current;
+			if (fullscreen) {
+				if (!container || !fullscreen.contains(container)) return;
+			} else if (!pointerInsideRef.current) {
+				return;
+			}
+			if (event.ctrlKey || event.metaKey || event.altKey) return;
 
 			if (
 				event.key === 'ArrowLeft' ||
 				event.key === 'ArrowUp' ||
-				event.key === 'PageUp'
+				event.key === 'PageUp' ||
+				(event.key === ' ' && event.shiftKey)
 			) {
 				event.preventDefault();
 				handlePreviousPage();
-			}
-
-			if (
+			} else if (
 				event.key === 'ArrowRight' ||
 				event.key === 'ArrowDown' ||
 				event.key === ' ' ||
@@ -639,12 +779,18 @@ const PdfRenderer: React.FC<RendererProps> = ({
 			) {
 				event.preventDefault();
 				handleNextPage();
+			} else if (event.key === 'Home') {
+				event.preventDefault();
+				goToPage(1);
+			} else if (event.key === 'End') {
+				event.preventDefault();
+				goToPage(numPagesRef.current);
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [handlePreviousPage, handleNextPage]);
+	}, [handlePreviousPage, handleNextPage, goToPage]);
 
 	if (!pdfRendererEnable) {
 		return (
@@ -676,7 +822,9 @@ const PdfRenderer: React.FC<RendererProps> = ({
 		<div
 			className='pdf-renderer-container ui-viewer'
 			data-surface='base'
+			data-presenting={isPresenting ? 'true' : undefined}
 			ref={containerRef}
+			tabIndex={-1}
 			onMouseEnter={() => {
 				pointerInsideRef.current = true;
 			}}
@@ -832,6 +980,20 @@ const PdfRenderer: React.FC<RendererProps> = ({
 							>
 								{isFullscreen ? <MinimizeIcon /> : <ExpandIcon />}
 							</button>
+
+							{document.fullscreenEnabled && (
+								<button
+									type='button'
+									onClick={handleStartPresentation}
+									className='ui-icon-button'
+									data-variant='control'
+									data-action='presentation-mode'
+									title={t('Presentation mode')}
+									disabled={isLoading || !pdfDocument}
+								>
+									<PresentationIcon />
+								</button>
+							)}
 						</div>
 
 						<div className='ui-toolbar-section' data-gap='control'>
@@ -854,6 +1016,7 @@ const PdfRenderer: React.FC<RendererProps> = ({
 				className={`ui-viewer-content renderer-content ${isFullscreen ? 'fullscreen' : ''}`}
 				data-layout='fill'
 				ref={contentElRef}
+				onClick={handlePresentationClick}
 			>
 				{pdfDocument && (
 					<PdfJsFullViewer
@@ -876,6 +1039,7 @@ const PdfRenderer: React.FC<RendererProps> = ({
 							setIsLoading(false);
 						}}
 						memoryOptimized={memoryOptimized}
+						presenting={isPresenting}
 					/>
 				)}
 

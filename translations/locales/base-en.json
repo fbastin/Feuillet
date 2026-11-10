@@ -4527,5 +4527,6 @@
   "{count} files uploaded_zero": "{{count}} files uploaded",
   "Moves the changes to Resolved without accepting or rejecting them: they stay in the text.": "Moves the changes to Resolved without accepting or rejecting them: they stay in the text.",
   "Edit comment": "Edit comment",
-  "Edit response": "Edit response"
+  "Edit response": "Edit response",
+  "Presentation mode": "Presentation mode"
 }
