@@ -329,11 +329,11 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		[decide],
 	);
 	const acceptAllReviews = useCallback(
-		() => decide('review-accept-all'),
+		(resolved = false) => decide('review-accept-all', { resolved }),
 		[decide],
 	);
 	const rejectAllReviews = useCallback(
-		() => decide('review-reject-all'),
+		(resolved = false) => decide('review-reject-all', { resolved }),
 		[decide],
 	);
 

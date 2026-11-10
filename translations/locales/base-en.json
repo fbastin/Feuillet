@@ -4524,5 +4524,6 @@
   "{count} files uploaded_few": "{{count}} files uploaded",
   "{count} files uploaded_many": "{{count}} files uploaded",
   "{count} files uploaded_two": "{{count}} files uploaded",
-  "{count} files uploaded_zero": "{{count}} files uploaded"
+  "{count} files uploaded_zero": "{{count}} files uploaded",
+  "Moves the changes to Resolved without accepting or rejecting them: they stay in the text.": "Moves the changes to Resolved without accepting or rejecting them: they stay in the text."
 }

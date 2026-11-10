@@ -109,8 +109,15 @@ export function rejectReviewById(view: EditorView, id: string): boolean {
 	);
 }
 
-export function resolveAllReviews(view: EditorView, accept: boolean): boolean {
-	const chunks = getReviewChunks(view.state).filter((chunk) => !chunk.resolved);
+/** Accepts or rejects every active change, or every resolved one. */
+export function resolveAllReviews(
+	view: EditorView,
+	accept: boolean,
+	resolved = false,
+): boolean {
+	const chunks = getReviewChunks(view.state).filter(
+		(chunk) => Boolean(chunk.resolved) === resolved,
+	);
 	if (!chunks.length) return false;
 
 	try {

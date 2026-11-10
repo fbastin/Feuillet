@@ -4251,5 +4251,6 @@
   "Uploading {count} files..._other": "Uploading {{count}} files...",
   "{count} files uploaded": "{{count}} files uploaded",
   "{count} files uploaded_one": "{{count}} file uploaded",
-  "{count} files uploaded_other": "{{count}} files uploaded"
+  "{count} files uploaded_other": "{{count}} files uploaded",
+  "Moves the changes to Resolved without accepting or rejecting them: they stay in the text.": "Moves the changes to Resolved without accepting or rejecting them: they stay in the text."
 }

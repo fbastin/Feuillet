@@ -112,11 +112,18 @@ export function decideChange(
 	return review ? decided(text, review, accept) : text;
 }
 
-/** The text with all its active tracked changes accepted or rejected. */
-export function decideAllChanges(text: string, accept: boolean): string {
+/**
+ * The text with all its active tracked changes accepted or rejected, or
+ * all its resolved ones.
+ */
+export function decideAllChanges(
+	text: string,
+	accept: boolean,
+	resolved = false,
+): string {
 	return reviewService
 		.parseReviews(text)
-		.filter((review) => !review.resolved)
+		.filter((review) => Boolean(review.resolved) === resolved)
 		.sort((a, b) => b.openTagStart - a.openTagStart)
 		.reduce((current, review) => decided(current, review, accept), text);
 }

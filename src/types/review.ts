@@ -63,8 +63,9 @@ export interface ReviewContextType {
 	acceptReview: (reviewId: string) => void;
 	rejectReview: (reviewId: string) => void;
 	resolveReview: (reviewId: string) => void;
-	acceptAllReviews: () => void;
-	rejectAllReviews: () => void;
+	/** The active changes, or with `true` the resolved ones. */
+	acceptAllReviews: (resolved?: boolean) => void;
+	rejectAllReviews: (resolved?: boolean) => void;
 	resolveAllReviews: () => void;
 	addResponse: (reviewId: string, content: string) => void;
 	deleteResponse: (reviewId: string, responseId: string) => void;

@@ -175,14 +175,26 @@ export const registerEditorEventHandlers = (
 		}
 	};
 
-	const handleReviewAcceptAll = () => {
+	// The active changes, or the resolved ones from the Resolved tab.
+	const resolvedOnes = (event: Event) =>
+		Boolean((event as CustomEvent<{ resolved?: boolean }>).detail?.resolved);
+
+	const handleReviewAcceptAll = (event: Event) => {
 		if (!viewRef.current || isViewOnly || !enableReviews) return;
-		resolveAllReviews(viewRef.current as CMEditorView, true);
+		resolveAllReviews(
+			viewRef.current as CMEditorView,
+			true,
+			resolvedOnes(event),
+		);
 	};
 
-	const handleReviewRejectAll = () => {
+	const handleReviewRejectAll = (event: Event) => {
 		if (!viewRef.current || isViewOnly || !enableReviews) return;
-		resolveAllReviews(viewRef.current as CMEditorView, false);
+		resolveAllReviews(
+			viewRef.current as CMEditorView,
+			false,
+			resolvedOnes(event),
+		);
 	};
 
 	const handleReviewUpdate = (event: Event) => {

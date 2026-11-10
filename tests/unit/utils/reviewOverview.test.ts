@@ -98,6 +98,31 @@ describe('the review overview', () => {
 			expect(reviewItemsOf(decideAllChanges(text, false)).map((item) => item.kind)).toEqual(['comment']);
 		});
 
+		it('decides the resolved changes apart from the active ones', () => {
+			// Resolved without being decided: still in the text.
+			const resolvedChange = (original: string, current: string) => {
+				const raw = reviewService.createReview(original, 'bob');
+				const tags = reviewService.updateReview({
+					id: raw.id,
+					user: 'bob',
+					timestamp: 1,
+					originalText: original,
+					responses: [],
+					resolved: true,
+				});
+				return `${tags.openTag}${current}${tags.closeTag}`;
+			};
+			const mixed = `Le ${resolvedChange('', 'nouveau ')}texte ${change('rouge', 'bleu')}${resolvedChange('ancien', '')}.`;
+			const accepted = decideAllChanges(mixed, true, true);
+			expect(plain(accepted)).toBe('Le nouveau texte bleu.');
+			expect(reviewItemsOf(accepted).map((item) => [item.kind, item.resolved])).toEqual([['change', false]]);
+			expect(plain(decideAllChanges(mixed, false, true))).toBe('Le texte bleuancien.');
+			expect(reviewItemsOf(decideAllChanges(mixed, true)).map((item) => item.resolved)).toEqual([true, true]);
+			// One resolved change, from its own buttons.
+			const one = reviewItemsOf(mixed).find((item) => item.resolved)?.id ?? '';
+			expect(plain(decideChange(mixed, one, false))).toBe('Le texte bleu.');
+		});
+
 		it('answers a comment or a change, and takes an answer back', () => {
 			const answered = addReply(text, 'comment', commentId, 'Fait, merci.', 'bob');
 			const item = reviewItemsOf(answered).find((entry) => entry.id === commentId);

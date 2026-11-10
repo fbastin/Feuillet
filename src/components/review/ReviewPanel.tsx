@@ -241,25 +241,34 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ className = '' }) => {
 				</div>
 			</div>
 
-			{activeTab === 'list' && !readOnly && !reviewOnly && (
+			{!readOnly && !reviewOnly && (
 				<div className='ui-panel-controls ui-actions' data-fill='true'>
+					{activeTab === 'list' && (
+						<button
+							type='button'
+							data-action='resolve-all'
+							title={t(
+								'Moves the changes to Resolved without accepting or rejecting them: they stay in the text.',
+							)}
+							onClick={resolveAllReviews}
+							disabled={!visibleReviews.length}
+						>
+							{t('Resolve all')}
+						</button>
+					)}
+					{/* On either tab, for the changes it lists. */}
 					<button
 						type='button'
-						onClick={resolveAllReviews}
-						disabled={!visibleReviews.length}
-					>
-						{t('Resolve all')}
-					</button>
-					<button
-						type='button'
-						onClick={acceptAllReviews}
+						data-action='accept-all'
+						onClick={() => acceptAllReviews(activeTab === 'resolved')}
 						disabled={!visibleReviews.length}
 					>
 						{t('Accept all')}
 					</button>
 					<button
 						type='button'
-						onClick={rejectAllReviews}
+						data-action='reject-all'
+						onClick={() => rejectAllReviews(activeTab === 'resolved')}
 						disabled={!visibleReviews.length}
 					>
 						{t('Reject all')}

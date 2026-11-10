@@ -266,7 +266,7 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 				</button>
 			);
 		}
-		if (item.resolved) return null;
+		// Resolved changes are still in the text, to accept or reject.
 		return (
 			<>
 				<button
@@ -393,7 +393,6 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 								</span>
 							</button>
 							{!readOnly &&
-								!resolved &&
 								file.items.some((item) => item.kind === 'change') && (
 									<div
 										className='review-overview-file-actions ui-actions'
@@ -406,7 +405,7 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 											disabled={busy !== null}
 											onClick={() =>
 												act(`${file.path}:all`, file, (text) =>
-													decideAllChanges(text, true),
+													decideAllChanges(text, true, resolved),
 												)
 											}
 										>
@@ -419,7 +418,7 @@ const ReviewOverviewPanel: React.FC<ReviewOverviewPanelProps> = ({
 											disabled={busy !== null}
 											onClick={() =>
 												act(`${file.path}:all`, file, (text) =>
-													decideAllChanges(text, false),
+													decideAllChanges(text, false, resolved),
 												)
 											}
 										>

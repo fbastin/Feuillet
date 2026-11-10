@@ -452,6 +452,32 @@ describe('ReviewExtension', () => {
             expect(view.state.doc.toString()).toBe('new and kept');
         });
 
+        it('should accept or reject every resolved review at once, leaving the active ones', () => {
+            // A change resolved without being decided, as « Tout résoudre » leaves it.
+            const resolved = (id: string, original: string, current: string) =>
+                `${openTag(id, original).replace('responses: []', 'responses: [], resolved: true')}${current}${closeTag(id)}`;
+            const doc = `${resolved('aaa', 'old', 'new')} and ${wrap('bbb', 'gone', '')}kept ${resolved('ccc', 'here', '')}`;
+
+            const accepting = createView(doc);
+            resolveAllReviews(accepting, true, true);
+            expect(accepting.state.doc.toString()).toBe(
+                `new and ${wrap('bbb', 'gone', '')}kept `,
+            );
+
+            const rejecting = createView(doc);
+            resolveAllReviews(rejecting, false, true);
+            expect(rejecting.state.doc.toString()).toBe(
+                `old and ${wrap('bbb', 'gone', '')}kept here`,
+            );
+
+            // Without the flag, only the active ones, as before.
+            const active = createView(doc);
+            resolveAllReviews(active, true);
+            expect(active.state.doc.toString()).toBe(
+                `${resolved('aaa', 'old', 'new')} and kept ${resolved('ccc', 'here', '')}`,
+            );
+        });
+
         it('should reject every review at once', () => {
             const view = createView(
                 `${wrap('aaa', 'old', 'new')} and ${wrap('bbb', 'gone', '')}kept`,
