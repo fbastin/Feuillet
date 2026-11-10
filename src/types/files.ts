@@ -1,4 +1,6 @@
 // src/types/files.ts
+import type { UploadTree } from '../utils/folderUpload';
+
 export interface LinkFileOptions {
 	/** Ask before linking (default). Without it, the content is copied. */
 	confirm?: boolean;
@@ -68,6 +70,8 @@ export interface FileTreeContextType {
 		currentPath: string,
 		targetDirectoryId?: string,
 	) => Promise<string[]>;
+	/** Folders with their subfolders; gives the paths of the files stored. */
+	uploadFileTree: (tree: UploadTree, targetPath: string) => Promise<string[]>;
 	createDirectory: (name: string, path: string) => Promise<void>;
 	deleteFileOrDirectory: (id: string) => Promise<void>;
 	linkFileToDocument: (

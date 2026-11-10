@@ -35,6 +35,8 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
 			zIndex: 'var(--z-dropdown)',
 			minWidth: `${width}px`,
 			maxHeight: `${maxHeight}px`,
+			// Past its height, the menu scrolls rather than spilling out.
+			overflowY: 'auto',
 		}}
 		onClose={onClose}
 	>

@@ -2184,7 +2184,6 @@
   "No errors or warnings found.": "Aucune erreur ni aucun avertissement.",
   "No file changes": "Aucune modification de fichier",
   "No files available for download": "Aucun fichier disponible pour le téléchargement",
-  "No files. Upload or create files to get started. Drag any files here to upload them.": "Aucun fichier. Téléversez ou créez des fichiers pour commencer. Glissez des fichiers ici pour les téléverser.",
   "No folder linked": "Aucun dossier lié",
   "No Git remote providers are available in this build.": "Aucun fournisseur Git distant n'est disponible dans cette version.",
   "No guest account to upgrade": "Aucun compte invité à mettre à niveau",
@@ -4242,5 +4241,15 @@
   "Close the symbol palette": "Fermer la palette de symboles",
   "Click a symbol to insert it.": "Cliquez sur un symbole pour l'insérer.",
   "Double turnstile": "Double taquet (modélise)",
-  "defined in {file}": "défini dans {{file}}"
+  "defined in {file}": "défini dans {{file}}",
+  "Upload a Folder": "Téléverser un dossier",
+  "The folder could not be uploaded: {error}": "Le dossier n'a pas pu être téléversé : {{error}}",
+  "{path} is a file: the folder of that name was not uploaded.": "{{path}} est un fichier : le dossier du même nom n'a pas été téléversé.",
+  "No files. Upload or create files to get started. Drag files or folders here to upload them.": "Aucun fichier. Téléversez ou créez des fichiers pour commencer. Glissez des fichiers ou des dossiers ici pour les téléverser.",
+  "Uploading {count} files...": "Téléversement de {{count}} fichiers...",
+  "Uploading {count} files..._one": "Téléversement de {{count}} fichier...",
+  "Uploading {count} files..._other": "Téléversement de {{count}} fichiers...",
+  "{count} files uploaded": "{{count}} fichiers téléversés",
+  "{count} files uploaded_one": "{{count}} fichier téléversé",
+  "{count} files uploaded_other": "{{count}} fichiers téléversés"
 }

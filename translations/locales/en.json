@@ -2184,7 +2184,6 @@
   "No errors or warnings found.": "No errors or warnings found.",
   "No file changes": "No file changes",
   "No files available for download": "No files available for download",
-  "No files. Upload or create files to get started. Drag any files here to upload them.": "No files. Upload or create files to get started. Drag any files here to upload them.",
   "No folder linked": "No folder linked",
   "No Git remote providers are available in this build.": "No Git remote providers are available in this build.",
   "No guest account to upgrade": "No guest account to upgrade",
@@ -4242,5 +4241,15 @@
   "Close the symbol palette": "Close the symbol palette",
   "Click a symbol to insert it.": "Click a symbol to insert it.",
   "Double turnstile": "Double turnstile",
-  "defined in {file}": "defined in {{file}}"
+  "defined in {file}": "defined in {{file}}",
+  "Upload a Folder": "Upload a Folder",
+  "The folder could not be uploaded: {error}": "The folder could not be uploaded: {{error}}",
+  "{path} is a file: the folder of that name was not uploaded.": "{{path}} is a file: the folder of that name was not uploaded.",
+  "No files. Upload or create files to get started. Drag files or folders here to upload them.": "No files. Upload or create files to get started. Drag files or folders here to upload them.",
+  "Uploading {count} files...": "Uploading {{count}} files...",
+  "Uploading {count} files..._one": "Uploading {{count}} file...",
+  "Uploading {count} files..._other": "Uploading {{count}} files...",
+  "{count} files uploaded": "{{count}} files uploaded",
+  "{count} files uploaded_one": "{{count}} file uploaded",
+  "{count} files uploaded_other": "{{count}} files uploaded"
 }

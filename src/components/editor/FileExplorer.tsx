@@ -45,6 +45,13 @@ import {
 	isArchiveFile,
 } from '../../utils/archiveUtils';
 import {
+	chosenFolderTree,
+	droppedEntries,
+	holdsFolder,
+	readDroppedTree,
+	type UploadTree,
+} from '../../utils/folderUpload';
+import {
 	CheckIcon,
 	CloseIcon,
 	ExportIcon,
@@ -124,6 +131,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		isLoading,
 		selectFile,
 		uploadFiles,
+		uploadFileTree,
 		createDirectory,
 		deleteFileOrDirectory,
 		linkFileToDocument,
@@ -358,6 +366,48 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		for (const archiveFile of archiveFiles) {
 			await handleZipFile(archiveFile, targetPath);
 		}
+	};
+
+	// Folders keep their subfolders; an archive dropped beside them is
+	// offered for unpacking as on its own.
+	const processFileTree = async (tree: UploadTree, targetPath: string) => {
+		const archives = tree.files.filter(
+			(entry) => !entry.path.includes('/') && isArchiveFile(entry.path),
+		);
+		await uploadFileTree(
+			{
+				...tree,
+				files: tree.files.filter((entry) => !archives.includes(entry)),
+			},
+			targetPath,
+		);
+		if (targetPath !== '/') expandAllParentDirectories(targetPath);
+		for (const archive of archives) {
+			await handleZipFile(archive.file, targetPath);
+		}
+	};
+
+	// What a drop brings from the computer. The entries are taken before any
+	// wait: the drop's list empties once the event is over.
+	const processDrop = (dataTransfer: DataTransfer, targetPath: string) => {
+		const entries = droppedEntries(dataTransfer);
+		const files = Array.from(dataTransfer.files);
+		if (entries && holdsFolder(entries)) {
+			return readDroppedTree(entries).then(
+				(tree) => processFileTree(tree, targetPath),
+				(error) => {
+					moduleLog.error('Error reading the dropped folders:', error);
+					notificationService.showError(
+						t('The folder could not be uploaded: {error}', {
+							error: error instanceof Error ? error.message : String(error),
+						}),
+					);
+				},
+			);
+		}
+		return files.length > 0
+			? processFiles(files, targetPath)
+			: Promise.resolve();
 	};
 
 	const handleZipFile = async (
@@ -963,6 +1013,20 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		setActiveMenu(null);
 	};
 
+	// A whole folder from the computer, with its subfolders.
+	const handleUploadFolderTo = (folderPath: string) => {
+		const input = document.createElement('input');
+		input.type = 'file';
+		input.webkitdirectory = true;
+		input.onchange = async () => {
+			if (input.files && input.files.length > 0) {
+				await processFileTree(chosenFolderTree(input.files), folderPath);
+			}
+		};
+		input.click();
+		setActiveMenu(null);
+	};
+
 	const handleCreateFileInFolder = (_folderId: string, folderPath: string) => {
 		handleStartCreateFile(folderPath);
 		expandAllParentDirectories(folderPath);
@@ -1046,11 +1110,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		);
 
 		if (isFileDrop && enableFileSystemDragDrop) {
-			const files = Array.from(e.dataTransfer.files);
-			if (files.length > 0) {
-				await processFiles(files, targetNode.path);
-			}
 			setDragOverTarget(null);
+			await processDrop(e.dataTransfer, targetNode.path);
 			return;
 		}
 
@@ -1182,12 +1243,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 		);
 
 		if (isFileDrop && enableFileSystemDragDrop) {
-			const files = Array.from(e.dataTransfer.files);
-			if (files.length > 0) {
-				await processFiles(files, '/');
-			}
 			setDragOverTarget(null);
 			setIsDragging(false);
+			await processDrop(e.dataTransfer, '/');
 			return;
 		}
 
@@ -1449,6 +1507,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 						onClose={() => setShowFileCreationMenu(false)}
 						onCreate={handleCreateFileWithTemplate}
 						onAddFrom={currentProjectId ? handleAddFrom : undefined}
+						onUpload={(kind) =>
+							kind === 'folder'
+								? handleUploadFolderTo(fileCreationParentPath)
+								: handleUploadToFolder(fileCreationParentPath)
+						}
 						triggerElement={fileCreationTrigger}
 						projectType={projectType}
 						parentPath={fileCreationParentPath}
@@ -1596,6 +1659,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 									onCreateFileInFolder={handleCreateFileInFolder}
 									onCreateSubfolder={handleCreateSubfolder}
 									onUploadToFolder={handleUploadToFolder}
+									onUploadFolderTo={handleUploadFolderTo}
 									onExpandAllSubfolders={expandAllSubfolders}
 									onCollapseAllSubfolders={collapseAllSubfolders}
 									onDeleteFileOrDirectory={deleteFileOrDirectory}
@@ -1632,7 +1696,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 					) : (
 						<div className='empty-state ui-empty-state'>
 							{t(
-								'No files. Upload or create files to get started. Drag any files here to upload them.',
+								'No files. Upload or create files to get started. Drag files or folders here to upload them.',
 							)}
 						</div>
 					)}

@@ -37,6 +37,7 @@ import {
 	stringToArrayBuffer,
 } from '../utils/fileUtils';
 import { batchExtractArchive } from '../utils/archiveUtils';
+import { pathInProject, type UploadTree } from '../utils/folderUpload';
 import {
 	FILE_DELETED_EVENT,
 	FILE_MOVED_EVENT,
@@ -200,6 +201,99 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 				return [];
 			} finally {
 				setIsLoading(false);
+			}
+		},
+		[refreshFileTree],
+	);
+
+	// Folders from the computer with their subfolders, as on Overleaf. A file
+	// that clashes asks as for uploaded files.
+	const uploadFileTree = useCallback(
+		async (tree: UploadTree, targetPath: string) => {
+			if (tree.files.length === 0 && tree.directories.length === 0) return [];
+			const operationId = `upload-tree-${Date.now()}`;
+			try {
+				// A file already named as one of the folders would be replaced.
+				for (const directory of tree.directories) {
+					const path = pathInProject(targetPath, directory);
+					const existing = await fileStoreService.getFileByPath(path);
+					if (existing?.type === 'file') {
+						fileOperationNotificationService.showError(
+							operationId,
+							t('{path} is a file: the folder of that name was not uploaded.', {
+								path,
+							}),
+						);
+						return [];
+					}
+				}
+
+				fileOperationNotificationService.showLoading(
+					operationId,
+					t('Uploading {count} files...', { count: tree.files.length }),
+				);
+				const nodes: FileNode[] = tree.directories.map((directory) => ({
+					id: nanoid(),
+					name: directory.split('/').pop() ?? directory,
+					path: pathInProject(targetPath, directory),
+					type: 'directory',
+					lastModified: Date.now(),
+				}));
+				for (const { path, file } of tree.files) {
+					const name = path.split('/').pop() ?? file.name;
+					nodes.push({
+						id: nanoid(),
+						name,
+						path: pathInProject(targetPath, path),
+						type: 'file',
+						content: await file.arrayBuffer(),
+						lastModified: file.lastModified,
+						size: file.size,
+						mimeType: getMimeType(name),
+						isBinary: isBinaryFile(name),
+					});
+				}
+
+				let storedIds: string[];
+				try {
+					storedIds = await fileStoreService.batchStoreFiles(nodes);
+				} catch (error) {
+					if (
+						error instanceof Error &&
+						error.message === t('File operation cancelled by user')
+					) {
+						fileOperationNotificationService.dismissOperation(operationId);
+						return [];
+					}
+					throw error;
+				}
+
+				await refreshFileTree();
+				const stored = await Promise.all(
+					storedIds.map((id) => fileStoreService.getFile(id)),
+				);
+				const paths = stored.flatMap((file) =>
+					file?.type === 'file' ? [file.path] : [],
+				);
+				if (paths.length === 0 && tree.files.length > 0) {
+					// Every clashing file kept as it was.
+					fileOperationNotificationService.dismissOperation(operationId);
+					return [];
+				}
+				fileOperationNotificationService.showSuccess(
+					operationId,
+					t('{count} files uploaded', { count: paths.length }),
+				);
+				return paths;
+			} catch (error) {
+				moduleLog.error('Error uploading folders:', error);
+				fileOperationNotificationService.showError(
+					operationId,
+					t('The folder could not be uploaded: {error}', {
+						error: error instanceof Error ? error.message : String(error),
+					}),
+				);
+				return [];
 			}
 		},
 		[refreshFileTree],
@@ -868,6 +962,7 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 	const readOnlyOperations = (isReadOnlyDocUrl(docUrl) ||
 		isReviewDocUrl(docUrl)) && {
 		uploadFiles: async () => [],
+		uploadFileTree: async () => [],
 		createDirectory: ignore,
 		deleteFileOrDirectory: ignore,
 		linkFileToDocument: ignore,
@@ -891,6 +986,7 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 		isLoading,
 		selectFile,
 		uploadFiles,
+		uploadFileTree,
 		createDirectory,
 		deleteFileOrDirectory,
 		linkFileToDocument,

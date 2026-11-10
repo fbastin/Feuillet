@@ -7,7 +7,13 @@ import type { ProjectType } from '../../types/projects';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
 import { resolveLabel } from '../../utils/compilerUtils';
-import { FilePlusIcon, ProjectsIcon, UrlIcon } from '../common/Icons';
+import {
+	FilePlusIcon,
+	FolderUploadIcon,
+	ProjectsIcon,
+	UploadIcon,
+	UrlIcon,
+} from '../common/Icons';
 import DropdownMenu from '../common/DropdownMenu';
 import type { AddFilesSource } from './AddFilesModal';
 
@@ -17,6 +23,8 @@ interface FileCreationMenuProps {
 	onCreate: (fileName: string, extension: string) => void;
 	/** Opens Overleaf's "Add files" dialog on one of its panes. */
 	onAddFrom?: (source: AddFilesSource) => void;
+	/** Files, or a folder with its subfolders, from the computer. */
+	onUpload?: (kind: 'files' | 'folder') => void;
 	triggerElement: HTMLElement | null;
 	projectType: ProjectType;
 	parentPath?: string;
@@ -35,6 +43,7 @@ const FileCreationMenu: React.FC<FileCreationMenuProps> = ({
 	onClose,
 	onCreate,
 	onAddFrom,
+	onUpload,
 	triggerElement,
 	projectType,
 	parentPath = '/',
@@ -85,7 +94,7 @@ const FileCreationMenu: React.FC<FileCreationMenuProps> = ({
 			onClose={onClose}
 			mode={mode}
 			width={250}
-			maxHeight={400}
+			maxHeight={600}
 			className='file-creation-dropdown'
 		>
 			<div className='ui-menu-section' data-variant='control'>
@@ -125,30 +134,64 @@ const FileCreationMenu: React.FC<FileCreationMenuProps> = ({
 				</>
 			)}
 
-			{onAddFrom && (
+			{(onAddFrom || onUpload) && (
 				<div className='ui-menu-section' data-variant='control'>
-					<button
-						type='button'
-						className='ui-menu-item'
-						onClick={() => {
-							onAddFrom('project');
-							onClose();
-						}}
-					>
-						<ProjectsIcon />
-						<span className='ui-menu-label'>{t('From another project')}</span>
-					</button>
-					<button
-						type='button'
-						className='ui-menu-item'
-						onClick={() => {
-							onAddFrom('url');
-							onClose();
-						}}
-					>
-						<UrlIcon />
-						<span className='ui-menu-label'>{t('From external URL')}</span>
-					</button>
+					{onUpload && (
+						<>
+							<button
+								type='button'
+								className='ui-menu-item'
+								data-action='upload-files'
+								onClick={() => {
+									onUpload('files');
+									onClose();
+								}}
+							>
+								<UploadIcon />
+								<span className='ui-menu-label'>{t('Upload Files')}</span>
+							</button>
+							<button
+								type='button'
+								className='ui-menu-item'
+								data-action='upload-folder'
+								onClick={() => {
+									onUpload('folder');
+									onClose();
+								}}
+							>
+								<FolderUploadIcon />
+								<span className='ui-menu-label'>{t('Upload a Folder')}</span>
+							</button>
+						</>
+					)}
+					{onAddFrom && (
+						<>
+							<button
+								type='button'
+								className='ui-menu-item'
+								onClick={() => {
+									onAddFrom('project');
+									onClose();
+								}}
+							>
+								<ProjectsIcon />
+								<span className='ui-menu-label'>
+									{t('From another project')}
+								</span>
+							</button>
+							<button
+								type='button'
+								className='ui-menu-item'
+								onClick={() => {
+									onAddFrom('url');
+									onClose();
+								}}
+							>
+								<UrlIcon />
+								<span className='ui-menu-label'>{t('From external URL')}</span>
+							</button>
+						</>
+					)}
 				</div>
 			)}
 		</DropdownMenu>

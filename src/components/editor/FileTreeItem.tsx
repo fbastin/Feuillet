@@ -23,6 +23,7 @@ import {
 	FolderIcon,
 	FolderOpenIcon,
 	FolderPlusIcon,
+	FolderUploadIcon,
 	InfoIcon,
 	LinkIcon,
 	MoreVerticalIcon,
@@ -69,6 +70,7 @@ interface FileTreeItemProps {
 	onCreateFileInFolder: (folderId: string, folderPath: string) => void;
 	onCreateSubfolder: (parentPath: string) => void;
 	onUploadToFolder: (folderPath: string) => void;
+	onUploadFolderTo: (folderPath: string) => void;
 	onExpandAllSubfolders: (node: FileNode) => void;
 	onCollapseAllSubfolders: (node: FileNode) => void;
 	onDeleteFileOrDirectory: (fileId: string) => void;
@@ -126,6 +128,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 	onCreateFileInFolder,
 	onCreateSubfolder,
 	onUploadToFolder,
+	onUploadFolderTo,
 	onExpandAllSubfolders,
 	onCollapseAllSubfolders,
 	onDeleteFileOrDirectory,
@@ -547,6 +550,19 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 											<button
 												type='button'
 												className='ui-menu-item'
+												data-action='upload-folder'
+												onClick={(e) => {
+													e.stopPropagation();
+													onUploadFolderTo(node.path);
+												}}
+											>
+												<FolderUploadIcon />
+												<span>{t('Upload a Folder')}</span>
+											</button>
+
+											<button
+												type='button'
+												className='ui-menu-item'
 												onClick={(e) => {
 													e.stopPropagation();
 													onCreateFileInFolder(node.id, node.path);
@@ -746,6 +762,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({
 							onCreateFileInFolder={onCreateFileInFolder}
 							onCreateSubfolder={onCreateSubfolder}
 							onUploadToFolder={onUploadToFolder}
+							onUploadFolderTo={onUploadFolderTo}
 							onExpandAllSubfolders={onExpandAllSubfolders}
 							onCollapseAllSubfolders={onCollapseAllSubfolders}
 							onDeleteFileOrDirectory={onDeleteFileOrDirectory}
