@@ -2713,7 +2713,6 @@
   "Save as SVG": "Enregistrer en SVG",
   "Save Changes": "Enregistrer les modifications",
   "Save Changes to File": "Enregistrer les modifications dans le fichier",
-  "Save current file": "Enregistrer le fichier actuel",
   "Save Document (Ctrl+S)": "Enregistrer le document (Ctrl+S)",
   "Save document to linked file (Ctrl+S)": "Enregistrer le document dans le fichier lié (Ctrl+S)",
   "Save File": "Enregistrer le fichier",
@@ -4265,5 +4264,11 @@
   "Select a rectangle": "Sélectionner un rectangle",
   "Escape": "Échap",
   "Keep only the main cursor": "Ne garder que le curseur principal",
-  "Delete the line": "Supprimer la ligne"
+  "Delete the line": "Supprimer la ligne",
+  "Save current file and compile": "Enregistrer le fichier et compiler",
+  "Comment or uncomment the lines": "Commenter ou décommenter les lignes",
+  "To upper case": "En majuscules",
+  "To lower case": "En minuscules",
+  "Show or hide the review panel": "Afficher ou masquer le panneau de relecture",
+  "Turn track changes on or off": "Activer ou désactiver le suivi des modifications"
 }

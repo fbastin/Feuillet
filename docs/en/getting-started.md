@@ -164,13 +164,20 @@ one undo takes it all back, and track changes suggests one change per
 place. **Escape** goes back to the main cursor alone. **Ctrl+D**
 (**Cmd+D**) deletes the line, as on Overleaf.
 
+Overleaf's other shortcuts are there too: **Ctrl+/** comments or
+uncomments the lines, **Ctrl+U** and **Ctrl+Shift+U** put the selection (or
+the word under the cursor) in upper or lower case, **Ctrl+Shift+L** goes to
+a line, **Ctrl+J** shows or hides the review panel and **Ctrl+Shift+A**
+turns track changes on or off. The full list opens from the **Keyboard Map** link at the bottom of the
+page (behind the **⋯** button when needed).
+
 When the window is narrow, the least used tools of the editor's toolbar go
 into the **…** menu.
 
 ## Compiling
 
 **Ctrl+Enter** (or **Cmd+Enter**) compiles the project with TeX Live, on
-Feuillet's server. The menu next to the compile button offers:
+Feuillet's server; so does **Ctrl+S** (**Cmd+S**), as on Overleaf. The menu next to the compile button offers:
 
 - the project's **main document** and **engine** (pdfLaTeX, LaTeX, XeLaTeX
   or LuaLaTeX), the same for every collaborator. As on Overleaf and arXiv,

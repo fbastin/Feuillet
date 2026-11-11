@@ -8,7 +8,7 @@ they are accepted or rejected.
 ## Commenting
 
 Select a passage: an **Add Comment** button appears next to it (shortcut
-**Alt+C**). Write the comment, then **Add Comment**. The comments button
+**Alt+C**, or **Ctrl+Shift+C** as on Overleaf). Write the comment, then **Add Comment**. The comments button
 (the speech bubble, with their number), in the editor's toolbar, opens the
 panel where comments are answered (**Add response**) and marked as
 resolved. Readers do not comment; editors and reviewers do.
@@ -27,7 +27,8 @@ more. So as to flood nobody, an account gets at most five a day.
 
 ## Tracking changes
 
-The track changes button (the pen) turns tracking on for you. Its arrow
+The track changes button (the pen) turns tracking on for you (shortcut
+**Ctrl+Shift+A**; **Ctrl+J** shows or hides the panel). Its arrow
 opens the **Tracking Options**: track the changes of **Everyone**, or of
 chosen people. This setting holds for the whole project and for all its
 collaborators, as on Overleaf.

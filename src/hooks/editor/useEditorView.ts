@@ -61,6 +61,7 @@ import {
 	multipleSelections,
 	overleafSelectionKeys,
 } from '../../extensions/codemirror/multipleSelections';
+import { overleafEditorKeys } from '../../extensions/codemirror/overleafKeys';
 import {
 	createBold as createLatexBold,
 	createItalic as createLatexItalic,
@@ -459,6 +460,7 @@ export const useEditorView = (
 					: []),
 				indentWithTab,
 				...closeBracketsKeymap,
+				...overleafEditorKeys({ reviews: enableReviews }),
 				...overleafSelectionKeys,
 				...defaultKeymap,
 				...searchKeymap,
@@ -676,6 +678,7 @@ export const useEditorView = (
 				await saveDocumentToLinkedFile(content);
 		};
 
+		// Ctrl+S saves, then compiles, as on Overleaf.
 		const saveBinding = keymap.of([
 			{
 				key: 'Mod-s',
@@ -683,9 +686,13 @@ export const useEditorView = (
 					if (isViewOnly) {
 						setShowSaveIndicator(true);
 						setTimeout(() => setShowSaveIndicator(false), 2000);
-						return true;
 					}
-					void saveContent(view.state.doc.toString());
+					const save = isViewOnly
+						? Promise.resolve()
+						: saveContent(view.state.doc.toString());
+					void save.finally(() =>
+						document.dispatchEvent(new CustomEvent('trigger-compile')),
+					);
 					return true;
 				},
 			},
@@ -744,26 +751,26 @@ export const useEditorView = (
 		if (!enableComments) return [];
 		if (isViewOnly) return [commentDisplayExtension];
 
+		const addComment = (view: EditorView): boolean => {
+			if (isViewOnly) return false;
+			const range = view.state.selection.main;
+			if (range.from === range.to) return false;
+			try {
+				document.dispatchEvent(
+					new CustomEvent('show-comment-modal', {
+						detail: { selection: range },
+					}),
+				);
+				return true;
+			} catch (error) {
+				moduleLog.error('Error in commentKeymap:', error);
+				return false;
+			}
+		};
+		// Alt+C, and Ctrl+Shift+C as on Overleaf.
 		const commentBinding = keymap.of([
-			{
-				key: 'Alt-c',
-				run: (view) => {
-					if (isViewOnly) return false;
-					const range = view.state.selection.main;
-					if (range.from === range.to) return false;
-					try {
-						document.dispatchEvent(
-							new CustomEvent('show-comment-modal', {
-								detail: { selection: range },
-							}),
-						);
-						return true;
-					} catch (error) {
-						moduleLog.error('Error in commentKeymap:', error);
-						return false;
-					}
-				},
-			},
+			{ key: 'Alt-c', run: addComment },
+			{ key: 'Mod-Shift-c', run: addComment, preventDefault: true },
 		]);
 
 		return [commentBinding, commentSystemExtension];

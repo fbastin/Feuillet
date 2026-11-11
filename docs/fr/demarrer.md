@@ -171,13 +171,21 @@ sélection, une annulation défait le tout, et le suivi des modifications
 propose un changement par endroit. **Échap** revient au seul curseur
 principal. **Ctrl+D** (**Cmd+D**) supprime la ligne, comme sur Overleaf.
 
+Les autres raccourcis d'Overleaf y sont aussi : **Ctrl+/** commente ou
+décommente les lignes, **Ctrl+U** et **Ctrl+Maj+U** mettent la sélection
+(ou le mot sous le curseur) en majuscules ou en minuscules, **Ctrl+Maj+L**
+va à une ligne, **Ctrl+J** affiche ou masque le panneau de relecture et
+**Ctrl+Maj+A** active ou désactive le suivi des modifications. La liste
+complète s'ouvre par le lien **Mappage du clavier**, en bas de la page (au
+besoin derrière le bouton **⋯**).
+
 Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
 l'éditeur passent dans le menu **…**.
 
 ## Compiler
 
 **Ctrl+Entrée** (ou **Cmd+Entrée**) compile le projet avec TeX Live, sur le
-serveur de Feuillet. Le menu à côté du bouton de compilation offre :
+serveur de Feuillet; **Ctrl+S** (**Cmd+S**) aussi, comme sur Overleaf. Le menu à côté du bouton de compilation offre :
 
 - le **document principal** du projet et le **moteur** (pdfLaTeX, LaTeX,
   XeLaTeX ou LuaLaTeX), communs à tous les collaborateurs. Comme sur

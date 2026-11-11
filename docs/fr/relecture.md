@@ -8,7 +8,7 @@ modifications pour les faire accepter ou rejeter.
 ## Commenter
 
 Sélectionnez un passage : un bouton **Ajouter un commentaire** apparaît à
-côté (raccourci **Alt+C**). Écrivez le commentaire, puis **Ajouter un
+côté (raccourci **Alt+C**, ou **Ctrl+Maj+C** comme sur Overleaf). Écrivez le commentaire, puis **Ajouter un
 commentaire**. Le bouton des commentaires (la bulle, avec leur nombre),
 dans la barre de l'éditeur, ouvre le panneau où l'on répond aux
 commentaires (**Ajouter une réponse**) et où on les marque comme résolus.
@@ -30,7 +30,8 @@ au plus cinq par jour.
 
 ## Suivre les modifications
 
-Le bouton de suivi des modifications (le crayon) active le suivi pour vous.
+Le bouton de suivi des modifications (le crayon) active le suivi pour vous
+(raccourci **Ctrl+Maj+A**; **Ctrl+J** affiche ou masque le panneau).
 Sa flèche ouvre les **Options de suivi** : suivre les modifications de **tout
 le monde**, ou de personnes choisies. Ce réglage vaut pour tout le projet et
 pour tous les collaborateurs, comme dans Overleaf.

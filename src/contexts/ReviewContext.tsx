@@ -13,6 +13,10 @@ import { useAuth } from '../hooks/useAuth';
 import { useCaughtUp } from '../hooks/useCaughtUp';
 import { useCollab } from '../hooks/useCollab';
 import { useProperties } from '../hooks/useProperties';
+import {
+	TOGGLE_REVIEW_PANEL,
+	TOGGLE_TRACK_CHANGES,
+} from '../extensions/codemirror/overleafKeys';
 import { fileStoreService } from '../services/FileStoreService';
 import { reviewService } from '../services/ReviewService';
 import type { DocumentList, ProjectMetadata } from '../types/documents';
@@ -304,6 +308,20 @@ export const ReviewProvider: React.FC<ReviewProviderProps> = ({
 		if (reviewOnly || !username) return;
 		setUserTracked(username, !trackChangesLocal);
 	}, [reviewOnly, username, trackChangesLocal, setUserTracked]);
+
+	// The editor's Ctrl+J and Ctrl+Shift+A, as on Overleaf.
+	const keyToggles = useRef({ toggleReviews, toggleTrackChanges });
+	keyToggles.current = { toggleReviews, toggleTrackChanges };
+	useEffect(() => {
+		const panel = () => keyToggles.current.toggleReviews();
+		const tracking = () => keyToggles.current.toggleTrackChanges();
+		document.addEventListener(TOGGLE_REVIEW_PANEL, panel);
+		document.addEventListener(TOGGLE_TRACK_CHANGES, tracking);
+		return () => {
+			document.removeEventListener(TOGGLE_REVIEW_PANEL, panel);
+			document.removeEventListener(TOGGLE_TRACK_CHANGES, tracking);
+		};
+	}, []);
 
 	const toggleTrackChangesShared = useCallback(() => {
 		if (!canShareTracking) return;

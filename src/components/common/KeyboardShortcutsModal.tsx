@@ -141,7 +141,9 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 								<div className='ui-actions' data-wrap='true'>
 									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd>
 								</div>
-								<div className='ui-list-content'>{t('Save current file')}</div>
+								<div className='ui-list-content'>
+									{t('Save current file and compile')}
+								</div>
 							</div>
 
 							<div
@@ -195,7 +197,8 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 								data-surface='secondary'
 							>
 								<div className='ui-actions' data-wrap='true'>
-									<kbd>{t('Alt')}</kbd> + <kbd>C</kbd>
+									<kbd>{t('Alt')}</kbd> + <kbd>C</kbd>, <kbd>{t('Ctrl')}</kbd> +{' '}
+									<kbd>{t('Shift')}</kbd> + <kbd>C</kbd>
 								</div>
 								<div className='ui-list-content'>
 									{t('Add comment to selection')}
@@ -213,6 +216,93 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 									<kbd>{t('Tab')}</kbd>
 								</div>
 								<div className='ui-list-content'>{t('Indent selection')}</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>/</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Comment or uncomment the lines')}
+								</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>U</kbd>
+								</div>
+								<div className='ui-list-content'>{t('To upper case')}</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> +{' '}
+									<kbd>{t('Shift')}</kbd> + <kbd>U</kbd>
+								</div>
+								<div className='ui-list-content'>{t('To lower case')}</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> +{' '}
+									<kbd>{t('Shift')}</kbd> + <kbd>L</kbd>
+								</div>
+								<div className='ui-list-content'>{t('Go to line')}</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>J</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Show or hide the review panel')}
+								</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> +{' '}
+									<kbd>{t('Shift')}</kbd> + <kbd>A</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Turn track changes on or off')}
+								</div>
 							</div>
 
 							<div
