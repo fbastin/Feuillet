@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import {
 	autocompletion,
 	type Completion,
@@ -48,19 +46,6 @@ import {
 	texLiveNameArgument,
 	withTexLiveNames,
 } from '@src/extensions/codemirror/autocomplete/texLiveNamesCompletion';
-
-// The list as generated, served the way the browser fetches it.
-const names = JSON.parse(
-	readFileSync(
-		join(
-			__dirname,
-			'../../../../src/extensions/codemirror/autocomplete/__generated__/texliveNames.json',
-		),
-		'utf8',
-	),
-);
-const fetchMock = jest.fn(async () => ({ ok: true, json: async () => names }));
-(globalThis as { fetch?: unknown }).fetch = fetchMock;
 
 // What the LaTeX completion answers elsewhere.
 const fallback = (context: CompletionContext) => ({
@@ -213,10 +198,5 @@ describe('the completion', () => {
 		]);
 		// Not its short list either, in a comment.
 		expect(await complete('% \\usepackage{geo')).toEqual([]);
-	});
-
-	it('fetches the list once', () => {
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(fetchMock).toHaveBeenCalledWith('/assets/mocked.json');
 	});
 });

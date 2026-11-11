@@ -91,13 +91,11 @@ const EXTENSIONS: Record<Kind, string> = {
 
 let loading: Promise<TexLiveNames> | null = null;
 const loadNames = (): Promise<TexLiveNames> => {
-	// A file of its own, fetched as JSON: nothing to parse as code.
-	loading ??= import('./__generated__/texliveNames.json?url')
-		.then(({ default: url }) => fetch(url))
-		.then((response) => {
-			if (!response.ok) throw new Error(`HTTP ${response.status}`);
-			return response.json() as Promise<TexLiveNames>;
-		});
+	// A chunk of its own, served compressed as scripts are (the web server
+	// leaves .json files as they are).
+	loading ??= import('./__generated__/texliveNames.json').then(
+		(module) => (module.default ?? module) as unknown as TexLiveNames,
+	);
 	// A failed load (offline before it was cached) is tried again next time.
 	loading.catch(() => {
 		loading = null;
