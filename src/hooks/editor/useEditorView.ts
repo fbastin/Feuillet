@@ -86,6 +86,8 @@ import {
 	refreshBibliographyCache,
 } from '../../extensions/codemirror/PathAndBibAutocompleteExtension';
 import { latexDefinitionsCompletion } from '../../extensions/codemirror/autocomplete/latexDefinitionsCompletion';
+import { positionCompletionInfo } from '../../extensions/codemirror/autocomplete/completionInfoPosition';
+import { withTexLiveNames } from '../../extensions/codemirror/autocomplete/texLiveNamesCompletion';
 import {
 	getGenericLSPExtensionsForFile,
 	getGenericLSPCompletionSources,
@@ -582,7 +584,8 @@ export const useEditorView = (
 				completionSources.push(enhancedCompletionSource);
 
 				if (info.isLatex) {
-					completionSources.push(latexCompletionSource(true));
+					// Packages, classes and styles: all of TeX Live's.
+					completionSources.push(withTexLiveNames(latexCompletionSource(true)));
 					// The project's own commands and environments, as on Overleaf.
 					completionSources.push(latexDefinitionsCompletion(fileName ?? ''));
 				} else if (info.isTypst) {
@@ -949,6 +952,7 @@ export const useEditorView = (
 					override: completionSources,
 					maxRenderedOptions: 20,
 					closeOnBlur: false,
+					positionInfo: positionCompletionInfo,
 				}),
 			);
 		} else {

@@ -4255,5 +4255,6 @@
   "Moves the changes to Resolved without accepting or rejecting them: they stay in the text.": "Range les modifications dans Résolus sans les accepter ni les rejeter : elles restent dans le texte.",
   "Edit comment": "Modifier le commentaire",
   "Edit response": "Modifier la réponse",
-  "Presentation mode": "Mode présentation"
+  "Presentation mode": "Mode présentation",
+  "in this project": "dans ce projet"
 }

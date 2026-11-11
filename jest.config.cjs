@@ -31,6 +31,7 @@ module.exports = {
 		'^@replit/codemirror-vim$': '<rootDir>/tests/mocks/codemirror.js',
 		'^pdfjs-dist$': '<rootDir>/tests/mocks/pdfjs.js',
 		'^pdfjs-dist/build/pdf.worker.mjs\\?url$': '<rootDir>/tests/mocks/pdfjs.js',
+		'\\.json\\?url$': '<rootDir>/tests/mocks/jsonUrl.js',
 		'^filepizza-client$': '<rootDir>/tests/mocks/filepizza-client.js',
 		'^wasm-latex-tools$': '<rootDir>/tests/mocks/wasm-latex-tools.js',
 		'^mathlive$': '<rootDir>/tests/mocks/mathlive.js',

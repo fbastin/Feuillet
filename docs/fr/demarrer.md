@@ -133,6 +133,14 @@ titre, de leur année ou de leur revue, dans n'importe quel ordre et sans
 `Schr{\"o}dinger`. **Entrée** remplace les mots par la clé choisie; après
 une virgule, on cherche la référence suivante.
 
+Dans `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` et les
+thèmes de Beamer (`\usetheme{…}`…), l'éditeur propose, comme Overleaf, tous
+les paquets, classes, styles BibTeX et thèmes de TeX Live, et d'abord ceux du
+projet (ses fichiers `.sty`, `.cls` et `.bst`). À côté du nom paraît le paquet
+de TeX Live qui le fournit, s'il s'appelle autrement (`tikz` vient de `pgf`),
+et le moteur qu'il demande, s'il n'est que pour LuaLaTeX ou XeLaTeX; la
+description de ce paquet s'affiche à côté de la liste, ou dessous.
+
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
 Typst; un clic droit propose des corrections. La langue suit celle du
 document : celle de babel ou de polyglossia en LaTeX, celle de

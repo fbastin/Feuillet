@@ -38,6 +38,8 @@ import {
 	resolveFontFamily,
 	resolveFontSize,
 } from '../../contexts/EditorContext';
+import { positionCompletionInfo } from '../../extensions/codemirror/autocomplete/completionInfoPosition';
+import { withTexLiveNames } from '../../extensions/codemirror/autocomplete/texLiveNamesCompletion';
 import { latexTypstBidiIsolates } from '../../extensions/codemirror/BidiExtension';
 import { resolveHighlightTheme } from '../../extensions/codemirror/HighlightThemeExtension';
 import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
@@ -188,7 +190,8 @@ export const useEditorViewExtensions = ({
 		}
 
 		if (editorSettings.languageFeatures.builtinCompletion) {
-			if (isLatex) completionSources.push(latexCompletionSource(true));
+			if (isLatex)
+				completionSources.push(withTexLiveNames(latexCompletionSource(true)));
 			else if (isTypst) completionSources.push(typstCompletionSource);
 			else if (isBib) completionSources.push(bibtexCompletionSource);
 		}
@@ -199,6 +202,7 @@ export const useEditorViewExtensions = ({
 					override: completionSources,
 					maxRenderedOptions: 20,
 					closeOnBlur: false,
+					positionInfo: positionCompletionInfo,
 				}),
 			);
 		} else {

@@ -129,6 +129,14 @@ and whatever the accents: `\cite{einstein 1905`, or `\cite{schrodinger` for
 `Schr{\"o}dinger`. **Enter** replaces the words with the chosen key; after a
 comma, you search for the next reference.
 
+In `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` and
+Beamer's themes (`\usetheme{…}`…), the editor offers, as Overleaf does, every
+package, class, BibTeX style and theme of TeX Live, the project's own first
+(its `.sty`, `.cls` and `.bst` files). Next to the name stands the TeX Live
+package that provides it, when it is called otherwise (`tikz` comes from
+`pgf`), and the engine it needs, when it is only for LuaLaTeX or XeLaTeX; the
+description of that package shows beside the list, or under it.
+
 The spell checker underlines mistakes in LaTeX and Typst text; a right click
 offers corrections. Its language follows the document's: babel's or
 polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst. The words added
