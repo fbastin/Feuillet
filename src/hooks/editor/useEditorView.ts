@@ -57,6 +57,7 @@ import {
 import { createNamedLogger } from '@/logging';
 import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
 import { environmentNameSync } from '../../extensions/codemirror/environmentNameSync';
+import { multipleSelections } from '../../extensions/codemirror/multipleSelections';
 import {
 	createBold as createLatexBold,
 	createItalic as createLatexItalic,
@@ -424,6 +425,8 @@ export const useEditorView = (
 				},
 			}),
 			EditorView.lineWrapping,
+			// Several cursors and selections, as on Overleaf.
+			multipleSelections(),
 			collaboratorFlashExtension,
 			// Tooltips stay over the text, not under the panels beside it.
 			tooltips({

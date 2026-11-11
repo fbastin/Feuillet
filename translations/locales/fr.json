@@ -4256,5 +4256,13 @@
   "Edit comment": "Modifier le commentaire",
   "Edit response": "Modifier la réponse",
   "Presentation mode": "Mode présentation",
-  "in this project": "dans ce projet"
+  "in this project": "dans ce projet",
+  "Select the next occurrence too": "Sélectionner aussi l'occurrence suivante",
+  "Add a cursor on the line above or below": "Ajouter un curseur à la ligne du dessus ou du dessous",
+  "click": "clic",
+  "Add a cursor": "Ajouter un curseur",
+  "drag": "glisser",
+  "Select a rectangle": "Sélectionner un rectangle",
+  "Escape": "Échap",
+  "Keep only the main cursor": "Ne garder que le curseur principal"
 }

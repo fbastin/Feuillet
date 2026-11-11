@@ -1,5 +1,6 @@
 // src/extensions/codemirror/review/trackChanges.ts
 import {
+	EditorSelection,
 	EditorState,
 	type Extension,
 	type StateField,
@@ -280,6 +281,10 @@ export function createTrackChangesFilter(deps: TrackChangesDeps): Extension {
 		let cursorPos: number | null = null;
 		let modified = false;
 		let lastEnd = -1;
+		// With several cursors, where each ends: after what it typed, moved
+		// by the length the changes before it add or remove.
+		const cursors: number[] = [];
+		let shift = 0;
 
 		for (const raw of original) {
 			if (
@@ -289,6 +294,8 @@ export function createTrackChangesFilter(deps: TrackChangesDeps): Extension {
 				)
 			) {
 				tracked.push(raw);
+				cursors.push(raw.from + raw.insert.length + shift);
+				shift += raw.insert.length - (raw.to - raw.from);
 				continue;
 			}
 
@@ -318,6 +325,10 @@ export function createTrackChangesFilter(deps: TrackChangesDeps): Extension {
 			if (next.from < lastEnd) return tr;
 
 			tracked.push({ from: next.from, to: next.to, insert: next.insert });
+			cursors.push(
+				(result ? result.cursorPos : next.from + change.cursorOffset) + shift,
+			);
+			shift += next.insert.length - (next.to - next.from);
 			lastEnd = next.to;
 			cursorPos = result?.cursorPos ?? cursorPos;
 			modified ||=
@@ -337,6 +348,14 @@ export function createTrackChangesFilter(deps: TrackChangesDeps): Extension {
 		};
 		if (cursorPos !== null && original.length === 1)
 			spec.selection = { anchor: cursorPos };
+		else if (
+			original.length > 1 &&
+			tr.newSelection.ranges.length === original.length
+		)
+			spec.selection = EditorSelection.create(
+				cursors.map((pos) => EditorSelection.cursor(pos)),
+				tr.newSelection.mainIndex,
+			);
 		return spec;
 	});
 }

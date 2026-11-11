@@ -153,6 +153,16 @@ count, nor the spaces before « : ; ! ? » that babel adds. Checking needs an
 account signed in to the server, and is turned off in **Settings**,
 **Grammar and style checking**.
 
+As on Overleaf, you can write in several places at once. **Ctrl+D**
+(**Cmd+D** on a Mac) selects the word under the cursor, then, at each
+press, its next occurrence; **Ctrl+Alt+↑** and **Ctrl+Alt+↓** add a cursor
+on the line above or below; **Ctrl+click** (**Cmd+click**) adds one where
+you click (on a link, it follows it, as before); **Alt** while dragging
+selects a rectangle, the same columns on several lines. What you type goes
+to every cursor, the toolbar buttons (bold, italic…) act on each selection,
+one undo takes it all back, and track changes suggests one change per
+place. **Escape** goes back to the main cursor alone.
+
 When the window is narrow, the least used tools of the editor's toolbar go
 into the **…** menu.
 

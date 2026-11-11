@@ -4256,5 +4256,13 @@
   "Edit comment": "Edit comment",
   "Edit response": "Edit response",
   "Presentation mode": "Presentation mode",
-  "in this project": "in this project"
+  "in this project": "in this project",
+  "Select the next occurrence too": "Select the next occurrence too",
+  "Add a cursor on the line above or below": "Add a cursor on the line above or below",
+  "click": "click",
+  "Add a cursor": "Add a cursor",
+  "drag": "drag",
+  "Select a rectangle": "Select a rectangle",
+  "Escape": "Escape",
+  "Keep only the main cursor": "Keep only the main cursor"
 }

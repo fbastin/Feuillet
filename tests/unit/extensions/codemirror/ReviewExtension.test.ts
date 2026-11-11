@@ -644,3 +644,75 @@ describe('ReviewExtension', () => {
 		});
 	});
 });
+
+describe('tracking with several cursors', () => {
+    const createMultiView = (doc: string, positions: number[]) => {
+        const view = new EditorView({
+            state: EditorState.create({
+                doc,
+                selection: EditorSelection.create(
+                    positions.map((pos) => EditorSelection.cursor(pos)),
+                ),
+                extensions: [
+                    EditorState.allowMultipleSelections.of(true),
+                    annotationSystemExtension,
+                    commentSystemExtension,
+                    reviewSystemExtension,
+                ],
+            }),
+            parent: document.body,
+        });
+        views.push(view);
+        setTrackChanges(view, { tracking: true, author: 'tester' });
+        return view;
+    };
+    const typeEverywhere = (view: EditorView, text: string) => {
+        for (const ch of text) {
+            view.dispatch(
+                view.state.update(view.state.replaceSelection(ch), {
+                    userEvent: 'input.type',
+                }),
+            );
+        }
+    };
+
+    it('makes a suggestion at each cursor, in the order typed', () => {
+        const view = createMultiView('alpha gamma\nligne deux\n', [6, 12]);
+        typeEverywhere(view, 'NEW ');
+
+        expect(cleanText(view.state.doc.toString())).toBe(
+            'alpha NEW gamma\nNEW ligne deux\n',
+        );
+        expect(reviews(view).map((review) => review.currentText)).toEqual([
+            'NEW ',
+            'NEW ',
+        ]);
+        // Each cursor stays right after what it typed.
+        const doc = view.state.doc.toString();
+        expect(
+            view.state.selection.ranges.map((range) =>
+                doc.slice(range.head - 4, range.head),
+            ),
+        ).toEqual(['NEW ', 'NEW ']);
+    });
+
+    it('suggests a deletion at each cursor, then a replacement', () => {
+        const view = createMultiView('alpha gamma\nligne deux\n', [5, 17]);
+        deleteCharBackward(view);
+        deleteCharBackward(view);
+        expect(reviews(view).map((review) => review.originalText)).toEqual([
+            'ha',
+            'ne',
+        ]);
+        typeEverywhere(view, 'X');
+        expect(
+            reviews(view).map((review) => [
+                review.originalText,
+                review.currentText,
+            ]),
+        ).toEqual([
+            ['ha', 'X'],
+            ['ne', 'X'],
+        ]);
+    });
+});

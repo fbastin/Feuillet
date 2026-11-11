@@ -268,6 +268,78 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 								</div>
 								<div className='ui-list-content'>{t('Redo')}</div>
 							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>D</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Select the next occurrence too')}
+								</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> + <kbd>{t('Alt')}</kbd> + <kbd>↑</kbd>{' '}
+									/ <kbd>↓</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Add a cursor on the line above or below')}
+								</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + {t('click')}
+								</div>
+								<div className='ui-list-content'>{t('Add a cursor')}</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Alt')}</kbd> + {t('drag')}
+								</div>
+								<div className='ui-list-content'>{t('Select a rectangle')}</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Escape')}</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Keep only the main cursor')}
+								</div>
+							</div>
 						</div>
 					</section>
 
