@@ -1,0 +1,9 @@
+[
+["bitelist",[],[]],
+["bxjaprnind",["bxtoolbox","everyhook"],["\\useparheadparenindent","\\nouseparheadparenindent","\\uselineheadparenindent","\\nouselineheadparenindent","\\usedialogueparenindent","\\nousedialogueparenindent","\\parheadparenindentamount{real number}","\\lineheadparenindentamount{real number}","\\lineheadforceindentamount{real number}","\\dialogueparenindentamount{real number}","\\prnind","\\prnind[real number]"]],
+["centeredline",[],["\\centeredline{text}"]],
+["dvipscol",[],["\\nogroupcolor{color}"]],
+["graphicx-psmin",["graphicx"],["\\loadgraphics{list of graphics%URL}","\\loadgraphics[bb]{list of graphics%URL}"]],
+["hgbbib",["xifthen","biblatex","csquotes"],["\\nptextcite[prenote][postnote]{bibid}","\\nptextcite[postnote]{bibid}","\\nptextcite{bibid}","\\MakeBibliography","\\MakeBibliography[nosplit]%|","\\mcite{bibid}{bibid}","\\mcite(pre)(post){bibid}{bibid}","\\mcite(pre)(post)[pre][post]{bibid}[pre][post]{bibid}"]],
+["spelling",["ifluatex","luatexbase","atbegshi"],["\\spellingreadgood{file}","\\spellingmatchrules{file}","\\spellinghighlight{on/off}","\\spellinghighlightcolor{color}","\\spellingoutput{on/off}","\\spellingoutputname{file}","\\spellingoutputlinelength{number}","\\spellingextract{on/off}","\\spellingmapping{number}{chars}","\\spellingclearallmappings","\\spellingtablepar{number}","\\spellingreadLT{file}","\\spellingreadbad{file}"]]
+]

@@ -1,0 +1,8 @@
+[
+["beamerthememetropolis",["etoolbox","pgfopts","ifxetex","ifluatex","fontspec","keyval","calc","tikz"],["\\metroset{options%keyvals}"]],
+["cuted",[],["\\begin{strip}","\\preCutedStrip{tokens}","\\postCutedStrip{tokens}","\\switchonecolumn","\\switchtwocolumn"]],
+["luacas",["iftex","luacode","pgfkeys","verbatim","tikz","xcolor","mathtools"],["\\begin{CAS}","\\fetch{name}","\\store{name}[alt-name]","\\print{expr}","\\print*{expr}","\\vprint{expr}","\\vprint*{expr}","\\lprint{expr}","\\parseforest{expr}","\\parseforest*{expr}","\\forestresult","\\parseshrub{expr}","\\parseshrub*{expr}","\\shrubresult","\\whatis{expr}"]],
+["multicap",["ifthen"],["\\mfcaption{text}","\\mfcaption[short text%text]{text}","\\mtcaption{text}","\\mtcaption[short text%text]{text}"]],
+["refcheck",[],["\\showrefnames","\\norefnames","\\showcitenames","\\nocitenames","\\refcheckxrdoc{file}","\\refcheckxrdoc[prefix]{file}","\\setonmsgs","\\setoffmsgs","\\checkunlbld","\\ignoreunlbld"]],
+["soup",["l3keys2e","tikz"],["\\begin{alphabetsoup}","\\begin{alphabetsoup}[width][height][font]","\\begin{Alphabetsoup}","\\begin{Alphabetsoup}[width][height][font]","\\begin{numbersoup}{max}","\\begin{numbersoup}[width][height]{max}[min][font]","\\begin{homemadesoup}{symbols}","\\begin{homemadesoup}[width][height]{symbols}[font]","\\hideinsoup{x}{y}{dir}{seq}","\\hideinsoup{x}{y}{dir}{seq}[clue]","\\hideinsoup*{x}{y}{dir}{seq}","\\hideinsoup*{x}{y}{dir}{seq}[clue]","\\highlightinsoup{x1}{y1}{x2}{y2}","\\listofclues"]]
+]

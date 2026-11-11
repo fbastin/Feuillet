@@ -1,0 +1,6 @@
+[
+["allhuncl",["huncial"],["\\cmrfamily","\\textcmr{text}","\\cmssfamily","\\textcmss{text}","\\cmttfamily","\\textcmtt{text}"]],
+["orcidlink",["etoolbox","hyperref","tikz","tikzlibrarysvg.path"],["\\orcidlink{orcid%URL}","\\orcidlinkf{orcid%URL}","\\orcidlinkc{orcid%URL}","\\orcidlinki{name}{orcid%URL}"]],
+["pmdraw",["xkeyval","tikz","tikzlibrarymath","tikzlibrarydecorations.pathreplacing","tikzlibrarycalligraphy","tikzlibrarybackgrounds"],["\\pmdEmpty","\\pmdBrick[options%keyvals]{U-edges}{L-edges}{T-edges}","\\pmdDiagram{bricks}","\\pmdDiagram[options%keyvals]{bricks}","\\pmdProduct{A-edges}{T-bricks}{B-bricks}","\\pmdProduct[options%keyvals]{A-edges}{T-bricks}{B-bricks}","\\pmdProductTriple{ATedges}{ABedges}{Tbricks}}{Mbricks}{Bbricks}","\\pmdProductTriple[options%keyvals]{ATedges}{ABedges}{Tbricks}}{Mbricks}{Bbricks}","\\pmdEquiv{E bricks}","\\pmdEquiv[options%keyvals]{E bricks}","\\pmdSetDefault{options%keyvals}","\\pmdSetToOriginalDefault"]],
+["struktxp",["url"],["\\pVariable{name%definition}","\\pVar{name%definition}","\\pKeyword{keyword%definition}","\\pKey{keyword%definition}","\\pExpression{expression%definition}","\\pExp{expression%definition}","\\pComment{text}","\\pTrue","\\pFalse","\\pFonts{variable font}{keyword font}{comment font}","\\pBoolValue{true}{false}"]]
+]

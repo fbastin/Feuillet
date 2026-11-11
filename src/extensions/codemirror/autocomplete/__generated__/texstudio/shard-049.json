@@ -1,0 +1,13 @@
+[
+["class-bfhpub",["l3keys2e","class-scrartcl","bfhlayout"],["\\enableHeadLineLogo","\\enableHeadLineLogo*","\\disableHeadlineLogo","\\advisor{name}","\\coadvisor{name}","\\projectpartner{name}","\\expert{name}","\\projectstartdate{date}","\\studysubmissiondate{date}","\\reportsubmissiondate{date}","\\presentationdate{date}","\\begin{ProjectDescription}","\\DisplayCompetenceRatingChart{name1=val1,name2=val2,...}","\\DisplayCompetenceRatingChart[options%keyvals]{name1=val1,name2=val2,...}"]],
+["class-bitbeamer",["l3keys2e","class-ctexbeamer","xeCJKfntef","tikz"],["\\CJKhl{color}{text}"]],
+["collect",[],["\\definecollection{name}","\\begin{collect*}{name}{before}{after}{before-col}{after-col}","\\begin{collect}{name}{before-col}{after-col}","\\includecollection{name}","\\begin{collectinmacro}{macro%cmd}{before}{after}"]],
+["euflag",["xcolor","graphicx","amssymb"],["\\euflag","\\euflag[baseline%l]"]],
+["iwonamath",[],["\\DefineIwonaMathVersion{keyvals}"]],
+["marathi",["iftex","setspace","pgfkeys","fontspec","babel","csquotes"],["\\बदल{options%keyvals}","\\परिच्छेद","\\नमुना","\\टंक{font name}","\\दुसराटंक{cmd}{font name}","\\अंतरबदल{integer}"]],
+["na-border",["amsmath","amsfonts","amssymb","mathrsfs","xcolor","tikz","tikzlibrarypatterns","tikzlibraryshapes","tikzlibraryshadings","tikzlibraryshadows","tikzlibraryshapes.geometric","tikzlibrarydecorations","tikzlibrarypositioning","tikzlibrarydecorations.pathmorphing","tikzlibrarycalc","tikzlibraryfadings","tikzlibraryshapes.misc","tikzlibraryintersections","fancyhdr"],["\\naborder{color}{letter}","\\bordertitle{top frame color}{bottom frame color}{text}"]],
+["pst-gr3d",["pstricks","pst-node","pst-3d","multido","pst-xkey"],["\\PstGridThreeD(x,y,z)","\\PstGridThreeD[options%keyvals](x,y,z)","\\PstGridThreeDNodeProcessor{color}"]],
+["t4phonet",[],["\\textcrd","\\textcrh","\\textdoublegrave{arg}","\\textdoublevbaraccent{arg}","\\textepsilon","\\textesh","\\textfjlig","\\texthtb","\\texthtc","\\texthtd","\\texthtk","\\texthtp","\\texthtt","\\textiota","\\textltailn","\\textopeno","\\textpipe","\\textrtaild","\\textrtailt","\\textschwa","\\textscriptv","\\textteshlig","\\textvbaraccent{arg}","\\textyogh"]],
+["tikzlibrarycircuits.logic.CDH",["tikzlibrarycircuits.logic.US"],[]],
+["unicode-alphabets",["pgfkeys","pgfopts","etoolbox","stringstrings","csvsimple"],["\\agl{char name or code}","\\agl*{char name or code}","\\cyfi{char name or code}","\\cyfi*{char name or code}","\\mufi{char name or code}","\\mufi*{char name or code}","\\titus{char name or code}","\\titus*{char name or code}","\\sil{char name or code}","\\sil*{char name or code}","\\ucsur{char name or code}","\\ucsur*{char name or code}","\\unz{char name or code}","\\unz*{char name or code}"]]
+]

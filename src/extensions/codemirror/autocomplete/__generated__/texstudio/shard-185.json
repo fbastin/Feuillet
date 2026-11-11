@@ -1,0 +1,9 @@
+[
+["addtoluatexpath",["luacode"],["\\addtoluatexpath{path1,path2,...%file}"]],
+["beamerthemeFhG",["euler","fhginstitutes","graphicx","pgf"],["\\begin{splitvv}","\\begin{splitv}","\\boxitem","\\cdotitem","\\begin{titleframe}","\\fhgpaperwidth","\\fhgtextwidth","\\questionitem","\\setinstitute{arg1}","\\splitvnext","\\splitvvnext","\\triangledownitem","\\triangleleftitem","\\trianglerightitem","\\triangleupitem","\\vdotsitem"]],
+["classicthesis-arsclassica",["classicthesis"],["\\formatchapter{text}"]],
+["ebgaramond",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\ebgaramond","\\liningnums{text}","\\tabularnums{text}","\\proportionalnums{text}","\\sufigures","\\textsu{text}","\\infigures","\\textinf{text}","\\swshape","\\textsw{text}","\\initials","\\textin{letter%keyvals}"]],
+["numbersets",[],["\\SetupNumberSetsOptions{options%keyvals}","\\NumberSet{symbol}","\\NumberSet[options%keyvals]{symbol}","\\DeclareNumberSetCommand{command}{symbol}","\\DeclareNumberSetStyle{style%specialDef}{command}","\\NaturalNumbers","\\Integers","\\RationalNumbers","\\RealNumbers","\\ComplexNumbers"]],
+["soulutf8",["soul"],[]],
+["tikz-among-us-fancyhdr",["tikz-among-us","fancyhdr"],[]]
+]

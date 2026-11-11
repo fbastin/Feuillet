@@ -1,0 +1,12 @@
+[
+["chemarrow",[],["\\chemarrow","\\larrowfill{length}","\\rarrowfill{length}","\\rightleftharpoonsfill{length}","\\leftrightharpoonsfill{length}","\\autoleftarrow{above}{below}","\\autorightarrow{above}{below}","\\autorightleftharpoons{above}{below}","\\autoleftrightharpoons{above}{below}"]],
+["class-memo-l",["class-amsbook"],["\\PII{arg}","\\revertcopyright","\\issuenote{text}"]],
+["colourchange",["etoolbox","calc"],["\\selectmanualcolour{color}","\\selectcolourchanges{first color}{second color}"]],
+["comicneue",["l3keys2e","fontenc","mweights"],["\\comicneue","\\comicneuelight","\\comicneueangular","\\comicneueangularlight","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["comment2tex",["listings"],["\\includebash{file}","\\includelua{file}","\\includeyaml{file}","\\includemake{file}","\\ctxuselistings","\\ctxuseverbatim"]],
+["lscapeenhanced",["lscape","xpatch","pdflscape"],[]],
+["newtxtt",["fontenc","xkeyval"],["\\ttzfamily","\\textttz{text}","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["notes2bib",["l3keys2e"],["\\bibnote{text}","\\bibnote[name]{text}","\\bibnotemark","\\bibnotemark[name]","\\bibnotetext{text}","\\bibnotetext[name]{text}","\\printbibnotes","\\bibnotesetup{options%keyvals}"]],
+["solvesudoku",["printsudoku"],["\\sudokusolve{file}","\\getproblem{file}","\\reduceallcells","\\keepreducing","\\writegame","\\sudsolnfile","\\numcluesctr","\\difficultyctr"]],
+["tokstools",["simplekv"],["\\printtoks{tokens}","\\printtoks[keyvals]{tokens}","\\toksdo{patterns}{tokens}","\\toksdo[keyvals]{patterns}{tokens}","\\tokslen","\\selfindex","\\selfcharcode","\\selfcatcode","\\addtok{code}","\\deltok","\\setcharcode{expr}","\\setcatcode{expr}","\\self","\\tokscount{patterns}{tokens}","\\tokscount[keyvals]{patterns}{tokens}","\\defpattern%<\\command%>{%<patterns%>}","\\ifpegmatch{patterns}{tokens}{true code}{false code}","\\ifpegmatch[keyvals]{patterns}{tokens}{true code}{false code}","\\matchtoks","\\remaintoks","\\prematchtoks","\\matchposition","\\pegcount{patterns}{tokens}","\\pegcount[keyvals]{patterns}{tokens}","\\tokscapture{index}","\\pegreplace{patterns}{tokens}","\\pegreplace[keyvals]{patterns}{tokens}"]]
+]

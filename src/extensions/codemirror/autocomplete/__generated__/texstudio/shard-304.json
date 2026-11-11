@@ -1,0 +1,13 @@
+[
+["autoaffil",["etoolbox"],["\\autoaffil{text}","\\autoauthor[symbols]{name}","\\autoauthor{name}","\\autoremark{symbol}{text}","\\printaffils","\\printauthors","\\printremarks"]],
+["begriff",[],["\\BGassert","\\BGcontent","\\BGnot","\\BGquant{variable_name}","\\BGconditional{antecedent}{consequent}","\\BGterm{expression}","\\BGstem{expression}","\\BGbracket{expression}"]],
+["class-labbook",["class-scrbook","makeidx"],["\\labday","\\experiment{title}","\\experiment[short title]{title}","\\experiment*{title}","\\subexperiment{title}","\\subexperiment[short title]{title}","\\subexperiment*{title}","\\newexperiment{abbrev}{long form%text}","\\newexperiment{abbrev}[short form%text]{long form%text}","\\newsubexperiment{abbrev}{long form%text}","\\newsubexperiment{abbrev}[short form%text]{long form%text}"]],
+["ifuptex",["ifptex"],[]],
+["mathstyle",[],["\\genfrac{left-delim}{right-delim}{thickness%l}{mathstyle}{numerator}{denominator}","\\dfrac{numerator}{denominator}","\\tfrac{numerator}{denominator}","\\binom{above}{below}","\\tbinom{above}{below}","\\dbinom{above}{below}"]],
+["method",[],["\\begin{method}","\\head{header%text}","\\para{name}{description%text}","\\precond{precondition%text}","\\descr{description%text}","\\postcond{postcondition%text}","\\error{exception%text}","\\return{return value%text}","\\see{where%text}","\\headtabbed{function name}","\\headpara{parameter name}","\\begin{data}","\\init{info%text}","\\del{info%text}"]],
+["miama",[],["\\fmmfamily","\\miama{text}","\\fmmTeX","\\fmmLaTeX"]],
+["pst-hyperboloid",["pstricks","pst-xkey"],["\\psHyperboloid[options%keyvals]","\\psHyperboloid[options%keyvals](x,y,z)"]],
+["showkerning",["ifluatex","luatexbase"],[]],
+["vwcol",["calc","color","environ","keyval","ragged2e"],["\\begin{vwcol}","\\begin{vwcol}[options%keyvals]","\\vwcolsetup{options%keyvals}"]],
+["xcolor-solarized",["xcolor","kvoptions"],["\\solarizedPalette"]]
+]

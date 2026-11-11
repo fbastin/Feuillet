@@ -1,0 +1,9 @@
+[
+["couleurs-fr",["xcolor"],[]],
+["gotoh",["xkeyval"],["\\Gotoh{sequenceA}{sequenceB}","\\Gotoh[options%keyvals]{sequenceA}{sequenceB}","\\GotohConfig{options%keyvals}"]],
+["hisort",["etoolbox","histrings"],[]],
+["labels",[],["\\BottomLabelBorder","\\BottomPageMargin","\\InterLabelColumn","\\InterLabelRow","\\LeftLabelBorder","\\LeftPageMargin","\\RightLabelBorder","\\RightPageMargin","\\TopLabelBorder","\\TopPageMargin","\\begin{labels}","\\addresslabel[font commands]{text}","\\addresslabel{text}","\\BottomBorder","\\boxedaddresslabel[font commands]{text}","\\boxedaddresslabel{text}","\\genericlabel{text}","\\LabelCols","\\labelfile{file}","\\LabelGridfalse","\\LabelGridtrue","\\LabelInfofalse","\\LabelInfotrue","\\LabelRows","\\LabelSetup","\\LeftBorder","\\numberoflabels","\\promptlabels","\\RightBorder","\\skiplabels{integer}","\\TopBorder"]],
+["prnthyph",[],["\\printhyphens"]],
+["tikzlibrarytikzphysics.core",[],["\\geometryvalue{node}{property}","\\physicshelp{feature}","\\physicshelp[node options]{feature}"]],
+["worldflags",["graphicx","ifthen","tikz","tikzlibrarycalc","tikzlibraryshadows","tikzlibraryshapes","tikzlibraryshapes.symbols","tikzlibrarypositioning","tikzlibrarymath","tikzlibrarydecorations.text","xcolor","xkeyval"],["\\worldflag[options%keyvals]{flag code}","\\flagsdefault[options%keyvals]"]]
+]

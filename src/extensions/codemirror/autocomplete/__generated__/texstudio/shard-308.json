@@ -1,0 +1,5 @@
+[
+["MULEenc",[],["\\CJKbibliography{bib file}","\\CJKinclude{file}","\\CJKinput{file}","\\CJKverbatim","\\textcommercialat"]],
+["tex4ebook",["etoolbox","kvoptions","graphicx"],["\\coverimage{imagefile}","\\coverimage[options%keyvals]{imagefile}","\\epubpage"]],
+["ydoc-code",["hyperref","needspace","xcolor","listings"],["\\begin{macrocode}","\\begin{macro}{macro}","\\begin{macro}{%<macro%>}[%<args%>]{%<arg1%>}%<{arg2}...{argN}%>","\\begin{environment}{envname}","\\begin{environment}{%<envname%>}[%<args%>]{%<arg1%>}%<{arg2}...{argN}%>","\\begin{style}{stylename}","\\begin{style}{%<stylename%>}[%<args%>]{%<arg1%>}%<{arg2}...{argN}%>","\\begin{key}{keyname}{value}","\\bslash"]]
+]

@@ -1,0 +1,16 @@
+[
+["CharisSIL",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\CharisSIL"]],
+["askincv1",[],["\\infile{file}"]],
+["boxit",[],["\\begin{boxit}","\\begin{boxit*}"]],
+["class-leadsheet",["class-scrartcl","etoolbox","leadsheets","scrlayer-scrpage","translations","zref-totpages"],["\\begin{prechorus}","\\begin{prechorus}[options%keyvals]","\\instruction{text}","\\choir{text}","\\lsenparen{text}"]],
+["erewhon",["fontenc","mweights","xstring","ifthen","scalefnt","etoolbox","fontaxes","xkeyval"],["\\defigures","\\infigures","\\lfstyle","\\nufigures","\\osfstyle","\\sufigures","\\swshape","\\textfrac{numerator}{denominator}","\\textfrac[whole part]{numerator}{denominator}","\\textin{text}","\\textlf{text}","\\textosf{text}","\\textsu{text}","\\textde{text}","\\textnu{text}","\\textruble","\\texttlf{text}","\\texttosf{text}","\\tlfstyle","\\tosfstyle","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["footnotebackref",["letltxmacro","hyperref","kvoptions"],[]],
+["hypdestopt",["iftex","pdftexcmds","auxhook","pdfescape","alphalph"],[]],
+["isorot",["graphicx","lscape"],["\\rotdriver{driver%keyvals}","\\clockwise","\\counterclockwise","\\figuresright","\\figuresleft","\\rotcaption","\\controtcaption","\\begin{sideways}","\\begin{turn}{angle}","\\begin{rotate}{angle}","\\begin{sidewaystable}","\\begin{sidewaystable*}","\\begin{sidewaysfigure}","\\begin{sidewaysfigure*}"]],
+["pxjodel",["xkeyval","ifuptex","otf","mlutf","mlcid","uplatex"],["\\rubyfamily","\\rubykatuji","\\mathmg{text%plain}","\\mgfamily","\\textmg{text}","\\propshape","\\ebseries","\\ltseries"]],
+["synthslant",["etoolbox","iftex","xkeyval","fontspec","l3draw","pst-3d","tikz"],["\\synthslant","\\synthnegslant","\\textsynthslant{text}","\\textsynthuprightitalic{text}","\\synthslantbox{slant}{text}","\\begin{slantenvironment}","\\begin{negslantenvironment}"]],
+["tikzscale",["graphicx","etoolbox","pgfkeys","letltxmacro","xstring"],[]],
+["titlepic",[],["\\titlepic{graphics code}"]],
+["upmethodology-code",["upmethodology-p-common"],["\\upmcodelang{language%keyvals}","\\jclass{class%plain}","\\jinterface{interface}","\\jpackage{package%plain}","\\jfunc{function}","\\jclazz","\\jvoid","\\jint","\\jlong","\\jfloat","\\jboolean","\\jdouble","\\jchar","\\jstring","\\jarray{text%plain}","\\jcollection{text%plain}","\\jset{text%plain}","\\jtrue","\\jfalse","\\jop{operator}","\\jcall{function}{params}","\\jcode{code}"]],
+["zb-basics",["amsmath","amsfonts","amssymb","mathtools","stmaryrd","mathrsfs","tikz-cd","gensymb"],["\\Aut","\\Hom","\\ran","\\1","\\fint","\\Sha"]]
+]

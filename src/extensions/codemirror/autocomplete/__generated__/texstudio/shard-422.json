@@ -1,0 +1,7 @@
+[
+["amsmidx",[],["\\makeindex{name}","\\printindex{name}","\\Printindex{name}{title}","\\indexcomment{text}"]],
+["autotype",["luatex"],["\\autotypelangoptions{language}{options%keyvals}","\\autotypefontoptions{font}{options%keyvals}","\\keepligatures{text}","\\autotypelongs","\\autotyperounds"]],
+["luatodonotes",["xcolor","ifluatex","ifthen","xkeyval","tikz","tikzlibrarypositioning","tikzlibraryintersections","tikzlibrarydecorations.pathmorphing","luacode","atbegshi","xstring","zref-abspage","ifoddpage","soul","soulpos","etoolbox","tikzlibraryshadows"],["\\todo{text%todo}","\\todo[options%keyvals]{text%todo}","\\todoarea{note text%todo}{highlighted text}","\\todoarea[options%keyvals]{note text%todo}{highlighted text}","\\missingfigure{text%todo}","\\missingfigure[options%keyvals]{text%todo}","\\listoftodos","\\listoftodos[name]","\\todototoc"]],
+["musikui",["graphicx"],["\\begin{musikui}","\\kake{multiplicand}{multiplier}{product}","\\wari{dividend}{divisor}{quotient}","\\musi{holes}{distance from right}","\\sen","\\bubunsen{length}{distance from right}","\\eaten{text%plain}","\\noneaten{text%plain}","\\halfeaten{text%plain}","\\halfnoneaten{text%plain}","\\hhalfeaten{text%plain}","\\hhalfnoneaten{text%plain}"]],
+["pgfplotslibrarydateplot",["pgfcalendar"],["\\year","\\month","\\day","\\hour","\\Hour","\\minute","\\Minute","\\lowlevel","\\Second"]]
+]

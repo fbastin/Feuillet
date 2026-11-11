@@ -1,0 +1,6 @@
+[
+["bmpsize",["iftex","pdftexcmds","infwarerr","graphics","keyval","bmpsize-base"],["\\bmpsizesetup{options%keyvals}"]],
+["class-utreport",["uplatex","plext"],["\\bibname","\\chapter*{title}","\\chapter[short title]{title}","\\chapter{title}","\\Cjascale","\\和暦","\\西暦"]],
+["digiconfigs",["amsmath"],["\\dconfig{%<config string%>}","\\dconfig[%<rows%>x%<cols%>]{%<config string%>}","\\setCircleChar{char}","\\setBulletChar{char}","\\setCdotChar{char}","\\setBlankChar{char}","\\setCircleSymbol{symbol}","\\setBulletSymbol{symbol}","\\setCdotSymbol{symbol}","\\setMatrixStart{code}","\\setMatrixEnd{code}","\\setDefaultMatrixSize{size}"]],
+["mindflow",["kvoptions","lineno","xcolor","nowidow","verbatim","tcolorbox","tcolorboxlibrarymany"],["\\begin{mindflow}","\\mindflowset{options%keyvals}"]]
+]

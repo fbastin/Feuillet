@@ -1,0 +1,17 @@
+[
+["aliasctr",[],[]],
+["authblk",[],["\\author[mark]{names}","\\affil{affiliation%text}","\\affil[mark]{affiliation%text}"]],
+["bibpes",["xkeyval"],["\\reportOnBibPes","\\readbackDefFile","\\bibpesBody"]],
+["bussproofs-colorful",["bussproofs","xcolor","kvoptions"],["\\begin{ProofColors}","\\begin{ProofColors}[options%keyvals]","\\SetNodeColor{color}","\\SetLineColor{color}","\\SetLabelColor{color}","\\ResetProofColors","\\LoadProofTheme{theme%keyvals}"]],
+["carbohydrates",["etoolbox","chemfig","xcolor","tikzlibrarydecorations.pathmorphing"],["\\carbohydrate{spec}","\\carbohydrate[options%keyvals]{spec}","\\newaldose{cmd}{spec}","\\newaldose{cmd}[options%keyvals]{spec}","\\renewaldose{cmd}{spec}","\\renewaldose{cmd}[options%keyvals]{spec}","\\allose","\\allose[options%keyvals]","\\altrose","\\altrose[options%keyvals]","\\glucose","\\glucose[options%keyvals]","\\mannose","\\mannose[options%keyvals]","\\gulose","\\gulose[options%keyvals]","\\idose","\\idose[options%keyvals]","\\galactose","\\galactose[options%keyvals]","\\talose","\\talose[options%keyvals]","\\ribose","\\ribose[options%keyvals]","\\arabinose","\\arabinose[options%keyvals]","\\xylose","\\xylose[options%keyvals]","\\lyxose","\\lyxose[options%keyvals]","\\desoxyribose","\\desoxyribose[options%keyvals]","\\erythrose","\\erythrose[options%keyvals]","\\threose","\\threose[options%keyvals]","\\glycerinaldehyde","\\glycerinaldehyde[options%keyvals]","\\setcarbohydrates{options%keyvals}","\\setcarbohydratedefaults{csname}{options%keyvals}"]],
+["char2path",["tikz","etoolbox"],["\\chartopath{string}","\\chartopath[keyvals]{string}","\\chartoclip{char}","\\chartoclip[keyvals]{char}"]],
+["cistercian",["tikz","etoolbox","BusyPanda"],["\\cistercianset{options%keyvals}","\\cistercianreset","\\cistercian{number}","\\cistercian[options%keyvals]{number}"]],
+["engord",["ltxcmds","infwarerr"],["\\engord{counter}","\\engordnumber{number}"]],
+["listlbls",["translations"],["\\listoflabels","\\listoflabels[label]"]],
+["mathtime",[],["\\enablesubscriptcorrection","\\disablesubscriptcorrection","\\heavymath","\\mathscr{text%plain}","\\mathbscr{text%plain}","\\mathbcal{text%plain}","\\varGamma","\\varDelta","\\varTheta","\\varLambda","\\varXi","\\varPi","\\varSigma","\\varUpsilon","\\varPhi","\\varPsi","\\varOmega","\\comp","\\setdif","\\cupprod","\\capprod","\\varkappa","\\widebar{arg}"]],
+["pgfcalendar-ext",["pgfcalendar"],["\\pgfextcalendarjulianyeartoweek{Julian day}{year}{week counter}","\\pgfextcalendarcurrentweek","\\pgfextcalendarifdateweek","\\tikzextset{options%keyvals}","\\pgfextset{options%keyvals}"]],
+["substnote",[],["\\subst{expr}{vars}{terms}","\\subst[options%keyvals]{expr}{vars}{terms}","\\subst*{expr}{vars}{terms}","\\subst*[options%keyvals]{expr}{vars}{terms}","\\substmark{vars}{terms}","\\substmark[options%keyvals]{vars}{terms}","\\substmark*{vars}{terms}","\\substmark*[options%keyvals]{vars}{terms}"]],
+["tabularraylibraryvarwidth",["varwidth"],[]],
+["tikzlibraryhobby",[],[]],
+["topfloat",[],["\\begin{topfloat}{number}","\\topI","\\endtopI","\\topII","\\endtopII","\\tabcap{text}","\\tabcap[width]{text}","\\figcap{text}","\\figcap[width]{text}"]]
+]

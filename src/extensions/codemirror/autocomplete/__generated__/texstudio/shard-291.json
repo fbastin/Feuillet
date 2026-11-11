@@ -1,0 +1,5 @@
+[
+["firstindexletter",["imakeidx","xcolor"],["\\FirstIndexLetterEnable","\\FirstIndexLetterSeparateDz","\\FirstIndexLetterSeparateDzs"]],
+["hvarabic",["iftex","xkeyval","fontspec"],["\\begin{RTL}","\\RTLfootnote{text}","\\textRTL{text}","\\nLTR{digits}","\\setLTRfootnoterule","\\setRTLfootnoterule","\\RTLfont","\\hvALM","\\setRTL","\\setLTR"]],
+["pmat",[],["\\begin{pmat}{ldelim}{vline-spec}{rdelim}","\\pmatcross","\\pmatnocross","\\pmatget{parameter 0-6}","\\pmatset{parameter 0-6}{value}"]]
+]

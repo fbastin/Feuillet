@@ -1,0 +1,11 @@
+[
+["Sanremo",[],["\\Sanremofamily","\\sanremo{text%plain}"]],
+["embedfile",["infwaerr","iftex","pdftexcmds","ltxcmds","kvsetkeys","kvdefinekeys","pdfescape"],["\\embedfile{file}","\\embedfile[options%keyvals]{file}","\\embedfilesetup{options%keyvals}","\\embedfilefield{key%plain}{options%keyvals}","\\embedfilesort{key-sort-list}","\\embedfileifobjectexists{id}{type%keyvals}{then}{else}","\\embedfilegetobject{id}{type%keyvals}"]],
+["emo",["inputenc","iftex","graphicx","xcolor","xspace","index"],["\\lingchi","\\YHWH","\\emo{emoji-name%keyvals}"]],
+["harpoon",["graphics"],["\\overleftharp{text%plain}","\\overrightharp{text%plain}","\\overleftharpdown{text%plain}","\\overrightharpdown{text%plain}","\\underleftharp{text%plain}","\\underrightharp{text%plain}","\\underleftharpdown{text%plain}","\\underrightharpdown{text%plain}"]],
+["pl46-fonts",["iftex","unicode-math"],[]],
+["se2packages",["fvextra","csquotes","booktabs","selnolig","lua-widow-control","microtype","siunitx","minted","listings","biblatex","ragged2e","sidenotesplus","software-biblatex","cleveref"],["\\maycite[prenote][postnote]{bibid}","\\maycite[postnote]{bibid}","\\maycite{bibid}","\\margincite[prenote][postnote]{bibid}","\\margincite[postnote]{bibid}","\\margincite{bibid}","\\margincites{bibid}{bibid}","\\margincites(pre)(post){bibid}{bibid}","\\margincites(pre)(post)[pre][post]{bibid}[pre][post]{bibid}"]],
+["showcharinbox",[],["\\ShowCharInBox{character}"]],
+["sizeredc",["epic"],["\\changeunitlength{length}","\\reducedsizepicture","\\reducedsizepicture[unit length]","\\thicklines","\\thinlines"]],
+["tkzexample",["calc","xcolor","pgfkeys","mdframed","fancyvrb"],["\\begin{tkzexample}[options%keyvals]","\\begin{tkzltxexample}[options%keyvals]"]]
+]

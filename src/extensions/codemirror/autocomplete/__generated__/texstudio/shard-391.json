@@ -1,0 +1,5 @@
+[
+["thmtools",["thm-patch","thm-kv","thm-autoref","thm-listof","thm-restate"],[]],
+["tikzlibrarytrees",[],[]],
+["wtref",["xkeyval"],["\\newref{ref types}","\\newref[options%keyvals]{ref types}","\\setrefstyle{ref types}{options%keyvals}"]]
+]

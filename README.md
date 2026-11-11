@@ -98,6 +98,8 @@ Feuillet is built on [TeXlyre](https://github.com/TeXlyre/texlyre) and, through 
 - **[Milkdown](https://github.com/Milkdown/milkdown)** - A markdown editor built on top of [ProseMirror](https://prosemirror.net/) and [remark](https://github.com/remarkjs/remark)
 
 ### LaTeX Tools
+- **[TeXstudio](https://github.com/texstudio-org/texstudio)** (GPL 3.0) - Completion word lists of LaTeX packages and classes, from which the editor completes the commands and environments of the packages a project loads (derived data in `src/extensions/codemirror/autocomplete/__generated__/texstudio/`, with TeXstudio's license)
+- **[TeX Live](https://tug.org/texlive/)** - Its package database (`texlive.tlpdb`) gives the names and descriptions of the packages, classes and BibTeX styles offered in `\usepackage{…}`, `\documentclass{…}` and `\bibliographystyle{…}`
 - **[tex-fmt](https://github.com/WGUNDERWOOD/tex-fmt)** - LaTeX code formatter
 - **[TeXcount](https://app.uio.no/ifi/texcount/)** - Word counter for LaTeX documents
 - **[BibTeX-Tidy](https://github.com/FlamingTempura/bibtex-tidy)** - BibTeX file cleaner and formatter

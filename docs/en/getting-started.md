@@ -137,6 +137,14 @@ package that provides it, when it is called otherwise (`tikz` comes from
 `pgf`), and the engine it needs, when it is only for LuaLaTeX or XeLaTeX; the
 description of that package shows beside the list, or under it.
 
+The commands and environments of the packages and of the class the project
+loads are offered too, with their arguments as fields to fill (**Tab** goes
+to the next): `\usepackage{siunitx}` brings `\qty{number}{unit}`,
+`\documentclass{beamer}` brings `\frametitle`, and `\begin{` offers `align`
+once amsmath is loaded. A package loaded in another file of the project
+counts too. These lists come from
+[TeXstudio](https://github.com/texstudio-org/texstudio)'s.
+
 The spell checker underlines mistakes in LaTeX and Typst text; a right click
 offers corrections. Its language follows the document's: babel's or
 polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst. The words added

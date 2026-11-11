@@ -1,0 +1,13 @@
+[
+["beamerthemegotham",["xcolor","ifxetex","ifluatex","calc","tikz"],["\\gothamset{options%keyvals}","\\gothamtitlepagelogo","\\gothamtitlepagebg"]],
+["beamerthemesidebar",[],[]],
+["bkltprnt",[],["\\target{mag}{width}{height}","\\source{mag}{width}{height}","\\setpdftargetpages","\\setdvipstargetpages","\\twoupemptypage","\\twoupclearpage"]],
+["cases",[],["\\begin{numcases}{left side}","\\begin{subnumcases}{left side}","\\begin{subequations}","\\begin{subeqnarray}"]],
+["class-ijdc-v14",["dccpaper-base"],[]],
+["emojicite",["emoji","natbib"],["\\emojicite{%<key,emoji%>}","\\emojicitep{%<key,emoji%>}"]],
+["jigsaw",["tikz","ifluatex","ifxetex"],["\\piece{bottom}{right}{top}{left}","\\piece[color]{bottom}{right}{top}{left}","\\tile{bottom}{right}{top}{left}","\\tile[color]{bottom}{right}{top}{left}","\\jigsaw{rows}{columns}"]],
+["minted2",["keyval","kvoptions","fvextra","ifthen","shellesc","ifplatform","pdftexcmds","etoolbox","xstring","lineno","framed","catchfile","xcolor","float","newfloat"],["\\begin{minted}{language}","\\begin{minted}[options%keyvals]{language}","\\mint{%<language%>}|%<code%>|","\\mint[%<options%>]{%<language%>}|%<code%>|","\\mintinline{%<language%>}|%<code%>|","\\mintinline[%<options%>]{%<language%>}|%<code%>|","\\inputminted{language}{file}","\\inputminted[options%keyvals]{language}{file}","\\setminted{options%keyvals}","\\setminted[language]{options%keyvals}","\\setmintedinline{options%keyvals}","\\setmintedinline[language]{options%keyvals}","\\begin{listing}","\\begin{listing}[placement]","\\listoflistings","\\newminted{language}{options%keyvals}","\\newminted[envname]{language}{options%keyvals}","\\newmint{language}{options%keyvals}","\\newmint[macro name]{language}{options%keyvals}","\\newmintinline{language}{options%keyvals}","\\newmintinline[macro name]{language}{options%keyvals}","\\newmintedfile{language}{options%keyvals}","\\newmintedfile[macro name]{language}{options%keyvals}"]],
+["uhrzeit",["soul"],["\\dtd","\\dtc","\\uhri","\\uhrii","\\uhriii","\\uhriv","\\uhr{hour}{minute}","\\vonbis{hour1}{minute1}{hour2}{minute2}"]],
+["vowel",[],["\\begin{vowel}","\\begin{vowel}[options%keyvals]","\\putcvowel{symbol}{num}","\\putcvowel[dot pos%keyvals]{symbol}{num}","\\putvowel{symbol}{x%l}{y%l}","\\putvowel[dot pos%keyvals]{symbol}{x%l}{y%l}"]],
+["wordcloud",["luamplib"],["\\wordcloud{%<(word1,weight1);(word2,weight2);...%>}","\\wordcloud[%<options%>]{%<(word1,weight1);(word2,weight2);...%>}","\\wordcloudFile{file}{number of words}","\\wordcloudFile[options%keyvals]{file}{number of words}","\\wordcloudIgnoreWords{word1,word2,...}"]]
+]

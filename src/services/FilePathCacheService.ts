@@ -544,7 +544,12 @@ class FilePathCacheService {
 		};
 		const definitions = new Map<string, LatexDefinitions>();
 		const keepDefinitions = (path: string, found?: LatexDefinitions) => {
-			if (found && (found.commands.length || found.environments.length))
+			if (
+				found &&
+				(found.commands.length ||
+					found.environments.length ||
+					found.packages?.length)
+			)
 				definitions.set(path, found);
 		};
 

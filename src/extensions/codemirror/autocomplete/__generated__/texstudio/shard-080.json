@@ -1,0 +1,6 @@
+[
+["electrum",["svn-prov","fontenc","nfssext-cfr"],["\\lgweight","\\textlg{text}","\\sbweight","\\textsb{text}","\\sishape","\\textsi{text}","\\swashstyle","\\textswash{text}","\\lstyle","\\textl{text}","\\ostyle","\\texto{text}","\\infstyle","\\textinf{text}","\\sustyle","\\textsu{text}","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["makebox",[],["\\makebox*{reference_text}{text}","\\makebox*{reference_text}[pos%keyvals]{text}"]],
+["nccbiblist",["topsection"],["\\begin{biblist}{prototype}","\\begin{biblist}[starting num]{prototype}"]],
+["tikzlibrarytikzphysics.mechanics",["tikzlibrarycalc","tikzlibrarytikzphysics.core"],["\\physicsstringoverpulley{start}{pulley}{end}"]]
+]

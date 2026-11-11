@@ -1,0 +1,11 @@
+[
+["class-mosc-l",["class-amsart","ams-rust"],["\\translnote{text}","\\eo{original author names}","\\rv{revised author names}","\\op{original published location}","\\eb{editor name}"]],
+["class-sslides",["class-slides"],["\\oddh{header%text}","\\oddf{footer%text}","\\evenh{header%text}","\\evenf{footer%text}"]],
+["coelacanth",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\liningnums{text}","\\tabularnums{text}","\\proportionalnums{text}"]],
+["fancypar",["xkeyval","tikz","tikzlibrarycalc","xcolor"],["\\fancyparsetup{keyvals}","\\NotebookPar{text}","\\NotebookPar[options%keyvals]{text}","\\ZebraPar{text}","\\ZebraPar[options%keyvals]{text}","\\DashedPar{text}","\\DashedPar[options%keyvals]{text}","\\MarkedPar{text}","\\MarkedPar[options%keyvals]{text}","\\UnderlinedPar{text}","\\UnderlinedPar[options%keyvals]{text}"]],
+["inline-images",["graphicx"],["\\inlineimg{imagefile}{base64 image data}"]],
+["preparefont",["ifplatform"],["\\preparefontfile{font-file-name}{URL}","\\preparefontfile{font-file-name}{URL}[local-saved-file-name]"]],
+["stfloats",[],["\\fnbelowfloat","\\fnunderfloat","\\setbaselinefloat","\\setbaselinefixed"]],
+["tx-ds",["xkeyval"],["\\mathbb{text%plain}","\\bbdotlessi","\\bbdotlessj"]],
+["xecolor",["xetex","fontspec","iftex"],["\\definergbcolor{color}{RRGGBB}","\\xecolor{color}","\\textxecolor{color}{text}","\\normalxecolor"]]
+]

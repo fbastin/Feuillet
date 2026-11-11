@@ -1,0 +1,10 @@
+[
+["antanilipsum",[],["\\antani","\\antani[num]","\\antani[num][num]","\\antani[%<num%>-%<num%>]","\\antani[%<num%>-%<num%>][%<num%>-%<num%>]","\\antani*","\\antani*[num]","\\antani*[num][num]","\\antani*[%<num%>-%<num%>]","\\antani*[%<num%>-%<num%>][%<num%>-%<num%>]"]],
+["cntformats",["cnltx-base","etoolbox"],[]],
+["integramme",["tikz"],["\\begin{integramme}","\\begin{integramme}[options%keyvals]","\\IntegrammeCategory{id}{title%text}{items}","\\IntegrammeIndices{item list%text}","\\IntegrammeNo{category=item}{category=item}","\\integrammeset{options%keyvals}","\\IntegrammeSolutionRow{category=item,...}","\\IntegrammeYes{category=item}{category=item}"]],
+["pgfplotslibrarysmithchart",[],["\\begin{smithchart}","\\begin{smithchart}[options%keyvals]"]],
+["pgfsubpic",["pgf"],[]],
+["sourcecodepro",["ifxetex","ifluatex","xkeyval","fontenc","mweights"],["\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["tikzmarmots",["tikzlings-marmots"],[]],
+["uninormalize",["luatexbase","luacode","kvoptions"],[]]
+]

@@ -19,6 +19,12 @@ export interface LatexEnvironmentDefinition {
 export interface LatexDefinitions {
 	commands: LatexCommandDefinition[];
 	environments: LatexEnvironmentDefinition[];
+	/**
+	 * What it loads, named as TeXstudio's word lists are: packages (siunitx),
+	 * classes (class-memoir), TikZ and pgfplots libraries
+	 * (tikzlibraryarrows.meta), tcolorbox libraries, Beamer themes.
+	 */
+	packages: string[];
 }
 
 // Comments out: % not escaped, to the end of the line.
@@ -98,6 +104,31 @@ const THEOREM = new RegExp(
 	'g',
 );
 
+// \usepackage[…]{a,b} and the like: the word lists of what it names.
+const LOADS =
+	/\\(usepackage|RequirePackage|RequirePackageWithOptions|documentclass|LoadClass|LoadClassWithOptions|usetikzlibrary|usepgfplotslibrary|tcbuselibrary|usetheme)\s*(?:\[[^\]]*\]\s*)?\{([^{}]*)\}/g;
+const WORD_LIST_PREFIX: Record<string, string> = {
+	documentclass: 'class-',
+	LoadClass: 'class-',
+	LoadClassWithOptions: 'class-',
+	usetikzlibrary: 'tikzlibrary',
+	usepgfplotslibrary: 'pgfplotslibrary',
+	tcbuselibrary: 'tcolorboxlibrary',
+	usetheme: 'beamertheme',
+};
+
+function findPackages(text: string): string[] {
+	const packages = new Set<string>();
+	for (const [, command, names] of text.matchAll(LOADS)) {
+		for (const name of names.split(',')) {
+			const trimmed = name.trim();
+			if (/^[\w.@+-]+$/.test(trimmed))
+				packages.add(`${WORD_LIST_PREFIX[command] ?? ''}${trimmed}`);
+		}
+	}
+	return [...packages];
+}
+
 export function findLatexDefinitions(source: string): LatexDefinitions {
 	const text = withoutComments(source);
 	const commands = new Map<string, number>();
@@ -141,5 +172,6 @@ export function findLatexDefinitions(source: string): LatexDefinitions {
 	return {
 		commands: [...commands].map(([name, args]) => ({ name, args })),
 		environments: [...environments].map(([name, args]) => ({ name, args })),
+		packages: findPackages(text),
 	};
 }

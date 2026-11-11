@@ -1,0 +1,9 @@
+[
+["arrayjobx",[],["\\newarray","\\delarray","\\readarray{array name}{content1&content2&...}","\\cachedata","\\ifemptydata","\\emptydatatrue","\\emptydatafalse","\\ifnormalindex","\\normalindextrue","\\normalindexfalse","\\dataheight=%<number%>","\\ifexpandarrayelement","\\expandarrayelementtrue","\\expandarrayelementfalse","\\arrayx{array name}(index)={content}","\\arrayx{array name}(index)","\\clrarray{array name}(index)","\\testarray{array name}(index)"]],
+["class-combine",["keyval","class-memoir","class-book","class-letter","class-report"],["\\begin{papers}","\\begin{papers}[text/code]","\\import{file}","\\bodytitle{long title}","\\bodytitle[short title]{long title}","\\coltoctitle{title%text}","\\coltoctitle{author}","\\published{long%text}","\\published[short]{long%text}","\\erasetitling"]],
+["glossary-longbooktabs",["booktabs","glossary-long","glossary-longragged"],[]],
+["hibib",["histrings","etoolbox","biblatex"],["\\hiBibFile{file}","\\hiBibConvert{output file}"]],
+["jvlisting",[],["\\begin{listing}","\\filelisting{file}","\\NewListingEnvironment{envname}{args}{before code}{init code}{line cmd}{after code}","\\NewFileListingCommand{cmd}{args}{before code}{init code}{line cmd}{after code}"]],
+["kshcrkey",["etoolbox","fontspec","graphicx"],["\\hcrkey{keyname%keyvals}","\\hcrkeys[separator]{key, ...%keyvals}","\\hcrkeyfontname"]],
+["pgfplotsthemebeamer",["pgfplots"],[]]
+]

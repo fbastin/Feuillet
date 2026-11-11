@@ -1,0 +1,13 @@
+[
+["boolalg",[],["\\btable{expr%formula}","\\btable*{expr%formula}","\\bsimplify{expr%formula}","\\bsimplify*{expr%formula}","\\bprove{statement%formula}"]],
+["class-chletter",[],["\\titlehead","\\titletopheight","\\titlemidheight","\\titlebotheight","\\titlemargin","\\titlewidth","\\addressmargin","\\addresswidth","\\begin{letter}{address}","\\begin{letter}[i|n]{address}","\\makelabels","\\stopbreaks","\\startbreaks","\\name{name}","\\address{address}","\\location{location}","\\telephone{number}","\\return{address}","\\signature{signature}","\\object{text}","\\opening{text}","\\closing{text}","\\ps{header%text}{text}","\\encl{text}","\\cc{names}"]],
+["manuscript",["setspace","fontenc","ragged2e","soul","fullpage"],["\\DH","\\dh","\\dj","\\DJ","\\guillemetleft","\\guillemetright","\\guilsinglleft","\\guilsinglright","\\Hwithstroke","\\hwithstroke","\\k{arg}","\\NG","\\ng","\\quotedblbase","\\quotesinglbase","\\textogonekcentered{arg}","\\textquotedbl","\\th","\\TH"]],
+["noto-sans",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\notosans","\\sufigures","\\textsu{text}"]],
+["pbalance",["etoolbox","atbegshi","atveryend","zref-abspage","filehook","balance"],["\\shrinkLastPage{dimen%l}","\\balancePageNum{page-number}","\\nopbalance"]],
+["pst-osci",["pstricks","pst-plot","multido","pst-xkey"],["\\Oscillo","\\Oscillo[options%keyvals]","\\TriangleA","\\TriangleB","\\RectangleA","\\RectangleB","\\RDogToothA","\\RDogToothB","\\LDogToothA","\\LDogToothB","\\SinusA","\\SinusB"]],
+["pst-vehicle",["pstricks","pst-xkey","pst-plot","pst-node"],["\\psVehicle{scaling factor}{abscissa back wheel}{function}","\\psVehicle[options%keyvals]{scaling factor}{abscissa back wheel}{function}","\\Bike","\\Tractor","\\HighWheeler","\\Truck","\\Segway","\\UniCycle","\\wheelA","\\wheelB","\\wheelC","\\wheelD","\\arrowWheel","\\TruckWheel","\\segWheel","\\SpokesWheelCrossed","\\SpokesWheelA","\\SpokesWheelB","\\TractorFrontWheel","\\TractorRearWheel","\\SlopeoMeter{color}{angle}","\\SelfDefinedVehicle"]],
+["showhyphenation",["ifluatex","luatexbase"],[]],
+["tikzinclude",["tikz","ifthen","etoolbox"],["\\includetikzgraphics{imagefile}","\\includetikzgraphics[name]{imagefile}"]],
+["txfontsb",["txfonts"],["\\scslshape","\\textscsl{text}","\\anwtonos"]],
+["xevlna",["xetex"],["\\xevlnaDisable","\\xevlnaEnable"]]
+]

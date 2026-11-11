@@ -1,0 +1,9 @@
+[
+["footnote",[],["\\begin{savenotes}","\\begin{minipage*}{width}","\\begin{minipage*}[position%keyvals]{width}","\\begin{minipage*}[position%keyvals][height][inner-pos]{width}","\\begin{footnote}","\\begin{footnote}[number]","\\begin{footnotetext}"]],
+["gamebooklib",["environ","macroswap","ifthen","lcg","silence"],["\\begin{gentry}{entrylabel}","\\begin{gentry}[index]{entrylabel}","\\begin{gentry}[index]{entrylabel}[title%text]","\\thegentries","\\noentryfoot"]],
+["hvfloat-fps",["xkeyval"],[]],
+["synproof",["ifthen","pstricks","pst-node","keyval"],["\\Exists","\\Forall","\\Neg","\\And","\\Or","\\Falsum","\\Implies","\\SetDim{options%keyvals}","\\begin{synproof}{derivation length}","\\begin{synproof}[options%keyvals]{derivation length}","\\step{expression}{rule}","\\step{expression}{rule}[label]","\\step[line number]{expression}{rule}","\\step[line number]{expression}{rule}[label]","\\LineNum{number}","\\assumption","\\assumend"]],
+["tikzlibraryext.shapes.uncenteredrectangle",[],["\\uncrec{left}{center}{right}","\\tikzextset{options%keyvals}","\\pgfextset{options%keyvals}"]],
+["transparent",["iftex","auxhook"],["\\transparent{value}","\\texttransparent{value}{text}"]],
+["tuple",[],["\\newtuple{name}{list of numbers}","\\tplsetmode{mode%keyvals}","\\tplexe{%<⟨tuple name⟩.⟨method1⟩.⟨method2⟩...%>}","\\gentuple{%<⟨init vals⟩,\\genrule ⟨rule⟩;⟨condition⟩%>}"]]
+]

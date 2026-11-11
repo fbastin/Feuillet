@@ -1,0 +1,7 @@
+[
+["aeb_tilebg",["graphicx","multido"],["\\setTileBgGraphic{imagefile}","\\setTileBgGraphic[options%keyvals]{imagefile}","\\disableTiling","\\enableTiling","\\maxiterations{number}","\\autosetScreensizeWithMargins{rows}{cols}{left}{right}{top}{bottom}","\\placeTilesinLayers{keyvals}","\\placeTilesinLayers[name]{keyvals}"]],
+["class-flashcards",["ifthen","geometry"],["\\begin{flashcard}{title}","\\begin{flashcard}[heading%text]{title}","\\cardfrontstyle{style%keyvals}","\\cardfrontstyle[font commands]{style%keyvals}","\\cardfrontfoot{text}","\\cardbackstyle{style%keyvals}","\\cardbackstyle[font commands]{style%keyvals}","\\cardfrontheadstyle{style%keyvals}","\\cardfrontheadstyle[font commands]{style%keyvals}","\\cardfrontfootstyle{style%keyvals}","\\cardfrontfootstyle[font commands]{style%keyvals}","\\cardheight","\\cardwidth","\\topoffset","\\oddoffset","\\evenoffset","\\oddevenshift","\\cardmargin","\\cardinnerheight","\\cardinnerwidth"]],
+["gelasio",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\liningnums{text}","\\sufigures","\\tabularnums{text}","\\textsu{text}"]],
+["mlmodern",[],[]],
+["showlabels",[],["\\showlabels{cmd name}","\\showlabels[format cmds]{cmd name}","\\showlabelsinline","\\showlabelsmarginal"]]
+]

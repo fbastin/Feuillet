@@ -1,0 +1,6 @@
+[
+["dblfnote",[],["\\DFNallowcbreak","\\DFNalwaysdouble","\\DFNinhibitcbreak","\\DFNruleboth","\\DFNruleleft","\\DFNtrysingle","\\DFNcolumnwidth","\\DFNcolumnsep"]],
+["mathpartir",["keyval"],["\\begin{mathpar}","\\inferrule{premises}{conclusions}","\\inferrule[label%text]{premises}{conclusions}","\\inferrule*[options%keyvals]{premises}{conclusions}","\\infer{premises}{conclusions}","\\infer[label%text]{premises}{conclusions}","\\infer*[options%keyvals]{premises}{conclusions}","\\mprset{keyvals}"]],
+["modular",["coseoul","ifthen","import"],["\\subimportlevel{file path%definition}{file}{levels}"]],
+["sitem",[],["\\sitem[label]"]]
+]

@@ -1,0 +1,9 @@
+[
+["class-ucdavisthesis",["ifthen"],["\\abstract{text}","\\acknowledgments{text}","\\authordegrees{degree1 \\\\ degree2 \\\\ ...%text}","\\chapter*{title}","\\chapter[short title]{title}","\\chapter{title}","\\chapternamefont{font cmds}","\\chapternamesize{size cmd}","\\chaptertitlefont{font cmds}","\\chaptertitlesize{size cmd}","\\committee{member1}{member2}{member3}{member4}{member5}","\\copyrightyear{year}","\\dedication{text}","\\degreemonth{month}","\\degreeyear{year}","\\graduateprogram{program%text}","\\makeintropages","\\nocopyright","\\officialmajor{major%text}","\\secfontsize{size cmd}","\\setstretch{factor}","\\singlespacing","\\ssubsecfontsize{size cmd}","\\subsecfontsize{size cmd}","\\titlesize{size cmd}","\\UMIabstract","\\UMIabstract[text]","\\begin{code}"]],
+["droid",["droidserif","droidsans","droidsansmono"],[]],
+["niceframe",["calc"],["\\niceframe{contents%text}","\\niceframe[width]{contents%text}","\\curlyframe{contents%text}","\\curlyframe[width]{contents%text}","\\artdecoframe{contents%text}","\\artdecoframe[width]{contents%text}"]],
+["savetrees",["xkeyval","ifpdf","ifluatex","titlesec","geometry","calc","microtype"],[]],
+["secdot",[],["\\sectiondot{level}","\\sectionpunct{level}{punctuation}"]],
+["texsurgery",["verbatim","listings","xcolor","environ","hyperref"],["\\begin{run}","\\begin{run}[language]","\\begin{runsilent}","\\begin{runsilent}[language]","\\lstinlinesafe|%<code%>|","\\eval{code%definition}","\\eval[language]{code%definition}","\\sage{code%definition}"]],
+["txs-test",[],["\\againframe<overlay specification>[<default overlay specification>][options%keyvals]{name}","\\mycommand{keyvals}"]]
+]

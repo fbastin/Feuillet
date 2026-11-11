@@ -1,0 +1,12 @@
+[
+["class-rapport1",[],["\\bibname","\\CaptionFonts{label font}{text font}","\\chapter*{title}","\\chapter[short title]{title}","\\chapter{title}","\\chaptermark{code}","\\chaptername","\\HeadingFonts{title font}{part font}{chap font}{sect font}{ssect font}{sssect font}{para font}{spara font}","\\RunningFonts{page font}{mark font}"]],
+["footnotehyper",[],["\\begin{savenotes}","\\begin{footnote}","\\begin{footnote}[number]","\\begin{footnotetext}"]],
+["konames-utf",[],[]],
+["nabatean",[],["\\nabfamily","\\nabfamily{arg}","\\Arq","\\Ab","\\Ag","\\Ad","\\Ah","\\Aw","\\Az","\\Ahd","\\Atd","\\Ay","\\Ak","\\Al","\\Am","\\An","\\As","\\Alq","\\Ap","\\Asd","\\Aq","\\Ar","\\Asv","\\At"]],
+["neo-euler",["euler-math"],[]],
+["pictochrono",["tikz","tikzlibrarycalc","calc","simplekv","xstring","etoolbox"],["\\pictochrono{duration}","\\pictochrono{duration}<valign>","\\pictochrono[keyvals]{duration}","\\pictochrono[keyvals]{duration}<valign>"]],
+["tikz-feynhand",["tikz","pgfopts","tikzlibrarygraphs","tikzlibrarycalc","tikzlibrarydecorations","tikzlibrarydecorations.markings","tikzlibrarydecorations.pathmorphing","tikzlibrarydecorations.pathreplacing","tikzlibraryexternal","tikzlibrarypatterns","tikzlibrarypositioning","tikzlibraryshapes.geometric"],["\\tikzfeynhandset{options%keyvals}","\\begin{feynhand}","\\vertex","\\vertex[options%keyvals]","\\propag","\\propag[options%keyvals]"]],
+["tikzlibrary3d",[],[]],
+["venndiagram",["xkeyval","tikz","etoolbox"],["\\begin{venndiagram3sets}","\\begin{venndiagram3sets}[options%keyvals]","\\begin{venndiagram2sets}","\\begin{venndiagram2sets}[options%keyvals]","\\fillA","\\fillB","\\fillC","\\fillAll","\\fillNotABC","\\fillOnlyA","\\fillOnlyB","\\fillOnlyC","\\fillNotA","\\fillNotB","\\fillNotC","\\fillNotAorB","\\fillNotAorNotB","\\fillANotB","\\fillBNotA","\\fillANotC","\\fillCNotA","\\fillBNotC","\\fillCNotB","\\fillACapB","\\fillACapC","\\fillBCapC","\\fillACapBNotC","\\fillACapCNotB","\\fillBCapCNotA","\\fillACapBCapC","\\setpostvennhook{code}"]],
+["weekday",[],["\\weekday{yyyy}{mm}{dd}","\\weekdaydate{yyyy}{mm}{dd}"]]
+]

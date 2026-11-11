@@ -1,0 +1,10 @@
+[
+["atendofenv",["amsthm","letltxmacro"],["\\AtEndOfEnv{envname}{code}"]],
+["bfhmodule",[],["\\LoadBFHModule{list of modules%keyvals}"]],
+["class-bitreport",["l3keys2e","class-ctexart","xeCJK","geometry","fancyhdr","setspace","caption","booktabs","pdfpages"],["\\BITSetup{键值对%keyvals}","\\MakeCover","\\MakeReviewTable"]],
+["cursor",[],["\\cursorformula{formula}","\\Lc{arg}","\\Rc{arg}","\\LRc{arg1}{arg2}"]],
+["iwona",[],[]],
+["ltxnew",["etex"],["\\new","\\renew","\\provide"]],
+["sesameseeds",["tikz","pgfopts"],["\\nosesame","\\sesameoff","\\sesameon","\\sesameseed[options%keyvals]{x}{y}","\\sesameseed{x}{y}","\\sesamesetup{options%keyvals}","\\sesamesprinkle[options%keyvals]{x}{y}","\\sesamesprinkle{x}{y}","\\simitring[options%keyvals]{x}{y}","\\simitring{x}{y}"]],
+["step",["fontaxes","mweights","xkeyval"],["\\lining{text}","\\oldstyle{text}","\\textsc{text}","\\textsu{text}","\\textin{text}","\\sufigures","\\infigures"]]
+]

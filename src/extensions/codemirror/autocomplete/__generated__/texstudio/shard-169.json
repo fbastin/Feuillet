@@ -1,0 +1,9 @@
+[
+["biblatex-ext-oa-doapi",["etoolbox"],["\\SetDOIAPIMail{email%URL}","\\SetDOIAPICacheExpiration{days}","\\IsOpenaccess{DOI}{true}{false}","\\GetOpenaccessURLWrapped{DOI}","\\OpenaccessURLisDOI{DOI}{true}{false}"]],
+["class-extarticle",["exscale"],[]],
+["expkv-opt",["expkv"],[]],
+["fistrum",[],["\\setfistrum{options%keyvals}","\\fistrum","\\fistrum[par range]","\\fistrum[par range][sentence range]","\\fistrum*","\\fistrum*[par range]","\\fistrum*[par range][sentence range]","\\unpackfistrum","\\unpackfistrum[par range]","\\unpackfistrum[par range][sentence range]","\\unpackfistrum*","\\unpackfistrum*[par range]","\\unpackfistrum*[par range][sentence range]","\\fistrumexp"]],
+["issuulinks",["xkeyval"],["\\issuusetup{options%keyvals}"]],
+["scrlayer-notecolumn",["scrlayer","scrlogo"],["\\DeclareNoteColumn{note-column name}","\\DeclareNoteColumn[options%keyvals]{note-column name}","\\DeclareNewNoteColumn{note-column name}","\\DeclareNewNoteColumn[options%keyvals]{note-column name}","\\ProvideNoteColumn{note-column name}","\\ProvideNoteColumn[options%keyvals]{note-column name}","\\RedeclareNoteColumn{note-column name}","\\RedeclareNoteColumn[options%keyvals]{note-column name}","\\makenote{note%text}","\\makenote[note-column name]{note%text}","\\makenote*{note%text}","\\makenote*[note-column name]{note%text}","\\clearnotecolumn","\\clearnotecolumn[note-column name]","\\clearnotecolumns","\\clearnotecolumns[note-column name list]","\\syncwithnotecolumn","\\syncwithnotecolumn[note-column name]","\\syncwithnotecolumns","\\syncwithnotecolumns[note-column name list]"]],
+["suetterl",[],["\\suetterlin","\\s","\\textsuetterlin{text}"]]
+]

@@ -1,0 +1,7 @@
+[
+["mintspirit2",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes"],["\\mintspirit2","\\plstyle","\\textpl{text}","\\postyle","\\textpo{text}","\\tlstyle","\\texttl{text}","\\tostyle","\\textto{text}","\\sufigures","\\textsu{text}","\\infigures","\\textin{text}"]],
+["ntabbing",[],["\\begin{ntabbing}","\\reset"]],
+["schulma",["mathtools","autoaligne","icomma","pgfplots","tikzlibraryshapes.misc"],["\\begin{Kosy}","\\begin{Kosy}[pgfplots options%keyvals]","\\LGS{Gleichungen%formula}","\\ehoch{Exponent}","\\diff{Variable}","\\Pkt{x%formula}{y%formula}","\\Pkt[Name%formula]{x%formula}{y%formula}","\\PktR{x%formula}{y%formula}{z%formula}","\\Pkt[Name%formula]{x%formula}{y%formula}{z%formula}","\\Vek{x%formula}{y%formula}{z%formula}","\\VekBr{x%formula}{y%formula}{z%formula}","\\GTRY{index}","\\GTRY{index}[term%formula]","\\Rechenkaestchen{Breite}{Höhe}","\\Rechenkaestchen[Kästchengröße]{Breite}{Höhe}"]],
+["stubs",["textpos","graphicx"],["\\stubs{width}{text front%text}","\\stubs{width}[text back%text]{text front%text}","\\stubs[number]{width}{text front%text}","\\stubs[number]{width}[text back%text]{text front%text}"]],
+["trees",[],["\\branch{%<width%>}{%<label%>} %<id%>:%<child1%>,%<child2%>.","\\branchlabels{label1%formula}{label2%formula}{label3%formula}","\\leaf{%<label%>}{%<side label%>} %<id%>.","\\root(%<x,y%>) %<id%>.","\\tbranch{%<width%>}{%<label%>} %<id%>:%<child1%>,%<child2%>,%<child3%>."]]
+]

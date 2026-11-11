@@ -1,0 +1,8 @@
+[
+["eq-fetchbbl",["exerquiz","fetchbibpes"],["\\begin{BblPsg}","\\begin{BblVrs}","\\qFP{book ch:vrs}","\\qFP[options%keyvals]{book ch:vrs}","\\sFP{book ch:vrs}","\\sFP[options%keyvals]{book ch:vrs}","\\qFV{book ch:vrs}","\\qFV[options%keyvals]{book ch:vrs}","\\sFV{book ch:vrs}","\\sFV[options%keyvals]{book ch:vrs}","\\useNumbersOn","\\useNumbersOff","\\adjCAB{code}","\\adjCAB[hfill code]{code}","\\adjTBX{code}","\\adjTBX[hfill code]{code}","\\priorRBT{code}","\\priorPsg{code}","\\setRBTWidthTo{content}","\\setRBTWidth{width}"]],
+["mcaption",["changepage"],["\\begin{margincap}","\\margincapsep"]],
+["romannum",["stdclsdv"],["\\Romannum{integer}","\\romannum{integer}"]],
+["rule-D",[],[]],
+["tikzlibraryoverlay-beamer-styles",[],[]],
+["zxjatype",["ifxetex","xeCJK"],["\\inhibitglue","\\setjamainfont{font name}","\\setjamainfont{font name}[font features%keyvals]","\\setjasansfont{font name}","\\setjasansfont{font name}[font features%keyvals]","\\setjamonofont{font name}","\\setjamonofont{font name}[font features%keyvals]","\\setjafamilyfont{family}{font name}","\\setjafamilyfont{family}{font name}[font features%keyvals]","\\jafamily{family}","\\zxjapanesestyle","\\zxusejapaneseparameters","\\zxuseoriginalparameters","\\setjafontscale{factor}","\\>","\\<","\\textrawja{text}","\\textrawen{text}","\\begin{rawjatext}","\\begin{rawentext}"]]
+]

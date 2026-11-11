@@ -1,0 +1,14 @@
+[
+["binarytree",["tikz"],["\\BinaryTree[options%keyvals]{path spec}{depth}","\\btreeset{options%keyvals}","\\btreesetexternal{options%keyvals}"]],
+["glossary-longextra",["glossary-longbooktabs"],[]],
+["labels4easylist",["easylist"],["\\begin{easylist}","\\begin{easylist}[style%keyvals]","\\itemLabel{label}","\\itemLabel{label}[skipA]","\\itemLabel{label}[skipA][skipB]"]],
+["mathpi",[],["\\mathfrak{text%plain}","\\mathscr{text%plain}","\\mathbb{text%plain}"]],
+["pandora",[],["\\pnrmfamily","\\pnsffamily","\\pnttfamily","\\textpnrm{text}","\\textpnsf{text}","\\textpntt{text}","\\textpnsl{text}","\\textpnbf{text}","\\textpnssl{text}","\\textpnsbf{text}"]],
+["pmdb",["eforms"],["\\pmInput{file}","\\pmInput[arg]{file}","\\pmInput*{file}","\\pmInput*[arg]{file}","\\InputParas","\\InputQuizItems","\\InputItems","\\InputProbs","\\pmdbtighttrue","\\pmdbtightfalse","\\pmCBPresets{eforms parameters}","\\useEditLnk","\\useEditBtn","\\editSourceBtn{width}{height}","\\editSourceBtn[eforms parameters]{width}{height}","\\editSourceOn","\\editSourceOff","\\editSourceLnk{width}{height}{text}","\\editSourceLnk[eforms parameters]{width}{height}{text}","\\displayChoices{width}{height}","\\displayChoices[eforms parameters]{width}{height}","\\clrChoices{width}{height}","\\clrChoices[eforms parameters]{width}{height}","\\displayChoiceCA{string}","\\displayChoiceTU{string}","\\clrChoicesCA{string}","\\clrChoicesTU{string}"]],
+["pst-hertz",["pstricks","pst-xkey"],["\\psHertzDipole[options%keyvals]"]],
+["pvscript",[],["\\pvscript","\\textpvscript{text}"]],
+["spverbatim",[],["\\spverb|%<text%>|","\\begin{spverbatim}"]],
+["suffix",[],[]],
+["tikzlibraryext.paths.arcto",[],["\\tikzextset{options%keyvals}","\\pgfextset{options%keyvals}"]],
+["ydoc-expl",["listings","float"],["\\BoxExample","\\PrintExample","\\begin{examplecode}","\\begin{exampletable}","\\begin{example}","\\includefiles{in file%file}{out file}"]]
+]

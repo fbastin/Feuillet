@@ -1,0 +1,5 @@
+[
+["onlyamsmath",["amsmath"],[]],
+["pst-lsystem",["pstricks","pst-xkey"],["\\pslsystem(x,y)","\\pslsystem[options%keyvals](x,y)"]],
+["richtext",["xkeyval","ifpdf","ifxetex","eforms"],["\\rtpara{name%specialDef}{richtext paragraph%text}","\\rtpara[options%keyvals]{name%specialDef}{richtext paragraph%text}","\\span{options%keyvals}{richtext string%text}","\\useRV{name%keyvals}","\\useV{name%keyvals}","\\sub{text}","\\sup{text}","\\spc","\\br","\\RV{rich value}","\\DS{default style}","\\useDefaultDS","\\setDefaultStyle{name%specialDef}{options%keyvals}","\\useDS{name%keyvals}","\\setRVVContent{name%specialDef}{{name1}{name2}...}","\\useRVContent{name%keyvals}","\\useVContent{name%keyvals}","\\begin{displayRtPara}{name}","\\begin{displayRtPara*}{name}","\\displayRV{name%keyvals}","\\displayV{name%keyvals}"]]
+]

@@ -1,0 +1,7 @@
+[
+["inter",["ifxetex","ifluatex","xkeyval","fontaxes","mweights","ifthen"],["\\intertabular","\\interproportional","\\interthin","\\interlight","\\interextralight","\\intermedium","\\intersemibold","\\interextrabold","\\interheavy","\\sufigures"]],
+["se2fonts",["unicode-math","libertinus-otf","inconsolata-nerd-font"],[]],
+["tikzlings-squirrels",["tikz","tikzlings-addons"],["\\squirrel","\\squirrel[options%keyvals]"]],
+["tracklang-scripts",["tracklang"],[]],
+["varsfromjobname",["currfile"],["\\getfromjobname{param}","\\getfromcurrfilename{arg1}"]]
+]

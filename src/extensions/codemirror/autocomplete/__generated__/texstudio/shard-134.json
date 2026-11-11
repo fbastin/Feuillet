@@ -1,0 +1,7 @@
+[
+["invoice2",["booktabs","l3keys2e","longtable","siunitx","translations","xcolor","colortbl"],["\\invoiceoptions{options%keyvals}","\\begin{invoice}","\\begin{invoice}[options%keyvals]","\\invoiceitem{amount}{item name%text}{unit price}","\\invoiceitem[VAT]{amount}{item name%text}{unit price}","\\invoicesingleitem{item name%text}{unit price}","\\invoicesingleitem[VAT]{item name%text}{unit price}"]],
+["lettrine",[],["\\lettrine{letter}{text%plain}","\\lettrine[options%keyvals]{letter}{text%plain}"]],
+["numerica-plus",["numerica"],["\\iter{expression}","\\iter[settings%keyvals]{expression}","\\iter{expression}[vv-list%formula]","\\iter*{expression}","\\iter*[settings%keyvals]{expression}","\\iter*{expression}[vv-list%formula]","\\nmcIterate{expression}[vv-list%formula]v","\\solve{expression}","\\solve[settings%keyvals]{expression}","\\solve{expression}[vv-list%formula]","\\solve*{expression}","\\solve*[settings%keyvals]{expression}","\\solve*{expression}[vv-list%formula]","\\recur{expression}","\\recur[settings%keyvals]{expression}","\\recur{expression}[vv-list%formula]","\\recur*{expression}","\\recur*[settings%keyvals]{expression}","\\recur*{expression}[vv-list%formula]","\\clitem%<\\macro <number>%>"]],
+["pxjahyper",["platex","keyval","ltxcmds","etoolbox","bxjatoucs","pxjahyper-enc","uplatex"],["\\pxjahypersetup{options%keyvals}","\\Ux{Unicode 符号値 16 進}","\\pxDeclarePdfTextCommand{cmd}{jis}{ucs}","\\pxDeclarePdfTextComposite{cmd}{arg}{jis}{ucs}"]],
+["tikzlings-bears",["tikz","tikzlings-addons"],["\\bear","\\bear[options%keyvals]"]]
+]

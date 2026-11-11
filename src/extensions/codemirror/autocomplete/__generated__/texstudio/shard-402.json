@@ -1,0 +1,10 @@
+[
+["Chivo",["iftex","fontaxes","kvoptions"],["\\textsuperior{text}","\\sufigures","\\textinferior{text}","\\infigures","\\textnumerator{text}","\\nufigures","\\textdenominator{text}","\\defigures"]],
+["CleverPanda",[],["\\CleverPanda{factor}","\\CleverPandaGet{factor}","\\CleverPandaSet"]],
+["cabin",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\cabin","\\cabincondensed"]],
+["darkmode",["l3keys2e","xcolor","pagecolor"],["\\enabledarkmode","\\disabledarkmode","\\IfDarkModeT{true code}","\\IfDarkModeF{false code}","\\IfDarkModeTF{true code}{false code}"]],
+["linguistix-fonts",["linguistix-base","unicode-math"],[]],
+["multimedia",["keyval","ifpdf"],["\\movie[options%keyvals]{poster text%text}{movie filename%file}","\\movie{poster text%text}{movie filename%file}","\\hyperlinkmovie[options%keyvals]{movie label}{text}","\\hyperlinkmovie{movie label}{text}","\\sound[options%keyvals]{sound poster text}{sound filename%file}","\\sound{sound poster text}{sound filename%file}","\\hyperlinksound[options%keyvals]{sound label}{text}","\\hyperlinksound{sound label}{text}","\\hyperlinkmute{text}"]],
+["playcards",["simplekv","graphicx","tikz","tikzlibrarypatterns","tikzlibraryshadows","contour","anttor"],["\\drawcardsrecto{text}","\\drawcardsrecto[options%keyvals]{text}","\\drawcardsverso{text}","\\drawcardsverso[options%keyvals]{text}"]],
+["thm-kv",["keyval","kvsetkeys","thm-patch"],["\\declaretheoremstyle[options%keyvals]{style name}","\\declaretheorem{envname}","\\declaretheorem[options%keyvals]{envname}"]]
+]

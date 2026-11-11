@@ -1,0 +1,10 @@
+[
+["class-abntexto",["keyval"],["\\setfontsize{id}","\\definefontsize{id}{definições}","\\sizedef{cmd}{tamanho}{entrelinha natural}{definições}","\\spacing{factor}","\\singlesp","\\onehalfsp","\\doublesp","\\setlayout{keyvals}","\\pretextual","\\textual","\\maketoc","\\begin{topics}","\\place{content%text}","\\legend{type}{content%text}","\\src{texto%text}","\\definelegendplace{type}{name}{list name}{ref def}{ext}","\\enquote{texto%text}","\\Enquote{texto%text}","\\annex","\\corrprinton","\\corrprintoff"]],
+["class-amsbkrev",["class-amsart"],["\\begin{bookinfo}","\\begin{review}","\\begin{revinfo}","\\reviewer{name}","\\publisher{name}","\\publaddr{address%text}","\\yr{year}","\\pages{pages}","\\binding{hardcover|softcover}","\\price{price}","\\isbn{ISBN}","\\revtransl{review translator}","\\editor{name}","\\bktransl{book translator}","\\bkcontrib{name}","\\bkcontrib[prefix text%text]{name}","\\edition{edition}","\\series{series}","\\serieseditor{name}","\\volume{volume}","\\journal{journal}","\\note{text}","\\lang{language}"]],
+["class-schulma-praes",["class-beamer","etoolbox","adjustbox","babel","isodate","schulma","schulma-physik","tasks","pgfpages"],["\\Kurs{Kursbezeichnung%text}","\\Datum{Datum}","\\Thema{Thema%text}","\\Thema[Nummer]{Thema%text}","\\Unterklammer{Formelteil}{Kommentar}","\\Unterklammer<Folienspezifikaton>{Formelteil}{Kommentar}","\\Produktregel{Foliennummer}{u'}{v}{u}{v'}","\\dq"]],
+["class-ujreport",["uplatex"],["\\bibname","\\chapter*{title}","\\chapter[short title]{title}","\\chapter{title}","\\Cjascale","\\和暦","\\西暦"]],
+["classlist",[],["\\MainClassName","\\ClassList","\\ClassListEntry{class}{class options}{requested version}","\\PrintClassList","\\PrintClassListTitle","\\PrintClassListEntry{class}{class options}{requested version}"]],
+["minibox",[],["\\minibox{text}","\\minibox[options%keyvals]{text}","\\miniboxsetup{options%keyvals}"]],
+["quickreaction",["tikz","tikzlibrarymatrix","tikzlibrarypositioning"],["\\begin{quickreaction}","\\quickarrow","\\quickarrow[above]","\\quickarrow[above][below]"]],
+["warpcol",["array"],["\\pcolbegin{alignment%keyvals}{pattern}","\\pcolend"]]
+]

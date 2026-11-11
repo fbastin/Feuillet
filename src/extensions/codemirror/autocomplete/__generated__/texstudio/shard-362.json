@@ -1,0 +1,9 @@
+[
+["fenixpar",["fenixtok"],["\\NewParType{type name}{code}","\\NextParL{type name}","\\NextParR{type name}","\\AllParsL{type name}","\\AllParsR{type name}","\\EndPars{type name}","\\nextpar{code}"]],
+["hexboard",["tikz","tikzlibraryshapes.geometric","xstring"],["\\begin{hexpicture}","\\begin{hexgame}","\\begin{hexgame}[number]","\\begin{hexgamelabels}","\\begin{hexgamelabels}[number]","\\colorA","\\colorB","\\hexboard{number}","\\hexbottomsubborder{start}{end}","\\hexcell{x}{y}","\\hexcellshaded[color]{x}{y}","\\hexcellshaded{x}{y}","\\hexconnect{x1}{y1}{x2}{y2}","\\hexcontent{x}{y}{content}","\\hexcoord{x}{y}","\\hexcounter{x}{y}{player}","\\hexdot{x}{y}","\\hexgrid{columns}{rows}","\\hexgridnolabel{columns}{rows}","\\hexmove{x}{y}","\\hexreducing{columns}{rows}","\\hexreducingnoborder{columns}{rows}","\\hexscale{number}","\\hexshadedsubrow{start}{end}{row}","\\hexskipmove","\\hexsubrow{start}{end}{row}","\\setcolorA{color}","\\setcolorB{color}","\\xchor","\\ychor"]],
+["isopt",["xkeyval"],["\\ISO","\\THE"]],
+["luatexja-zhfonts",["luatexja-fontspec"],["\\kai","\\fang"]],
+["printfilelist",[],["\\printfilelist","\\printfilelist[filter]","\\printfilelist*","\\printfilelist*[filter]","\\ispackageloaded{package}","\\ispackageloaded*{package}"]],
+["readprov",[],["\\GetFileInfo{file}","\\filedate","\\fileversion","\\fileinfo","\\UseDateOf{file}","\\UseVersionOf{file}","\\ReadPackageInfos{package list}","\\ReadClassInfo{class list}","\\ReadFileInfos{file list}","\\ReadShInfos{.sh file list}"]],
+["texnames",[],["\\AmS","\\AmSLaTeX","\\AmSTeX","\\BibTeX","\\LAmSTeX","\\METAFONT","\\SLiTeX"]]
+]

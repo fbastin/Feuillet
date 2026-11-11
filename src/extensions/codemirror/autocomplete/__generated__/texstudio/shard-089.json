@@ -1,0 +1,9 @@
+[
+["accanthis",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes"],["\\accanthis"]],
+["andika",["xkeyval","iftex","fontenc","fontaxes","mweights"],["\\andika"]],
+["cstypo",["luatex","ifluatex"],["\\cstypoSingleLetterEnable","\\cstypoSingleLetterDisable","\\cstypoALetterEnable","\\cstypoALetterDisable","\\cstypoPercentsEnable","\\cstypoPercentsDisable","\\cstypoParagraphEnable","\\cstypoParagraphDisable"]],
+["fnspe",["xstring","bm","amsmath","amsfonts","mathrsfs","amsthm","amssymb","xcolor","listings","physics","tikz","substr","mathtools"],["\\xvec{arg}","\\mat{letter%formula}","\\tder{func}{var}","\\tder[order]{func}{var}","\\oi{left%formula}{right%formula}","\\ci{left%formula}{right%formula}","\\rci{left%formula}{right%formula}","\\lci{left%formula}{right%formula}","\\dif{arg}","\\hlf","\\degree","\\hem","\\hem[width]","\\oover{arg%formula}","\\realn","\\compn","\\inte","\\ratin","\\natun","\\nnzero","\\impem","\\rot","\\lapl","\\varun{var%formula}{unit%formula}","\\unit{unit}","\\expv{arg}","\\ceil{arg}","\\floor{arg}","\\df","\\allset{n}","\\allsetzero{n}","\\cclass","\\ccof{superscript}","\\ccinf"]],
+["grfpaste",["graphicx"],["\\paste{fragment number}{imagefile}","\\sendout{code}","\\sendout[label]{code}"]],
+["idxcmds",["etoolbox","pgfopts","ltxcmds"],["\\newidxcmd{cmd}{definition}","\\newidxcmd[index cmd]{cmd}{definition}","\\newsubidxcmd{cmd}{main entry}{definition}","\\newsubidxcmd[index cmd]{cmd}{main entry}{definition}","\\newsubidxcmd*{cmd}{main entry}{definition}","\\newsubidxcmd*[index cmd]{cmd}{main entry}{definition}","\\newsubmainidxcmd{cmd}{definition}","\\newsubidxcmd[index cmd]{cmd}{definition}","\\setidxcmds{options%keyvals}"]],
+["multidef",["trimspaces","xkeyval"],["\\multidef{definition}{csname list}","\\multidef[options%keyvals]{definition}{csname list}"]]
+]

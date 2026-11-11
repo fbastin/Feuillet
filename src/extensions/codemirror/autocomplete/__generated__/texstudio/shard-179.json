@@ -1,0 +1,8 @@
+[
+["beamerthemelalic",["calculator","xcolor","tikz","tikzlibrarypositioning","tikzlibrarycalc","tikzlibraryshapes.misc","tikzlibrarymath"],["\\email{email%URL}","\\dataapresentacao{day}{month}{year}","\\agendaautomatica","\\agendaautomatica[number]"]],
+["biblatex-readbbl",["xkeyval"],[]],
+["export",[],["\\openexport{file}","\\openexport[extension]{file}","\\closeexport","\\Export{counter}","\\ExportLength{length}","\\PreciseExportLength{length}","\\ExportMuskip{muskip}","\\ExportParameter{parameter}","\\ExportIf{ifname}","\\ExportPageLayout","\\ExportArrayParams","\\Import{file}","\\Import[extension]{file}","\\xcaptionf{caption}","\\xcaptiont{caption}","\\AddInputInAux{%<secondary document%>.aux}"]],
+["frimurer",[],["\\begin{frimurer}","\\textfrimurer{text}"]],
+["mdwmath",[],["\\sqrt*{arg}","\\sqrt*[root]{arg}","\\bitand","\\bitor","\\dblor","\\dbland"]],
+["powerdot-tuliplab",["pifont"],["\\begin{titleslide}{title}","\\begin{titleslide}[options%keyvals]{title}","\\begin{wideslide}{title}","\\begin{wideslide}[options%keyvals]{title}","\\begin{slide}{title}","\\begin{slide}[options%keyvals]{title}","\\begin{sectionslide}{title}","\\begin{sectionslide}[options%keyvals]{title}","\\begin{sectionwideslide}{title}","\\begin{sectionwideslide}[options%keyvals]{title}"]]
+]

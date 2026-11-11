@@ -1,0 +1,6 @@
+[
+["beamerthemeTorinoTh",["ifxetex","pifont","fontspec","xunicode","xltxtra","metalogo","xkeyval","polyglossia"],["\\begin{tframe}{title%text}","\\titlepageframe","\\highlight{text}","\\highlightbf{text}","\\setsubject{subject%text}","\\ateneo{institute%text}","\\rel{supervisor}","\\begin{adv}","\\begin{disadv}"]],
+["bold-extra",[],[]],
+["class-ydoc",["ydoc"],[]],
+["latex-papersize",["iftex"],[]]
+]

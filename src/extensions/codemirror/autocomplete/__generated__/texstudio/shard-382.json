@@ -1,0 +1,12 @@
+[
+["bibnames",["texnames"],[]],
+["braille",[],["\\braille{braille text}","\\braillebox{positions}"]],
+["chemformula",["tikz","amsmath","xfrac","nicefrac"],["\\setchemformula{options%keyvals}","\\ch{formula}","\\ch[options%keyvals]{formula}","\\bond{bond name}","\\NewChemBond{name}{code}","\\NewChemBondAlias{new name}{old name}","\\chcpd{compound}","\\chcpd[options%keyvals]{compound}","\\NewChemCompoundProperty{token}{replacement}","\\NewChemAdditionSymbol{name}{input}{output}","\\NewChemSymbol{input}{output}","\\NewChemArrow{type}{TikZ}","\\charrow{type}","\\charrow{type}[above]","\\charrow{type}[above][below]","\\chname(text 1)(text 2)","\\chlewis{electron spec}{atom}","\\chlewis[options%keyvals]{electron spec}{atom}"]],
+["figput",["zref-savepos","zref-thepage","zref-abspage","zref-user","zref-pagelayout","xsim","tikz","verbatim"],["\\begin{figput}{fig_name,fig_ht}","\\begin{figput}{fig_name,fig_ht}[options]","\\FigPut{fig_name,fig_ht}","\\FigPut{fig_name,fig_ht}[options]","\\SetInnerMargin{length}","\\SetOuterMargin{length}","\\NeverSkip","\\AllowSkip","\\LoadFigureCode{file}"]],
+["holtxdoc",["hypdoc","hyperref","pdftexcmds","ltxcmds","hologo","array"],["\\begin{History}","\\begin{Version}{version number}","\\URL{text%plain}{URL}","\\NameEmail{name}{email%URL}","\\Package{package name}","\\File{file name}","\\Verb{text%plain}","\\CS{csname}","\\CTAN{path%URL}","\\CTANinstall{path%URL}","\\CTANpkg{package name}","\\Newsgroup{path%URL}","\\xpackage{package name}","\\xmodule{module name}","\\xclass{class name}","\\xoption{option name}","\\xfile{file name}","\\xext{ext name}","\\xemail{email%URL}","\\xnewsgroup{URL}","\\begin{declcs}{csname}","\\eTeX","\\pdfTeX","\\pdfLaTeX","\\LuaTeX","\\LuaLaTeX","\\XeTeX","\\XeLaTeX","\\plainTeX","\\teTeX","\\mikTeX","\\MakeIndex","\\docstrip","\\iniTeX","\\VTeX"]],
+["nonfloat",["ifthen"],["\\tabcaption{text}","\\tabcaption[short text%text]{text}","\\figcaption{text}","\\figcaption[short text%text]{text}","\\begin{narrow}{left margin%l}{right margin%l}"]],
+["pdfcolparallel",["parallel","infwarerr","pdfcol","keyval"],[]],
+["scaletextbullet",[],["\\settextbulletfactor{fp expr}","\\scaletextbullet{fp expr}","\\scaletextbullets{int expr}","\\scaletextbullets[fp expr]{int expr}","\\scaletextbulletdebug"]],
+["tikzlibraryshapes.gates.logic",[],[]],
+["wordlike",["geometry","mathptmx","helvet","courier"],[]]
+]

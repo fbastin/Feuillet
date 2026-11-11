@@ -1,0 +1,7 @@
+[
+["class-proc",[],["\\copyrightspace","\\pagename"]],
+["classif2",["xspace"],["\\begin{classif}{level}","\\Comm","\\EmptyName{name%text}","\\INCL{footnote%text}","\\LevelName{level}{name%text}","\\Numerate[cmd]{counter}","\\Numerate{counter}","\\Reset{counter}"]],
+["milstd",[],["\\BusWidth","\\ANDr","\\ANDd","\\ANDl","\\ANDu","\\NANDr","\\NANDd","\\NANDl","\\NANDu","\\ORr","\\ORd","\\ORl","\\ORu","\\NORr","\\NORd","\\NORl","\\NORu","\\BUFr","\\BUFd","\\BUFl","\\BUFu","\\INVr","\\INVd","\\INVl","\\INVu"]],
+["ribbonproofs",["xcolor","tikz","xstring","etextools"],["\\begin{ribbonproof}","\\begin{ribbonproof}[options%keyvals]","\\com{text}","\\com[options%keyvals]{text}","\\jus{text}","\\jus[options%keyvals]{text}","\\startblock{text}","\\startblock[options%keyvals]{text}","\\finishblock{text}","\\finishblock[options%keyvals]{text}","\\ribbonpagebreak","\\continueblock{text}","\\continueblock[options%keyvals]{text}","\\moveribbons{ribbon1,ribbon2,...}","\\swapribbons{name1,name2,...}{name'1,name'2,...}","\\moveboxes{box1,box2,...}","\\extendboxes{box1,box2,...}"]],
+["stexthm",["stex","amsthm","thmtools"],["\\begin{theorem}","\\begin{theorem}[heading%text]","\\begin{observation}","\\begin{observation}[heading%text]","\\begin{corollary}","\\begin{corollary}[heading%text]","\\begin{lemma}","\\begin{lemma}[heading%text]","\\begin{axiom}","\\begin{axiom}[heading%text]","\\begin{remark}","\\begin{remark}[heading%text]","\\begin{example}","\\begin{example}[heading%text]","\\begin{definition}","\\begin{definition}[heading%text]"]]
+]

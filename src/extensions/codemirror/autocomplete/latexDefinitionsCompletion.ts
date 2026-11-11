@@ -34,7 +34,8 @@ type Definitions = {
 
 const fromDocs = new WeakMap<Text, LatexDefinitions>();
 
-const definitionsHere = (state: EditorState): LatexDefinitions => {
+/** What this file defines and loads, as it is now (cached per document). */
+export const definitionsHere = (state: EditorState): LatexDefinitions => {
 	let found = fromDocs.get(state.doc);
 	if (!found) {
 		found = findLatexDefinitions(maskAnnotationText(state));

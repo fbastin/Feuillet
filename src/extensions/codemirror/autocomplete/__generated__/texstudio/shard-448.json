@@ -1,0 +1,9 @@
+[
+["coolfn",["calc","hanging","footmisc"],["\\fnindent"]],
+["euclidean-lattice",["tikz"],["\\lattice[%<options%>](%<a,b%>)(%<c,d%>);","\\lattice<%<overlay specification%>>[%<options%>](%<a,b%>)(%<c,d%>);"]],
+["qcm",["ifthen","calc","verbatim","tabularx"],["\\headerfont{font commands}","\\X{symbol}","\\questionspace","\\answerstitle{text}","\\answerstitlefont{font commands}","\\answernumberfont{font commands}","\\thequestion","\\begin{question}{question text%text}","\\truesymbol{symbol}","\\falsesymbol{symbol}","\\true","\\false","\\correctionstyle{font commands}","\\makeform","\\makemask","\\begin{correction}"]],
+["quoting",["etoolbox","kvoptions"],["\\begin{quoting}","\\begin{quoting}[options%keyvals]","\\quotingsetup{options%keyvals}"]],
+["register",["calc","float","graphicx","ifthen","xcolor"],["\\begin{register}{placement}{name}{register offset}","\\begin{register*}{placement}{name}{register offset}","\\listofregisters","\\regfield{name}{length%plain}{start bit}{reset value}","\\regfieldb{name}{length%plain}{start bit}","\\regbits{name}{length%plain}{reset value}","\\regnewline","\\reglabel{reset label}","\\TR{flag}","\\begin{regdesc}","\\begin{reglist}"]],
+["tikzlibrarymindmap",["tikzlibrarytrees","tikzlibrarydecorations"],[]],
+["ucharcat",["luatex"],["\\Ucharcat %<<slot> <charcode>%>"]]
+]

@@ -1,0 +1,10 @@
+[
+["class-milog",["xkeyval","xkvltxp","geometry","tabularx","booktabs","colortbl","xifthen","background","transparent","pgfplotstable"],["\\milog{CSV file%file}","\\milog[options%keyvals]{CSV file%file}","\\Formular","\\milogsetup{options%keyvals}"]],
+["noindentafter",["etoolbox","xpatch"],["\\NoIndentAfterEnv{envname}","\\NoIndentAfterCmd{cmd}","\\NoIndentAfterThis"]],
+["nycbullets",["fontspec"],["\\nycbullet{key%plain}","\\nycbullet[options%keyvals]{key%plain}","\\nycbulletsetup{options%keyvals}","\\nycbulletfont[set]"]],
+["skull",[],["\\skull"]],
+["tikzlibrarycircuits.ee",["tikzlibrarycircuits","tikzlibraryshapes.gates.ee"],[]],
+["tikzlibraryext.nodes",[],["\\tikzextnodepicture","\\tikzextset{options%keyvals}","\\pgfextset{options%keyvals}"]],
+["xeindex",["makeidx","xesearch"],["\\IndexList{name}{list of entries}","\\IndexList*{name}{list of entries}","\\StopIndexList{lists}","\\StopIndex","\\NoIndex{text}"]],
+["zref-clever",["zref-base","zref-user","zref-abspage","ifdraft","zref-hyperref"],["\\zcref{labellist}","\\zcref[options%keyvals]{labellist}","\\zcref*{labellist}","\\zcref*[options%keyvals]{labellist}","\\zcpageref{labellist}","\\zcpageref[options%keyvals]{labellist}","\\zcpageref*{labellist}","\\zcpageref*[options%keyvals]{labellist}","\\zcsetup{options%keyvals}","\\zcRefTypeSetup{type}{options%keyvals}","\\zcDeclareLanguage{language}","\\zcDeclareLanguage[options%keyvals]{language}","\\zcDeclareLanguageAlias{language alias}{aliased language}","\\zcLanguageSetup{language}{options%keyvals}"]]
+]

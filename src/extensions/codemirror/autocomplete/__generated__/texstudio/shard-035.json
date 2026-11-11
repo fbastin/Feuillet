@@ -1,0 +1,6 @@
+[
+["beamerthemetamu",[],[]],
+["class-ltjsreport",["luatexja","jslogo","stfloats"],["\\stockheight","\\stockwidth","\\bibname","\\chapter*{title}","\\chapter[short title]{title}","\\chapter{title}","\\Cjascale","\\fullwidth","\\HUGE","\\narrowbaselines","\\widebaselines","\\上小{text}","\\和暦","\\小{text}","\\西暦"]],
+["monoref",["iftex","luatex"],["\\lastpage"]],
+["qrcstamps",["annot_pro","xkeyval"],["\\qrCode{URL}","\\qrCode[options%keyvals]{URL}"]]
+]

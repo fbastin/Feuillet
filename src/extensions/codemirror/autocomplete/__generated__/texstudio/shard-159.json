@@ -1,0 +1,8 @@
+[
+["endnotes",[],["\\endnote{text}","\\endnote[number]{text}","\\endnotemark","\\endnotemark[number]","\\endnotetext{text}","\\endnotetext[number]{text}","\\addtoendnotes{text}","\\enotesize","\\theendnotes"]],
+["exam-zh-symbols",["tikz"],["\\eu","\\upe","\\iu","\\upi","\\uppi","\\paralleleq","\\subset*","\\nsubset*","\\subseteq*","\\nsubseteq*","\\subsetneqq*","\\nsubsetneqq","\\supset*","\\nsupset*","\\supseteq*","\\nsupseteq*","\\supsetneqq*","\\nsupsetneqq","\\cap*","\\cup*","\\sim*","\\cong*"]],
+["pxftnright",["platex","ftnright"],[]],
+["skills",["iftex","kvoptions","glossaries","tabularx","etoolbox","marginnote"],["\\skilldef{label}{reference}{description%text}","\\begin{skillquestions}","\\begin{skillquestions}[skill1,skill2,...]","\\skillquestion","\\skillquestion[skill1,skill2,...]","\\skillquestion[skill1,skill2,...][points]","\\skills{skill1,skill2,...}","\\globalskills{skill1,skill2,...}","\\skillstable","\\skillstable[sort type%keyvals]","\\skillsinmargin","\\skillsinleftmargin","\\skillsinrightmargin","\\noskillsinmargin","\\noskillsinrightmargin","\\skillsinmarginvadjust{length}","\\bracketedskills","\\nobracketedskills","\\boxedskills","\\noboxedskills","\\onlyskills","\\notonlyskills","\\skillsenclosement{opening}{closing}"]],
+["tikzlibraryfolding",[],[]],
+["ziffer",[],["\\ZifferAn","\\ZifferAus","\\ZifferPunktAn","\\ZifferPunktAus","\\ZifferStrichAn","\\ZifferStrichAus"]]
+]

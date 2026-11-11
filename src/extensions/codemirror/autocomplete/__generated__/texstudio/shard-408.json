@@ -1,0 +1,9 @@
+[
+["DejaVuSerifCondensed",["keyval"],[]],
+["codehigh",["catchfile","xcolor","ninecolors","varwidth","iftex"],["\\begin{codehigh}","\\begin{codehigh}[options%keyvals]","\\begin{codehigh*}","\\begin{codehigh*}[options%keyvals]","\\begin{demohigh}","\\begin{demohigh}[options%keyvals]","\\begin{demohigh*}","\\begin{demohigh*}[options%keyvals]","\\CodeHigh{options%keyvals}","\\dochighinput{file}","\\dochighinput[options%keyvals]{file}","\\fakeverb{verbatim content%definition}"]],
+["hep-font",["kvoptions","iftex","fontenc","pdftexcmds","fix-cm","microtype","cfr-lm","slantsc","inputenc","etoolbox","silence","xpatch"],["\\textui{text}","\\code{text%plain}","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["ibarra",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\ibarra","\\ibarraSemiBold","\\liningnums{text}"]],
+["ptext",["biditools"],["\\setptextdefault{range}","\\ptext","\\ptext[range]","\\ptext*","\\ptext*[range]","\\ChangePtextPar"]],
+["tkz-elements-3d",["tkz-elements"],["\\tkzDrawVisible{group}","\\tkzDrawVisible[options%keyvals]{group}","\\tkzDrawHidden{group}","\\tkzDrawHidden[options%keyvals]{group}","\\tkzFillRegion{region}","\\tkzFillRegion[options%keyvals]{region}","\\tkzClipRegion{region}","\\tkzFillFaces{group}","\\tkzFillFaces[options%keyvals]{group}","\\tkzDrawBalls{group}","\\tkzDrawBalls[color]{group}","\\tkzDrawBalls[color][region]{group}"]],
+["xr-hyper",["xr"],[]]
+]

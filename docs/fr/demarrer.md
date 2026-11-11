@@ -141,6 +141,14 @@ de TeX Live qui le fournit, s'il s'appelle autrement (`tikz` vient de `pgf`),
 et le moteur qu'il demande, s'il n'est que pour LuaLaTeX ou XeLaTeX; la
 description de ce paquet s'affiche à côté de la liste, ou dessous.
 
+Les commandes et les environnements des paquets et de la classe que le
+projet charge sont proposés aussi, avec leurs arguments comme champs à
+remplir (**Tab** passe au suivant) : `\usepackage{siunitx}` apporte
+`\qty{number}{unit}`, `\documentclass{beamer}` apporte `\frametitle`, et
+`\begin{` propose `align` dès qu'amsmath est chargé. Un paquet chargé dans
+un autre fichier du projet compte aussi. Ces listes viennent de celles de
+[TeXstudio](https://github.com/texstudio-org/texstudio).
+
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
 Typst; un clic droit propose des corrections. La langue suit celle du
 document : celle de babel ou de polyglossia en LaTeX, celle de

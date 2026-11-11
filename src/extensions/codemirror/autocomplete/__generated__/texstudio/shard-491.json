@@ -1,0 +1,9 @@
+[
+["ae",["fontenc"],["\\dj","\\k{arg}","\\quotedblbase","\\quotesinglbase","\\textquotedbl"]],
+["clrdblpg",["xkeyval"],[]],
+["fxpicture",["pict2e"],["\\linestyle{style}","\\dashpattern{on}{off}"]],
+["morefloats",["kvoptions","ifetex"],[]],
+["pst-nutation",["pstricks","pst-solides3d","pst-xkey"],["\\psNutation","\\psNutation[options%keyvals]"]],
+["sverb",[],["\\begin{listing}","\\begin{listing*}{end string}","\\begin{verbwrite}{file}","\\verbinput{file}","\\begin{demo}{title}","\\begin{demo}[shape%keyvals]{title}"]],
+["tabularraylibrarytikz",["tabularraylibraryhook","tikz","tikzlibrarycalc"],["\\begin{tblrtikzbelow}","\\begin{tblrtikzabove}"]]
+]

@@ -1,0 +1,9 @@
+[
+["baskervillef",["fontenc","mweights","etoolbox","xstring","ifthen","fontaxes","xkeyval"],["\\lfstyle","\\osfstyle","\\sufigures","\\textfrac{numerator}{denominator}","\\textfrac[whole part]{numerator}{denominator}","\\textlf{text}","\\textosf{text}","\\textsu{text}","\\textde{text}","\\defigures","\\texttlf{text}","\\texttosf{text}","\\tlfstyle","\\tosfstyle","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["numodel-plot",["siunitx","pgfplots","pdfrender","pgfplotslibraryfillbetween"],["\\calcplotdims","\\drawplot{axis code}","\\numodelplotsetup{options%keyvals}","\\qtyPlain[options%keyvals]{number}{unit%specialMultiArg}","\\qtyPlain{number}{unit%specialMultiArg}"]],
+["pgfplotslibrarycolorbrewer",["tikzlibrarycolorbrewer"],[]],
+["picinpar",[],["\\begin{window}","\\begin{window}[lines,pos,graphics,caption%text]","\\begin{figwindow}","\\begin{figwindow}[lines,pos,graphics,caption%text]","\\begin{tabwindow}","\\begin{tabwindow}[lines,pos,graphics,caption%text]"]],
+["repltext",["etoolbox","graphicx"],["\\repltext{replacement text%text}{general text%text}","\\prevrepl"]],
+["svg-animate",["tikz","graphicx","tikzlibraryanimations"],["\\begin{animate}","\\begin{animate}[options%keyvals]","\\animstep","\\animstep[options%keyvals]","\\reveal{content%text}","\\reveal[options%keyvals]{content%text}","\\noanimate{content%text}"]],
+["theorem",[],["\\theoremstyle{style}","\\theorembodyfont{font}","\\theoremheaderfont{font}"]]
+]

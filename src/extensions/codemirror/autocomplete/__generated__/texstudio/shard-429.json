@@ -1,0 +1,10 @@
+[
+["avremu",["etoolbox","tabularx","kvoptions"],["\\useavremulibrary{list of libraries}","\\avrloadc{file}","\\avrloadc[compiler options]{file}","\\avrloadihex{file}","\\avrstep","\\avrstep[number]","\\avrrun","\\avrsinglestep","\\avrinstrcount","\\avrUDR","\\avrUDRclear","\\avrdrawppm{file}"]],
+["class-mwrep",[],["\\SetSectionFormatting{nazwa polecenia}{odstęp przed}{nagłówek}{odstęp p}","\\SetSectionFormatting[flagi%keyvals]{nazwa polecenia}{odstęp przed}{nagłówek}{odstęp p}","\\bibname","\\chapter*{title}","\\chapter[short title]{title}","\\chapter{title}","\\chaptername","\\FormatBlockHeading{dekl}","\\FormatChapterHeading{odstęp}{dekl num}{dekl tyt}","\\FormatHangHeading{dekl}","\\FormatRigidChapterHeading{wys}{odstęp}{dekl num}{dekl tyt}","\\FormatRunInHeading{dekl}","\\HeadingNumber","\\HeadingRHeadText","\\HeadingText","\\HeadingTOCText","\\ifHeadingNumbered","\\secondarysize","\\SetTOCIndents{{%<code1%>}{%<code2%>}%<...%>}"]],
+["fr-fancy",["fancybox"],["\\wshadowbox{text}"]],
+["freemath",[],["\\freemathon","\\freemathoff","\\freemathblacklist{command}","\\freemathwhitelist{command}"]],
+["interpreter",[],["\\interpretfile{language}{file}"]],
+["linguistix-base",[],["\\linguistix{keyvals}"]],
+["pgf-interference",["tikz"],["\\pgfinterferencepattern{options%keyvals}","\\pgfinterferenceoptions{options%keyvals}"]],
+["skt",["relsize","ifthen"],["\\skt","\\sktb","\\sktbs","\\sktf","\\sktfs","\\skti","\\sktI","\\skts","\\sktt","\\sktT","\\sktu","\\sktU","\\sktx","\\sktX"]]
+]

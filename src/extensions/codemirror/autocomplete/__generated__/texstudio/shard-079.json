@@ -1,0 +1,14 @@
+[
+["CJKnumb",["CJK"],["\\CJKnumber{number}","\\CJKdigits{digits}","\\CJKdigits*{digits}"]],
+["CormorantGaramond",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\liningnums{text}","\\tabularnums{text}","\\proportionalnums{text}","\\sufigures","\\infigures","\\textsu{text}","\\textinf{text}"]],
+["Elzevier",[],["\\Elzevier","\\elz{text%plain}"]],
+["beamerbasetwoscreens",[],[]],
+["class-FUbeamer",["class-beamer","fontenc","babel","graphicx","tabularx","helvet","colortbl"],["\\titlegraphic{imagefile}","\\titlegraphic[options%keyvals]{imagefile}","\\captionsngerman","\\datengerman","\\extrasngerman","\\noextrasngerman","\\dq","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["class-ycbook",["class-mwbk","titletoc","ifxetex","inputenc","hyperref","graphicx","booktabs","adjustbox","afterpage","placeins","changepage"],["\\fancytoc","\\traditionaltoc","\\coloredheadline{color}","\\coloredfootline{color}","\\twopagepicture{placement}{l or p}{imagefile}{caption%text}","\\twopagepicturen{placement}{l or p}{imagefile}{caption%text}"]],
+["komacv-lco",["etoolbox","fontawesome","marvosym","scrkbase"],["\\newkomavar{name}","\\newkomavar[description]{name}","\\newkomavar*{name}","\\newkomavar*[description]{name}","\\setkomavar{name%keyvals}{content}","\\setkomavar{name%keyvals}[description]{content}","\\setkomavar*{name%keyvals}{content}","\\usekomavar{name%keyvals}","\\usekomavar[command]{name%keyvals}","\\usekomavar*{name%keyvals}","\\usekomavar*[command]{name%keyvals}","\\ifkomavarempty{name%keyvals}{true code}{false code}","\\ifkomavarempty*{name%keyvals}{true code}{false code}","\\ifkomavar{name%keyvals}{true code}{false code}","\\ifkomavar*{name%keyvals}{true code}{false code}","\\LoadLetterOption{file}","\\LoadLetterOptions{file list}","\\ifkomavarenabled{name%keyvals}{true code}{false code}","\\emaillink{URL}","\\emaillink[link text]{URL}","\\httplink{URL}","\\httplink[link text]{URL}","\\httpslink{URL}","\\httpslink[link text]{URL}"]],
+["pst-slpe",["pstricks","pst-xkey"],["\\psBall{color}{radius%l}","\\psBall(x,y){color}{radius%l}","\\psBall[options%keyvals]{color}{radius%l}","\\psBall[options%keyvals](x,y){color}{radius%l}"]],
+["shortmathj",["ifthen","xstring"],["\\shortifyAMSjournalname{journal}"]],
+["tikzlibrarydatavisualization.formats.functions",["tikzlibrarydatavisualization"],["\\value{variable}"]],
+["tikzlibrarymarmots",["tikzmarmots"],[]],
+["viking",[],["\\vikfamily","\\textvik{text}"]]
+]

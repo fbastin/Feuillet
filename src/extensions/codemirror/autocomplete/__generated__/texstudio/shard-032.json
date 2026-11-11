@@ -1,0 +1,12 @@
+[
+["chemgreek",["amstext"],[]],
+["class-ulect-l",["class-amsbook"],[]],
+["concepts",["etextools","nth","xspace","ltxkeys","xstring"],["\\NewConcept{concept key}{options%keyvals}","\\ConceptOption{concept key}{option%keyvals}","\\ConceptName{concept key}","\\ConceptName^{concept key}","\\ConceptName*{concept key}","\\ConceptName^*{concept key}","\\ConceptSymbol{concept key}","\\ConceptSymbol{concept key}[symbol index]","\\ConceptSymbols{concept key}{symbol indices}","\\ConceptSymbols{concept key}[separator]{symbol indices}","\\ConceptSymbols{concept key}[separator][last separator]{symbol indices}","\\ConceptNameAndSymbols{concept key}{symbol indices}","\\ConceptNameAndSymbols{concept key}[separator]{symbol indices}","\\ConceptNameAndSymbols{concept key}[separator][last separator]{symbol indices}"]],
+["dhucs-ucshyper",["ifpdf","hyperref"],[]],
+["etruscan",[],["\\etrfamily","\\textetr{arg}","\\Aalpha","\\Abeta","\\Agamma","\\Adelta","\\Aepsilon","\\Adigamma","\\Azeta","\\Aeta","\\Atheta","\\Aiota","\\Akappa","\\Alambda","\\Amu","\\Anu","\\Axi","\\Aomicron","\\Api","\\Aesade","\\Aqoph","\\Arho","\\Asigma","\\Atau","\\Aupsilon","\\Achi","\\Aphi","\\Apsi","\\Avau"]],
+["hvpygmentex",["caption","color","efbox","fancyvrb","ifthen","pgfkeys","shellesc","mdframed","tikz"],["\\begin{pygmented}","\\begin{pygmented}[options%keyvals]","\\inputpygmented{file}","\\inputpygmented[options%keyvals]{file}","\\pyginline|%<code%>|","\\pyginline[%<options%>]|%<code%>|","\\setpygmented{options%keyvals}"]],
+["hypgotoe",["iftex","pdfescape","hyperref"],[]],
+["mdwtab",[],["\\tabpause","\\vline","\\vline[width]","\\begin{array}{cols}","\\begin{array}[pos]{cols}","\\begin{smarray}{cols}","\\begin{smarray}[pos]{cols}","\\vgap{length}","\\vgap[cols]{length}","\\hlx{colspec}","\\newcolumntype{name}{definition}","\\newcolumntype{name}[args]{definition}","\\newcolumntype{name}[args][default]{definition}","\\colset{set-name}","\\colpush{set-name}","\\colpop","\\coldef %<⟨col-name⟩%>{%<definition%>}","\\tabcoltype{pre-text}{post-text}","\\tabuserpretype{text}","\\tabuserposttype{text}","\\tabspctype{text}","\\tabruletype{text}","\\collet %<⟨col-name1⟩%> %<⟨col-name2⟩%>","\\collet %<⟨col-name1⟩%> [%<set-name%>]%<⟨col-name2⟩%>","\\begin{savenotes}"]],
+["substr",[],[]],
+["uwa-colours",["xcolor"],[]]
+]

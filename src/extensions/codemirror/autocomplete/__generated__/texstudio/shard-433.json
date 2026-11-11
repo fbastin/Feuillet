@@ -1,0 +1,7 @@
+[
+["adigraph",["etoolbox","fp","xstring","tikz","tikzlibrarycalc"],["\\NewAdigraph{name}{nodes}","\\NewAdigraph{name}{nodes}{edges}","\\NewAdigraph{name}{nodes}{edges}[edge style]","\\RenewAdigraph{name}{nodes}","\\RenewAdigraph{name}{nodes}{edges}","\\RenewAdigraph{name}{nodes}{edges}[edge style]","\\EnableAdigraphs","\\DisableAdigraphs"]],
+["asyprocess",["ifmtarg","ifpdf","catchfile","ifplatform","color","graphicx","preview"],[]],
+["susy",[],["\\sfer","\\sfer[sub]","\\sqk","\\sqk[sub]","\\squ","\\squ[sub]","\\sqd","\\sqd[sub]","\\sqc","\\sqc[sub]","\\sqs","\\sqs[sub]","\\sqt","\\sqt[sub]","\\sqb","\\sqb[sub]","\\slep","\\slep[sub]","\\sle","\\sle[sub]","\\slmu","\\slmu[sub]","\\sltau","\\sltau[sub]","\\slneu","\\slneu[sub]","\\Hu","\\Hu[sub]","\\Hd","\\Hd[sub]","\\Ho","\\Ho[sub]","\\Hou","\\Hou[sub]","\\Hod","\\Hod[sub]","\\No","\\No[sub]","\\Co","\\Co[sub]","\\Cop","\\Cop[sub]","\\Com","\\Com[sub]","\\tbeta","\\go","\\Wo","\\Zo","\\pho"]],
+["tram",[],["\\begin{tram}[integer]"]],
+["xfakebold",["iftex","pdfrender","xkeyval"],["\\setBold","\\setBold[number]","\\unsetBold"]]
+]

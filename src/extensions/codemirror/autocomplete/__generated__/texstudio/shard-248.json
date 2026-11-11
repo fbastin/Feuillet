@@ -1,0 +1,10 @@
+[
+["beamerthemeCambridgeUS",[],[]],
+["beamerthemeMarburg",[],[]],
+["beamerthemeSimpleDarkBlue",["beamerthemeMadrid"],[]],
+["bnumexpr",["xintkernel","xintbinhex","xintcore"],["\\thebnumexpr %<<expr>%> \\relax","\\bnethe \\bnumexpr %<<expr>%> \\relax","\\bnumeval{integer-expr list}","\\bnumeval[type%keyvals]{integer-expr list}","\\bnumsetup{options%keyvals}"]],
+["class-tudaexercise",["l3keys2e","environ","class-scrartcl","tudarules","scrlayer-scrpage","tudafonts","geometry","tudacolors","graphicx","hyperref","pgf"],["\\MechEngArrow{Länge}","\\MechEngArrow*{Länge}","\\title[Kurztitel für die Kopfzeile%text]{text}","\\term{Semester}","\\sheetnumber{Nummer des Übungsblatts}","\\begin{task}{Überschrift%text}","\\begin{task}[Optionen%keyvals]{Überschrift%text}","\\begin{task*}{Aufgabentitel%text}","\\begin{task*}[Optionen%keyvals]{Aufgabentitel%text}","\\thetask","\\begin{subtask}","\\begin{subtask}[Optionen%keyvals]","\\begin{subtask*}{Titel der Teilaufgabe%text}","\\begin{subtask*}[Optionen%keyvals]{Titel der Teilaufgabe%text}","\\thesubtask","\\ConfigureHeadline{keyvals}","\\ShortTitle","\\StudentID","\\StudentName","\\begin{solution}","\\begin{solution*}","\\IfSolutionT{true code}","\\IfSolutionF{false code}","\\IfSolutionTF{true code}{false code}","\\getPoints{Nummer}","\\getPointsTotal","\\refPoints{label}","\\mapPoints{code%text}","\\mapPoints*{code%text}"]],
+["numname",[],[]],
+["pgfplotslibraryternary",[],["\\begin{ternaryaxis}","\\begin{ternaryaxis}[options%keyvals]"]],
+["sudoku",[],["\\begin{sudoku-block}","\\begin{sudoku}"]]
+]

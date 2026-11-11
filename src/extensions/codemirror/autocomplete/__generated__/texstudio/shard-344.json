@@ -1,0 +1,9 @@
+[
+["geistmono",["iftex","xkeyval"],["\\DH","\\dh","\\dj","\\DJ","\\guillemetleft","\\guillemetright","\\guilsinglleft","\\guilsinglright","\\Hwithstroke","\\hwithstroke","\\k{arg}","\\NG","\\ng","\\quotedblbase","\\quotesinglbase","\\textogonekcentered{arg}","\\textquotedbl","\\th","\\TH"]],
+["lgrmath",["kvoptions"],["\\lgrmathsetup{options%keyvals}","\\lgrmathup{text%plain}","\\lgrmathit{text%plain}","\\lgrmathgreektable{family}{series}{shape}","\\lgrmathgreektableextra{family}{series}{shape}","\\Alpha","\\Beta","\\Chi","\\Digamma","\\digamma","\\Epsilon","\\Eta","\\Iota","\\Kappa","\\koppa","\\Mu","\\Nu","\\Omicron","\\omicron","\\Rho","\\Sampi","\\sampi","\\Tau","\\varSigma","\\varvarsigma","\\Zeta"]],
+["mlcid",["platex"],["\\CIDK{number}","\\CIDC{number}","\\CIDT{number}"]],
+["outoruby",["pxrubrica","ltxcmds","infwarerr"],["\\outorubysetup{option2}","\\outoruby{body}{ruby}","\\outoruby[option1]{body}{ruby}","\\outoruby[option1][option2]{body}{ruby}","\\outoruby[option1][option2][pre-space]{body}{ruby}","\\outoruby[option1][option2][pre-space][post-space]{body}{ruby}","\\outorubyhyphenbreakable","\\outorubyhyphenbreakable[integer]"]],
+["pst-infixplot",["pst-plot","infix-RPN"],["\\psPlot{x0}{x1}{infix expr}","\\psPlot[options%keyvals]{x0}{x1}{infi","\\parametricPlot{%<t0%>}{%<t1%>}{%<x(t)%>}{%<y(t)%>}","\\parametricPlot[%<options%>]{%<t0%>}{%<t1%>}{%<x(t)%>}{%<y(t)%>}"]],
+["slemph",[],["\\itswitch","\\slswitch","\\textitswitch{text}","\\textslswitch{text}"]],
+["xpunctuate",["xspace"],["\\xperiod","\\xcomma","\\xperiodcomma","\\xspaceafter{text}","\\xperiodafter{text}","\\xcommaafter{text}","\\xperiodcommaafter{text}"]]
+]

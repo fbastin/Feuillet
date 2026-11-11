@@ -1,0 +1,14 @@
+[
+["bloques",["tikz","tikzlibraryshapes.misc","tikzlibrarydecorations.pathmorphing","tikzlibrarybackgrounds","tikzlibrarypositioning","tikzlibraryfit","tikzlibraryshadows"],["\\bStart{text}","\\bPlusDown{text}","\\bPlusUp{text}","\\bMinusDown{text}","\\bMinusUp{text}","\\bEnd{text}","\\bGain{text}","\\bGainPlus{text1%text}{text2%text}","\\bGainMinus{text1%text}{text2%text}","\\bMinusF{node name}","\\bPlusF{node name}","\\bFeedBack{text}{node name}","\\bCrossGain{text}{node name1}{node name2}","\\bNewStart{text}{position}","\\bMarkNode{node name}","\\bMarkNodeUp{node name}","\\bMarkNodeDown{node name}","\\bShadow","\\bColorB{color}","\\bColorT{color}","\\bColorL{color}","\\ydistance{number}"]],
+["class-maabook",["ifxetex","ifpdf","amsgen","upref","amscip","graphicx","amsmath","xspace","amsthm","shaderef","mtpro2","stix2"],["\\backmatter","\\begin{xcb}","\\chapter*{title}","\\chapter[short title]{title}","\\chapter{title}","\\dedicatory{text}","\\frontmatter","\\keywords{text}","\\mainmatter","\\subjclass[year]{text}","\\subjclass{text}","\\subtitle{text}","\\title[short title]{text}"]],
+["drcaps",[],["\\RCap{letter}","\\HCap{letter}","\\DCap{letter}"]],
+["locant",[],[]],
+["memory",[],["\\newdata{variable}","\\newdata*{variable}"]],
+["multilang",["environ","etoolbox","pgfkeys","pgfopts"],["\\NewMultilangCmd{command}{options%keyvals}","\\NewMultilangEnv{envname}{options%keyvals}","\\NewMultilangType{type name}{format%definition}","\\NewMultilangType[arg count]{type name}{format%definition}"]],
+["polymers",["chemstr","aliphat","carom"],["\\leftPolymer{delimiter%formula}{leftsubs}","\\leftpolymer{leftsubs}","\\leftSqrpolymer{leftsubs}","\\leftsqrpolymer{leftsubs}","\\lsqrdelimiter{arg1}","\\mpolymer{polymer unit}{subscript%formula}","\\polyethylene[auxlist]{centatmlist}{subslist}","\\polyethylene{centatmlist}{subslist}","\\polystyrene[auxlist]{centatmlist}{subslist}{phsubslist}","\\polystyrene{centatmlist}{subslist}{phsubslist}","\\rightPolymer{delimiter%formula}{rightsubs}{subscript%formula}","\\rightpolymer{rightsubs}{subscript%formula}","\\rightSqrpolymer{rightsubs}{subscript%formula}","\\rightsqrpolymer{rightsubs}{subscript%formula}","\\sbond","\\Sqrpolymer{polymer unit}{subscript%formula}","\\sqrpolymer{polymer unit}{subscript%formula}"]],
+["rotunda",[],["\\textrtnd{text}","\\rtndfamily"]],
+["scrlayer-fancyhdr",["scrlayer","fancyhdr"],[]],
+["tensind",[],["\\tensordelimiter{symbol}","\\tensorformat{format}"]],
+["trace",[],["\\traceon","\\traceoff"]],
+["xepersian-hm",["l3keys2e","graphicx","zref-savepos","xcolor","xepersian"],["\\KashidaOff","\\KashidaOn","\\discouragebadlinebreaks{text}","\\discouragebadlinebreaks[linebreakpenalty]{text}","\\discouragebadlinebreaks[linebreakpenalty][kashidastretch]{text}"]]
+]

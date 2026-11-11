@@ -1,0 +1,11 @@
+[
+["beamerthemeSzeged",[],[]],
+["doafter",[],["\\doafter%<⟨token⟩ ⟨group⟩%>"]],
+["hyperxmp",["kvoptions","pdfescape","stringenc","intcalc","iftex","ifmtarg","etoolbox","ifthen","luacode","ifdraft","hyperref","totpages","ifluatex"],["\\xmpcomma","\\xmpquote{text}","\\xmptilde","\\XMPLangAlt{language}{options%keyvals}"]],
+["lua-widow-control",["luatex","microtype"],["\\lwcsetup{options%keyvals}"]],
+["nfssext-cfr",["svn-prov","etoolbox"],[]],
+["pgfornament",["tikz","pgfopts"],["\\newpgfornamentfamily{family%keyvals}","\\begin{newfamily}[family%keyvals]","\\pgfornament{ornament number}","\\pgfornament[options%keyvals]{ornament number}","\\pgfornamentline{point1}{point2}{number}{ornament number}","\\pgfornamentline[options%keyvals]{point1}{point2}{number}{ornament number}"]],
+["pkgloader",["l3keys2e","lt3graph"],["\\LoadPackagesNow","\\Load"]],
+["pygmentex",["fancyvrb","color","ifthen","caption","shellesc","pgfkeys","efbox","mdframed","tikz"],["\\begin{pygmented}","\\begin{pygmented}[options%keyvals]","\\inputpygmented{file}","\\inputpygmented[options%keyvals]{file}","\\pyginline|%<code%>|","\\pyginline[%<options%>]|%<code%>|","\\setpygmented{options%keyvals}"]],
+["steinmetz",["pict2e"],["\\phase{arg}","\\phase[stylenum%keyvals]{arg}"]]
+]

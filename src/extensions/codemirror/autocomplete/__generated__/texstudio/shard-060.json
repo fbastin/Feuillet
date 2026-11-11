@@ -1,0 +1,14 @@
+[
+["CooperHewitt",["ifxetex","ifluatex","xkeyval","fontaxes","fontenc","mweights"],["\\sufigures","\\textsu{text}","\\cooperhewitt"]],
+["adfarrows",["svn-prov","fixtounicode"],["\\adfarrow{number}"]],
+["exam-zh-chinese-english",["tcolorbox","tcolorboxlibrarymost","varwidth"],["\\begin{select}","\\begin{select}[键值列表%keyvals]","\\begin{lineto}","\\begin{lineto}[键值列表%keyvals]","\\linelistset{list}","\\linelistset[键值列表%keyvals]{list}","\\lineconnect{list}","\\lineconnect[TikZ keys]{list}","\\begin{material}","\\begin{material}[键值列表%keyvals]","\\begin{poem}","\\begin{poem}[键值列表%keyvals]","\\zhu{注释%text}","\\zhu[数]{注释%text}","\\begin{writingbox}","\\begin{writingbox}[tcolorbox keys]"]],
+["frcursive",[],["\\cursive","\\begin{cursive}","\\textcursive{text}","\\calseries","\\begin{calseries}","\\textcal{text}","\\ftseries","\\begin{ftseries}","\\textft{text}","\\wideseries","\\begin{wideseries}","\\textwide{text}","\\acadshape","\\begin{acadshape}","\\textacad{text}","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["guit",["graphics","url","xcolor","xkeyval"],["\\GuIT","\\GuIT[options%keyvals]","\\GuIT*","\\GuIT*[options%keyvals]","\\Ars","\\Arsob","\\ars","\\tecnica","\\arsta","\\arstb","\\arstv","\\arsto","\\Arsto","\\GuITcolor{c,m,y,k}","\\GuITcolor[model]{color spec}","\\GuITcolor*{c,m,y,k}","\\GuITcolor*[model]{color spec}","\\GuITtext","\\GuITtext[options%keyvals]","\\GuITtextEn","\\GuITtextEn[options%keyvals]","\\GuITurl","\\GuITurl[options%keyvals]","\\GuITforum","\\GuITforum[options%keyvals]","\\GuITmeeting","\\GuITmeeting[options%keyvals]","\\GuITmeeting*","\\GuITmeeting*[options%keyvals]","\\setupGuIT[options%keyvals]"]],
+["jetbrainsmono-otf",["xkeyval","fontspec"],["\\jetbrainsmono","\\jetbrainsmonoextralight","\\jetbrainsmonolight","\\jetbrainsmonomedium","\\jetbrainsmonothin","\\jetbrainscode","\\jetbrainscodeextralight","\\jetbrainscodelight","\\jetbrainscodemedium","\\jetbrainscodethin"]],
+["malayalam",["ifpdf"],["\\<%<slot%>>","\\B","\\C","\\D","\\E","\\F","\\K{number}","\\mm","\\X{text%plain}"]],
+["pgf-filehook",["filehook","pgfkeys"],["\\pgffilehook{keyvals}"]],
+["procIAGssymp",[],["\\linea"]],
+["tikzlibraryext.shapes.heatmark",[],["\\tikzextset{options%keyvals}","\\pgfextset{options%keyvals}"]],
+["tikzlibrarytikzphysics.fluids",["tikzlibrarytikzphysics.core","tikzlibrarytikzphysics.piston","tikzlibrarypatterns","tikzlibrarycalc"],[]],
+["tikzlings-rhinos",["tikz","tikzlings-addons"],["\\rhino","\\rhino[options%keyvals]"]]
+]

@@ -1,0 +1,8 @@
+[
+["collargs",["pgfkeys","etoolbox"],[]],
+["flushend",[],["\\flushend","\\raggedend","\\flushcolsend","\\raggedcolsend","\\atColsBreak{tokens}","\\atColsEnd{tokens}","\\showcolsendrule"]],
+["kanbun",["l3keys2e","ifluatex"],["\\setkanbun{options%keyvals}","\\kanjiunit{}{%<left punct%>}{%<kanji%>}{%<other punct%>}{%<kaeriten%>}{}","\\kanjiunit{\\furiokuri{%<right furigana%>}{%<right okurigana%>}}{%<left punct%>}{%<kanji%>}{%<other punct%>}{%<kaeriten%>}{}","\\kanjiunit{}{%<left punct%>}{%<kanji%>}{%<other punct%>}{%<kaeriten%>}{\\furiokuri{%<left furigana%>}{%<left okurigana%>}}","\\kanjiunit{\\furiokuri{%<right furigana%>}{%<right okurigana%>}}{%<left punct%>}{%<kanji%>}{%<other punct%>}{%<kaeriten%>}{\\furiokuri{%<left furigana%>}{%<left okurigana%>}}","\\furiokuri{furigana}{okurigana}","\\kanbunfont","\\multifuriokuri{furigana}{okurigana}","\\multifuriokuri[raise]{furigana}{okurigana}","\\Kanbun","\\EndKanbun","\\printkanbun","\\printkanbuncode","\\printkanbunnopar","\\printkanbunnoparcode"]],
+["tikzlings-apes",["tikz","tikzlings-addons"],["\\ape","\\ape[options%keyvals]"]],
+["tikzlings-hippos",["tikz","tikzlings-addons"],["\\hippo","\\hippo[options%keyvals]"]],
+["ushort",[],["\\ushort{char%formula}","\\ushortw{arg%formula}","\\ushortd{char%formula}","\\ushortdw{arg%formula}"]]
+]

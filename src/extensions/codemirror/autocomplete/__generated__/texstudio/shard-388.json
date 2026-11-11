@@ -1,0 +1,11 @@
+[
+["bxtexlogo-primary",["bxtexlogo"],[]],
+["class-jwjournal",["class-einfart","ProjLib","tcolorbox","tcolorboxlibrarymany","needspace","enumitem"],[]],
+["class-scrjrnl",["titlesec","fancytabs","class-scrbook"],["\\begin{journal}","\\begin{journal}[options%keyvals]","\\jrnlmonth","\\jrnlmonth[options%keyvals]","\\jrnlday{title}","\\jrnlday[options%keyvals]{title}"]],
+["dantelogo",["iftex","fontenc"],["\\dantelogo","\\dantelogo[size%l]","\\DH","\\NG","\\dj","\\ng","\\k{arg}","\\guilsinglleft","\\guilsinglright","\\quotedblbase","\\quotesinglbase","\\textquotedbl","\\DJ","\\th","\\TH","\\dh","\\guillemetleft","\\guillemetright"]],
+["junicodevf",["luatex","ifluatex","xkeyval","fontspec"],["\\EnlargedOne","\\EnlargedOneItalic","\\EnlargedTwo","\\EnlargedTwoItalic","\\EnlargedThree","\\EnlargedThreeItalic","\\EnlargedFour","\\EnlargedFourItalic","\\textcv{variant}{text}","\\textcv[index]{variant}{text}","\\jcv{variant}","\\jcv[index]{variant}","\\AltThornEth","\\textAltThornEth{text}","\\InsularLetterForms","\\textInsularLetterForms{text}","\\IPAAlternates","\\textIPAAlternates{text}","\\HighOverline","\\textHighOverline{text}","\\MediumHighOverline","\\textMediumHighOverline{text}","\\EnlargedMinuscules","\\textEnlargedMinuscules{text}","\\Underdotted","\\textUnderdotted{text}","\\ContextualLongS","\\textContextualLongS{text}","\\AlternateFigures","\\textAlternateFigures{text}","\\EntitiesAndTags","\\textEntitiesAndTags{text}","\\EarlyEnglishFuthorc","\\textEarlyEnglishFuthorc{text}","\\ElderFuthark","\\textElderFuthark{text}","\\YoungerFuthark","\\textYoungerFuthark{text}","\\LongBranchToShortTwig","\\textLongBranchToShortTwig{text}","\\ContextualRRotunda","\\textContextualRRotunda{text}","\\RareDigraphs","\\textRareDigraphs{text}","\\OldStylePunctuation","\\textOldStylePunctuation{text}","\\LatinToGothic","\\textLatinToGothic{text}","\\LowDiacritics","\\textLowDiacritics{text}"]],
+["metainfo",[],["\\typesetmetainfo{file}"]],
+["penlight",["luatex"],[]],
+["quattrocento",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes"],["\\quattrocento","\\quattrocentosans"]],
+["tikzorbital",["ifthen","tikz","tikzlibraryshapes"],["\\drawLevel[options%keyvals]{name}","\\orbital[options%keyvals]{type}","\\satom[%<options%>]{%<color%>/%<rotation-angle%>/%<anchor%>/%<number of electrons%>/%<scale%>}","\\setOrbitalDrawing{TikZ options}"]]
+]

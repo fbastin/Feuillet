@@ -1,0 +1,10 @@
+[
+["LibreBskvl",["xkeyval","fontenc","ifthen","mweights","fontaxes"],["\\sufigures","\\textsu{text}"]],
+["Magra",["xkeyval","fontenc","ifthen","mweights","fontaxes"],[]],
+["dnaseq",["color"],["\\DNA!%<text%>!","\\DNAblock","\\DNAreserve"]],
+["linenoamsmath",["amsmath","lineno","etoolbox","vplref","ednmath0","edtable","longtable","ltabptch"],[]],
+["picture",["calc"],[]],
+["proof",[],["\\deduce{conclusions%formula}{premises%formula}","\\deduce[label%formula]{conclusions%formula}{premises%formula}","\\infer{conclusions%formula}{premises%formula}","\\infer[label%formula]{conclusions%formula}{premises%formula}","\\infer*{conclusions%formula}{premises%formula}","\\infer*[label%formula]{conclusions%formula}{premises%formula}"]],
+["tikzlibraryanimations",[],[]],
+["tikzlibrarybraids",[],[]]
+]

@@ -1,0 +1,7 @@
+[
+["boites_exemples",[],["\\begin{boiteepaisseavecuntitre}","\\begin{boitenumeroteeavecunedoublebarre}{number}","\\begin{boiteavecunelignequiondulesurlecote}","\\begin{boitecoloriee}"]],
+["newfile",["verbatim"],[]],
+["pst-geometrictools",["pstricks","pst-xkey","pst-node"],["\\psProtractor{angle}(x,y)","\\psProtractor[options%keyvals]{angle}(x,y)","\\psPencil{angle}(x,y)","\\psPencil[options%keyvals]{angle}(x,y)","\\psRuler{angle}(x,y)","\\psRuler[options%keyvals]{angle}(x,y)","\\psCompass{radius}(x,y)","\\psCompass[options%keyvals]{radius}(x,y)","\\psParallels(A)(B)(C)","\\psParallels[options%keyvals](A)(B)(C)"]],
+["tetragonos",[],["\\getTG{string}"]],
+["verbdef",[],["\\verbdef{cmd}{verb text}","\\verbdef*{cmd}{verb text}"]]
+]

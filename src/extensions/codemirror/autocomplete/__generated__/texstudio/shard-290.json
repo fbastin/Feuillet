@@ -1,0 +1,8 @@
+[
+["autolist",["calc"],["\\begin{Sublist}{label}{spacing}","\\begin{Subnum}","\\begin{Lautolist}","\\begin{Lautolist}[longest label]","\\begin{Rautolist}","\\begin{Rautolist}[longest label]","\\begin{Lpolylist}","\\begin{Lpolylist}[longest label]","\\begin{Rpolylist}","\\begin{Rpolylist}[longest label]","\\begin{characters}"]],
+["beamerbasethemes",[],["\\usetheme{beamertheme}","\\usetheme[options%keyvals]{beamertheme}","\\usecolortheme{beamer color theme}","\\usecolortheme[options%keyvals]{beamer color theme}","\\usefonttheme{beamer font theme}","\\usefonttheme[options%keyvals]{beamer font theme}","\\useoutertheme{beamer outer theme}","\\useoutertheme[options%keyvals]{beamer outer theme}","\\useinnertheme{beamer inner theme}","\\useinnertheme[options%keyvals]{beamer inner theme}"]],
+["cnltx-tools",["cnltx-base","accsupp","cnltx-translations"],["\\cnltxacronym{string}{acronym}","\\newabbr{cmd}{definition}","\\newabbr*{cmd}{definition}","\\renewabbr{cmd}{definition}","\\renewabbr*{cmd}{definition}","\\defabbr{cmd}{definition}","\\defabbr*{cmd}{definition}","\\cnltxlatin{abbreviation}","\\ie","\\eg","\\cf","\\etc","\\vs","\\zB","\\ZB","\\usw","\\usf","\\uswusf","\\bzw","\\dsh","\\Dsh","\\vgl","\\Vgl","\\cnltxtimeformat{abbreviation}","\\PM","\\AM","\\BC","\\AD"]],
+["gridpapers",["xkeyval","kvoptions","xcolor","tikz","tikzlibrarypatterns.meta","tikzlibrarycalc","tikzpagenodes","pagecolor","geometry"],[]],
+["hgbabbrev",["xspace"],["\\latex","\\tex","\\bs","\\obnh","\\bzgl","\\bzw","\\ca","\\dah","\\Dah","\\ds","\\etc","\\evtl","\\ia","\\sa","\\so","\\su","\\ua","\\Ua","\\uae","\\usw","\\uva","\\uvm","\\va","\\vgl","\\zB","\\ZB","\\ie","\\eg","\\Eg","\\wrt"]],
+["maze",[],["\\maze{size}","\\maze{size}[seed]"]]
+]

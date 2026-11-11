@@ -1,0 +1,5 @@
+[
+["beamerappendixnote",["l3keys2e"],["\\appxnote{title}{content%text}","\\appxnote[frame options]{title}{content%text}","\\printappxnotes"]],
+["fonetika",[],["\\fonetikafamily","\\fonetikasansfamily","\\fonetikaseriffamily"]],
+["xpiano",["xcolor"],["\\keyboard{notes}","\\keyboard[options%keyvals]{notes}","\\keyboardsetup{options%keyvals}","\\Keyboard%<[note1][note2]...%>"]]
+]

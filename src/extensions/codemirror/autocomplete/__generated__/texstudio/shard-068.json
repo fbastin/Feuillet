@@ -1,0 +1,8 @@
+[
+["class-mynsfc",["kvoptions","class-ctexart","xeCJK","geometry","titlesec","marvosym","amsmath","amssymb","paralist","graphicx","caption","subcaption","xcolor","calc","hyperref","biblatex","xpatch","subfig"],["\\cemph{text}","\\initauthors{arg}"]],
+["continue",["atbegshi","picture","zref-abspage","zref-lastpage"],["\\flagcont","\\flagend","\\flagword","\\preflagword","\\postflagword","\\contsep","\\contdrop","\\contgo","\\contstop"]],
+["gentium",["xkeyval"],[]],
+["mVersion",[],["\\version","\\setVersion{version number}","\\increaseBuild"]],
+["robustglossary",[],["\\glopageref{number}"]],
+["shortlst",[],["\\begin{shortitemize}","\\begin{shortenumerate}","\\begin{runenumerate}","\\begin{runitemize}","\\runitemsep","\\shortitemwidth"]]
+]

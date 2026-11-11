@@ -1,0 +1,8 @@
+[
+["bigdelim",[],["\\ldelim%<delim%>{%<num of rows%>}{%<width or *%>}","\\ldelim%<delim%>{%<num of rows%>}{%<width or *%>}[%<text%>]","\\rdelim%<delim%>{%<num of rows%>}{%<width or *%>}","\\rdelim%<delim%>{%<num of rows%>}{%<width or *%>}[%<text%>]"]],
+["class-ctexbeamer",["ctex","class-beamer","ucs","inputenc"],[]],
+["class-slides",[],["\\settime{seconds}","\\addtime{seconds}","\\onlyslides{list}","\\onlynotes{list}","\\begin{slide}","\\begin{overlay}","\\begin{note}","\\invisible","\\visible"]],
+["hsetup",["ifthen","graphicx","class-letter","babel"],["\\border[voffset%l]{height%l}{imagefile}","\\border{height%l}{imagefile}","\\centrepos{offset%l}","\\logo[height%l]{imagefile}","\\logo{imagefile}","\\frenchsetup{options%keyvals}","\\at","\\begin{descriptionFB}","\\begin{enumerateFB}","\\begin{itemizeFB}","\\begin{listFB}{symbol}","\\boi","\\bname{text}","\\bsc{text}","\\circonflexe","\\DecimalMathComma","\\degres","\\FBcolonspace","\\FBguillspace","\\FBthinspace","\\fg","\\fprimo)","\\frenchdate{day}{month}{year}","\\frenchtoday","\\frquote{text}","\\fup{text}","\\ieme","\\iemes","\\ier","\\iere","\\ieres","\\iers","\\No","\\no","\\NoAutoSpacing","\\nos","\\Nos","\\og","\\primo","\\quarto","\\secundo","\\StandardMathComma","\\tertio","\\tild","\\up{text}","\\xspace","\\dq"]],
+["nccheadings",[],[]],
+["tramlines",["booktabs"],["\\tramlines{text}"]]
+]

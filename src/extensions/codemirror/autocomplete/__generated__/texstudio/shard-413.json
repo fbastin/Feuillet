@@ -1,0 +1,11 @@
+[
+["adobeornaments",["iftex","fontspec","xstring"],["\\orn{font%keyvals}{number}"]],
+["askmaps",["pict2e"],["\\askmapi{output var}{input vars}{options}{func vals}{pic cmds}","\\askmapii{output var}{input vars}{options}{func vals}{pic cmds}","\\askmapiii{output var}{input vars}{options}{func vals}{pic cmds}","\\askmapiiialt{output var}{input vars}{options}{func vals}{pic cmds}","\\askmapiv{output var}{input vars}{options}{func vals}{pic cmds}","\\askmapv{output var}{input vars}{options}{func vals}{pic cmds}","\\askmap{num}{output var}{input vars}{options}{func vals}{pic cmds}"]],
+["coloredbelts",["graphicx","xstring","calc","simplekv"],["\\CeintureCouleur{color%plain}","\\CeintureCouleur[keyvals]{color%plain}","\\CeintureCouleur*{color%plain}","\\CeintureCouleur*[keyvals]{color%plain}","\\ColorBelt{color%plain}","\\ColorBelt[keyvals]{color%plain}","\\ColorBelt*{color%plain}","\\ColorBelt*[keyvals]{color%plain}"]],
+["dichokey",["calc","ifthen"],["\\begin{Key}{prefix}","\\alter","\\name{name}","\\name[prefix]{name}"]],
+["expkv",["expkv-pop","expkv-cs","expkv-def","expkv-opt"],[]],
+["hep-float",["kvoptions","subcaption","calc","etoolbox","booktabs","multirow","graphicx"],["\\begin{figures}{width%plain}","\\begin{figures}[alignment]{width%plain}","\\begin{panels}{width%plain}","\\begin{panels}[alignment]{width%plain}","\\begin{tables}{width%plain}","\\begin{tables}[alignment]{width%plain}","\\panel{width}","\\graphic{imagefile}","\\graphic[width]{imagefile}","\\graphics{file path}"]],
+["jslogo",[],["\\pTeX","\\pLaTeX","\\pLaTeXe","\\upTeX","\\upLaTeX","\\upLaTeXe","\\AmSTeX","\\BibTeX","\\SliTeX"]],
+["moreenum",["amsmath","alphalph","enumitem","fmtcount"],["\\greek{counter}","\\Greek{counter}","\\enumHex{counter}","\\enumhex{counter}","\\enumbinary{counter}","\\enumoctal{counter}","\\raisenth{counter}","\\levelnth{counter}","\\Nthwords{counter}","\\Nwords{counter}","\\NTHWORDS{counter}","\\NWORDS{counter}","\\nthwords{counter}","\\nwords{counter}","\\begin{enumHexzero}","\\begin{enumbinzero}","\\begin{enumhexzero}","\\begin{enumoctzero}"]],
+["showhanmengrid",["xcolor"],["\\showhanmengridsetup{keyvals}"]]
+]

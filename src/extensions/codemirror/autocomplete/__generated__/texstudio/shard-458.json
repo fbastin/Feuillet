@@ -1,0 +1,6 @@
+[
+["Typocaps",[],["\\Typocapsfamily","\\typocap{text%plain}"]],
+["greekctr",[],["\\greek{counter}","\\Greek{counter}"]],
+["hep-plot",["tikz","pgfplots"],["\\cyclelistshift","\\addlegendtitle{text}","\\addlegendtitle[options]{text}"]],
+["pst-pdgr",["pstricks","pst-node","pst-tree","pst-xkey"],["\\affectedstyle","\\affectedbgcolor","\\affectedfgcolor","\\pstPerson{id}","\\pstPerson[options%keyvals]{id}","\\pstAbortion{id}","\\pstAbortion[options%keyvals]{id}","\\pstChildless{id}","\\pstChildless[options%keyvals]{id}","\\pstRelationship{nodeA}{nodeB}","\\pstRelationship[options%keyvals]{nodeA}{nodeB}","\\pstDescent{parent}{child}","\\pstDescent[options%keyvals]{parent}{child}","\\pstTwins{parent}{twin node}{left twin}{right twin}","\\TpstPerson{id}","\\TpstPerson[options%keyvals]{id}","\\TpstAbortion{id}","\\TpstAbortion[options%keyvals]{id}","\\TpstChildless{id}","\\TpstChildless[options%keyvals]{id}"]]
+]

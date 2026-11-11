@@ -1,0 +1,11 @@
+[
+["amsbooka",[],["\\barefootnote{text}","\\begin{inchapterbibliography}{widest label}"]],
+["bibleref-mouth",["fmtcount","hyperref"],["\\bibleref{reference}","\\setbiblestyle{style name%keyvals}","\\providebiblestyle{style name}{formatting}","\\providebiblebookalias{book}{alias}","\\providebiblebook{style name}{book}{bookname}"]],
+["elements",["etoolbox","translations"],["\\elementname{%<atomic number|element symbol%>}","\\setatomname{atomic number}{element name}","\\setatomname[alt name]{atomic number}{element name}","\\elementsymbol{%<atomic number|element name%>}","\\setatomsymbol{atomic number}{element symbol}","\\atomicnumber{%<element symbol|element name%>}","\\elconf{%<atomic number|element symbol|element name%>}","\\writeelconf{electron distribution}","\\setelectrondistribution{atomic number}{element distribution}","\\setatomisotopes{atomic number}{isotope list}","\\mainelementisotope{%<atomic number|element symbol|element name%>}"]],
+["euromoney",["xstring","simplekv","graphicx","tikz","tikzlibrarycalc","listofitems"],["\\EuroCoins{list of coins}","\\EuroCoins[keyvals]{list of coins}","\\EuroBanknotes{list of banknotes}","\\EuroBanknotes[keyvals]{list of banknotes}","\\PiecesEuro{list of coins}","\\PiecesEuro[keyvals]{list of coins}","\\BilletsEuro{list of banknotes}","\\BilletsEuro[keyvals]{list of banknotes}"]],
+["multitoc",["multicol","ifthen"],["\\multicolumntoc","\\multicolumnlot","\\multicolumnlof"]],
+["nccstretch",[],["\\stretchwith{code}{text}"]],
+["opencolor",["xcolor"],[]],
+["scraddr",["scrlogo"],["\\InputAddressFile{file}","\\adrentry{LastName}{FirstName}{Address}{Phone}{F1}{F2}{Comment}{Key}","\\addrentry{LastName}{FirstName}{Address}{Phone}{F1}{F2}{F3}{F4}{Key}","\\addrchar{initial}","\\adrchar{initial}","\\Name{Key}","\\FirstName{Key}","\\LastName{Key}","\\Address{Key}","\\Telephone{Key}","\\FreeI{Key}","\\FreeII{Key}","\\Comment{Key}","\\FreeIII{Key}","\\FreeIV{Key}"]],
+["tikzlibraryoptics",["tikzlibrarydecorations","tikzlibrarydecorations.markings","tikzlibrarydecorations.pathreplacing","etoolbox"],[]]
+]

@@ -1,0 +1,9 @@
+[
+["embedall",["embedfile","filehook","currfile","etoolbox","letltxmacro"],["\\embedsource","\\embedsource[options%keyvals]"]],
+["ionumbers",["keyval"],["\\ionumbersstyle{options%keyvals}","\\ionumbersresetstyle","\\ionumbers","\\endionumbers","\\ionumbersoff{content}"]],
+["mcode",["listings","xcolor"],["\\mcode{Matlab code%definition}","\\mcodefn{Matlab code%definition}"]],
+["rawfonts",["somedefs"],[]],
+["recorder-fingering",["tikz","tikzlibrarycalc","graphicx"],["\\Sopranino{note}","\\Sopranino[parameters%keyvals]{note}","\\Soprano{note}","\\Soprano[parameters%keyvals]{note}","\\Alto{note}","\\Alto[parameters%keyvals]{note}","\\Tenor{note}","\\Tenor[parameters%keyvals]{note}","\\Bass{note}","\\Bass[parameters%keyvals]{note}","\\Whistle{note}","\\Whistle[parameters%keyvals]{note}","\\fingeringSetup{parameters%keyvals}","\\NewFfingering{notename}{fingering vector}","\\NewFfingering*{notename}{fingering vector}","\\NewCfingering{notename}{fingering vector}","\\NewCfingering*{notename}{fingering vector}","\\NewDfingering{notename}{fingering vector}","\\NewDfingering*{notename}{fingering vector}","\\AddFingerings{%<key%>}{%<note1={vector1},...%>}","\\NewFtrill{notename}{fingering vector}{trill vector}","\\NewFtrill*{notename}{fingering vector}{trill vector}","\\NewCtrill{notename}{fingering vector}{trill vector}","\\NewCtrill*{notename}{fingering vector}{trill vector}","\\NewDtrill{notename}{fingering vector}{trill vector}","\\NewDtrill*{notename}{fingering vector}{trill vector}","\\AddTrills{%<key%>}{%<note1={{fingering vector},{trill vector}},...%>}","\\Ftrill{note}","\\Ftrill[parameters%keyvals]{note}","\\Ctrill{note}","\\Ctrill[parameters%keyvals]{note}","\\Dtrill{note}","\\Dtrill[parameters%keyvals]{note}"]],
+["splentinex",["xkeyval","ifthen"],["\\sufigures","\\textsu{text}"]],
+["subfigmat",["subfigure"],["\\begin{subfigmatrix}{number}"]]
+]

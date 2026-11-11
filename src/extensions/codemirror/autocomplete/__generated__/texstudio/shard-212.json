@@ -1,0 +1,9 @@
+[
+["class-IEEEconf",["geometry","mathptmx","helvet","courier","array","titlesec"],["\\begin{affiliation}","\\email{email%URL}","\\callout{text}","\\dobeforekey{bibid}{commands}"]],
+["easyfloats",["etoolbox","pgfkeys","float","caption","environ","subcaption","graphicx","array","booktabs","graphbox","longtable"],["\\begin{figureobject}{options%keyvals}","\\begin{tableobject}{options%keyvals}","\\begin{subobject}{options%keyvals}","\\includegraphicobject{imagefile}","\\includegraphicobject[options%keyvals]{imagefile}","\\includegraphicsubobject{imagefile}","\\includegraphicsubobject[options%keyvals]{imagefile}","\\objectset{options%keyvals}","\\objectset[style names]{options%keyvals}","\\graphicobjectstyle{style name}","\\NewObjectStyle{style name}{options%keyvals}","\\NewObjectStyleGroup{group}{style names}","\\AddObjectStyleToGroup{group}{style name}","\\AtBeginObject{code}","\\AtEndObject{code}","\\AtBeginSubobject{code}","\\AtBeginGraphicObject{code}","\\ShowObjectStylesInGroup{group}","\\ShowObjectStyleOptions{style name}","\\splitobject"]],
+["eqnarray",["array"],["\\begin{equationarray}{preamble}","\\begin{equationarray}[alignment%keyvals]{preamble}","\\begin{equationarray*}[alignment%keyvals]{preamble}","\\yesnumber","\\eqnnum{number}"]],
+["graphicxpsd",[],[]],
+["nm",[],["\\flqq","\\frqq","\\ruble","\\ellipsis"]],
+["nowtoaux",[],["\\immediateaddtocontents{table}{text}","\\immediatewriteaux{commands}","\\macrotoaux{command}","\\writeaux{commands}"]],
+["powerdot-husky",["times","pifont","pst-grad"],["\\begin{titleslide}{title}","\\begin{titleslide}[options%keyvals]{title}","\\begin{wideslide}{title}","\\begin{wideslide}[options%keyvals]{title}","\\begin{slide}{title}","\\begin{slide}[options%keyvals]{title}","\\begin{sectionslide}{title}","\\begin{sectionslide}[options%keyvals]{title}","\\begin{sectionwideslide}{title}","\\begin{sectionwideslide}[options%keyvals]{title}"]]
+]
