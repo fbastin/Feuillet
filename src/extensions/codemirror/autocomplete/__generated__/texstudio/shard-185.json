@@ -2,8 +2,8 @@
 ["addtoluatexpath",["luacode"],["\\addtoluatexpath{path1,path2,...%file}"]],
 ["beamerthemeFhG",["euler","fhginstitutes","graphicx","pgf"],["\\begin{splitvv}","\\begin{splitv}","\\boxitem","\\cdotitem","\\begin{titleframe}","\\fhgpaperwidth","\\fhgtextwidth","\\questionitem","\\setinstitute{arg1}","\\splitvnext","\\splitvvnext","\\triangledownitem","\\triangleleftitem","\\trianglerightitem","\\triangleupitem","\\vdotsitem"]],
 ["classicthesis-arsclassica",["classicthesis"],["\\formatchapter{text}"]],
-["ebgaramond",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\ebgaramond","\\liningnums{text}","\\tabularnums{text}","\\proportionalnums{text}","\\sufigures","\\textsu{text}","\\infigures","\\textinf{text}","\\swshape","\\textsw{text}","\\initials","\\textin{letter%keyvals}"]],
-["numbersets",[],["\\SetupNumberSetsOptions{options%keyvals}","\\NumberSet{symbol}","\\NumberSet[options%keyvals]{symbol}","\\DeclareNumberSetCommand{command}{symbol}","\\DeclareNumberSetStyle{style%specialDef}{command}","\\NaturalNumbers","\\Integers","\\RationalNumbers","\\RealNumbers","\\ComplexNumbers"]],
-["soulutf8",["soul"],[]],
+["ebgaramond",["ifxetex","ifluatex","xkeyval","fontenc","fontaxes","mweights"],["\\ebgaramond","\\liningnums{text}","\\tabularnums{text}","\\proportionalnums{text}","\\sufigures","\\textsu{text}","\\infigures","\\textinf{text}","\\swshape","\\textsw{text}","\\initials","\\textin{letter%keyvals}"],[[[["\\usepackage/ebgaramond"]],["scaled=%<factor%>","type1","lining","nf","lf","oldstyle","osf","tabular","t","proportional","p","medium","m","semibold","sb","extrabold","eb"]],[[["\\textin","{"]],["A","D","F","G","L","N","O","Q","T","X"]]]],
+["numbersets",[],["\\SetupNumberSetsOptions{options%keyvals}","\\NumberSet{symbol}","\\NumberSet[options%keyvals]{symbol}","\\DeclareNumberSetCommand{command}{symbol}","\\DeclareNumberSetStyle{style%specialDef}{command}","\\NaturalNumbers","\\Integers","\\RationalNumbers","\\RealNumbers","\\ComplexNumbers"],[[[["\\SetupNumberSetsOptions","{"],["\\NumberSet","["]],["style=#bb,bfup,bfit,%numbersetsstyle"]]]],
+["soulutf8",["soul"],[],[[[["\\usepackage/soulutf8"]],["capsdefault"]]]],
 ["tikz-among-us-fancyhdr",["tikz-among-us","fancyhdr"],[]]
 ]

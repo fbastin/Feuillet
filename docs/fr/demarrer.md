@@ -146,7 +146,15 @@ projet charge sont proposés aussi, avec leurs arguments comme champs à
 remplir (**Tab** passe au suivant) : `\usepackage{siunitx}` apporte
 `\qty{number}{unit}`, `\documentclass{beamer}` apporte `\frametitle`, et
 `\begin{` propose `align` dès qu'amsmath est chargé. Un paquet chargé dans
-un autre fichier du projet compte aussi. Ces listes viennent de celles de
+un autre fichier du projet compte aussi.
+
+Dans les options, les clés que la commande accepte sont proposées :
+`\includegraphics[` offre `width`, `angle` ou `keepaspectratio`,
+`\usepackage[…]{geometry}` offre `margin` ou `paper`, `\documentclass[` les
+options de la classe, `\begin{tcolorbox}[` celles de tcolorbox. Une clé qui
+attend une longueur ou un texte arrive avec ce champ sélectionné; après une
+clé qui a des valeurs, comme `labelfont=` de `\captionsetup`, ses valeurs
+sont proposées. Ces listes viennent de celles de
 [TeXstudio](https://github.com/texstudio-org/texstudio).
 
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et

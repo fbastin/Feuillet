@@ -1,6 +1,6 @@
 [
-["beamerthemeTorinoTh",["ifxetex","pifont","fontspec","xunicode","xltxtra","metalogo","xkeyval","polyglossia"],["\\begin{tframe}{title%text}","\\titlepageframe","\\highlight{text}","\\highlightbf{text}","\\setsubject{subject%text}","\\ateneo{institute%text}","\\rel{supervisor}","\\begin{adv}","\\begin{disadv}"]],
-["bold-extra",[],[]],
-["class-ydoc",["ydoc"],[]],
-["latex-papersize",["iftex"],[]]
+["beamerthemeTorinoTh",["ifxetex","pifont","fontspec","xunicode","xltxtra","metalogo","xkeyval","polyglossia"],["\\begin{tframe}{title%text}","\\titlepageframe","\\highlight{text}","\\highlightbf{text}","\\setsubject{subject%text}","\\ateneo{institute%text}","\\rel{supervisor}","\\begin{adv}","\\begin{disadv}"],[[[["\\usetheme/TorinoTh"]],["language=%<language%>","titlepagelogo=%<imagefile%>","bullet=#square,diamond,triangle,circle","pageofpages=%<text%>","titleline#true,false","color=#%color","secondcandidate#true,false","secondsupervisor#true,false","secondlogo#true,false","thirdlogo#true,false","assistantsupervisor#true,false","secondassistantsupervisor#true,false","notshowauthor","coding=#utf8x,utf8,latin1"]]]],
+["bold-extra",[],[],[[[["\\usepackage/bold-extra"]],["cmttb","cmbtt"]]]],
+["class-ydoc",["ydoc"],[],[[[["\\documentclass/ydoc"]],["a4paper","a5paper","b5paper","letterpaper","legalpaper","executivepaper","landscape","10pt","11pt","12pt","oneside","twoside","draft","final","titlepage","notitlepage","onecolumn","twocolumn","leqno","fleqn","openbib"]]]],
+["latex-papersize",["iftex"],[],[[[["\\usepackage/latex-papersize"]],["basesize=##L","desiredsize=##L","paperwidth=##L","paperheight=##L","marginleft=##L","margintop=##L","extrabottom=##L"]]]]
 ]

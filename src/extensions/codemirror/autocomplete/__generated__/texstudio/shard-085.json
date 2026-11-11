@@ -1,9 +1,9 @@
 [
-["Gudea",["xkeyval","fontenc","ifthen","mweights","fontaxes"],[]],
+["Gudea",["xkeyval","fontenc","ifthen","mweights","fontaxes"],[],[[[["\\usepackage/Gudea"]],["scaled=%<factor%>","lining","tabular","mainfont","bold","regular"]]]],
 ["awesomebox",["array","fontawesome5","xcolor","ifthen"],["\\notebox{text}","\\tipbox{text}","\\warningbox{text}","\\cautionbox{text}","\\importantbox{text}","\\begin{noteblock}","\\begin{tipblock}","\\begin{warningblock}","\\begin{cautionblock}","\\begin{importantblock}"]],
-["bigstrut",[],["\\bigstrut","\\bigstrut[option%keyvals]","\\bigstrutjot"]],
-["cascade",["l3keys2e"],["\\Cascade{top_left}{top_right}{bot_left}{bot_right}","\\Cascade[options%keyvals]{top_left}{top_right}{bot_left}{bot_right}","\\ShortCascade{top}{bottom}","\\ShortCascade[options%keyvals]{top}{bottom}","\\CascadeOptions{keyvals}","\\Edacsac{top_left}{top_right}{bot_left}{bot_right}","\\Edacsac[options%keyvals]{top_left}{top_right}{bot_left}{bot_right}","\\ShortEdacsac{top}{bottom}","\\ShortEdacsac[options%keyvals]{top}{bottom}"]],
-["comfortaa",["ifluatex","ifxetex","xkeyval"],["\\comfortaa"]],
+["bigstrut",[],["\\bigstrut","\\bigstrut[option%keyvals]","\\bigstrutjot"],[[[["\\bigstrut","["]],["t","b"]]]],
+["cascade",["l3keys2e"],["\\Cascade{top_left}{top_right}{bot_left}{bot_right}","\\Cascade[options%keyvals]{top_left}{top_right}{bot_left}{bot_right}","\\ShortCascade{top}{bottom}","\\ShortCascade[options%keyvals]{top}{bottom}","\\CascadeOptions{keyvals}","\\Edacsac{top_left}{top_right}{bot_left}{bot_right}","\\Edacsac[options%keyvals]{top_left}{top_right}{bot_left}{bot_right}","\\ShortEdacsac{top}{bottom}","\\ShortEdacsac[options%keyvals]{top}{bottom}"],[[[["\\Cascade","["],["\\ShortCascade","["]],["t"]],[[["\\Cascade","["],["\\ShortCascade","["],["\\Edacsac","["],["\\ShortEdacsac","["]],["interline=##L"]],[[["\\Cascade","["],["\\ShortCascade","["],["\\Edacsac","["],["\\ShortEdacsac","["],["\\CascadeOptions","{"]],["space-between=##L","interline-all=##L"]]]],
+["comfortaa",["ifluatex","ifxetex","xkeyval"],["\\comfortaa"],[[[["\\usepackage/comfortaa"]],["scaled=%<factor%>","default","defaultsans","type1"]]]],
 ["linguistix",["linguistix-base","linguistix-fonts","linguistix-glossing","linguistix-ipa","linguistix-languages","linguistix-leipzig","linguistix-logos","linguistix-nfss"],[]],
-["subfloat",[],["\\begin{subfigures}","\\begin{subtables}","\\thesubfloatfigure","\\thesubfloattable","\\themainfigure","\\themaintable","\\thesubfloatfiguremax","\\thesubfloattablemax"]]
+["subfloat",[],["\\begin{subfigures}","\\begin{subtables}","\\thesubfloatfigure","\\thesubfloattable","\\themainfigure","\\themaintable","\\thesubfloatfiguremax","\\thesubfloattablemax"],[[[["\\usepackage/subfloat"]],["countmax","nocountmax"]]]]
 ]

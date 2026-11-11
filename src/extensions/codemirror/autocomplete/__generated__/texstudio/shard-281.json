@@ -1,6 +1,6 @@
 [
 ["dblfnote",[],["\\DFNallowcbreak","\\DFNalwaysdouble","\\DFNinhibitcbreak","\\DFNruleboth","\\DFNruleleft","\\DFNtrysingle","\\DFNcolumnwidth","\\DFNcolumnsep"]],
-["mathpartir",["keyval"],["\\begin{mathpar}","\\inferrule{premises}{conclusions}","\\inferrule[label%text]{premises}{conclusions}","\\inferrule*[options%keyvals]{premises}{conclusions}","\\infer{premises}{conclusions}","\\infer[label%text]{premises}{conclusions}","\\infer*[options%keyvals]{premises}{conclusions}","\\mprset{keyvals}"]],
+["mathpartir",["keyval"],["\\begin{mathpar}","\\inferrule{premises}{conclusions}","\\inferrule[label%text]{premises}{conclusions}","\\inferrule*[options%keyvals]{premises}{conclusions}","\\infer{premises}{conclusions}","\\infer[label%text]{premises}{conclusions}","\\infer*[options%keyvals]{premises}{conclusions}","\\mprset{keyvals}"],[[[["\\inferrule*","["],["\\infer*","["]],["width=##L","narrower=%<scale%>","before=%<tex%>","lab=%<label%>","lskip=##L","left=%<label%>","Left=%<label%>","right=%<label%>","Right=%<label%>","style=%<tex%>","leftstyle=%<tex%>","rightstyle=%<tex%>","leftskip=##L","rightskip=##L","vdots=##L","after=%<tex%>"]],[[["\\mprset","{"],["\\inferrule*","["],["\\infer*","["]],["sep=##L","flushleft","center","rewrite=##L","fraction=%<tail%>%<body%>%<head%>","fractionaboveskip=##L","fractionbelowskip=##L","myfraction=%<tex%>","vskip=##L","vcenter"]]]],
 ["modular",["coseoul","ifthen","import"],["\\subimportlevel{file path%definition}{file}{levels}"]],
 ["sitem",[],["\\sitem[label]"]]
 ]

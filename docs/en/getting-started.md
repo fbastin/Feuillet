@@ -142,7 +142,14 @@ loads are offered too, with their arguments as fields to fill (**Tab** goes
 to the next): `\usepackage{siunitx}` brings `\qty{number}{unit}`,
 `\documentclass{beamer}` brings `\frametitle`, and `\begin{` offers `align`
 once amsmath is loaded. A package loaded in another file of the project
-counts too. These lists come from
+counts too.
+
+In options, the keys the command takes are offered: `\includegraphics[`
+offers `width`, `angle` or `keepaspectratio`, `\usepackage[…]{geometry}`
+offers `margin` or `paper`, `\documentclass[` the class's options,
+`\begin{tcolorbox}[` tcolorbox's. A key that takes a length or a text comes
+with that field selected; after a key that has values, as `labelfont=` of
+`\captionsetup`, its values are offered. These lists come from
 [TeXstudio](https://github.com/texstudio-org/texstudio)'s.
 
 The spell checker underlines mistakes in LaTeX and Typst text; a right click

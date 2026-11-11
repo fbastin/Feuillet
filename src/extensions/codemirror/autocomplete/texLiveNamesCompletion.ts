@@ -54,6 +54,11 @@ const ARGUMENTS: Record<string, Argument> = {
 	useoutertheme: { kind: 'sty', themePrefix: 'beameroutertheme', list: true },
 };
 
+/** The commands whose braces hold such names (usepackage, usetheme…). */
+export const TEX_LIVE_NAME_COMMANDS: ReadonlySet<string> = new Set(
+	Object.keys(ARGUMENTS),
+);
+
 // The names people use most come first among equal matches.
 const COMMON: Record<Kind, ReadonlySet<string>> = {
 	sty: new Set(latexPackages),

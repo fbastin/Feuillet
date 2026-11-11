@@ -221,9 +221,10 @@ describe('the completion', () => {
 		);
 	});
 
-	it("offers the class's commands, through its includes", async () => {
+	it("offers the class's commands, through its includes, named after it", async () => {
 		const options = await complete('\\documentclass{beamer}\n\\frameti');
-		expect(shown(options)).toContain('\\frametitle{title} · beamerbaselocalstructure');
+		// TeXstudio has it in beamerbaselocalstructure, which beamer includes.
+		expect(shown(options)).toContain('\\frametitle{title} · beamer');
 	});
 
 	it("and those of packages another file of the project loads", async () => {

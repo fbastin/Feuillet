@@ -49,7 +49,7 @@ const CLOSING: Record<string, string> = {
 // field: LaTeX's own \{ is written \\{, and a brace after $ or # escaped.
 // Other braces are left as they are (CodeMirror misplaces a field after
 // several escaped braces).
-const literal = (text: string): string =>
+export const literal = (text: string): string =>
 	text.replace(/\\([{}])/g, '\\\\$1').replace(/([#$])\{/g, '$1\\{');
 const CURSOR_FIELD = `\${}`;
 
@@ -83,7 +83,7 @@ function readGroup(text: string, from: number): number {
 	return -1;
 }
 
-class Template {
+export class Template {
 	display = '';
 	template = '';
 	private fields = 0;
@@ -249,6 +249,21 @@ function itemsOf(entry: TexstudioEntry): PackageItems {
 	};
 }
 
+const relabel = (items: PackageItems, label: string): PackageItems =>
+	items.label === label
+		? items
+		: {
+				label,
+				commands: items.commands.map((option) => ({
+					...option,
+					detail: label,
+				})),
+				environments: items.environments.map((option) => ({
+					...option,
+					detail: label,
+				})),
+			};
+
 function packageItems(name: string): Promise<PackageItems | null> {
 	let items = parsed.get(name);
 	if (!items) {
@@ -259,26 +274,51 @@ function packageItems(name: string): Promise<PackageItems | null> {
 	return items;
 }
 
-/** The word lists for what a project loads: classes by alias, includes. */
-export async function wordListsFor(
+/** Shown beside what LaTeX itself defines (TeXstudio's latex-document). */
+const LATEX_LABEL = 'LaTeX';
+
+/**
+ * The word lists for what a project loads (classes by alias, includes),
+ * each with what it is there for: the package or class the project loads
+ * that brings it (caption3 for caption, beamerbaselocalstructure for beamer).
+ */
+export async function wordListOrigins(
 	loads: readonly string[],
-): Promise<string[]> {
+): Promise<Map<string, string>> {
 	const { aliases } = await (await data()).loadCore();
-	const start = [...BASE];
+	let level: [name: string, origin: string][] = BASE.map((name) => [
+		name,
+		LATEX_LABEL,
+	]);
 	for (const name of loads) {
 		const className = name.startsWith('class-') ? name.slice(6) : null;
-		start.push(...((className && aliases[className]) || [name]));
+		const origin = className ?? name;
+		for (const list of (className && aliases[className]) || [name])
+			level.push([list, origin]);
 	}
-	const seen = new Set<string>();
-	let level = start;
+	const origins = new Map<string, string>();
 	while (level.length > 0) {
-		const fresh = [...new Set(level)].filter((name) => !seen.has(name));
-		for (const name of fresh) seen.add(name);
+		const fresh: string[] = [];
+		for (const [name, origin] of level)
+			if (!origins.has(name)) {
+				origins.set(name, origin);
+				fresh.push(name);
+			}
 		const entries = await Promise.all(fresh.map(entryOf));
-		level = entries.flatMap((entry) => entry?.[1] ?? []);
+		level = fresh.flatMap((name, i) =>
+			(entries[i]?.[1] ?? []).map((included): [string, string] => [
+				included,
+				origins.get(name) as string,
+			]),
+		);
 	}
-	return [...seen];
+	return origins;
 }
+
+/** The word lists for what a project loads: classes by alias, includes. */
+export const wordListsFor = async (
+	loads: readonly string[],
+): Promise<string[]> => [...(await wordListOrigins(loads)).keys()];
 
 // --- The completion ----------------------------------------------------------
 
@@ -293,8 +333,15 @@ function completionsFor(loads: string[]) {
 	if (!result) {
 		// A few sets of packages kept (one changes as \usepackage is typed).
 		if (merged.size >= 8) merged.delete(merged.keys().next().value as string);
-		result = wordListsFor(loads)
-			.then((names) => Promise.all(names.map(packageItems)))
+		result = wordListOrigins(loads)
+			.then(async (origins) => {
+				const names = [...origins.keys()];
+				const items = await Promise.all(names.map(packageItems));
+				// Each named after what the project loads, not TeXstudio's list.
+				return items.map((found, i) =>
+					found ? relabel(found, origins.get(names[i]) as string) : null,
+				);
+			})
 			.then((all) => {
 				const commands: Completion[] = [];
 				const environments: Completion[] = [];
@@ -333,7 +380,7 @@ function completionsFor(loads: string[]) {
 }
 
 /** What this file and the project's other LaTeX files load. */
-function projectLoads(context: CompletionContext): string[] {
+export function projectLoads(context: CompletionContext): string[] {
 	const loads = new Set(definitionsHere(context.state).packages);
 	for (const definitions of filePathCacheService.getTexDefinitions().values())
 		for (const name of definitions.packages ?? []) loads.add(name);

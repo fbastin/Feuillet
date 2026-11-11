@@ -1,10 +1,10 @@
 [
 ["atendofenv",["amsthm","letltxmacro"],["\\AtEndOfEnv{envname}{code}"]],
-["bfhmodule",[],["\\LoadBFHModule{list of modules%keyvals}"]],
-["class-bitreport",["l3keys2e","class-ctexart","xeCJK","geometry","fancyhdr","setspace","caption","booktabs","pdfpages"],["\\BITSetup{键值对%keyvals}","\\MakeCover","\\MakeReviewTable"]],
+["bfhmodule",[],["\\LoadBFHModule{list of modules%keyvals}"],[[[["\\LoadBFHModule","{"]],["tabular","listings","terminal","boxes","rules"]]]],
+["class-bitreport",["l3keys2e","class-ctexart","xeCJK","geometry","fancyhdr","setspace","caption","booktabs","pdfpages"],["\\BITSetup{键值对%keyvals}","\\MakeCover","\\MakeReviewTable"],[[[["\\documentclass/bitreport"]],["type=undergraduate_proposal"]],[[["\\BITSetup","{"]],["cover={%<键值列表%>}","cover/date=%<任意字符串%>","cover/delimiter=%<任意字符串%>","cover/autoWidth#true,false","cover/autoWidthPadding=##L","cover/labelMaxWidth=##L","cover/valueMaxWidth=##L","cover/labelAlign=#c,l,r","cover/valueAlign=#c,l,r","cover/underlineThickness=##L","cover/underlineOffset=##L","info={%<键值列表%>}","info/title=%<字符串%>","info/school=%<字符串%>","info/major=%<字符串%>","info/class=%<字符串%>","info/author=%<字符串%>","info/studentId=%<字符串%>","info/supervisor=%<字符串%>","info/externalSupervisor=%<字符串%>","misc={%<键值列表%>}","misc/reviewTable=%<.pdf file%>"]]]],
 ["cursor",[],["\\cursorformula{formula}","\\Lc{arg}","\\Rc{arg}","\\LRc{arg1}{arg2}"]],
-["iwona",[],[]],
+["iwona",[],[],[[[["\\usepackage/iwona"]],["regular","light","condensed","mathnoalias","math"]]]],
 ["ltxnew",["etex"],["\\new","\\renew","\\provide"]],
-["sesameseeds",["tikz","pgfopts"],["\\nosesame","\\sesameoff","\\sesameon","\\sesameseed[options%keyvals]{x}{y}","\\sesameseed{x}{y}","\\sesamesetup{options%keyvals}","\\sesamesprinkle[options%keyvals]{x}{y}","\\sesamesprinkle{x}{y}","\\simitring[options%keyvals]{x}{y}","\\simitring{x}{y}"]],
-["step",["fontaxes","mweights","xkeyval"],["\\lining{text}","\\oldstyle{text}","\\textsc{text}","\\textsu{text}","\\textin{text}","\\sufigures","\\infigures"]]
+["sesameseeds",["tikz","pgfopts"],["\\nosesame","\\sesameoff","\\sesameon","\\sesameseed[options%keyvals]{x}{y}","\\sesameseed{x}{y}","\\sesamesetup{options%keyvals}","\\sesamesprinkle[options%keyvals]{x}{y}","\\sesamesprinkle{x}{y}","\\simitring[options%keyvals]{x}{y}","\\simitring{x}{y}"],[[[["\\usepackage/sesameseeds"],["\\sesamesetup","{"],["\\sesamesprinkle","["],["\\simitring","["],["\\sesameseed","["]],["black=%<factor%>","crumbratio=%<factor%>","crumbs#true,false","firstpage#true,false","layer=#foreground|background","mess=#none,light,medium,heavy,catastrophic","off","probability=%<factor%>","randomseed=%<integer%>","roast=%<factor%>","seeds=%<integer%>","shadow=%<factor%>","size=%<factor%>","spread=##L","stray=%<factor%>"]],[[["\\sesamesprinkle","["],["\\simitring","["],["\\sesameseed","["]],["angle=%<degrees%>","count=%<integer%>","radius=##L"]]]],
+["step",["fontaxes","mweights","xkeyval"],["\\lining{text}","\\oldstyle{text}","\\textsc{text}","\\textsu{text}","\\textin{text}","\\sufigures","\\infigures"],[[[["\\usepackage/step"]],["scale=%<factor%>","scaled=%<factor%>","lining","oldstyle","tabular","mainfont","bold","regular"]]]]
 ]

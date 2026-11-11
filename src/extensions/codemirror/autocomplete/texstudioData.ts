@@ -3,6 +3,7 @@
 // own, imported when the completion first wants it, so that the table of
 // the 512 shard files stays out of the editor's code.
 import {
+	type KeyvalBlock,
 	type TexstudioCore,
 	type TexstudioEntry,
 	texstudioShard,
@@ -41,6 +42,27 @@ function loadShard(shard: number): Promise<Map<string, TexstudioEntry>> {
 		loading.catch(() => shards.delete(shard));
 	}
 	return loading;
+}
+
+let coreKeyvals: Promise<Record<string, KeyvalBlock[]>> | null = null;
+
+// The core's keys: loaded when options are first completed, not before.
+function loadCoreKeyvals(): Promise<Record<string, KeyvalBlock[]>> {
+	coreKeyvals ??= import('./__generated__/texstudio/core-keyvals.json').then(
+		(module) =>
+			(module.default ?? module) as unknown as Record<string, KeyvalBlock[]>,
+	);
+	coreKeyvals.catch(() => {
+		coreKeyvals = null;
+	});
+	return coreKeyvals;
+}
+
+/** The keys a word list's commands and options take. */
+export async function keyvalsOf(name: string): Promise<KeyvalBlock[]> {
+	const { core: found } = await loadCore();
+	if (found.has(name)) return (await loadCoreKeyvals())[name] ?? [];
+	return (await loadShard(texstudioShard(name))).get(name)?.[3] ?? [];
 }
 
 /** A package's or class's word list, from the core or its shard. */

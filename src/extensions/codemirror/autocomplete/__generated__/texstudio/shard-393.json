@@ -1,10 +1,10 @@
 [
-["LibreBskvl",["xkeyval","fontenc","ifthen","mweights","fontaxes"],["\\sufigures","\\textsu{text}"]],
-["Magra",["xkeyval","fontenc","ifthen","mweights","fontaxes"],[]],
+["LibreBskvl",["xkeyval","fontenc","ifthen","mweights","fontaxes"],["\\sufigures","\\textsu{text}"],[[[["\\usepackage/LibreBskvl"]],["scaled=#%<factor%>,MatchLowercase","lining","proportional","mainfont","bold","regular"]]]],
+["Magra",["xkeyval","fontenc","ifthen","mweights","fontaxes"],[],[[[["\\usepackage/Magra"]],["scaled=#%<factor%>,MatchLowercase","lining","tabular","mainfont","bold","regular"]]]],
 ["dnaseq",["color"],["\\DNA!%<text%>!","\\DNAblock","\\DNAreserve"]],
-["linenoamsmath",["amsmath","lineno","etoolbox","vplref","ednmath0","edtable","longtable","ltabptch"],[]],
-["picture",["calc"],[]],
+["linenoamsmath",["amsmath","lineno","etoolbox","vplref","ednmath0","edtable","longtable","ltabptch"],[],[[[["\\usepackage/linenoamsmath"]],["addpageno","mathrefs","edtable","longtable","nolongtablepatch","left","right","switch","switch*","columnwise","pagewise","running","modulo","modulo*","mathlines"]]]],
+["picture",["calc"],[],[[[["\\usepackage/picture"]],["plain","etex","calc"]]]],
 ["proof",[],["\\deduce{conclusions%formula}{premises%formula}","\\deduce[label%formula]{conclusions%formula}{premises%formula}","\\infer{conclusions%formula}{premises%formula}","\\infer[label%formula]{conclusions%formula}{premises%formula}","\\infer*{conclusions%formula}{premises%formula}","\\infer*[label%formula]{conclusions%formula}{premises%formula}"]],
-["tikzlibraryanimations",[],[]],
-["tikzlibrarybraids",[],[]]
+["tikzlibraryanimations",[],[],[[[["\\begin{tikzpicture}","["],["\\tikz","["],["\\begin{scope}","[","{"],["\\tikzset","{"],["\\scoped","["],["\\path","["],["\\draw"],["\\fill","["],["\\filldraw"],["\\pattern"],["\\shade"],["\\shadedraw"],["\\clip","["],["\\node","["],["\\coordinate"],["\\nodepart","["],["\\pic"],["\\matrix"],["\\calendar"],["\\chainin"],["\\arrow","["],["\\arrowreversed","["]],["animate={%<animation specification%>}","make snapshot of=%<time%>","make snapshot after=%<time%>","make snapshot if necessary","make snapshot if necessary=%<time%>"]]]],
+["tikzlibrarybraids",[],[],[[[["\\pic"]],["braid/add floor={%<x,y,width,height,name%>}","braid/crossing convention=#over,under","braid/flip crossing convention","braid/set symbols=#over,under","braid/flip symbols","braid/number of strands=%<integer%>","braid/height=##L","braid/crossing height=##L","braid/width=##L","braid/border height=##L","braid/gap=%<number 0-0.5%>","braid/control factor=%<factor%>","braid/nudge factor=%<factor%>","braid/every strand/.style={%<options%>}","braid/strand %<⟨n⟩%>/.style={%<options%>}","braid/every floor/.style={%<options%>}","braid/floor %<⟨n⟩%>/.style={%<options%>}","braid/anchor="]]]]
 ]

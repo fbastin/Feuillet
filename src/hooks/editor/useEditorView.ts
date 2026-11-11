@@ -91,6 +91,10 @@ import {
 	refreshBibliographyCache,
 } from '../../extensions/codemirror/PathAndBibAutocompleteExtension';
 import { latexDefinitionsCompletion } from '../../extensions/codemirror/autocomplete/latexDefinitionsCompletion';
+import {
+	keyvalCompletion,
+	withoutBundledOptions,
+} from '../../extensions/codemirror/autocomplete/keyvalCompletion';
 import { packageCommandsCompletion } from '../../extensions/codemirror/autocomplete/packageCommandsCompletion';
 import { positionCompletionInfo } from '../../extensions/codemirror/autocomplete/completionInfoPosition';
 import { withTexLiveNames } from '../../extensions/codemirror/autocomplete/texLiveNamesCompletion';
@@ -600,11 +604,18 @@ export const useEditorView = (
 
 				if (info.isLatex) {
 					// Packages, classes and styles: all of TeX Live's.
-					completionSources.push(withTexLiveNames(latexCompletionSource(true)));
+					// Options are answered below, from TeXstudio's lists.
+					completionSources.push(
+						withTexLiveNames(
+							withoutBundledOptions(latexCompletionSource(true)),
+						),
+					);
 					// The project's own commands and environments, as on Overleaf.
 					completionSources.push(latexDefinitionsCompletion(fileName ?? ''));
 					// The commands of the packages and class it loads (TeXstudio's lists).
 					completionSources.push(packageCommandsCompletion());
+					// And the keys they take in options: \includegraphics[width=…].
+					completionSources.push(keyvalCompletion());
 				} else if (info.isTypst) {
 					completionSources.push(typstCompletionSource);
 				}

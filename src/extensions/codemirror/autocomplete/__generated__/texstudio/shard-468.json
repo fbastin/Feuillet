@@ -1,5 +1,5 @@
 [
-["beamerappendixnote",["l3keys2e"],["\\appxnote{title}{content%text}","\\appxnote[frame options]{title}{content%text}","\\printappxnotes"]],
-["fonetika",[],["\\fonetikafamily","\\fonetikasansfamily","\\fonetikaseriffamily"]],
-["xpiano",["xcolor"],["\\keyboard{notes}","\\keyboard[options%keyvals]{notes}","\\keyboardsetup{options%keyvals}","\\Keyboard%<[note1][note2]...%>"]]
+["beamerappendixnote",["l3keys2e"],["\\appxnote{title}{content%text}","\\appxnote[frame options]{title}{content%text}","\\printappxnotes"],[[[["\\usepackage/beamerappendixnote"]],["backposition=#top,bottom,title"]]]],
+["fonetika",[],["\\fonetikafamily","\\fonetikasansfamily","\\fonetikaseriffamily"],[[[["\\usepackage/fonetika"]],["sans","serif"]]]],
+["xpiano",["xcolor"],["\\keyboard{notes}","\\keyboard[options%keyvals]{notes}","\\keyboardsetup{options%keyvals}","\\Keyboard%<[note1][note2]...%>"],[[[["\\keyboard","["],["\\keyboardsetup","{"]],["color=#%color","single#true,false","ext#true,false","size=##L","height=%<number%>","ratio=%<number%>","numbers#true,false","font=%<font commands%>","numbercolor=#%color","10=%<code%>","11=%<code%>"]]]]
 ]

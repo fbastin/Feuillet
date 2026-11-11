@@ -3,7 +3,9 @@
 // from TeXstudio's completion word lists (completion/*.cwl, GNU GPL 3), for
 // the editor's completion of the packages a project loads, as on Overleaf:
 // a core file (the packages most others include, and the common ones) and
-// shards for the others, loaded when a project uses them.
+// shards for the others, loaded when a project uses them. With the keys
+// their commands take (\includegraphics[width=…], \usepackage[margin=…]
+// {geometry}), the core's in a file of their own.
 //
 //   npx tsx scripts/generate-texstudio-commands.ts [texstudio-checkout]
 //
@@ -25,6 +27,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+	type KeyvalBlock,
+	type KeyvalOwner,
 	shardFileName,
 	TEXSTUDIO_SHARDS,
 	type TexstudioCore,
@@ -172,35 +176,113 @@ function classificationStart(line: string): number {
 	return -1;
 }
 
-/** A word list's includes and the lines worth completing. */
+const CLOSING: Record<string, string> = {
+	'{': '}',
+	'[': ']',
+	'(': ')',
+	'<': '>',
+};
+
+/** The arguments after a command's name: their delimiters and contents. */
+function argumentsOf(text: string): { open: string; content: string }[] {
+	const found: { open: string; content: string }[] = [];
+	let i = 0;
+	while (CLOSING[text[i]]) {
+		const open = text[i];
+		let depth = 0;
+		let end = -1;
+		for (let j = i; j < text.length && end < 0; j++) {
+			if (text[j] === '\\') j++;
+			else if (text.startsWith('%<', j)) {
+				const close = text.indexOf('%>', j + 2);
+				if (close < 0) break;
+				j = close + 1;
+			} else if (text[j] === open && open !== CLOSING[open]) depth++;
+			else if (text[j] === CLOSING[open] && --depth <= 0) end = j;
+		}
+		if (end < 0) break;
+		found.push({ open, content: text.slice(i + 1, end) });
+		i = end + 1;
+	}
+	return found;
+}
+
+/**
+ * Where a command takes keys: \captionsetup[type]{options%keyvals} gives
+ * \captionsetup and « [{ », the delimiters of its arguments up to them.
+ */
+export function keyvalArguments(command: string): [string, string] | null {
+	const name = /^(?:\\begin\{[^{}]+\}|\\[a-zA-Z@]+\*?)/.exec(command)?.[0];
+	if (!name) return null;
+	const args = argumentsOf(command.slice(name.length));
+	const at = args.findIndex(({ content }) => /keyvals$/.test(content));
+	if (at < 0) return null;
+	return [
+		name,
+		args
+			.slice(0, at + 1)
+			.map(({ open }) => open)
+			.join(''),
+	];
+}
+
+/**
+ * A word list's includes, the lines worth completing, its key lists, and
+ * where its commands take keys (all of them, hidden ones too).
+ */
 export function readWordList(text: string): {
 	includes: string[];
 	lines: string[];
+	keyvals: [owners: string[], keys: string[]][];
+	keyvalArguments: [string, string][];
 } {
 	const includes: string[] = [];
 	const lines = new Set<string>();
-	let inKeyvals = false;
+	const keyvals: [string[], string[]][] = [];
+	const argumentsFound: [string, string][] = [];
+	let block: string[] | null = null;
 	for (const raw of text.split(/\r?\n/)) {
 		const line = raw.trimEnd();
-		if (line.startsWith('#keyvals')) inKeyvals = true;
-		else if (line.startsWith('#endkeyvals')) inKeyvals = false;
-		else if (inKeyvals) continue;
-		else if (line.startsWith('#include:')) {
+		if (line.startsWith('#keyvals')) {
+			// \usepackage/geometry#c: the #… says how TeXstudio checks them.
+			const owners = line
+				.replace(/^#keyvals:?/, '')
+				.split(',')
+				.map((owner) => owner.replace(/#.*/, '').trim())
+				.filter(Boolean);
+			block = [];
+			if (owners.length > 0) keyvals.push([owners, block]);
+		} else if (line.startsWith('#endkeyvals')) block = null;
+		else if (block) {
+			const key = line.trim();
+			// Comments, directives, references to TeXstudio's own lists.
+			if (key && !/^[#%]/.test(key) && key !== 'unknownkeysallowed')
+				if (!block.includes(key)) block.push(key);
+		} else if (line.startsWith('#include:')) {
 			const name = line.slice('#include:'.length).trim();
 			if (name && !includes.includes(name)) includes.push(name);
 		} else if (line.startsWith('\\') && !line.startsWith('\\end{')) {
 			const at = classificationStart(line);
 			const command = (at < 0 ? line : line.slice(0, at)).trimEnd();
+			const where = keyvalArguments(command);
+			if (where) argumentsFound.push(where);
 			const classification = at < 0 ? '' : line.slice(at + 1);
 			// S: never offered; *: unusual, hidden by TeXstudio too; /%…:
 			// only inside some argument, as siunitx's units.
 			const flags = classification.split(/[/\\]/)[0];
 			if (/[S*]/.test(flags) || /\/%/.test(classification)) continue;
 			if (/^\\begin\{[^}]*%/.test(command) || command.length < 2) continue;
+			// %\ starts a new line: whole pictures, not a command.
+			if (command.includes('%\\')) continue;
 			lines.add(command);
 		}
 	}
-	return { includes, lines: [...lines] };
+	return {
+		includes,
+		lines: [...lines],
+		keyvals: keyvals.filter(([, keys]) => keys.length > 0),
+		keyvalArguments: argumentsFound,
+	};
 }
 
 /** cwlAliases.dat: a class's word lists, under its name. */
@@ -221,7 +303,7 @@ function readAliases(text: string): Record<string, string[]> {
 function main(): void {
 	const { dir, commit } = checkout(process.argv[2]);
 	const completion = join(dir, 'completion');
-	const entries = new Map<string, { includes: string[]; lines: string[] }>();
+	const entries = new Map<string, ReturnType<typeof readWordList>>();
 	for (const file of readdirSync(completion).sort()) {
 		if (!file.endsWith('.cwl')) continue;
 		entries.set(
@@ -261,12 +343,32 @@ function main(): void {
 		),
 	);
 
+	// Which arguments take the keys, from every word list's commands (a
+	// library's keys go to a command its package defines).
+	const keyArguments = new Map<string, Set<string>>();
+	for (const entry of entries.values())
+		for (const [owner, args] of entry.keyvalArguments)
+			keyArguments.set(owner, (keyArguments.get(owner) ?? new Set()).add(args));
+	const keyvalsOf = (name: string): KeyvalBlock[] =>
+		(entries.get(name)?.keyvals ?? []).map(([owners, keys]) => [
+			owners.map(
+				(owner): KeyvalOwner => [
+					owner,
+					...[...(keyArguments.get(owner) ?? [])].sort(),
+				],
+			),
+			keys,
+		]);
+
 	const row = (name: string): TexstudioEntry => {
-		const { includes, lines } = entries.get(name) as {
-			includes: string[];
-			lines: string[];
-		};
-		return [name, includes, lines];
+		const { includes, lines } = entries.get(name) as ReturnType<
+			typeof readWordList
+		>;
+		// The core's keys are in a file of their own, loaded for options only.
+		const keyvals = core.has(name) ? [] : keyvalsOf(name);
+		return keyvals.length > 0
+			? [name, includes, lines, keyvals]
+			: [name, includes, lines];
 	};
 	// One package per line, so that a newer TeXstudio reads as a short diff.
 	const rows = (names: string[]) =>
@@ -282,6 +384,16 @@ function main(): void {
 	writeFileSync(
 		join(OUTPUT, 'core.json'),
 		`${JSON.stringify(coreFile).slice(0, -1)},"packages":[\n${rows(coreNames)}\n]}\n`,
+	);
+	const coreKeyvals = coreNames
+		.map((name) => [name, keyvalsOf(name)] as const)
+		.filter(([, blocks]) => blocks.length > 0)
+		.map(
+			([name, blocks]) => `${JSON.stringify(name)}:${JSON.stringify(blocks)}`,
+		);
+	writeFileSync(
+		join(OUTPUT, 'core-keyvals.json'),
+		`{\n${coreKeyvals.join(',\n')}\n}\n`,
 	);
 	const shards = new Map<number, string[]>();
 	for (const name of [...entries.keys()].sort()) {
@@ -309,20 +421,24 @@ GNU General Public License version 3 (see [COPYING](COPYING)).
 
 \`scripts/generate-texstudio-commands.ts\` writes them: the packages' includes
 and their commands and environments, without TeXstudio's classification
-(those it never offers, marks unusual or keeps for some arguments left out).
-\`core.json\` holds the packages that ${CORE_INCLUDED_BY} or more others include
-and the common ones; the others are in \`shard-NNN.json\` by a hash of their
-name (\`texstudioShards.ts\`). Feuillet's editor loads those of the packages a
-project uses, for its command completion.
+(those it never offers, marks unusual or keeps for some arguments left out),
+and the keys their commands and options take, with the arguments that take
+them. \`core.json\` holds the packages that ${CORE_INCLUDED_BY} or more others
+include and the common ones, \`core-keyvals.json\` their keys; the others are
+in \`shard-NNN.json\` by a hash of their name (\`texstudioShards.ts\`), with
+their keys. Feuillet's editor loads those of the packages a project uses, for
+its completion of commands and options.
 `,
 	);
 
-	const lines = [...entries.values()].reduce(
-		(sum, entry) => sum + entry.lines.length,
-		0,
+	const count = (of: (entry: ReturnType<typeof readWordList>) => number) =>
+		[...entries.values()].reduce((sum, entry) => sum + of(entry), 0);
+	const lines = count((entry) => entry.lines.length);
+	const keys = count((entry) =>
+		entry.keyvals.reduce((sum, [, block]) => sum + block.length, 0),
 	);
 	console.log(
-		`TeXstudio ${commit.slice(0, 10)}: ${entries.size} word lists, ${lines} commands; core ${core.size}, ${shards.size} shards → ${OUTPUT}`,
+		`TeXstudio ${commit.slice(0, 10)}: ${entries.size} word lists, ${lines} commands, ${keys} keys; core ${core.size}, ${shards.size} shards → ${OUTPUT}`,
 	);
 }
 

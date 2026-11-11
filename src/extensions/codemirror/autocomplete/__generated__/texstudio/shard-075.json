@@ -1,7 +1,7 @@
 [
-["jlreq-deluxe",["l3keys2e","pxjodel","mlutf","mlcid","uplatex"],["\\rubyfamily","\\rubykatuji","\\mathmg{text%plain}","\\mgfamily","\\textmg{text}","\\propshape","\\ebseries","\\ltseries"]],
+["jlreq-deluxe",["l3keys2e","pxjodel","mlutf","mlcid","uplatex"],["\\rubyfamily","\\rubykatuji","\\mathmg{text%plain}","\\mgfamily","\\textmg{text}","\\propshape","\\ebseries","\\ltseries"],[[[["\\usepackage/jlreq-deluxe"]],["hanging_punctuation#true,false","zenkakunibu_nibu#true,false","prefix=%<string%>","nomacros","noreplace","bold","expert","deluxe=false","multi","uplatex","autodetect","jis2004","scale=%<factor%>"]]]],
 ["rjlpshap",["arrayjob","forloop"],["\\begin{parshapecollect}","\\parshapelenout{length}","\\parshapearrlenout{array}{counter}","\\parshapeary{array}","\\parshapearray{array}{width}","\\Parshapearray{array1}{array2}"]],
 ["tikzpizza",["tikz"],["\\pizza","\\pizza[options%keyvals]","\\pizzanewtopping{name}{radius}{density}{color}{drawing}","\\pizzapic","\\pizzapic[options%keyvals]","\\pizzaset{options%keyvals}","\\pizzatray","\\pizzatray[options%keyvals]"]],
-["ucsutils",["ucs","keyval"],["\\UnicodeEmbedFont{options%keyvals}","\\univerb|%<text%>|","\\unistring{string%definition}"]],
-["xmpmulti",["keyval"],["\\multiinclude[<default overlay specification>][options%keyvals]{base file name%file}","\\multiinclude[<default overlay specification>]{base file name%file}","\\multiinclude{base file name%file}"]]
+["ucsutils",["ucs","keyval"],["\\UnicodeEmbedFont{options%keyvals}","\\univerb|%<text%>|","\\unistring{string%definition}"],[[[["\\usepackage/ucsutils"]],["UnicodeEmbedFont","univerb","unistring"]],[[["\\UnicodeEmbedFont","{"]],["encoding=%<encoding%>","start=%<position%>","fontstart=%<position%>","num=%<number%>","option=%<Unicode option%>"]]]],
+["xmpmulti",["keyval"],["\\multiinclude[<default overlay specification>][options%keyvals]{base file name%file}","\\multiinclude[<default overlay specification>]{base file name%file}","\\multiinclude{base file name%file}"],[[[["\\multiinclude","[["]],["pause=%<command%>","graphics=%<graphicx options%>","format=%<extension%>","start=%<number%>","end=%<number%>"]]]]
 ]

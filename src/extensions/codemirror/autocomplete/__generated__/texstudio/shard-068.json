@@ -1,7 +1,7 @@
 [
-["class-mynsfc",["kvoptions","class-ctexart","xeCJK","geometry","titlesec","marvosym","amsmath","amssymb","paralist","graphicx","caption","subcaption","xcolor","calc","hyperref","biblatex","xpatch","subfig"],["\\cemph{text}","\\initauthors{arg}"]],
-["continue",["atbegshi","picture","zref-abspage","zref-lastpage"],["\\flagcont","\\flagend","\\flagword","\\preflagword","\\postflagword","\\contsep","\\contdrop","\\contgo","\\contstop"]],
-["gentium",["xkeyval"],[]],
+["class-mynsfc",["kvoptions","class-ctexart","xeCJK","geometry","titlesec","marvosym","amsmath","amssymb","paralist","graphicx","caption","subcaption","xcolor","calc","hyperref","biblatex","xpatch","subfig"],["\\cemph{text}","\\initauthors{arg}"],[[[["\\documentclass/mynsfc"]],["subfig#true,false","boldtoc#true,false","tocfont=%<font name%>","toccolor=%<HTML color%>"]]]],
+["continue",["atbegshi","picture","zref-abspage","zref-lastpage"],["\\flagcont","\\flagend","\\flagword","\\preflagword","\\postflagword","\\contsep","\\contdrop","\\contgo","\\contstop"],[[[["\\usepackage/continue"]],["margin","word","allpages"]]]],
+["gentium",["xkeyval"],[],[[[["\\usepackage/gentium"]],["scaled=%<factor%>"]]]],
 ["mVersion",[],["\\version","\\setVersion{version number}","\\increaseBuild"]],
 ["robustglossary",[],["\\glopageref{number}"]],
 ["shortlst",[],["\\begin{shortitemize}","\\begin{shortenumerate}","\\begin{runenumerate}","\\begin{runitemize}","\\runitemsep","\\shortitemwidth"]]

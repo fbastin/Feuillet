@@ -1,12 +1,12 @@
 [
 ["cutwin",[],["\\opencutleft","\\opencutright","\\opencutcenter","\\cutfuzz","\\begin{cutout}{num top}{left width}{right width}{num cut}","\\pageinwindow","\\windowpagestuff","\\begin{shapedcutout}{num top}{num cut}{shape sec}","\\picinwindow","\\putstuffinpic"]],
-["eq-pin2corr",["exerquiz","eq-save"],["\\classPINVar{class pin var}","\\declPINId{pin num}{hash string}","\\declRePINId{pin num}{hash string}","\\FreezeThisQuiz","\\FreezeThisQuizNot","\\nMaxRetakes{qz name}","\\numPINId","\\numRePINId","\\qzResetTally","\\qzResetTally[eforms params]","\\restorBeginQuiz","\\restoreCorrBtn","\\restoreEndQuiz","\\setMaxRetakes{qz name}{num}","\\showScoreOff","\\showScoreOn","\\useBeginQuizCnt","\\useBeginQuizPIN","\\usePINCorrBtn","\\useWarnEndQuiz"]],
+["eq-pin2corr",["exerquiz","eq-save"],["\\classPINVar{class pin var}","\\declPINId{pin num}{hash string}","\\declRePINId{pin num}{hash string}","\\FreezeThisQuiz","\\FreezeThisQuizNot","\\nMaxRetakes{qz name}","\\numPINId","\\numRePINId","\\qzResetTally","\\qzResetTally[eforms params]","\\restorBeginQuiz","\\restoreCorrBtn","\\restoreEndQuiz","\\setMaxRetakes{qz name}{num}","\\showScoreOff","\\showScoreOn","\\useBeginQuizCnt","\\useBeginQuizPIN","\\usePINCorrBtn","\\useWarnEndQuiz"],[[[["\\usepackage/eq-pin2corr"]],["showscore","!showscore"]]]],
 ["farbe",["luatex"],["\\FarbeImport{color}","\\FarbeColor{color}","\\FarbeColorEnd","\\FarbeTextColor{color}{text}"]],
-["icon-doc",["ifxetex","shellesc","web","eforms"],["\\createRequiredIcons{number}{file}","\\dpsInputContent"]],
-["jsverb",["platex"],["\\ttyen","\\ttbslash","\\BS","\\verbatimsize"]],
+["icon-doc",["ifxetex","shellesc","web","eforms"],["\\createRequiredIcons{number}{file}","\\dpsInputContent"],[[[["\\usepackage/icon-doc"]],["useacrobat","!useacrobat","twice"]]]],
+["jsverb",["platex"],["\\ttyen","\\ttbslash","\\BS","\\verbatimsize"],[[[["\\usepackage/jsverb"]],["yen"]]]],
 ["listparskip",[],["\\nullline"]],
 ["luatextra",["fixltx2e","fontspec","ifluatex","luacode","luatexbase","metalogo"],[]],
 ["luatikz",["luacode"],[]],
-["ncchdr",["nccheadings","nccfancyhdr"],["\\lefttitlemark","\\titlemark","\\righttitlemark"]],
-["realscripts",["fontspec"],["\\textsubscript*{text%plain}","\\textsuperscript*{text%plain}","\\textsubsuperscript{sub}{super}","\\textsubsuperscript[align%keyvals]{sub}{super}","\\textsubsuperscript*{sub}{super}","\\textsubsuperscript*[align%keyvals]{sub}{super}","\\textsupersubscript{super}{sub}","\\textsupersubscript[align%keyvals]{super}{sub}","\\textsupersubscript*{super}{sub}","\\textsupersubscript*[align%keyvals]{super}{sub}"]]
+["ncchdr",["nccheadings","nccfancyhdr"],["\\lefttitlemark","\\titlemark","\\righttitlemark"],[[[["\\usepackage/ncchdr"]],["empty","plain","myheadings","headings","title"]]]],
+["realscripts",["fontspec"],["\\textsubscript*{text%plain}","\\textsuperscript*{text%plain}","\\textsubsuperscript{sub}{super}","\\textsubsuperscript[align%keyvals]{sub}{super}","\\textsubsuperscript*{sub}{super}","\\textsubsuperscript*[align%keyvals]{sub}{super}","\\textsupersubscript{super}{sub}","\\textsupersubscript[align%keyvals]{super}{sub}","\\textsupersubscript*{super}{sub}","\\textsupersubscript*[align%keyvals]{super}{sub}"],[[[["\\textsubsuperscript","["],["\\textsubsuperscript*","["],["\\textsupersubscript","["],["\\textsupersubscript*","["]],["l","c","r"]]]]
 ]

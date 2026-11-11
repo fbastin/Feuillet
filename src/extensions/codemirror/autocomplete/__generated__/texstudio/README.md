@@ -7,8 +7,10 @@ GNU General Public License version 3 (see [COPYING](COPYING)).
 
 `scripts/generate-texstudio-commands.ts` writes them: the packages' includes
 and their commands and environments, without TeXstudio's classification
-(those it never offers, marks unusual or keeps for some arguments left out).
-`core.json` holds the packages that 30 or more others include
-and the common ones; the others are in `shard-NNN.json` by a hash of their
-name (`texstudioShards.ts`). Feuillet's editor loads those of the packages a
-project uses, for its command completion.
+(those it never offers, marks unusual or keeps for some arguments left out),
+and the keys their commands and options take, with the arguments that take
+them. `core.json` holds the packages that 30 or more others
+include and the common ones, `core-keyvals.json` their keys; the others are
+in `shard-NNN.json` by a hash of their name (`texstudioShards.ts`), with
+their keys. Feuillet's editor loads those of the packages a project uses, for
+its completion of commands and options.
