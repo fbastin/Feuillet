@@ -5,6 +5,7 @@ import { type ReactNode, createContext, useCallback, useMemo } from 'react';
 import { pluginRegistry } from '../plugins/PluginRegistry';
 import { useSettings } from '../hooks/useSettings';
 import type {
+	EditorLineHeight,
 	EditorSettings,
 	FontFamily,
 	HighlightTheme,
@@ -55,6 +56,16 @@ export const resolveFontFamily = (value: unknown): string =>
 	fontFamilyMap[value as FontFamily] ??
 	fontFamilyMap[defaultEditorSettings.fontFamily];
 
+// « Normal » is the spacing the editor always had.
+export const lineHeightMap: Record<EditorLineHeight, number> = {
+	compact: 1.3,
+	normal: 1.5,
+	wide: 1.8,
+};
+
+export const resolveLineHeight = (value: unknown): number =>
+	lineHeightMap[value as EditorLineHeight] ?? lineHeightMap.normal;
+
 export const LANGUAGE_FEATURE_SETTING_IDS: Record<
 	keyof LanguageFeatureSettings,
 	string
@@ -76,7 +87,9 @@ export const defaultEditorSettings: EditorSettings = {
 	fontSize: 16,
 	fontFamily: 'monospace',
 	showLineNumbers: true,
+	lineHeight: 'normal',
 	autoIndent: true,
+	closeBrackets: true,
 	syntaxHighlighting: true,
 	languageFeatures: {
 		builtinTooltips: true,
@@ -170,9 +183,15 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 			showLineNumbers:
 				(getSetting('editor-show-line-numbers')?.value as boolean) ??
 				defaultEditorSettings.showLineNumbers,
+			lineHeight:
+				(getSetting('editor-line-height')?.value as EditorLineHeight) ??
+				defaultEditorSettings.lineHeight,
 			autoIndent:
 				(getSetting('editor-auto-indent')?.value as boolean) ??
 				defaultEditorSettings.autoIndent,
+			closeBrackets:
+				(getSetting('editor-close-brackets')?.value as boolean) ??
+				defaultEditorSettings.closeBrackets,
 			syntaxHighlighting:
 				(getSetting('editor-syntax-highlighting')?.value as boolean) ??
 				defaultEditorSettings.syntaxHighlighting,
@@ -221,7 +240,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 				fontFamily: 'editor-font-family',
 				fontSize: 'editor-font-size',
 				showLineNumbers: 'editor-show-line-numbers',
+				lineHeight: 'editor-line-height',
 				autoIndent: 'editor-auto-indent',
+				closeBrackets: 'editor-close-brackets',
 				syntaxHighlighting: 'editor-syntax-highlighting',
 				autoSaveEnabled: 'editor-auto-save-enable',
 				autoSaveDelay: 'editor-auto-save-delay',

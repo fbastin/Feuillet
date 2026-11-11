@@ -100,7 +100,7 @@ export const useEditorViewExtensions = ({
 			...(editorSettings.autoIndent ? [indentOnInput()] : []),
 			bidiIsolates(),
 			bracketMatching(),
-			closeBrackets(),
+			...(editorSettings.closeBrackets ? [closeBrackets()] : []),
 			highlightSelectionMatches(),
 			editorPhrases(),
 			search({
@@ -119,7 +119,7 @@ export const useEditorViewExtensions = ({
 					? [{ key: 'Enter', run: insertNewline }]
 					: []),
 				indentWithTab,
-				...closeBracketsKeymap,
+				...(editorSettings.closeBrackets ? closeBracketsKeymap : []),
 				...defaultKeymap,
 				...searchKeymap,
 				...foldKeymap,

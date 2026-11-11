@@ -78,11 +78,17 @@ export interface LanguageFeatureSettings {
 	lspNavigation: boolean;
 }
 
+export type EditorLineHeight = 'compact' | 'normal' | 'wide';
+
 export interface EditorSettings {
 	fontSize: FontSize;
 	fontFamily: FontFamily;
 	showLineNumbers: boolean;
+	/** Space between lines, as Overleaf's « Line height ». */
+	lineHeight: EditorLineHeight;
 	autoIndent: boolean;
+	/** Closing brackets, braces and quotes typed with the opening ones. */
+	closeBrackets: boolean;
 	syntaxHighlighting: boolean;
 	languageFeatures: LanguageFeatureSettings;
 	autoSaveEnabled: boolean;

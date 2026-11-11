@@ -128,6 +128,7 @@ import { useTheme } from '../useTheme';
 import {
 	resolveFontFamily,
 	resolveFontSize,
+	resolveLineHeight,
 } from '../../contexts/EditorContext';
 import type { EditorSettings } from '../../types/editor';
 import { autoSaveService } from '../../services/AutoSaveService';
@@ -163,6 +164,10 @@ const applyEditorAppearance = (
 		element.style.fontFamily = fontFamily;
 		element.style.fontSize = fontSize;
 	}
+	// Lines and gutters inherit it from the scroller.
+	view.scrollDOM.style.lineHeight = String(
+		resolveLineHeight(settings.lineHeight),
+	);
 
 	view.requestMeasure();
 };
@@ -440,7 +445,7 @@ export const useEditorView = (
 			...(editorSettings.autoIndent ? [indentOnInput()] : []),
 			bidiIsolates(),
 			bracketMatching(),
-			closeBrackets(),
+			...(editorSettings.closeBrackets ? [closeBrackets()] : []),
 			highlightSelectionMatches(),
 			editorPhrases(),
 			search({
@@ -459,7 +464,7 @@ export const useEditorView = (
 					? [{ key: 'Enter', run: insertNewline }]
 					: []),
 				indentWithTab,
-				...closeBracketsKeymap,
+				...(editorSettings.closeBrackets ? closeBracketsKeymap : []),
 				...overleafEditorKeys({ reviews: enableReviews }),
 				...overleafSelectionKeys,
 				...defaultKeymap,

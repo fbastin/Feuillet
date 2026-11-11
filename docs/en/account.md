@@ -12,7 +12,7 @@ or from **Share** when inviting.
 
 As on Overleaf, your preferences follow your account too: the interface's
 language, the theme variant (light or dark), the editor's settings (font,
-size, keybindings, spelling…), those of compiling and of the PDF, your Git
+size, line height, keybindings, spelling…), those of compiling and of the PDF, your Git
 commit email and your color. A change made on one device reaches the others
 at their next sync, within a few minutes or on reloading the page. The
 servers' addresses and what belongs to the device (theme layout, storage,

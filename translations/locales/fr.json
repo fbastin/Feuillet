@@ -4270,5 +4270,11 @@
   "To upper case": "En majuscules",
   "To lower case": "En minuscules",
   "Show or hide the review panel": "Afficher ou masquer le panneau de relecture",
-  "Turn track changes on or off": "Activer ou désactiver le suivi des modifications"
+  "Turn track changes on or off": "Activer ou désactiver le suivi des modifications",
+  "Line height": "Interligne",
+  "Space between the lines of the editor": "Espace entre les lignes de l'éditeur",
+  "Compact": "Serré",
+  "Wide": "Large",
+  "Auto-close brackets": "Fermeture automatique des parenthèses",
+  "Type the closing bracket, brace or quote with the opening one": "Écrire la parenthèse, l'accolade ou le guillemet fermant avec l'ouvrant"
 }

@@ -10,7 +10,11 @@ import {
 	resolveFontSize,
 } from '../contexts/EditorContext';
 import { useSettings } from '../hooks/useSettings';
-import type { EditorKeymapMode, FontFamily } from '../types/editor';
+import type {
+	EditorKeymapMode,
+	EditorLineHeight,
+	FontFamily,
+} from '../types/editor';
 import GrammarRulesEditor from '../components/settings/GrammarRulesEditor';
 import PersonalDictionaryEditor from '../components/settings/PersonalDictionaryEditor';
 import type { SpellingSetting } from '../types/spelling';
@@ -27,7 +31,9 @@ export function useRegisterEditorSettings() {
 			'editor-font-family',
 			'editor-font-size',
 			'editor-show-line-numbers',
+			'editor-line-height',
 			'editor-auto-indent',
+			'editor-close-brackets',
 			'editor-auto-save-enable',
 			'editor-auto-save-delay',
 			'editor-keymap-mode',
@@ -51,6 +57,12 @@ export function useRegisterEditorSettings() {
 		const initialAutoIndent =
 			(batchedSettings['editor-auto-indent'] as boolean) ??
 			defaultEditorSettings.autoIndent;
+		const initialLineHeight =
+			(batchedSettings['editor-line-height'] as EditorLineHeight) ??
+			defaultEditorSettings.lineHeight;
+		const initialCloseBrackets =
+			(batchedSettings['editor-close-brackets'] as boolean) ??
+			defaultEditorSettings.closeBrackets;
 		const initialTextDirection =
 			(batchedSettings['editor-text-direction'] as 'auto' | 'ltr' | 'rtl') ??
 			defaultEditorSettings.textDirection;
@@ -141,6 +153,21 @@ export function useRegisterEditorSettings() {
 		});
 
 		registerSetting({
+			id: 'editor-line-height',
+			category: t('Appearance'),
+			subcategory: t('Text Editor'),
+			type: 'select',
+			label: t('Line height'),
+			description: t('Space between the lines of the editor'),
+			defaultValue: initialLineHeight,
+			options: [
+				{ label: t('Compact'), value: 'compact' },
+				{ label: t('Normal'), value: 'normal' },
+				{ label: t('Wide'), value: 'wide' },
+			],
+		});
+
+		registerSetting({
 			id: 'editor-show-line-numbers',
 			category: t('Appearance'),
 			subcategory: t('Text Editor'),
@@ -217,6 +244,18 @@ export function useRegisterEditorSettings() {
 				'Automatically indent new lines and continue LaTeX/Typst lists when pressing Enter',
 			),
 			defaultValue: initialAutoIndent,
+		});
+
+		registerSetting({
+			id: 'editor-close-brackets',
+			category: t('Viewers'),
+			subcategory: t('Text Editor'),
+			type: 'checkbox',
+			label: t('Auto-close brackets'),
+			description: t(
+				'Type the closing bracket, brace or quote with the opening one',
+			),
+			defaultValue: initialCloseBrackets,
 		});
 
 		registerSetting({

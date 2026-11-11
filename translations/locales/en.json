@@ -4270,5 +4270,11 @@
   "To upper case": "To upper case",
   "To lower case": "To lower case",
   "Show or hide the review panel": "Show or hide the review panel",
-  "Turn track changes on or off": "Turn track changes on or off"
+  "Turn track changes on or off": "Turn track changes on or off",
+  "Line height": "Line height",
+  "Space between the lines of the editor": "Space between the lines of the editor",
+  "Compact": "Compact",
+  "Wide": "Wide",
+  "Auto-close brackets": "Auto-close brackets",
+  "Type the closing bracket, brace or quote with the opening one": "Type the closing bracket, brace or quote with the opening one"
 }

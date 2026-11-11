@@ -12,7 +12,7 @@ retrouvez la liste de vos projets, vos projets eux-mêmes et les mots ajoutés
 
 Comme sur Overleaf, vos préférences suivent aussi votre compte : la langue de
 l'interface, la variante du thème (clair ou sombre), les réglages de
-l'éditeur (police, taille, raccourcis clavier, orthographe…), ceux de la
+l'éditeur (police, taille, interligne, raccourcis clavier, orthographe…), ceux de la
 compilation et du PDF, votre courriel des commits Git et votre couleur. Un
 changement fait sur un appareil arrive sur les autres à leur prochaine
 synchronisation, en quelques minutes au plus ou en rechargeant la page. Les

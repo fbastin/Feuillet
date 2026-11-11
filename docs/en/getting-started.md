@@ -171,6 +171,11 @@ a line, **Ctrl+J** shows or hides the review panel and **Ctrl+Shift+A**
 turns track changes on or off. The full list opens from the **Keyboard Map** link at the bottom of the
 page (behind the **⋯** button when needed).
 
+As in Overleaf's settings, **Settings** sets the editor's **Line height**
+(compact, normal or wide, under **Appearance**) and **Auto-close brackets**:
+when it is off, typing `{`, `(`, `[` or a quote does not write the closing
+one.
+
 When the window is narrow, the least used tools of the editor's toolbar go
 into the **…** menu.
 

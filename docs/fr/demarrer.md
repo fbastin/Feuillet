@@ -179,6 +179,11 @@ va à une ligne, **Ctrl+J** affiche ou masque le panneau de relecture et
 complète s'ouvre par le lien **Mappage du clavier**, en bas de la page (au
 besoin derrière le bouton **⋯**).
 
+Comme dans les réglages d'Overleaf, **Paramètres** règle l'**Interligne** de
+l'éditeur (serré, normal ou large, dans **Apparence**) et la **Fermeture
+automatique des parenthèses** : quand elle est coupée, taper `{`, `(`, `[`
+ou un guillemet n'écrit pas le caractère fermant.
+
 Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
 l'éditeur passent dans le menu **…**.
 
