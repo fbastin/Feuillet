@@ -57,7 +57,10 @@ import {
 import { createNamedLogger } from '@/logging';
 import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
 import { environmentNameSync } from '../../extensions/codemirror/environmentNameSync';
-import { multipleSelections } from '../../extensions/codemirror/multipleSelections';
+import {
+	multipleSelections,
+	overleafSelectionKeys,
+} from '../../extensions/codemirror/multipleSelections';
 import {
 	createBold as createLatexBold,
 	createItalic as createLatexItalic,
@@ -456,6 +459,7 @@ export const useEditorView = (
 					: []),
 				indentWithTab,
 				...closeBracketsKeymap,
+				...overleafSelectionKeys,
 				...defaultKeymap,
 				...searchKeymap,
 				...foldKeymap,

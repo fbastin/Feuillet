@@ -4257,12 +4257,13 @@
   "Edit response": "Modifier la réponse",
   "Presentation mode": "Mode présentation",
   "in this project": "dans ce projet",
-  "Select the next occurrence too": "Sélectionner aussi l'occurrence suivante",
+  "Select the next or previous occurrence too": "Sélectionner aussi l'occurrence suivante ou précédente",
   "Add a cursor on the line above or below": "Ajouter un curseur à la ligne du dessus ou du dessous",
   "click": "clic",
   "Add a cursor": "Ajouter un curseur",
   "drag": "glisser",
   "Select a rectangle": "Sélectionner un rectangle",
   "Escape": "Échap",
-  "Keep only the main cursor": "Ne garder que le curseur principal"
+  "Keep only the main cursor": "Ne garder que le curseur principal",
+  "Delete the line": "Supprimer la ligne"
 }

@@ -1,14 +1,24 @@
 // src/extensions/codemirror/multipleSelections.ts
-// Several cursors and selections at once, as on Overleaf: Ctrl+D (⌘D) adds
-// the next occurrence of the selection, Ctrl+Alt+↑/↓ a cursor on the line
-// above or below, Ctrl+click (⌘-click) a cursor where it clicks — except on
-// a link, which it still follows —, Alt+drag selects a rectangle, and
-// Escape keeps only the main one. What is typed goes to every cursor.
-import { EditorState, type Extension, Prec } from '@codemirror/state';
+// Several cursors and selections at once, as on Overleaf: Ctrl+Alt+→/←
+// add the next or previous occurrence of the selection, Ctrl+Alt+↑/↓ a
+// cursor on the line above or below, Ctrl+click (⌘-click) a cursor where it
+// clicks — except on a link, which it still follows —, Alt+drag selects a
+// rectangle, and Escape keeps only the main one. What is typed goes to every
+// cursor. Ctrl+D (⌘D) deletes the line, as on Overleaf.
+import { deleteLine } from '@codemirror/commands';
+import { SearchCursor, selectNextOccurrence } from '@codemirror/search';
+import {
+	EditorSelection,
+	EditorState,
+	type Extension,
+	Prec,
+	type StateCommand,
+} from '@codemirror/state';
 import {
 	crosshairCursor,
 	drawSelection,
 	EditorView,
+	type KeyBinding,
 	rectangularSelection,
 } from '@codemirror/view';
 
@@ -42,3 +52,60 @@ export function multipleSelections(): Extension {
 		),
 	];
 }
+
+/**
+ * Adds the previous occurrence of the selection (the one before the first
+ * selected, else the last of the document), as selectNextOccurrence adds
+ * the next; with an empty cursor, selects the word first.
+ */
+export const selectPreviousOccurrence: StateCommand = ({ state, dispatch }) => {
+	const { ranges, main } = state.selection;
+	if (ranges.some((range) => range.empty))
+		return selectNextOccurrence({ state, dispatch });
+	const text = state.sliceDoc(ranges[0].from, ranges[0].to);
+	if (ranges.some((range) => state.sliceDoc(range.from, range.to) !== text))
+		return false;
+	// A whole word selected matches whole words only.
+	const word = state.wordAt(main.head);
+	const fullWord = !!word && word.from === main.from && word.to === main.to;
+	const free: Array<{ from: number; to: number }> = [];
+	const cursor = new SearchCursor(state.doc, text);
+	while (!cursor.next().done) {
+		const { from, to } = cursor.value;
+		if (fullWord) {
+			const there = state.wordAt(from);
+			if (!there || there.from !== from || there.to !== to) continue;
+		}
+		if (!ranges.some((range) => range.from === from)) free.push({ from, to });
+	}
+	const first = ranges[0].from;
+	const before = free.filter((match) => match.to <= first);
+	const found = before.length > 0 ? before[before.length - 1] : free.at(-1);
+	if (!found) return false;
+	dispatch(
+		state.update({
+			selection: state.selection.addRange(
+				EditorSelection.range(found.from, found.to),
+				false,
+			),
+			effects: EditorView.scrollIntoView(found.from),
+			userEvent: 'select',
+		}),
+	);
+	return true;
+};
+
+/** Overleaf's keys, before CodeMirror's own (where Ctrl+D is the next occurrence). */
+export const overleafSelectionKeys: readonly KeyBinding[] = [
+	{ key: 'Mod-d', run: deleteLine, preventDefault: true },
+	{
+		key: 'Mod-Alt-ArrowRight',
+		run: selectNextOccurrence,
+		preventDefault: true,
+	},
+	{
+		key: 'Mod-Alt-ArrowLeft',
+		run: selectPreviousOccurrence,
+		preventDefault: true,
+	},
+];

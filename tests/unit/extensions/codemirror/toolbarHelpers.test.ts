@@ -5,7 +5,10 @@ import {
 	insertText,
 	wrapSelection,
 } from '@src/extensions/codemirror/toolbar/helpers';
-import { addsSelectionRange } from '@src/extensions/codemirror/multipleSelections';
+import {
+	addsSelectionRange,
+	selectPreviousOccurrence,
+} from '@src/extensions/codemirror/multipleSelections';
 
 const make = (doc: string, ranges: Array<[number, number]>) =>
 	new EditorView({
@@ -83,3 +86,60 @@ describe('Ctrl+click', () => {
 		expect(addsSelectionRange(click({ ctrlKey: true }, inLink))).toBe(false);
 	});
 });
+
+describe('the previous occurrence (Ctrl+Alt+←)', () => {
+	const run = (view: EditorView) =>
+		selectPreviousOccurrence({
+			state: view.state,
+			dispatch: (tr) => view.dispatch(tr),
+		});
+	const selected = (view: EditorView) =>
+		view.state.selection.ranges.map((r) => [r.from, r.to]);
+
+	it('selects the word first, then adds the previous whole words', () => {
+		// a=0 alpha=2 alphabet=8 alpha=17 alpha=23
+		const view = make('a alpha alphabet alpha alpha', [[20, 20]]);
+		run(view);
+		expect(selected(view)).toEqual([[17, 22]]);
+		run(view);
+		expect(selected(view)).toEqual([
+			[2, 7],
+			[17, 22],
+		]);
+		// Before the first: around to the last of the document.
+		run(view);
+		expect(selected(view)).toEqual([
+			[2, 7],
+			[17, 22],
+			[23, 28],
+		]);
+		expect(run(view)).toBe(false);
+		view.destroy();
+	});
+
+	it('matches any text when the selection is not a whole word', () => {
+		const view = make('xab ab xab', [[8, 10]]);
+		run(view);
+		expect(selected(view)).toEqual([
+			[4, 6],
+			[8, 10],
+		]);
+		run(view);
+		expect(selected(view)).toEqual([
+			[1, 3],
+			[4, 6],
+			[8, 10],
+		]);
+		view.destroy();
+	});
+
+	it('does nothing when the selections differ', () => {
+		const view = make('un deux un', [
+			[0, 2],
+			[3, 7],
+		]);
+		expect(run(view)).toBe(false);
+		view.destroy();
+	});
+});
+

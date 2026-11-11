@@ -159,16 +159,17 @@ que babel ajoute. La vérification demande d'être connecté au serveur, et se
 coupe dans **Paramètres**, **Vérification grammaticale et stylistique**.
 
 Comme sur Overleaf, on peut écrire à plusieurs endroits à la fois.
-**Ctrl+D** (**Cmd+D** sur Mac) sélectionne le mot sous le curseur, puis, à
-chaque nouvel appui, son occurrence suivante; **Ctrl+Alt+↑** et
-**Ctrl+Alt+↓** ajoutent un curseur à la ligne du dessus ou du dessous;
+**Ctrl+Alt+→** (**Cmd+Alt+→** sur Mac) sélectionne le mot sous le curseur,
+puis, à chaque nouvel appui, son occurrence suivante, et **Ctrl+Alt+←** la
+précédente; **Ctrl+Alt+↑** et **Ctrl+Alt+↓** ajoutent un curseur à la ligne
+du dessus ou du dessous;
 **Ctrl+clic** (**Cmd+clic**) en ajoute un où l'on clique (sur un lien, il
 le suit, comme avant); **Alt** en glissant sélectionne un rectangle, les
 mêmes colonnes sur plusieurs lignes. Ce qu'on tape va à chaque curseur, les
 boutons de la barre d'outils (gras, italique…) agissent sur chaque
 sélection, une annulation défait le tout, et le suivi des modifications
 propose un changement par endroit. **Échap** revient au seul curseur
-principal.
+principal. **Ctrl+D** (**Cmd+D**) supprime la ligne, comme sur Overleaf.
 
 Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
 l'éditeur passent dans le menu **…**.

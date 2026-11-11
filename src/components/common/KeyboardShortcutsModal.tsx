@@ -279,8 +279,22 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 								<div className='ui-actions' data-wrap='true'>
 									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>D</kbd>
 								</div>
+								<div className='ui-list-content'>{t('Delete the line')}</div>
+							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> + <kbd>{t('Alt')}</kbd> + <kbd>→</kbd>{' '}
+									/ <kbd>←</kbd>
+								</div>
 								<div className='ui-list-content'>
-									{t('Select the next occurrence too')}
+									{t('Select the next or previous occurrence too')}
 								</div>
 							</div>
 
