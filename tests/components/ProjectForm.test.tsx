@@ -141,6 +141,42 @@ describe('ProjectForm Component', () => {
         expect(screen.getByText('tag2')).toBeInTheDocument();
     });
 
+    it('keeps what is typed when the editor renders again with a new object', async () => {
+        const user = userEvent.setup();
+        const project = (name: string) => ({
+            id: 'doc-1',
+            name,
+            description: '',
+            type: 'latex' as const,
+            docUrl: 'doc-1',
+            createdAt: 0,
+            updatedAt: 0,
+            ownerId: 'me',
+            tags: [],
+            isFavorite: false,
+        });
+        const { rerender } = render(
+            <ProjectForm {...mockHandlers} project={project('Ancien nom')} simpleMode />,
+        );
+        const nameInput = screen.getByLabelText(/project name/i);
+        await user.clear(nameInput);
+        await user.type(nameInput, 'Nouveau');
+        // EditorApp builds the project anew at each render.
+        rerender(<ProjectForm {...mockHandlers} project={project('Ancien nom')} simpleMode />);
+        await user.type(nameInput, ' nom');
+        expect(nameInput).toHaveValue('Nouveau nom');
+
+        // Another project: its details.
+        rerender(
+            <ProjectForm
+                {...mockHandlers}
+                project={{ ...project('Autre'), id: 'doc-2' }}
+                simpleMode
+            />,
+        );
+        expect(screen.getByLabelText(/project name/i)).toHaveValue('Autre');
+    });
+
     it('should disable fields in simple mode', () => {
         render(<ProjectForm {...mockHandlers} simpleMode={true} />);
 

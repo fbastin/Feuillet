@@ -1,6 +1,6 @@
 // src/components/project/ProjectForm.tsx
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import i18next, { t } from '@/i18n';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
@@ -43,16 +43,22 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 	simpleMode = false,
 	disableNameAndDescription = false,
 }) => {
-	const [name, setName] = useState('');
-	const [description, setDescription] = useState('');
-	const [type, setType] = useState<ProjectType>('latex');
-	const [compilerId, setCompilerId] = useState<string | undefined>();
+	// The project's details when the form opens (its dialog mounts it then),
+	// and again only for another project: the editor gives a new object at
+	// each of its renders, which put the old name back while one typed.
+	const [name, setName] = useState(project?.name ?? '');
+	const [description, setDescription] = useState(project?.description || '');
+	const [type, setType] = useState<ProjectType>(project?.type ?? 'latex');
+	const [compilerId, setCompilerId] = useState<string | undefined>(
+		project?.compilerId,
+	);
 	const [registryVersion, setRegistryVersion] = useState(
 		typesetterRegistryService.getVersion(),
 	);
-	const [tags, setTags] = useState<string[]>([]);
-	const [docUrl, setDocUrl] = useState('');
-	const [isFavorite, setIsFavorite] = useState(false);
+	const [tags, setTags] = useState<string[]>(project?.tags || []);
+	const [docUrl, setDocUrl] = useState(project?.docUrl || '');
+	const [isFavorite, setIsFavorite] = useState(project?.isFavorite ?? false);
+	const shownProject = useRef(project?.id);
 	const [template, setTemplate] = useState<ProjectTemplateChoice>(() => ({
 		id: 'blank',
 		language: templateLanguageFor(i18next.language ?? ''),
@@ -125,10 +131,11 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 	}, [typesetterOptions, compilerId]);
 
 	useEffect(() => {
-		if (!project) {
+		if (!project || project.id === shownProject.current) {
 			return;
 		}
 
+		shownProject.current = project.id;
 		setName(project.name);
 		setDescription(project.description || '');
 		setType(project.type);
