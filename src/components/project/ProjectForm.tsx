@@ -270,7 +270,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 							return (
 								<optgroup
 									key={source}
-									label={source === 'builtin' ? t('Internal') : t('External')}
+									label={
+										// The builtin compilers run in the browser (WebAssembly);
+										// the others on a server, as Feuillet's TeX Live.
+										source === 'builtin'
+											? t('In the browser')
+											: t('On the server')
+									}
 								>
 									{options.map((option) => (
 										<option
@@ -318,7 +324,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 							disabled={isSubmitting}
 						>
 							{internalTypesetterOptions.length > 0 && (
-								<optgroup label={t('Internal')}>
+								<optgroup label={t('In the browser')}>
 									{internalTypesetterOptions.map((provider) => (
 										<option key={provider.id} value={provider.id}>
 											{provider.label}
@@ -327,7 +333,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 								</optgroup>
 							)}
 							{externalTypesetterOptions.length > 0 && (
-								<optgroup label={t('External')}>
+								<optgroup label={t('On the server')}>
 									{externalTypesetterOptions.map((provider) => (
 										<option key={provider.id} value={provider.id}>
 											{provider.label}
