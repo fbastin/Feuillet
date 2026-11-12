@@ -30,9 +30,23 @@ if [ ! -w "$WEBROOT" ]; then
 	exit 1
 fi
 
-NODE_MAJOR=$(node -p 'process.versions.node.split(".")[0]')
-if [ "$NODE_MAJOR" -lt 22 ]; then
-	echo "Node.js 22 or newer is required (found $(node --version))." >&2
+node_major() {
+	"$1" -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0
+}
+# Node.js 22 or newer: with nvm, the newest one installed when the default
+# is older (nvm's default stays as it is).
+if [ "$(node_major node)" -lt 22 ]; then
+	while IFS= read -r bin; do
+		if [ "$(node_major "$bin/node")" -ge 22 ]; then
+			PATH=$bin:$PATH
+			echo "Building with Node.js $(node --version), from nvm ($bin)."
+			break
+		fi
+	done < <(ls -d "${NVM_DIR:-$HOME/.nvm}"/versions/node/v*/bin 2>/dev/null | sort -V -r)
+fi
+if [ "$(node_major node)" -lt 22 ]; then
+	echo "Node.js 22 or newer is required (found $(node --version 2>/dev/null || echo none))." >&2
+	echo "With nvm: nvm install 22 (docs/en/hosting.md)." >&2
 	exit 1
 fi
 
