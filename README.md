@@ -2,14 +2,14 @@
 
 # Feuillet
 
-Feuillet is a collaborative LaTeX editor in the spirit of
-[Overleaf](https://www.overleaf.com), with GitHub integration, that you run
-on your own server (see [Hosting](#hosting)).
+Feuillet is a collaborative LaTeX and Typst editor that you run on your own
+server (see [Hosting](#hosting)): real-time editing, review, version history
+and GitHub integration.
 
 It is a fork of [TeXlyre](https://github.com/TeXlyre/texlyre), a local-first
 LaTeX and Typst editor that runs in the browser. Feuillet keeps TeXlyre's
-editor and adds a server, so that projects, accounts, sharing, review,
-versions and compiling work as they do on Overleaf.
+editor and adds a server for projects, accounts, sharing, review, versions
+and compiling with TeX Live.
 
 **User guide: [English](docs/en/README.md) · [Français](docs/fr/README.md).**
 
@@ -21,9 +21,9 @@ versions and compiling work as they do on Overleaf.
   collaborators need not be online at the same time.
 - **Accounts on the server.** The same projects on every device; a guest
   session still works without an account.
-- **A project list like Overleaf's.** Your projects, those shared with you,
-  archived ones and the trash; copying a project; leaving a shared one;
-  deleting one for good erases it from the server.
+- **A project list.** Your projects, those shared with you, archived ones
+  and the trash; copying a project; leaving a shared one; deleting one for
+  good erases it from the server.
 - **Sharing.** Invitations by account name or by email, with the roles of
   editor, reviewer and reader; links that open the project for editing,
   review or reading, which the owner can replace.

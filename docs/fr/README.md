@@ -2,8 +2,8 @@
 
 *[English](../en/README.md)*
 
-Feuillet est un éditeur LaTeX collaboratif en ligne, dans l'esprit
-d'Overleaf, relié à GitHub, qui s'installe sur votre propre serveur (voir
+Feuillet est un éditeur LaTeX et Typst collaboratif en ligne, relié à
+GitHub, qui s'installe sur votre propre serveur (voir
 [Installer son serveur](heberger.md)).
 
 Il est issu de [TeXlyre](https://texlyre.org) et en garde l'éditeur : LaTeX

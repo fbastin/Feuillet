@@ -2,8 +2,8 @@
 
 *[Français](../fr/README.md)*
 
-Feuillet is an online collaborative LaTeX editor in the spirit of Overleaf,
-linked to GitHub, that you install on your own server (see
+Feuillet is an online collaborative LaTeX and Typst editor, linked to
+GitHub, that you install on your own server (see
 [Running your own server](hosting.md)).
 
 It comes from [TeXlyre](https://texlyre.org) and keeps its editor: LaTeX
