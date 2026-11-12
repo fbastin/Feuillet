@@ -157,6 +157,10 @@ clé qui a des valeurs, comme `labelfont=` de `\captionsetup`, ses valeurs
 sont proposées. Ces listes viennent de celles de
 [TeXstudio](https://github.com/texstudio-org/texstudio).
 
+Le curseur sur un `\begin{…}` ou sur son `\end{…}`, les deux sont
+encadrés, comme des parenthèses qui se répondent; en rouge si leurs noms
+diffèrent.
+
 Au-dessus de l'éditeur, après le chemin du fichier, les titres sous
 lesquels se trouve le curseur suivent : `/main.tex › Méthodes › Données`
 (parties, chapitres, sections… en LaTeX, titres en Typst). Un clic sur l'un

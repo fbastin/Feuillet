@@ -152,6 +152,9 @@ with that field selected; after a key that has values, as `labelfont=` of
 `\captionsetup`, its values are offered. These lists come from
 [TeXstudio](https://github.com/texstudio-org/texstudio)'s.
 
+With the cursor on a `\begin{…}` or on its `\end{…}`, both are outlined,
+as matching brackets are; in red when their names differ.
+
 Above the editor, after the file's path, come the headings the cursor is
 under: `/main.tex › Methods › Data` (parts, chapters, sections… in LaTeX,
 headings in Typst). A click on one puts the cursor there.

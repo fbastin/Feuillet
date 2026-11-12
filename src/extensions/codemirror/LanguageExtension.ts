@@ -15,6 +15,7 @@ import { latex } from 'codemirror-lang-latex';
 
 import { withAnnotationMasking } from './annotations/annotationMasking';
 import { createBibtexCheck } from './BibtexCheckExtension';
+import { environmentMatching } from './environmentMatching';
 import { bibtexHoverDocs } from './languageDocs/bibtexDocs';
 import { latexHoverDocs } from './languageDocs/latexDocs';
 import { createLatexCodeCheck } from './LatexCodeCheckExtension';
@@ -63,6 +64,8 @@ export const createLanguageExtension = (
 						nestedEnvironments: latexNestedEnvironments,
 					}),
 				),
+				// \begin{…} and its \end{…} marked together, as brackets.
+				environmentMatching,
 				...(enableLinting ? [createLatexCodeCheck(options.fileName)] : []),
 				...(enableTooltips ? [latexHoverDocs] : []),
 			];
