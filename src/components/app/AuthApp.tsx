@@ -5,7 +5,12 @@ import { useState } from 'react';
 import { t } from '@/i18n';
 import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
 import { useTheme } from '../../hooks/useTheme';
-import { inviteOf, pushHash, replaceHash } from '../../utils/urlUtils';
+import {
+	inviteOf,
+	pushHash,
+	replaceHash,
+	signUpOf,
+} from '../../utils/urlUtils';
 import ImportAccount from '../auth/ImportAccount';
 import Login from '../auth/Login';
 import Register from '../auth/Register';
@@ -29,8 +34,9 @@ const AuthApp: React.FC<AuthContainerProps> = ({
 	onResetClose,
 }) => {
 	const { currentThemePlugin, currentVariant } = useTheme();
+	// A link to create an account opens on the form that does.
 	const [activeView, setActiveView] = useState<'login' | 'register' | 'import'>(
-		'login',
+		() => (signUpOf(window.location.hash) ? 'register' : 'login'),
 	);
 	const [showPrivacy, setShowPrivacy] = useState(false);
 	// Google's or ORCID's sign-in for an account of theirs linked to no
@@ -72,6 +78,18 @@ const AuthApp: React.FC<AuthContainerProps> = ({
 						<ThemeToggleButton className='auth-theme-toggle' />
 					</div>
 				</div>
+
+				{signUpOf(window.location.hash) && (
+					<div
+						className='ui-message'
+						data-tone='info'
+						data-role='sign-up-link-notice'
+					>
+						{t(
+							'This link creates an account on this server: choose a name and a password.',
+						)}
+					</div>
+				)}
 
 				{inviteOf(window.location.hash) && (
 					<div

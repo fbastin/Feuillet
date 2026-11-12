@@ -18,6 +18,10 @@ x-logging: &logging
 # What every TeX Live server shares (the latest and other years).
 x-texlive-environment: &texlive-environment
   ALLOWED_ORIGINS: "https://${DOMAIN:?give docker compose --env-file /etc/feuillet/site.env (deploy/install.sh)}"
+  # Compiles only for the tickets of the collaboration server, for accounts
+  # and the projects they own (server/collab/compileTickets.js): the public
+  # key that checks them, which deploy/install.sh puts in site.env.
+  COMPILE_TICKET_PUBLIC_KEY: "${COMPILE_TICKET_PUBLIC_KEY:?run deploy/install.sh, which puts it in /etc/feuillet/site.env}"
   MAX_CONCURRENT: "2"
   COMPILE_TIMEOUT_MS: "180000"
   SHELL_ESCAPE: "full"
@@ -75,8 +79,8 @@ services:
     # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET, for "Sign in with GitHub",
     # GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, for "Sign in with Google",
     # ORCID_CLIENT_ID and ORCID_CLIENT_SECRET, for "Sign in with ORCID", the
-    # email settings and ADMIN_ACCOUNTS (see deploy/README.md); kept out of
-    # the repository.
+    # email settings, ADMIN_ACCOUNTS and COMPILE_TICKET_KEY, the key of the
+    # tickets to compile (see deploy/README.md); kept out of the repository.
     env_file:
       - path: /etc/feuillet/collab.env
         required: false

@@ -15,7 +15,7 @@ export function openTransport(
 	switch (config.type) {
 		case 'websocket':
 			return config.url
-				? openWebSocketTransport(config.url)
+				? openWebSocketTransport(config.url, config.protocols, config.expiresAt)
 				: Promise.reject(new Error(t('Transport URL is missing')));
 
 		case 'webrtc':

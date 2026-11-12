@@ -2,6 +2,24 @@
 import { getAccountControlRoomId } from './AccountControlRoom';
 import type { TransportConfig } from '../types/transport';
 
+// The functions that give a WebSocket the subprotocols to connect with, by
+// the name a transport's `auth` gives (as Feuillet's compile tickets).
+export interface TransportAuth {
+	protocols?: string[];
+	expiresAt?: number;
+}
+const authorizers = new Map<string, () => Promise<TransportAuth>>();
+
+/** Why such a function will not let connect, told as it is to the user. */
+export class TransportAuthError extends Error {}
+
+export function registerTransportAuth(
+	name: string,
+	authorize: () => Promise<TransportAuth>,
+): void {
+	authorizers.set(name, authorize);
+}
+
 const ACCOUNT_ROOM_POLL_MS = 250;
 const DEFAULT_ACCOUNT_ROOM_TIMEOUT_MS = 15_000;
 
@@ -50,6 +68,13 @@ export async function resolveTransportConfig(
 	config: TransportConfig,
 	accountRoomTimeoutMs = DEFAULT_ACCOUNT_ROOM_TIMEOUT_MS,
 ): Promise<TransportConfig> {
+	if (config.type === 'websocket' && config.auth) {
+		const authorize = authorizers.get(config.auth);
+		const { protocols, expiresAt }: TransportAuth = authorize
+			? await authorize()
+			: {};
+		return { ...config, protocols, expiresAt };
+	}
 	if (config.type !== 'webrtc') return config;
 
 	const explicitRoomId =

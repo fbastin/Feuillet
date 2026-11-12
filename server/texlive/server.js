@@ -36,6 +36,14 @@
 // the errors and warnings of the LOG section, the transcript of the last
 // pass, and the raw log also shows the output of latexmk.
 //
+// As on Overleaf, compiles are for accounts: a connection shows a ticket of
+// the collaboration server (server/collab/compileTickets.js), signed for an
+// account or for a project an account owns, in its Sec-WebSocket-Protocol
+// ("feuillet-ticket.<ticket>", besides "feuillet"), which browsers allow
+// where they allow no other header. This server checks it with the public
+// key alone: neither it nor the documents it compiles can make one. A
+// connection ends with its ticket, which the editor replaces before.
+//
 // When the server runs as root (the Docker image), every connection compiles
 // under its own unprivileged uid, in a directory only that uid can open, so a
 // document cannot reach the files of other connections. Running as another
@@ -45,6 +53,10 @@
 //   HOST, PORT          listen address (default 0.0.0.0:7045)
 //   ALLOWED_ORIGINS     comma-separated browser origins allowed to connect;
 //                       empty allows any origin (local development only)
+//   COMPILE_TICKET_PUBLIC_KEY  the key, SPKI DER in base64, that checks the
+//                       tickets connections show (server/collab/
+//                       compileTickets.js); unset, none is asked for (local
+//                       development only)
 //   WORK_DIR            root of the per-connection working trees (default ./work)
 //   MAX_CONCURRENT      compiles running at once (default 2)
 //   MAX_QUEUE           compiles waiting for a slot before refusing (default 20)
@@ -85,6 +97,19 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 	.split(',')
 	.map((origin) => origin.trim())
 	.filter(Boolean);
+const ticketKey = (() => {
+	const text = (process.env.COMPILE_TICKET_PUBLIC_KEY || '').trim();
+	if (!text) return null;
+	const key = crypto.createPublicKey({
+		key: Buffer.from(text, 'base64'),
+		format: 'der',
+		type: 'spki',
+	});
+	if (key.asymmetricKeyType !== 'ed25519') {
+		throw new Error('COMPILE_TICKET_PUBLIC_KEY is not an Ed25519 public key');
+	}
+	return key;
+})();
 const workDir = path.resolve(process.env.WORK_DIR || 'work');
 const maxConcurrent = readInt('MAX_CONCURRENT', 2);
 const maxQueue = readInt('MAX_QUEUE', 20);
@@ -256,6 +281,42 @@ const formatLog = ({ engine, source, status, transcript, output, errors }) =>
 
 const isAllowedOrigin = (origin) =>
 	allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+
+const TICKET_PROTOCOL = 'feuillet-ticket.';
+
+// The subprotocols a connection asked for, in its order.
+const protocolsOf = (req) =>
+	String(req.headers['sec-websocket-protocol'] ?? '')
+		.split(',')
+		.map((entry) => entry.trim())
+		.filter(Boolean);
+
+// The ticket a connection shows, {subject, expiresAt} (milliseconds), if it
+// is good: signed with the collaboration server's key and not ended.
+const ticketOf = (protocols, now = Date.now()) => {
+	const entry = protocols.find((name) => name.startsWith(TICKET_PROTOCOL));
+	const [payload, signature, extra] = (entry ?? '')
+		.slice(TICKET_PROTOCOL.length)
+		.split('.');
+	if (!payload || !signature || extra !== undefined || !ticketKey) return null;
+	try {
+		if (
+			!crypto.verify(
+				null,
+				Buffer.from(payload),
+				ticketKey,
+				Buffer.from(signature, 'base64url'),
+			)
+		) {
+			return null;
+		}
+		const { s, e } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+		if (typeof s !== 'string' || !Number.isInteger(e) || e * 1000 <= now) return null;
+		return { subject: s, expiresAt: e * 1000 };
+	} catch {
+		return null;
+	}
+};
 
 const reject = (socket, status, reason) => {
 	socket.write(
@@ -941,11 +1002,12 @@ class Session {
 // A connection to another year's server, for one connection to this one:
 // requests go there as they came, and their replies come back as they are.
 class Relay {
-	constructor(year, origin) {
+	constructor(year, origin, protocols) {
 		this.year = year;
 		this.pending = new Map();
 		this.closed = false;
-		this.socket = new WebSocket(`ws+unix://${otherYears.get(year)}:/`, {
+		// With the connection's ticket, which that server checks too.
+		this.socket = new WebSocket(`ws+unix://${otherYears.get(year)}:/`, protocols, {
 			headers: origin ? { Origin: origin } : {},
 			maxPayload: 8 * maxPayload,
 		});
@@ -1023,6 +1085,8 @@ const server = http.createServer((req, res) => {
 				compiling: running,
 				queued: waiting.length,
 				shellEscape,
+				// Whether connections need a ticket, that is an account.
+				tickets: Boolean(ticketKey),
 				// This server's TeX Live, then the years a compile may ask for.
 				year: ownYear ? Number(ownYear) : null,
 				years: offeredYears,
@@ -1034,7 +1098,12 @@ const server = http.createServer((req, res) => {
 	res.end('Feuillet TeX Live server\n');
 });
 
-const wss = new WebSocketServer({ noServer: true, maxPayload });
+const wss = new WebSocketServer({
+	noServer: true,
+	maxPayload,
+	// Browsers want one of the subprotocols they asked for, never the ticket.
+	handleProtocols: (protocols) => (protocols.has('feuillet') ? 'feuillet' : false),
+});
 
 server.on('upgrade', (req, socket, head) => {
 	const origin = req.headers.origin || '';
@@ -1047,6 +1116,12 @@ server.on('upgrade', (req, socket, head) => {
 		reject(socket, 404, 'Not Found');
 		return;
 	}
+	const ticket = ticketKey ? ticketOf(protocolsOf(req)) : null;
+	if (ticketKey && !ticket) {
+		reject(socket, 401, 'Unauthorized');
+		return;
+	}
+	req.ticket = ticket;
 	if (wss.clients.size >= maxConnections) {
 		reject(socket, 503, 'Service Unavailable');
 		return;
@@ -1073,7 +1148,7 @@ wss.on('connection', (conn, req) => {
 	const relayTo = (year) => {
 		let relay = relays.get(year);
 		if (!relay || relay.closed) {
-			relay = new Relay(year, req.headers.origin || '');
+			relay = new Relay(year, req.headers.origin || '', protocolsOf(req));
 			relays.set(year, relay);
 		}
 		return relay;
@@ -1086,6 +1161,11 @@ wss.on('connection', (conn, req) => {
 	resetIdleTimer();
 
 	conn.on('message', (data) => {
+		// Its ticket ended: the editor connects again with a new one.
+		if (req.ticket && req.ticket.expiresAt <= Date.now()) {
+			conn.close(4401, 'Ticket expired');
+			return;
+		}
 		resetIdleTimer();
 		let request;
 		try {
@@ -1203,6 +1283,7 @@ const start = async () => {
 			allowedOrigins.length > 0
 				? `origins: ${allowedOrigins.join(', ')};`
 				: 'any origin;',
+			ticketKey ? 'compiles for tickets only;' : 'compiles without tickets;',
 			`${maxConcurrent} concurrent compiles, ${compileTimeoutMs / 1000}s each;`,
 			isolated
 				? `one uid per connection from ${sessionUidBase}${hasPrlimit ? `, ${sessionMaxProcesses} processes each` : ''};`

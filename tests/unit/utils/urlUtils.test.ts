@@ -4,6 +4,8 @@ import {
     isValidYjsUrl,
     parseUrlFragments,
     buildUrlWithFragments,
+    signUpAdmissionOf,
+    signUpOf,
 } from '@src/utils/urlUtils';
 
 describe('URL Utils', () => {
@@ -134,6 +136,25 @@ describe('URL Utils', () => {
             expect(parsed.yjsUrl).toBe(original.baseUrl);
             expect(parsed.docId).toBe(original.docId);
             expect(parsed.filePath).toBe(original.filePath);
+        });
+    });
+
+    // Where accounts need an invitation (server/collab/accounts.js).
+    describe('signUpOf and signUpAdmissionOf', () => {
+        const token = 'Pp5XCD9wf5CUeEsqIPWuT2mPtWfPysmV';
+        const invite = 'a'.repeat(48);
+
+        it('reads the token of a link to create an account', () => {
+            expect(signUpOf(`#signup:${token}`)).toBe(token);
+            expect(signUpOf(`signup:${token}`)).toBe(token);
+            expect(signUpOf('#signup:short')).toBeNull();
+            expect(signUpOf(`#signup:${token}&doc:x`)).toBeNull();
+        });
+
+        it('tells what lets create an account: a link or an invitation', () => {
+            expect(signUpAdmissionOf(`#signup:${token}`)).toEqual({ signup: token });
+            expect(signUpAdmissionOf(`#invite:${invite}`)).toEqual({ invite });
+            expect(signUpAdmissionOf('#yjs:abc')).toEqual({});
         });
     });
 });

@@ -36,6 +36,32 @@ export interface AccountSession {
 	server: string;
 }
 
+/** Who may create an account on the server (server/collab/accounts.js). */
+export interface SignUpOptions {
+	mode: 'open' | 'invitation';
+	domains: string[];
+}
+
+/** A link to create an account, as the administration page lists it. */
+export interface AdminSignUpLink {
+	id: string;
+	createdAt: number;
+	expiresAt: number;
+	/** The administrator who made it; empty for a mailed one. */
+	by: string;
+	mailed: boolean;
+}
+
+export interface AdminSignUpLinks extends SignUpOptions {
+	links: AdminSignUpLink[];
+}
+
+/** A ticket to compile on the TeX Live server, and when it ends (ms). */
+export interface CompileTicket {
+	ticket: string;
+	expiresAt: number;
+}
+
 export type AccountSyncState =
 	| 'unlinked'
 	| 'syncing'
@@ -416,13 +442,47 @@ class AccountSyncService {
 		username: string,
 		password: string,
 		link?: ProviderTicket,
+		admission: { invite?: string; signup?: string } = {},
 	): Promise<AccountSession> {
 		const result = await this.request(server, 'POST', '/account/register', {
-			body: link
-				? { username, password, [`${link.provider}Ticket`]: link.ticket }
-				: { username, password },
+			body: {
+				username,
+				password,
+				...(link ? { [`${link.provider}Ticket`]: link.ticket } : {}),
+				...admission,
+			},
 		});
 		return { username: result.username, token: result.token, server };
+	}
+
+	/**
+	 * Who may create an account on the server: anyone, or only with an
+	 * invitation; and the email domains whose addresses may ask for a link
+	 * to create one. Null when the server does not tell.
+	 */
+	async signUpOptions(): Promise<SignUpOptions | null> {
+		const server = this.serverFor(this.userId);
+		if (!server) return null;
+		try {
+			const result = await this.request(server, 'GET', '/account/sign-up');
+			return {
+				mode: result?.mode === 'invitation' ? 'invitation' : 'open',
+				domains: Array.isArray(result?.domains)
+					? result.domains.filter((entry: unknown) => typeof entry === 'string')
+					: [],
+			};
+		} catch {
+			return null;
+		}
+	}
+
+	/** A link to create an account, mailed to an address of those domains. */
+	async mailSignUpLink(email: string, language: string): Promise<void> {
+		const server = this.serverFor(this.userId);
+		await this.request(server, 'POST', '/account/sign-up', {
+			body: { email, language },
+			timeout: MAIL_TIMEOUT_MS,
+		});
 	}
 
 	/**
@@ -442,6 +502,46 @@ class AccountSyncService {
 			{ body: { ticket } },
 		);
 		return { username: result.username, token: result.token, server };
+	}
+
+	/**
+	 * A ticket to compile on the TeX Live server (server/collab/
+	 * compileTickets.js): the account's, or else one by the link of the
+	 * project open, when an account owns that project. null when the server
+	 * makes none; AccountServerError `account_required` when it wants an
+	 * account.
+	 */
+	async compileTicket(project?: string): Promise<CompileTicket | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		const server = session?.server || this.serverFor(userId);
+		if (!server) return null;
+		const ask = (options: { token?: string; body?: unknown }) =>
+			this.request(server, 'POST', '/compile/ticket', options);
+		let result: any;
+		try {
+			if (session) {
+				try {
+					result = await ask({ token: session.token });
+				} catch (error) {
+					// Signed out on the server: the project's link may still do.
+					if (!(error instanceof AccountServerError && error.status === 401)) {
+						throw error;
+					}
+				}
+			}
+			result ??= await ask({ body: { project } });
+		} catch (error) {
+			// A server that makes none, or older.
+			if (error instanceof AccountServerError && error.status === 404) {
+				return null;
+			}
+			throw error;
+		}
+		return typeof result?.ticket === 'string' &&
+			Number.isFinite(result.expiresAt)
+			? { ticket: result.ticket, expiresAt: result.expiresAt }
+			: null;
 	}
 
 	/** Whether the account is linked to a site's account; null signed out. */
@@ -995,6 +1095,46 @@ class AccountSyncService {
 	 * Deletes an account from the administration page, with the projects it
 	 * owns, if it still has this name.
 	 */
+	/** Who may create an account, and the links to create one still good. */
+	async adminSignUpLinks(): Promise<AdminSignUpLinks> {
+		const session = this.userId ? this.getSession(this.userId) : null;
+		if (!session) throw new AccountServerError('signed_out', 401);
+		const result = await this.request(
+			session.server,
+			'GET',
+			'/admin/sign-up-links',
+			{ token: session.token },
+		);
+		return {
+			mode: result?.mode === 'invitation' ? 'invitation' : 'open',
+			domains: Array.isArray(result?.domains) ? result.domains : [],
+			links: Array.isArray(result?.links) ? result.links : [],
+		};
+	}
+
+	/**
+	 * A new link to create an account (its token, shown once), or, with
+	 * `revoke`, one taken back; the links still good either way.
+	 */
+	async adminChangeSignUpLinks(
+		revoke?: string,
+	): Promise<{ token?: string; expiresAt?: number; links: AdminSignUpLink[] }> {
+		const session = this.userId ? this.getSession(this.userId) : null;
+		if (!session) throw new AccountServerError('signed_out', 401);
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/admin/sign-up-links',
+			{ token: session.token, body: revoke ? { revoke } : {} },
+		);
+		return {
+			...(typeof result?.token === 'string'
+				? { token: result.token, expiresAt: result.expiresAt }
+				: {}),
+			links: Array.isArray(result?.links) ? result.links : [],
+		};
+	}
+
 	async adminDeleteAccount(id: string, username: string): Promise<void> {
 		const userId = this.userId;
 		const session = userId ? this.getSession(userId) : null;

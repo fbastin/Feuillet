@@ -14,7 +14,13 @@ vous retrouvez vos projets.
 
 Une **session invitée** permet d'essayer Feuillet sans compte, mais elle n'a
 pas de compte sur le serveur : on ne peut ni y être invité ni partager par
-invitation.
+invitation. Comme sur Overleaf, ses propres projets ne se compilent pas sur
+le serveur, mais dans le navigateur; un projet ouvert par le lien de son
+propriétaire, si.
+
+Selon le serveur, créer un compte peut demander une invitation : à un
+projet, ou un lien de son administrateur; ou une adresse courriel d'un
+domaine qu'il accepte, à laquelle il envoie un lien.
 
 ## La liste des projets
 

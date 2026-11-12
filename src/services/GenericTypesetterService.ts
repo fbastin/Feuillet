@@ -1,6 +1,7 @@
 // src/services/GenericTypesetterService.ts
 import { nanoid } from 'nanoid';
 
+import { TransportAuthError } from '@chelys/peer/TransportResolution';
 import type { ClientTransport, TransportConfig } from '@chelys/types/transport';
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
@@ -112,6 +113,8 @@ interface WireCompileResult {
 }
 
 const MISSING_FILES_STATUS = -2;
+// A connection is replaced this long before its ticket ends.
+const TICKET_RENEW_MS = 15 * 60 * 1000;
 const DEFAULT_COMPILE_TIMEOUT_MS = 10 * 60 * 1000;
 const BASE64_CHUNK_SIZE = 0x8000;
 const BASE64_YIELD_BYTES = 4 * 1024 * 1024;
@@ -377,8 +380,9 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 		config: TypesetterServerConfig,
 	): Promise<Connection> {
 		const existing = this.connections.get(config.id);
-		if (existing?.transport.isOpen) return existing;
+		if (existing?.transport.isOpen && !this.isEnding(existing)) return existing;
 		if (existing) {
+			this.sentHashes.delete(config.id);
 			this.connections.delete(config.id);
 			this.rejectPending(existing, new Error('Connection closed'));
 			this.closeTransport(config.id);
@@ -398,6 +402,18 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 		}
 	}
 
+	// A connection whose ticket ends soon, which the server would close
+	// (server/texlive/server.js): one that compiles nothing is replaced
+	// before, with a new ticket.
+	private isEnding(connection: Connection): boolean {
+		const { expiresAt } = connection.transport;
+		return (
+			expiresAt !== undefined &&
+			connection.pending.size === 0 &&
+			expiresAt - Date.now() < TICKET_RENEW_MS
+		);
+	}
+
 	private async createConnection(
 		config: TypesetterServerConfig,
 	): Promise<Connection> {
@@ -406,6 +422,7 @@ class GenericTypesetterService extends ExternalServiceBase<TypesetterServerConfi
 			transport = await this.openTransport(config);
 		} catch (error) {
 			moduleLog.warn(`Could not connect to ${config.name}:`, error);
+			if (error instanceof TransportAuthError) throw new Error(error.message);
 			throw new Error(unreachableMessage(config.name));
 		}
 		if (!transport.isOpen) {

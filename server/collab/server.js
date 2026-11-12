@@ -80,6 +80,8 @@
 //                       http://languagetool:8010); unset turns that off
 //   TEXLIVE_ORIGIN      the Origin to show it (default: the first of
 //                       ALLOWED_ORIGINS)
+//   COMPILE_TICKET_KEY  the key that signs the tickets to compile on the TeX
+//                       Live server (compileTickets.js); unset, none
 //   SMTP_URL            the SMTP server for recovery emails and invitations
 //                       (mail.js), such as smtps://user:password@smtp.example.org;
 //                       with
@@ -90,6 +92,12 @@
 //                       (default: the first of ALLOWED_ORIGINS)
 //   ADMIN_ACCOUNTS      comma-separated names of the accounts that see the
 //                       administration page; unset, none does
+//   SIGN_UP             who may create an account: "open" (default), anyone;
+//                       "invitation", whoever has an invitation to a project
+//                       or a link from an administrator (accounts.js)
+//   SIGN_UP_DOMAINS     with "invitation", comma-separated email domains
+//                       (such as example.org) whose addresses may ask for a
+//                       link to make an account, mailed to them
 //   BACKUP_STATUS_DIR   where deploy/backup.sh tells how the last backup
 //                       went, for that page
 //   GIT_BRIDGE_DIR      directory for the projects' Git repositories
@@ -107,6 +115,7 @@ const { createAccounts } = require('./accounts');
 const { createAdmin } = require('./admin');
 const { createMailer } = require('./mail');
 const { createCompiler } = require('./compile');
+const { createCompileTickets, readTicketKey } = require('./compileTickets');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
 const { createOpenLinks } = require('./docs');
@@ -209,6 +218,8 @@ const accounts = createAccounts({
 	appUrl: process.env.APP_URL || allowedOrigins[0] || '',
 	google,
 	orcid,
+	signUp: process.env.SIGN_UP,
+	signUpDomains: (process.env.SIGN_UP_DOMAINS || '').split(','),
 });
 
 // Connections by the link they were opened through, closed when it is
@@ -325,6 +336,14 @@ const openLinks = createOpenLinks({
 
 // Grammar and style checking with LanguageTool, for signed-in accounts.
 const grammar = createGrammar({ accounts, url: process.env.GRAMMAR_URL, log });
+// Tickets to compile on the TeX Live server, for accounts and the projects
+// they own.
+const compileTickets = createCompileTickets({
+	key: readTicketKey(process.env.COMPILE_TICKET_KEY),
+	accounts,
+	shares,
+	log,
+});
 
 const admin = createAdmin({
 	admins: (process.env.ADMIN_ACCOUNTS || '').split(','),
@@ -387,6 +406,7 @@ const mcp = createMcp({
 	compiler: createCompiler({
 		url: process.env.TEXLIVE_URL,
 		origin: process.env.TEXLIVE_ORIGIN || allowedOrigins[0],
+		ticketFor: compileTickets.forAccount,
 	}),
 	log,
 });
@@ -566,9 +586,11 @@ const server = http.createServer((req, res) => {
 							? reviewNotices
 							: grammar.handles(url)
 								? grammar
-								: oauth.handlesAccount(url)
-									? { handle: (request, response) => oauth.handleAccount(request, response) }
-									: null;
+								: compileTickets.handles(url)
+									? compileTickets
+									: oauth.handlesAccount(url)
+										? { handle: (request, response) => oauth.handleAccount(request, response) }
+										: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {
@@ -771,7 +793,11 @@ server.listen(port, host, () => {
 		`assistant connections in ${mcpDir};`,
 		`Git repositories in ${gitDir};`,
 		process.env.TEXLIVE_URL ? 'assistants compile;' : 'assistants do not compile;',
+		compileTickets.enabled ? 'compile tickets on;' : 'compile tickets off;',
 		process.env.GRAMMAR_URL ? 'grammar checking on;' : 'grammar checking off;',
+		accounts.signUpOptions().mode === 'invitation'
+			? `sign-up by invitation${accounts.signUpOptions().domains.length > 0 ? ` or address at ${accounts.signUpOptions().domains.join(', ')}` : ''};`
+			: 'sign-up open;',
 		github.enabled ? 'GitHub sign-in on;' : 'GitHub sign-in off;',
 		google.enabled ? 'Google sign-in on;' : 'Google sign-in off;',
 		orcid.enabled ? 'ORCID sign-in on;' : 'ORCID sign-in off;',

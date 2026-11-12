@@ -13,6 +13,16 @@ export interface TransportConfig {
 	controlRoomId?: string;
 	controlMode?: ControlMode;
 	contentLength?: boolean;
+	/**
+	 * For a WebSocket, the name of a function registered with
+	 * registerTransportAuth (TransportResolution.ts), which gives the
+	 * subprotocols to connect with, such as a ticket the server asks for.
+	 */
+	auth?: string;
+	/** The subprotocols to connect with, as that function gave them. */
+	protocols?: string[];
+	/** When the server ends the connection, as that function said (ms). */
+	expiresAt?: number;
 }
 
 export type TransportPayload = string | Uint8Array;
@@ -25,6 +35,8 @@ export type TransportStatus =
 
 export interface ClientTransport {
 	readonly isOpen: boolean;
+	/** When the server ends it (its ticket's end, in ms), if it says. */
+	readonly expiresAt?: number;
 	send(payload: TransportPayload): void;
 	abort?(): void;
 	close(): void;

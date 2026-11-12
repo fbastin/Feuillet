@@ -30,13 +30,13 @@ This page gives the steps. Each setting is detailed in
 1. **The software.** On Ubuntu 24.04, with Apache:
 
    ```
-   sudo apt install git curl rsync docker.io docker-compose-v2 apache2 certbot python3-certbot-apache
+   sudo apt install git curl rsync openssl docker.io docker-compose-v2 apache2 certbot python3-certbot-apache
    ```
 
    or with nginx:
 
    ```
-   sudo apt install git curl rsync docker.io docker-compose-v2 nginx certbot python3-certbot-nginx
+   sudo apt install git curl rsync openssl docker.io docker-compose-v2 nginx certbot python3-certbot-nginx
    ```
 
    Docker Compose must be version 2.24 or newer (`docker compose version`);
@@ -87,7 +87,8 @@ This page gives the steps. Each setting is detailed in
 
    then run `sudo deploy/install.sh` again. Your account menu then offers
    **Administration**: the accounts, the space taken, orphan projects, the
-   last backup.
+   last backup, and links to create an account. Create your account before
+   keeping sign-up to invitations (see below).
 
 To check, `curl https://feuillet.example.org/collab/health` and
 `curl https://feuillet.example.org/texlive/health` answer
@@ -109,6 +110,11 @@ Everything is in `/etc/feuillet/collab.env`, readable by `root` only; run
 `sudo deploy/install.sh` again after each change.
 [`deploy/README.md`](../../deploy/README.md) describes each setting.
 
+- **Who may create an account**: anyone, by default. With
+  `SIGN_UP=invitation`, only whoever receives an invitation to a project or
+  a link from the administration page; with also, for instance,
+  `SIGN_UP_DOMAINS=example.org`, any address of that domain, confirmed by
+  a link mailed to it.
 - **Email** (`SMTP_URL`, `MAIL_FROM`): confirming an account's address,
   recovering a forgotten password, sending invitations. Without it,
   accounts recover with their recovery codes, and invitations open in the
@@ -142,6 +148,12 @@ at their next visit.
 
 ## Before opening your server to others
 
+- **Who compiles.** As on Overleaf, the TeX Live server compiles only for
+  an account: the one signed in, or the one that owns a project opened by
+  its link. The collaboration server signs a ticket for that, which TeX
+  Live checks; `install.sh` makes its key. Knowing the server's address is
+  then not enough to use it. If anyone may create an account, anyone may
+  still compile: see `SIGN_UP` above.
 - **The privacy page** (the **Privacy** link at the bottom of the page)
   describes one server in particular: emails sent through Gmail, web server
   logs kept 14 days, backups kept two weeks. Adapt it to what yours

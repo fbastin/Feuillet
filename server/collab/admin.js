@@ -14,6 +14,13 @@
 //                        {deleted, skipped}: the orphan projects with these
 //                        keys, deleted for good; those no longer orphans
 //                        are skipped
+//   GET  /admin/sign-up-links (token, admin) -> {mode, domains, links}: who
+//                        may create an account (SIGN_UP, accounts.js) and
+//                        the links to make one still good, without their
+//                        tokens: {id, createdAt, expiresAt, by, mailed}
+//   POST /admin/sign-up-links {} (token, admin) -> {token, expiresAt,
+//                        links}: a new link, shown once
+//   POST /admin/sign-up-links {revoke: id} (token, admin) -> {links}
 //
 // Of each account it shows the name, when it was made and last used, its
 // signed-in devices, how many projects it owns and is a member of, the space
@@ -393,8 +400,38 @@ const createAdmin = ({
 			req.on('error', () => fail(new HttpError(400, 'interrupted')));
 		});
 
+	// The links to make an account, as the page shows them: who made each,
+	// and whether it was mailed (to an address it never shows).
+	const listSignUpLinks = () =>
+		accounts.signUpLinks().map((link) => ({
+			id: link.id,
+			createdAt: link.createdAt,
+			expiresAt: link.expiresAt,
+			by: link.by ? (accounts.usernameOf(link.by) ?? '') : '',
+			mailed: Boolean(link.email),
+		}));
+
+	const signUpLinks = async (req) => {
+		await requireAdmin(req);
+		return { ...accounts.signUpOptions(), links: listSignUpLinks() };
+	};
+
+	const changeSignUpLinks = async (req, body) => {
+		const caller = await requireAdmin(req);
+		if (body.revoke !== undefined) {
+			accounts.revokeSignUpLink(body.revoke);
+			return { links: listSignUpLinks() };
+		}
+		const made = accounts.makeSignUpLink({ by: caller.id });
+		log('sign-up link made by', JSON.stringify(caller.username));
+		return { ...made, links: listSignUpLinks() };
+	};
+
 	const routes = {
 		'GET /admin': async (req) => ({ admin: (await who(req)).admin }),
+		'GET /admin/sign-up-links': (req) => signUpLinks(req),
+		'POST /admin/sign-up-links': async (req) =>
+			changeSignUpLinks(req, await readBody(req)),
 		'GET /admin/overview': (req) => overview(req),
 		'POST /admin/delete': async (req) => remove(req, await readBody(req)),
 		'POST /admin/delete-projects': async (req) =>

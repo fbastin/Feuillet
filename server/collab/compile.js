@@ -10,20 +10,24 @@
 //                   socket) or ws://localhost:7045; unset turns compiling
 //                   off
 //   TEXLIVE_ORIGIN  the Origin to present, one the TeX Live server allows
+//
+// Each compile shows the TeX Live server a ticket of the account it is for
+// (compileTickets.js), when this server makes them.
 
 const crypto = require('node:crypto');
 const WebSocket = require('ws');
 
 const ENGINES = ['pdflatex', 'latex', 'xelatex', 'lualatex'];
 
-const createCompiler = ({ url, origin, timeoutMs = 240_000 }) => {
+const createCompiler = ({ url, origin, ticketFor = () => null, timeoutMs = 240_000 }) => {
 	if (!url) return null;
 
 	/** {status, log, pdf?}: status 0 for a PDF without errors. */
-	const compile = ({ files, mainFile, engine, version = 'latest' }) =>
+	const compile = ({ files, mainFile, engine, version = 'latest', account }) =>
 		new Promise((resolve, reject) => {
 			const requestId = crypto.randomUUID();
-			const socket = new WebSocket(url, {
+			const ticket = account ? ticketFor(account) : null;
+			const socket = new WebSocket(url, ticket ? ['feuillet', `feuillet-ticket.${ticket}`] : [], {
 				headers: origin ? { Origin: origin } : {},
 				maxPayload: 512 * 1024 * 1024,
 			});

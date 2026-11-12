@@ -61,6 +61,22 @@
 //   POST   /account/google    {password, remove: true}   (token)
 //   POST   /account/google/login {ticket}                -> {username, token}
 //   GET, POST /account/orcid, POST /account/orcid/login  the same for ORCID
+//   GET    /account/sign-up                              -> {mode, domains}
+//   POST   /account/sign-up   {email, language}          -> {sent: true}: a
+//                                                        link to create an
+//                                                        account, mailed to
+//                                                        an address of the
+//                                                        domains allowed
+//
+// Who may create an account (SIGN_UP, read by server.js): anyone ("open",
+// the default), or only with an invitation ("invitation"), as an Overleaf
+// Server whose accounts its administrator makes: a personal invitation to a
+// project (shares.js), which the account accepts once made; a link to make
+// an account, from an administrator (admin.js); or, for the addresses of
+// SIGN_UP_DOMAINS, such as a university's, a link mailed to the address,
+// which becomes the account's, confirmed. POST /account/register then takes
+// {invite} or {signup}, the token of the link. Each link to make an account
+// makes one, within 7 days (24 hours mailed); only its hash is kept.
 //
 // Sign in with Google or ORCID, as on Overleaf (google.js, orcid.js): an
 // account may be linked to one account of each, then opened with it; or
@@ -115,6 +131,12 @@ const GIT_TOKEN = /^fgt_[A-Za-z0-9_-]{43}$/;
 // Writing when a token was last used, at most this often.
 const GIT_TOUCH_MS = 60 * 60 * 1000;
 const EMAIL_CONFIRM_MS = 24 * 60 * 60 * 1000;
+// Links to make an account: an administrator's, and one mailed.
+const SIGN_UP_LINK_MS = 7 * 24 * 60 * 60 * 1000;
+const SIGN_UP_MAIL_MS = 24 * 60 * 60 * 1000;
+const MAX_SIGN_UP_LINKS = 500;
+const SIGN_UP_TOKEN = /^[A-Za-z0-9_-]{32}$/;
+const SIGN_UP_ID = /^[0-9a-f]{64}$/;
 const RESET_MS = 60 * 60 * 1000;
 // Emails one account may be sent in ATTEMPT_WINDOW_MS.
 const MAX_MAILS_PER_ACCOUNT = 3;
@@ -354,8 +376,19 @@ const createAccounts = ({
 	// null.
 	google = null,
 	orcid = null,
+	// Who may create an account: "open" or "invitation"; and the domains
+	// whose addresses may ask for a link to make one.
+	signUp = 'open',
+	signUpDomains = [],
 }) => {
 	fs.mkdirSync(dir, { recursive: true });
+	const signUpMode = signUp === 'invitation' ? 'invitation' : 'open';
+	const allowedDomains = signUpDomains
+		.map((domain) => String(domain).trim().toLowerCase().replace(/^@/, ''))
+		.filter((domain) => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain));
+	// The links to make an account, by a hash of their token.
+	const signUpsDir = path.join(dir, 'signups');
+	fs.mkdirSync(signUpsDir, { recursive: true });
 	// Which account confirmed each recovery address, by a hash of it.
 	const emailsDir = path.join(dir, 'emails');
 	fs.mkdirSync(emailsDir, { recursive: true });
@@ -629,6 +662,145 @@ const createAccounts = ({
 					: { ...entry, ...describeProject(idOf(account), entry) },
 			);
 
+	// Whether a project's personal invitation is pending (shares.js).
+	let inviteOpen = () => false;
+	const setInviteChecker = (check) => {
+		inviteOpen = check;
+	};
+
+	const signUpPath = (id) => path.join(signUpsDir, `${id}.json`);
+	const readSignUp = (id) => {
+		try {
+			return JSON.parse(fs.readFileSync(signUpPath(id), 'utf8'));
+		} catch (error) {
+			if (error.code === 'ENOENT') return null;
+			throw error;
+		}
+	};
+	const signUpIds = () =>
+		fs
+			.readdirSync(signUpsDir)
+			.filter((name) => name.endsWith('.json'))
+			.map((name) => name.slice(0, -5))
+			.filter((id) => SIGN_UP_ID.test(id));
+
+	// The links to make an account still good, the others forgotten.
+	const signUpLinks = () => {
+		const now = Date.now();
+		const links = [];
+		for (const id of signUpIds()) {
+			const link = readSignUp(id);
+			if (!link || !(link.expiresAt > now)) {
+				fs.rmSync(signUpPath(id), { force: true });
+				continue;
+			}
+			links.push({ id, ...link });
+		}
+		return links.sort((a, b) => b.createdAt - a.createdAt);
+	};
+
+	// Links that ended go, with the address of a mailed one, each hour.
+	setInterval(() => {
+		try {
+			signUpLinks();
+		} catch (error) {
+			log('sign-up links not pruned:', error.message);
+		}
+	}, 60 * 60 * 1000).unref();
+
+	/** A new link to make an account: its token, shown once. */
+	const makeSignUpLink = ({ by = null, email = null, ms = SIGN_UP_LINK_MS }) => {
+		const links = signUpLinks();
+		if (links.length >= MAX_SIGN_UP_LINKS) {
+			throw new HttpError(429, 'too_many_links');
+		}
+		const token = crypto.randomBytes(24).toString('base64url');
+		const now = Date.now();
+		const link = {
+			createdAt: now,
+			expiresAt: now + ms,
+			...(by ? { by } : {}),
+			...(email ? { email } : {}),
+		};
+		const target = signUpPath(sha256(`signup:${token}`));
+		fs.writeFileSync(target, JSON.stringify(link), { mode: 0o600 });
+		return { token, expiresAt: link.expiresAt };
+	};
+
+	const revokeSignUpLink = (id) => {
+		if (typeof id !== 'string' || !SIGN_UP_ID.test(id)) {
+			throw new HttpError(400, 'invalid_link');
+		}
+		fs.rmSync(signUpPath(id), { force: true });
+	};
+
+	// The link of a token, used: gone, so that it makes one account.
+	const useSignUpLink = (token) => {
+		const id = sha256(`signup:${token}`);
+		const link = readSignUp(id);
+		fs.rmSync(signUpPath(id), { force: true });
+		if (!link || !(link.expiresAt > Date.now())) {
+			throw new HttpError(403, 'sign_up_link_expired');
+		}
+		return link;
+	};
+
+	// Whether this request may make an account, and by what.
+	const admission = (body) => {
+		if (signUpMode === 'open') return {};
+		if (typeof body.signup === 'string' && SIGN_UP_TOKEN.test(body.signup)) {
+			const link = readSignUp(sha256(`signup:${body.signup}`));
+			if (!link || !(link.expiresAt > Date.now())) {
+				throw new HttpError(403, 'sign_up_link_expired');
+			}
+			return {
+				signUp: body.signup,
+				by: link.email ? 'mailed link' : "an administrator's link",
+			};
+		}
+		if (typeof body.invite === 'string' && inviteOpen(body.invite)) {
+			return { by: 'invitation to a project' };
+		}
+		throw new HttpError(403, 'sign_up_closed');
+	};
+
+	const domainAllowed = (address) => {
+		const domain = address.slice(address.lastIndexOf('@') + 1);
+		return allowedDomains.some(
+			(allowed) => domain === allowed || domain.endsWith(`.${allowed}`),
+		);
+	};
+
+	const signUpOptions = () => ({
+		mode: signUpMode,
+		domains: signUpMode === 'invitation' && mailer ? allowedDomains : [],
+	});
+
+	// A link to make an account, mailed to an address of the domains
+	// allowed; the same answer whether or not it has an account.
+	const mailSignUpLink = async (body, ip) => {
+		if (signUpMode !== 'invitation' || !mailer || allowedDomains.length === 0) {
+			throw new HttpError(404, 'sign_up_mail_disabled');
+		}
+		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
+		const address = normalizeEmail(body.email);
+		if (!validEmail(address)) throw new HttpError(400, 'invalid_email');
+		if (!domainAllowed(address)) throw new HttpError(403, 'domain_not_allowed');
+		limit(`signup:${sha256(address)}`, MAX_MAILS_PER_ACCOUNT);
+		const { token } = makeSignUpLink({ email: address, ms: SIGN_UP_MAIL_MS });
+		try {
+			await mailer.send('signup', {
+				to: address,
+				language: body.language,
+				link: `${appBase}/#signup:${token}`,
+			});
+		} catch (error) {
+			revokeSignUpLink(sha256(`signup:${token}`));
+			throw new HttpError(502, error?.code === 'mail_quota' ? 'mail_quota' : 'mail_failed');
+		}
+		return { sent: true };
+	};
+
 	const register = async (body, ip, device) => {
 		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
 		const username = normalizeUsername(body.username);
@@ -645,6 +817,7 @@ const createAccounts = ({
 			throw new HttpError(409, `${linkedWith}_taken`);
 		}
 		const key = keyOf(username);
+		const admitted = admission(body);
 		const passwordHash = await hashPassword(body.password);
 
 		return withAccount(key, (existing) => {
@@ -667,12 +840,20 @@ const createAccounts = ({
 				}
 				setLinkOwner(linkedWith, identity, key);
 			}
+			// Checked again, and used: a link to make an account makes one.
+			const signUpLink = admitted.signUp ? useSignUpLink(admitted.signUp) : null;
+			// A mailed link's address is confirmed: it becomes the account's.
+			if (signUpLink?.email && !emailOwner(signUpLink.email)) {
+				setEmailOwner(signUpLink.email, key);
+				account.email = { address: signUpLink.email, confirmedAt: now };
+			}
 			const token = openSession(account, key, device);
 			write(key, account);
 			log(
 				'account created',
 				JSON.stringify(username),
 				identity ? `with ${PROVIDER_NAMES[linkedWith]}` : '',
+				admitted.by ? `(${admitted.by})` : '',
 			);
 			return { username, token };
 		});
@@ -1471,6 +1652,9 @@ const createAccounts = ({
 	const routes = {
 		'POST /account/register': (req, body) =>
 			register(body, clientAddress(req), deviceOf(req)),
+		'GET /account/sign-up': () => signUpOptions(),
+		'POST /account/sign-up': (req, body) =>
+			mailSignUpLink(body, clientAddress(req)),
 		'POST /account/login': (req, body) =>
 			login(body, clientAddress(req), deviceOf(req)),
 		'GET /account/sessions': (req) => getSessions(req),
@@ -1562,6 +1746,11 @@ const createAccounts = ({
 		setProjectDescriber,
 		setProjectsListener,
 		setAccountDeleted,
+		setInviteChecker,
+		signUpOptions,
+		signUpLinks,
+		makeSignUpLink,
+		revokeSignUpLink,
 	};
 };
 

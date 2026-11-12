@@ -76,6 +76,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						)}
 					</li>
 					<li>
+						<strong>{t('Links to create an account:')}</strong>&nbsp;
+						{t(
+							'where accounts are made by invitation, those an administrator made, for 7 days at most, and those asked for with an email address, for 24 hours at most, with that address; each goes once it made its account.',
+						)}
+					</li>
+					<li>
 						<strong>{t('Assistants such as Claude:')}</strong>&nbsp;
 						{t(
 							'the applications you allowed, when they were last used, and their access tokens, which last an hour and are renewed for 30 days. You disconnect them in your profile, Assistants tab.',

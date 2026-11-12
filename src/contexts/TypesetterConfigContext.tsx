@@ -12,6 +12,8 @@ import {
 
 import { useSettings } from '../hooks/useSettings';
 import { typesetterRegistryService } from '../services/TypesetterRegistryService';
+// The TeX Live server's tickets.
+import '../services/compileTicketAuth';
 import {
 	genericTypesetterService,
 	type TypesetterServerConfig,

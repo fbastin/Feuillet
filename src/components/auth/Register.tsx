@@ -1,6 +1,6 @@
 // src/components/auth/Register.tsx
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import i18next, { t } from '@/i18n';
 import { CHELYS_ACCOUNTS_ENABLED } from '../../branding';
@@ -9,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useChelys } from '../../hooks/useChelys';
 import {
 	AccountServerError,
+	type SignUpOptions,
 	accountSyncService,
 } from '../../services/AccountSyncService';
 import { notificationService } from '../../services/NotificationService';
@@ -17,6 +18,7 @@ import {
 	validatePassword,
 	validateUsername,
 } from '../../utils/authUtils';
+import { replaceHash, signUpAdmissionOf, signUpOf } from '../../utils/urlUtils';
 import CopyField from '../common/CopyField';
 import { PasskeyIcon } from '../common/Icons';
 import {
@@ -62,6 +64,110 @@ const confirmEmailLater = (address: string, password: string): void => {
 		});
 };
 
+// Where accounts need an invitation (server/collab/accounts.js), without
+// one: how to get one, and a link mailed to an address of the domains the
+// server allows, if any.
+const InvitationNeeded: React.FC<{
+	domains: string[];
+	onSwitchToLogin: () => void;
+}> = ({ domains, onSwitchToLogin }) => {
+	const [address, setAddress] = useState('');
+	const [sending, setSending] = useState(false);
+	const [sentTo, setSentTo] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const listed = domains.join(', ');
+
+	const send = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		const email = address.trim();
+		if (!email) return;
+		setSending(true);
+		setError(null);
+		try {
+			await accountSyncService.mailSignUpLink(email, i18next.language);
+			setSentTo(email);
+		} catch (caught) {
+			const code = caught instanceof AccountServerError ? caught.code : '';
+			setError(
+				code === 'domain_not_allowed'
+					? t('Only addresses at {domains} may ask for a link.', {
+							domains: listed,
+						})
+					: code === 'invalid_email'
+						? t('Please enter a valid email address')
+						: code === 'too_many_attempts'
+							? t('Too many attempts. Please try again in a few minutes.')
+							: t('The link could not be sent. Please try again later.'),
+			);
+		} finally {
+			setSending(false);
+		}
+	};
+
+	return (
+		<div className='auth-form-container' data-role='sign-up-invitation'>
+			<h2>{t('Create an Account')}</h2>
+			<div className='ui-message' data-tone='info'>
+				{t(
+					'Accounts on this server are made by invitation: ask a member to invite you to a project, or an administrator for a link to create an account.',
+				)}
+			</div>
+			{domains.length > 0 &&
+				(sentTo ? (
+					<div className='ui-message' data-tone='success'>
+						{t(
+							'A link to create your account was sent to {address}. It works once, for 24 hours.',
+							{ address: sentTo },
+						)}
+					</div>
+				) : (
+					<form onSubmit={send} className='ui-stack'>
+						{error && (
+							<div className='ui-message' data-tone='error'>
+								{error}
+							</div>
+						)}
+						<div className='ui-field' data-spacing='section'>
+							<label htmlFor='sign-up-email'>
+								{t('With an address at {domains}, ask for a link here:', {
+									domains: listed,
+								})}
+							</label>
+							<input
+								type='email'
+								id='sign-up-email'
+								value={address}
+								onChange={(e) => setAddress(e.target.value)}
+								disabled={sending}
+								autoComplete='email'
+								required
+							/>
+						</div>
+						<button
+							type='submit'
+							className='button primary'
+							data-state={sending ? 'loading' : undefined}
+							disabled={sending || !address.trim()}
+						>
+							{t('Send me a link')}
+						</button>
+					</form>
+				))}
+			<div className='ui-actions' data-align='center' data-wrap='true'>
+				<span>{t('Already have an account?')}</span>
+				<button
+					type='button'
+					className='button'
+					data-variant='text'
+					onClick={onSwitchToLogin}
+				>
+					{t('Log in')}
+				</button>
+			</div>
+		</div>
+	);
+};
+
 interface RegisterProps {
 	onRegisterSuccess: () => void;
 	onSwitchToLogin: () => void;
@@ -102,6 +208,20 @@ const Register: React.FC<RegisterProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [chelysPrfHex, setChelysPrfHex] = useState<string | null>(null);
+	// Who may create an account on the server; null until it tells.
+	const [signUp, setSignUp] = useState<SignUpOptions | null>(null);
+	const admitted =
+		Object.keys(signUpAdmissionOf(window.location.hash)).length > 0;
+
+	useEffect(() => {
+		let current = true;
+		void accountSyncService.signUpOptions().then((options) => {
+			if (current) setSignUp(options);
+		});
+		return () => {
+			current = false;
+		};
+	}, []);
 
 	const validate = (): boolean => {
 		const fieldError =
@@ -139,6 +259,8 @@ const Register: React.FC<RegisterProps> = ({
 				);
 			}
 			if (address) confirmEmailLater(address, password);
+			// The link made its account.
+			if (signUpOf(window.location.hash)) replaceHash('');
 			onRegisterSuccess();
 		} catch (error) {
 			setError(
@@ -174,6 +296,15 @@ const Register: React.FC<RegisterProps> = ({
 			setIsLoading(false);
 		}
 	};
+
+	if (signUp?.mode === 'invitation' && !admitted) {
+		return (
+			<InvitationNeeded
+				domains={signUp.domains}
+				onSwitchToLogin={onSwitchToLogin}
+			/>
+		);
+	}
 
 	if (chelysPrfHex) {
 		return (

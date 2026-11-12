@@ -13,7 +13,12 @@ name and password brings back your projects.
 
 A **guest session** lets you try Feuillet without an account, but it has no
 account on the server: nobody can invite it, and it cannot share by
-invitation.
+invitation. As on Overleaf, its own projects do not compile on the server,
+but in the browser; a project opened by its owner's link does.
+
+Depending on the server, creating an account may take an invitation: to a
+project, or a link from its administrator; or an email address of a domain
+it accepts, to which it mails a link.
 
 ## The project list
 

@@ -19,7 +19,7 @@ import {
 	SYNCED_PROFILE_FIELDS,
 	type SyncedProfile,
 } from '../utils/accountPreferences';
-import { generateYjsProjectId } from '../utils/urlUtils';
+import { generateYjsProjectId, signUpAdmissionOf } from '../utils/urlUtils';
 import { getUserDataKey } from '../utils/userDataUtils';
 import {
 	type AccountSession,
@@ -495,9 +495,25 @@ class AuthService {
 				username,
 				password,
 				link,
+				signUpAdmissionOf(window.location.hash),
 			);
 		} catch (error) {
 			if (error instanceof AccountServerError) {
+				// The server makes accounts only with an invitation.
+				if (error.code === 'sign_up_closed') {
+					throw new Error(
+						t(
+							'Accounts on this server are made by invitation: ask a member to invite you to a project, or an administrator for a link to create an account.',
+						),
+					);
+				}
+				if (error.code === 'sign_up_link_expired') {
+					throw new Error(
+						t(
+							'This link to create an account was already used, or has expired. Ask for another one.',
+						),
+					);
+				}
 				if (error.code === 'username_taken') {
 					throw new Error(
 						t(

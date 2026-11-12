@@ -121,7 +121,7 @@ is a complete example):
 | --- | --- | --- |
 | `/` | the files of `/var/www/DOMAIN` (`deploy/publish.sh`) | a missing file answers 404 with `/404.html`; `.mjs` as `text/javascript`; `Cache-Control: public, max-age=31536000, immutable` for the files directly in `/assets/`, `no-cache` for `index.html`, `sw.js`, `manifest.json` and `userdata*.json` |
 | `/collab/` | `http://127.0.0.1:1234/`, without `/collab` | WebSocket; the client's address appended to `X-Forwarded-For`, of which the server takes the last; requests up to 512 MiB; no time limit on open connections |
-| `/texlive/` | the Unix socket `/var/lib/feuillet/texlive-socket/texlive.sock`, path `/` | WebSocket; the web server's user must be in the group `www-data` to open it |
+| `/texlive/` | the Unix socket `/var/lib/feuillet/texlive-socket/texlive.sock`, path `/` | WebSocket, with its `Sec-WebSocket-Protocol` header (the compile ticket); the web server's user must be in the group `www-data` to open it |
 | `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource` | `http://127.0.0.1:1234`, the path kept | prefixes: `…/oauth-protected-resource/collab/mcp` too |
 | `/docs` | `http://127.0.0.1:1234`, the path kept | forms up to 10 MB |
 
@@ -417,6 +417,53 @@ their links opens them again. One claimed or listed meanwhile stays.
 The names are taken as they are: before deleting an account named in
 `ADMIN_ACCOUNTS`, take its name out, or someone could make an account with
 that name and administer the server.
+
+## Who may create an account
+
+By default, anyone who opens Feuillet may create an account, as on
+overleaf.com. For a lab, a course or a team, keep that to invitations, as
+an Overleaf Server whose administrator makes the accounts:
+
+```
+SIGN_UP=invitation
+SIGN_UP_DOMAINS=example.org
+```
+
+in `/etc/feuillet/collab.env`, then `sudo deploy/install.sh`. An account is
+then created only with:
+
+- a personal invitation to a project, by email or by its link (the
+  **Share** dialog): whoever receives it creates an account, then joins the
+  project;
+- a link from the administration page (**Creating accounts**, **New link
+  to create an account**): it makes one account within 7 days, shows only
+  when made, and may be taken back;
+- with `SIGN_UP_DOMAINS` and email turned on (see above), an address of
+  those domains or their subdomains (`example.org` takes
+  `lab.example.org`): the sign-up form asks for it and mails a link, which
+  makes one account within 24 hours, with that address confirmed.
+
+Accounts that exist stay; sign in with Google or ORCID creates an account
+only by the same ways. Create your own account first, before
+`SIGN_UP=invitation`, and name it in `ADMIN_ACCOUNTS`.
+
+## Compiling: for accounts only
+
+As on Overleaf, the TeX Live servers compile only for accounts: the
+signed-in account, or the one that owns a project opened by its link (a
+guest given a read-only link sees its PDF). The collaboration server signs
+a ticket for each connection (`server/collab/compileTickets.js`), which the
+TeX Live server checks: whoever only knows the server's address cannot use
+it to compile. A guest's own project compiles in the browser, with the
+compilers TeXlyre brings, or once signed in.
+
+`deploy/install.sh` makes the key once (`COMPILE_TICKET_KEY` in
+`/etc/feuillet/collab.env`, an Ed25519 private key) and gives the TeX Live
+servers its public key (`COMPILE_TICKET_PUBLIC_KEY` in
+`/etc/feuillet/site.env`): they hold nothing that makes a ticket, nor do
+the documents they compile. To change the key, remove its line from
+`collab.env` and run `sudo deploy/install.sh` again; the editors open
+connect again with new tickets.
 
 ## Updating
 

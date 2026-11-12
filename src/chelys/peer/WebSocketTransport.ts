@@ -13,7 +13,10 @@ class WebSocketClientTransport implements ClientTransport {
 	private closed = false;
 	private lastError: Error | null = null;
 
-	constructor(private readonly socket: WebSocket) {
+	constructor(
+		private readonly socket: WebSocket,
+		readonly expiresAt?: number,
+	) {
 		socket.addEventListener('message', (event) => {
 			const payload =
 				typeof event.data === 'string'
@@ -76,9 +79,15 @@ class WebSocketClientTransport implements ClientTransport {
 	}
 }
 
-export function openWebSocketTransport(url: string): Promise<ClientTransport> {
+export function openWebSocketTransport(
+	url: string,
+	protocols?: string[],
+	expiresAt?: number,
+): Promise<ClientTransport> {
 	return new Promise((resolve, reject) => {
-		const socket = new WebSocket(url);
+		const socket = protocols?.length
+			? new WebSocket(url, protocols)
+			: new WebSocket(url);
 		socket.binaryType = 'arraybuffer';
 
 		const cleanup = (): void => {
@@ -87,7 +96,7 @@ export function openWebSocketTransport(url: string): Promise<ClientTransport> {
 		};
 		const onOpen = (): void => {
 			cleanup();
-			resolve(new WebSocketClientTransport(socket));
+			resolve(new WebSocketClientTransport(socket, expiresAt));
 		};
 		const onError = (): void => {
 			cleanup();

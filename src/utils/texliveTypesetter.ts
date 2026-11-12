@@ -10,6 +10,8 @@ import type {
 } from '../types/compilation';
 import { ARXIV_TEXLIVE_YEARS } from './arxivPackage';
 
+export const COMPILE_TICKET_AUTH = 'feuillet-compile-ticket';
+
 export const TEXLIVE_TYPESETTER_ID = 'texlive';
 export const TEXLIVE_SERVER_SETTING = 'texlive-server';
 
@@ -165,7 +167,8 @@ export function createTexliveTypesetterConfig(
 				rendererPluginId: 'pdf-renderer',
 			},
 		],
-		transportConfig: { type: 'websocket', url },
+		// With a ticket, which the server asks for (compileTicketAuth.ts).
+		transportConfig: { type: 'websocket', url, auth: COMPILE_TICKET_AUTH },
 		capabilities: { outline: false, stop: true },
 		ui: {
 			compile: {

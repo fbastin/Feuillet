@@ -33,13 +33,13 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 1. **Les logiciels.** Sous Ubuntu 24.04, avec Apache :
 
    ```
-   sudo apt install git curl rsync docker.io docker-compose-v2 apache2 certbot python3-certbot-apache
+   sudo apt install git curl rsync openssl docker.io docker-compose-v2 apache2 certbot python3-certbot-apache
    ```
 
    ou avec nginx :
 
    ```
-   sudo apt install git curl rsync docker.io docker-compose-v2 nginx certbot python3-certbot-nginx
+   sudo apt install git curl rsync openssl docker.io docker-compose-v2 nginx certbot python3-certbot-nginx
    ```
 
    Docker Compose doit être en version 2.24 ou plus récente
@@ -91,7 +91,9 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 
    puis relancez `sudo deploy/install.sh`. Le menu de votre compte offre
    alors **Administration** : les comptes, la place prise, les projets
-   orphelins, la dernière sauvegarde.
+   orphelins, la dernière sauvegarde, et les liens pour créer un compte.
+   Créez votre compte avant de réserver l'inscription aux invitations
+   (voir plus bas).
 
 Pour vérifier, `curl https://feuillet.exemple.org/collab/health` et
 `curl https://feuillet.exemple.org/texlive/health` répondent
@@ -113,6 +115,11 @@ Tout est dans `/etc/feuillet/collab.env`, lisible par `root` seulement;
 relancez `sudo deploy/install.sh` après chaque changement.
 [`deploy/README.md`](../../deploy/README.md) décrit chaque réglage.
 
+- **Qui peut créer un compte** : tout le monde, par défaut. Avec
+  `SIGN_UP=invitation`, seulement qui reçoit une invitation à un projet ou
+  un lien de la page d'administration; avec aussi, par exemple,
+  `SIGN_UP_DOMAINS=exemple.org`, toute adresse de ce domaine, confirmée
+  par un lien envoyé par courriel.
 - **Les courriels** (`SMTP_URL`, `MAIL_FROM`) : confirmer l'adresse d'un
   compte, retrouver un mot de passe oublié, envoyer les invitations. Sans
   eux, les comptes se récupèrent avec leurs codes de récupération, et les
@@ -147,6 +154,13 @@ nouvelle application, que les navigateurs prennent à leur visite suivante.
 
 ## Avant d'ouvrir votre serveur à d'autres
 
+- **Qui compile.** Comme sur Overleaf, le serveur TeX Live ne compile que
+  pour un compte : celui qui est connecté, ou celui à qui appartient un
+  projet ouvert par son lien. Le serveur de collaboration signe pour cela
+  un jeton que TeX Live vérifie; `install.sh` en fait la clé. Connaître
+  l'adresse du serveur ne suffit donc pas pour s'en servir. Si tout le
+  monde peut créer un compte, n'importe qui peut encore compiler : voyez
+  `SIGN_UP` ci-dessus.
 - **La page de confidentialité** (le lien **Confidentialité**, en bas de
   page) décrit un serveur précis : courriels envoyés par Gmail, journaux
   du serveur web gardés 14 jours, sauvegardes gardées deux semaines.

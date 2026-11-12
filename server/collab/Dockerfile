@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY server.js accounts.js admin.js shares.js history.js github.js review.js copy.js fetch.js \
-     annotations.js compile.js mcp.js oauth.js projectFiles.js mail.js git.js grammar.js \
+     annotations.js compile.js compileTickets.js mcp.js oauth.js projectFiles.js mail.js git.js grammar.js \
      google.js orcid.js oidcSignIn.js docs.js releases.js reviewNotices.js ./
 
 ENV NODE_ENV=production \

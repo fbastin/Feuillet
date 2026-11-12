@@ -78,14 +78,24 @@ if [ -n "$SAVED_WEB" ] && [ "$WEB" != "$SAVED_WEB" ]; then
 	exit 1
 fi
 install -d -m 755 /etc/feuillet
-if [ "$DOMAIN" != "$SAVED" ] || [ "$WEB" != "$SAVED_WEB" ]; then
-	cat >"$SITE_ENV" <<SITE
+# A value of site.env, the file's other lines kept.
+set_site() {
+	if grep -q "^$1=" "$SITE_ENV"; then
+		sed -i "s#^$1=.*#$1=$2#" "$SITE_ENV"
+	else
+		printf '%s=%s\n' "$1" "$2" >>"$SITE_ENV"
+	fi
+}
+if [ ! -e "$SITE_ENV" ]; then
+	cat >"$SITE_ENV" <<'SITE'
 # Feuillet: this server's address and web server, set by deploy/install.sh
 # and read by deploy/publish.sh and deploy/docker-compose.yml.
-DOMAIN=$DOMAIN
-WEB=$WEB
 SITE
 	chmod 644 "$SITE_ENV"
+fi
+if [ "$DOMAIN" != "$SAVED" ] || [ "$WEB" != "$SAVED_WEB" ]; then
+	set_site DOMAIN "$DOMAIN"
+	set_site WEB "$WEB"
 	echo "Saved DOMAIN=$DOMAIN and WEB=$WEB in $SITE_ENV."
 fi
 
@@ -243,6 +253,12 @@ SMTP_URL=
 MAIL_FROM=
 # The accounts that see the administration page, by name, comma-separated.
 ADMIN_ACCOUNTS=
+# Who may create an account: open (anyone) or invitation (an invitation to a
+# project, or a link from the administration page); with invitation,
+# SIGN_UP_DOMAINS lets the addresses of these domains (comma-separated) ask
+# for a link, mailed to them (see deploy/README.md).
+SIGN_UP=open
+SIGN_UP_DOMAINS=
 SETTINGS
 	echo "Created /etc/feuillet/collab.env (GitHub sign-in stays off until it is filled in)."
 else
@@ -254,11 +270,33 @@ else
 		printf '\n# "Sign in with Google": create a Google OAuth client (see deploy/README.md),\n# fill in its client id and secret, then run deploy/install.sh again.\nGOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\n' >>/etc/feuillet/collab.env
 		echo "Added GOOGLE_CLIENT_ID= and GOOGLE_CLIENT_SECRET= to /etc/feuillet/collab.env: see deploy/README.md to sign in with Google."
 	fi
+	if ! grep -q '^SIGN_UP=' /etc/feuillet/collab.env; then
+		printf '\n# Who may create an account: open (anyone) or invitation (an invitation to a\n# project, or a link from the administration page); with invitation,\n# SIGN_UP_DOMAINS lets the addresses of these domains (comma-separated) ask\n# for a link, mailed to them (see deploy/README.md).\nSIGN_UP=open\nSIGN_UP_DOMAINS=\n' >>/etc/feuillet/collab.env
+		echo "Added SIGN_UP=open to /etc/feuillet/collab.env: SIGN_UP=invitation keeps new accounts to invitations (deploy/README.md)."
+	fi
 	if ! grep -q '^ORCID_CLIENT_ID=' /etc/feuillet/collab.env; then
 		printf '\n# "Sign in with ORCID": register a client of ORCID'"'"'s public API (see\n# deploy/README.md), fill in its client id and secret, then run\n# deploy/install.sh again.\nORCID_CLIENT_ID=\nORCID_CLIENT_SECRET=\n' >>/etc/feuillet/collab.env
 		echo "Added ORCID_CLIENT_ID= and ORCID_CLIENT_SECRET= to /etc/feuillet/collab.env: see deploy/README.md to sign in with ORCID."
 	fi
 fi
+
+echo "== Compile tickets (server/collab/compileTickets.js)"
+# The TeX Live servers compile only for the tickets that the collaboration
+# server signs with this key, for accounts and the projects they own; they
+# check them with its public key alone, in site.env.
+if ! grep -q '^COMPILE_TICKET_KEY=.' /etc/feuillet/collab.env; then
+	key=$(openssl genpkey -algorithm ed25519 -outform DER | base64 -w0)
+	sed -i '/^COMPILE_TICKET_KEY=/d' /etc/feuillet/collab.env
+	printf '\n# Signs the tickets to compile on the TeX Live servers, made by\n# deploy/install.sh: keep it secret. Without this line, it makes another.\nCOMPILE_TICKET_KEY=%s\n' "$key" >>/etc/feuillet/collab.env
+	echo "Made the key of compile tickets, in /etc/feuillet/collab.env."
+fi
+if ! public=$(sed -n 's/^COMPILE_TICKET_KEY=//p' /etc/feuillet/collab.env | tail -n 1 |
+	base64 -d 2>/dev/null | openssl pkey -inform DER -pubout -outform DER 2>/dev/null | base64 -w0) ||
+	[ -z "$public" ]; then
+	echo "COMPILE_TICKET_KEY in /etc/feuillet/collab.env is not a key: remove its line, then run sudo $0 again." >&2
+	exit 1
+fi
+set_site COMPILE_TICKET_PUBLIC_KEY "$public"
 
 echo "== Backups (deploy/backup.sh, each night at 4:30, in /var/backups/feuillet)"
 # Root's own copies: cron runs no file that another account may change.

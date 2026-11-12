@@ -1,7 +1,8 @@
 // server/collab/mail.js
 // Feuillet's few emails, as Overleaf's: confirming the account's email
-// address, a link to choose a new password, an invitation to a project, and
-// a reply to one's comment or a mention in one (reviewNotices.js).
+// address, a link to choose a new password, an invitation to a project, a
+// link to make an account (where accounts need an invitation, accounts.js),
+// and a reply to one's comment or a mention in one (reviewNotices.js).
 // They go through the SMTP server given by SMTP_URL (such as
 // smtps://user:password@smtp.example.org:465), from MAIL_FROM (such as
 // "Feuillet <noreply@example.org>"). Without both, Feuillet sends none and
@@ -90,6 +91,18 @@ const MESSAGES = {
 				"Si vous n'avez rien demandé, ignorez ce message : votre mot de passe ne change pas.",
 			].join('\n'),
 		}),
+		signup: ({ link }) => ({
+			subject: 'Créer votre compte Feuillet',
+			text: [
+				'Bonjour,',
+				'',
+				"Pour créer votre compte Feuillet avec cette adresse, ouvrez ce lien dans les 24 heures :",
+				'',
+				link,
+				'',
+				"Le lien sert une fois. Si vous n'avez rien demandé, ignorez ce message : aucun compte ne sera créé.",
+			].join('\n'),
+		}),
 		invite: ({ inviter, project, kind, role, link }) => ({
 			subject: `${inviter} vous invite à collaborer à « ${project} » sur Feuillet`,
 			text: [
@@ -155,6 +168,18 @@ const MESSAGES = {
 				'',
 				'Your other devices will then have to sign in again.',
 				'If you did not ask for this, ignore this message: your password does not change.',
+			].join('\n'),
+		}),
+		signup: ({ link }) => ({
+			subject: 'Create your Feuillet account',
+			text: [
+				'Hello,',
+				'',
+				'To create your Feuillet account with this address, open this link within 24 hours:',
+				'',
+				link,
+				'',
+				'The link works once. If you did not ask for it, ignore this message: no account will be created.',
 			].join('\n'),
 		}),
 		invite: ({ inviter, project, kind, role, link }) => ({
@@ -254,13 +279,16 @@ const createMailer = ({
 		const toThem = perAddress.get(recipient) ?? [];
 		const ofKinds = (...kinds) =>
 			sent.filter((entry) => kinds.includes(entry.kind)).length;
+		// Links to make an account count as invitations: asked for by anyone
+		// at an address allowed, they never stop an account's recovery.
+		const inviting = ['invite', 'signup', 'review'];
 		const full =
 			sent.length >= limit ||
-			(kind === 'invite' &&
-				ofKinds('invite', 'review') >= Math.floor((limit * 3) / 4)) ||
+			((kind === 'invite' || kind === 'signup') &&
+				ofKinds(...inviting) >= Math.floor((limit * 3) / 4)) ||
 			(kind === 'review' &&
 				(ofKinds('review') >= Math.floor(limit / 4) ||
-					ofKinds('invite', 'review') >= Math.floor((limit * 3) / 4)));
+					ofKinds(...inviting) >= Math.floor((limit * 3) / 4)));
 		const perLimit = kind === 'review' ? REVIEW_PER_RECIPIENT : PER_RECIPIENT;
 		if (full || toThem.length >= perLimit) {
 			const which = toThem.length >= perLimit ? 'to one address' : 'a day';

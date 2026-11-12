@@ -155,6 +155,29 @@ export const inviteUrl = (invite: string): string =>
 export const inviteOf = (hash: string): string | null =>
 	/^#?invite:([0-9a-f]{48})$/.exec(hash)?.[1] ?? null;
 
+/**
+ * A link to create an account, `#signup:<token>`, from an administrator or
+ * mailed, where accounts need an invitation (server/collab/accounts.js).
+ */
+export const signUpUrl = (token: string): string =>
+	`${window.location.origin}${window.location.pathname}#signup:${token}`;
+
+/** The token of a link to create an account a location's hash holds. */
+export const signUpOf = (hash: string): string | null =>
+	/^#?signup:([A-Za-z0-9_-]{32})$/.exec(hash)?.[1] ?? null;
+
+/**
+ * What lets a location create an account where that needs an invitation:
+ * a project's personal invitation, or a link to create one.
+ */
+export const signUpAdmissionOf = (
+	hash: string,
+): { invite?: string; signup?: string } => {
+	const invite = inviteOf(hash);
+	const signup = signUpOf(hash);
+	return { ...(invite ? { invite } : {}), ...(signup ? { signup } : {}) };
+};
+
 // The links of recovery emails (server/collab/mail.js): confirming the
 // address an account may be recovered with, and choosing a new password.
 const LINK_TOKEN = '([0-9a-f]{64}\\.[A-Za-z0-9_-]{20,100})';

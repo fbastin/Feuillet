@@ -39,6 +39,8 @@ jest.mock('@chelys/peer/TransportFactory', () => ({
 	openTransport: jest.fn(async () => transport),
 }));
 
+import { openTransport } from '@chelys/peer/TransportFactory';
+import { TransportAuthError } from '@chelys/peer/TransportResolution';
 import { genericTypesetterService } from '../../src/services/GenericTypesetterService';
 
 const file = (path: string, text: string) => ({
@@ -150,5 +152,75 @@ describe('a server keeping the project files', () => {
 
 		expect(result.status).toBe(0);
 		expect(paths(sent[1])).toEqual(['chapitre.tex', 'main.tex']);
+	});
+});
+
+// The TeX Live server ends a connection with its ticket (server/texlive):
+// one that ends soon is replaced before a compile, with a new ticket.
+describe('a connection with a ticket', () => {
+	beforeEach(() => {
+		sent.length = 0;
+		transport.handlers = [];
+		(openTransport as jest.Mock).mockClear();
+	});
+
+	const compileOnce = (configId: string) =>
+		genericTypesetterService.compile(configId, {
+			mainFile: 'main.tex',
+			format: 'pdf',
+			files: [],
+		});
+
+	it('stays while its ticket lasts', async () => {
+		const configId = `texlive-ticket-${++id}`;
+		genericTypesetterService.registerConfig({
+			id: configId,
+			name: 'TeX Live',
+			projectType: 'latex',
+			transportConfig: { type: 'websocket', url: 'ws://test/' },
+		} as never);
+		(openTransport as jest.Mock).mockImplementation(async () =>
+			Object.assign(Object.create(transport), {
+				expiresAt: Date.now() + 12 * 3600 * 1000,
+			}),
+		);
+		await compileOnce(configId);
+		await compileOnce(configId);
+		expect(openTransport).toHaveBeenCalledTimes(1);
+	});
+
+	it('is replaced once its ticket is about to end', async () => {
+		const configId = `texlive-ticket-${++id}`;
+		genericTypesetterService.registerConfig({
+			id: configId,
+			name: 'TeX Live',
+			projectType: 'latex',
+			transportConfig: { type: 'websocket', url: 'ws://test/' },
+		} as never);
+		(openTransport as jest.Mock).mockImplementation(async () =>
+			Object.assign(Object.create(transport), {
+				expiresAt: Date.now() + 60 * 1000,
+				close: jest.fn(),
+			}),
+		);
+		await compileOnce(configId);
+		await compileOnce(configId);
+		expect(openTransport).toHaveBeenCalledTimes(2);
+	});
+
+	it('says why it may not connect, rather than that the server is out of reach', async () => {
+		const configId = `texlive-ticket-${++id}`;
+		genericTypesetterService.registerConfig({
+			id: configId,
+			name: 'TeX Live',
+			projectType: 'latex',
+			transportConfig: { type: 'websocket', url: 'ws://test/' },
+		} as never);
+		(openTransport as jest.Mock).mockImplementation(async () => {
+			throw new TransportAuthError('Compiling on the server needs an account.');
+		});
+		await expect(compileOnce(configId)).rejects.toThrow(
+			'Compiling on the server needs an account.',
+		);
 	});
 });

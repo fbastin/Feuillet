@@ -834,6 +834,17 @@ const createShares = ({
 		};
 	};
 
+	// Whether a personal invitation is pending: whoever has it may make an
+	// account where invitations are needed for that (accounts.js).
+	const inviteOpen = (invite) => {
+		if (typeof invite !== 'string' || !INVITE_ID.test(invite)) return false;
+		const entry = readJson(invitePath(invite));
+		return Boolean(
+			entry && isProjectId(entry.project) && entry.expiresAt > Date.now(),
+		);
+	};
+	accounts.setInviteChecker?.(inviteOpen);
+
 	const acceptInvite = async (req, body) => {
 		const invite =
 			typeof body.invite === 'string' && INVITE_ID.test(body.invite)
@@ -893,6 +904,14 @@ const createShares = ({
 			.filter(Boolean)
 			.sort((a, b) => rank[b] - rank[a])[0];
 		return access ? { project: found.project, access, role } : null;
+	};
+
+	// The account that owns the project a link opens, unless the link was
+	// replaced; for compiling by that link (compileTickets.js).
+	const ownerOf = (id) => {
+		const found = lookup(id);
+		if (!found || found.access === 'replaced') return null;
+		return readProject(found.project).owner ?? null;
 	};
 
 	const describe = (account, entry) => {
@@ -993,6 +1012,7 @@ const createShares = ({
 		handles,
 		handle,
 		lookup,
+		ownerOf,
 		describe,
 		noteListed,
 		accessOf,

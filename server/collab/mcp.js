@@ -785,7 +785,13 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 					: 'latest';
 				let result;
 				try {
-					result = await compiler.compile({ files: sources, mainFile, engine, version });
+					result = await compiler.compile({
+						files: sources,
+						mainFile,
+						engine,
+						version,
+						account: context.account,
+					});
 				} catch (error) {
 					throw new ToolError(error.message);
 				}
