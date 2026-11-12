@@ -13,6 +13,7 @@ import ProfileGitSection from './ProfileGitSection';
 import ProfileSignInSection from './ProfileSignInSection';
 import ProfileRecoveryEmailSection from './ProfileRecoveryEmailSection';
 import ProfileRecoverySection from './ProfileRecoverySection';
+import ProfileTwoFactorSection from './ProfileTwoFactorSection';
 import ProfileServerAccountSection from './ProfileServerAccountSection';
 import BrowserStorageSection from './ProfileBrowserStorageSection';
 import LocalStorageDataSection from './ProfileLocalStorageDataSection';
@@ -129,6 +130,7 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 					<ProfileSignInSection provider='google' />
 					<ProfileSignInSection provider='orcid' />
 					<ProfileRecoveryEmailSection />
+					<ProfileTwoFactorSection />
 					<ProfileRecoverySection />
 				</>
 			) : tab === 'assistants' ? (

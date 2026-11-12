@@ -37,6 +37,23 @@ import { personalDictionaryService } from './PersonalDictionaryService';
 
 const moduleLog = createNamedLogger('AuthService');
 
+// How long signing in waits for the server's session, on a device that
+// knows the account, before going on without it.
+const LINK_WAIT_MS = 4000;
+
+/** The server asks for the code of two-factor authentication. */
+export class TwoFactorRequiredError extends Error {
+	constructor() {
+		super(t('Enter the code that your authenticator app shows.'));
+		this.name = 'TwoFactorRequiredError';
+	}
+}
+
+const wrongCodeMessage = () =>
+	t(
+		'This code is not right, or was already used. Enter the one your app shows now.',
+	);
+
 const COMMIT_EMAILS_KEPT = 'feuillet-commit-emails-kept';
 /** The profile changed on another device of the account: detail, the user. */
 export const USER_PROFILE_SYNCED = 'feuillet-user-profile-synced';
@@ -427,7 +444,16 @@ class AuthService {
 		return newUser;
 	}
 
-	async login(username: string, password: string): Promise<User> {
+	/**
+	 * Signs in; with two-factor authentication on, `code` is the code of the
+	 * authenticator app or a recovery code. Throws TwoFactorRequiredError
+	 * when the server asks for one: the form then asks, and signs in again.
+	 */
+	async login(
+		username: string,
+		password: string,
+		code?: string,
+	): Promise<User> {
 		if (!this.db) await this.initialize();
 
 		const found = await this.db?.getFromIndex(
@@ -440,13 +466,25 @@ class AuthService {
 		const passwordHash = await this.hashPassword(password);
 
 		if (user && user.passwordHash === passwordHash) {
-			void this.linkAccount(user, password);
+			// The server's session, when this device has none any more: with
+			// two-factor authentication, it takes the code. A server slow to
+			// answer does not hold up the sign-in, which goes on offline.
+			const linking = this.linkAccount(user, password, code);
+			const early = await Promise.race([
+				linking,
+				new Promise<'pending'>((resolve) =>
+					setTimeout(() => resolve('pending'), LINK_WAIT_MS),
+				),
+			]);
+			if (early === 'code_required') throw new TwoFactorRequiredError();
+			if (early === 'wrong_code') throw new Error(wrongCodeMessage());
 		} else {
 			// Unknown here, or another password: the account may have been
 			// created, or its password changed, on another device.
 			const session = await this.signInOnServer(
 				user?.username ?? username,
 				password,
+				code,
 			);
 			if (!session) {
 				throw new Error(user ? t('Invalid password') : t('User not found'));
@@ -564,6 +602,7 @@ class AuthService {
 	async loginWithProvider(
 		provider: SignInProvider,
 		ticket: string,
+		secondFactor?: string,
 	): Promise<User | 'not-linked'> {
 		if (!this.db) await this.initialize();
 
@@ -573,10 +612,13 @@ class AuthService {
 				accountSyncService.serverFor(),
 				provider,
 				ticket,
+				secondFactor,
 			);
 		} catch (error) {
 			const code = error instanceof AccountServerError ? error.code : '';
 			if (code === `${provider}_not_linked`) return 'not-linked';
+			if (code === 'code_required') throw new TwoFactorRequiredError();
+			if (code === 'wrong_code') throw new Error(wrongCodeMessage());
 			if (code === 'too_many_attempts') {
 				throw new Error(
 					t('Too many attempts. Please try again in a few minutes.'),
@@ -628,18 +670,22 @@ class AuthService {
 	private async signInOnServer(
 		username: string,
 		password: string,
+		code?: string,
 	): Promise<AccountSession | null> {
 		try {
 			return await accountSyncService.login(
 				accountSyncService.serverFor(),
 				username,
 				password,
+				code,
 			);
 		} catch (error) {
 			if (error instanceof AccountServerError) {
 				if (error.code === 'wrong_password') {
 					throw new Error(t('Invalid password'));
 				}
+				if (error.code === 'code_required') throw new TwoFactorRequiredError();
+				if (error.code === 'wrong_code') throw new Error(wrongCodeMessage());
 				if (error.code === 'too_many_attempts') {
 					throw new Error(
 						t('Too many attempts. Please try again in a few minutes.'),
@@ -655,15 +701,29 @@ class AuthService {
 	async linkAccount(
 		user: User,
 		password: string,
-	): Promise<'linked' | 'taken' | 'unreachable'> {
+		code?: string,
+	): Promise<
+		'linked' | 'taken' | 'unreachable' | 'code_required' | 'wrong_code'
+	> {
 		if (this.isGuestUser(user)) return 'unreachable';
 		if (accountSyncService.getSession(user.id)) return 'linked';
 
 		const server = accountSyncService.serverFor(user.id);
 		let session: AccountSession;
 		try {
-			session = await accountSyncService.login(server, user.username, password);
+			session = await accountSyncService.login(
+				server,
+				user.username,
+				password,
+				code,
+			);
 		} catch (error) {
+			if (
+				error instanceof AccountServerError &&
+				(error.code === 'code_required' || error.code === 'wrong_code')
+			) {
+				return error.code;
+			}
 			if (
 				!(error instanceof AccountServerError) ||
 				error.code !== 'unknown_username'

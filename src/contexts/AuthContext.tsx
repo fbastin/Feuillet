@@ -113,8 +113,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		return () => window.removeEventListener(USER_PROFILE_SYNCED, handleSynced);
 	}, []);
 
-	const login = async (username: string, password: string): Promise<User> => {
-		const loggedInUser = await authService.login(username, password);
+	const login = async (
+		username: string,
+		password: string,
+		code?: string,
+	): Promise<User> => {
+		const loggedInUser = await authService.login(username, password, code);
 		setUser(loggedInUser);
 		return loggedInUser;
 	};
@@ -122,8 +126,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const loginWithProvider = async (
 		provider: SignInProvider,
 		ticket: string,
+		code?: string,
 	): Promise<User | 'not-linked'> => {
-		const result = await authService.loginWithProvider(provider, ticket);
+		const result = await authService.loginWithProvider(provider, ticket, code);
 		if (result !== 'not-linked') setUser(result);
 		return result;
 	};

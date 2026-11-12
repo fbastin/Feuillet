@@ -18,6 +18,7 @@ import {
 	SIGN_IN_PROVIDERS,
 	type SignInProvider,
 } from '../../services/ExternalSignInService';
+import { TwoFactorRequiredError } from '../../services/AuthService';
 import ExternalSignInButton from './ExternalSignInButton';
 import GuestConsentModal from './GuestConsentModal';
 import RecoverAccount from './RecoverAccount';
@@ -56,6 +57,55 @@ const Login: React.FC<LoginProps> = ({
 	const [confirmCreate, setConfirmCreate] = useState(false);
 	// A forgotten password, recovered with a recovery code.
 	const [recovering, setRecovering] = useState(false);
+	// Two-factor authentication: the sign-in that asked for a code, which
+	// signs in again with it.
+	const [codeFor, setCodeFor] = useState<
+		| { kind: 'password' }
+		| { kind: 'provider'; provider: SignInProvider; ticket: string }
+		| null
+	>(null);
+	const [code, setCode] = useState('');
+
+	const signedIn = () => {
+		logoutChelys();
+		onLoginSuccess();
+		window.location.reload();
+	};
+
+	const submitCode = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		if (!codeFor || !code.trim()) return;
+		setError(null);
+		setIsLoading(true);
+		try {
+			if (codeFor.kind === 'password') {
+				await login(username, password, code.trim());
+			} else {
+				const result = await loginWithProvider(
+					codeFor.provider,
+					codeFor.ticket,
+					code.trim(),
+				);
+				if (result === 'not-linked') {
+					onSwitchToRegister({
+						provider: codeFor.provider,
+						ticket: codeFor.ticket,
+					});
+					return;
+				}
+			}
+			signedIn();
+		} catch (error) {
+			setCode('');
+			setError(
+				error instanceof Error
+					? error.message
+					: t('An error occurred during {action}', { action: t('log in') }),
+			);
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -70,10 +120,13 @@ const Login: React.FC<LoginProps> = ({
 
 		try {
 			await login(username, password);
-			logoutChelys();
-			onLoginSuccess();
-			window.location.reload();
+			signedIn();
 		} catch (error) {
+			if (error instanceof TwoFactorRequiredError) {
+				setCode('');
+				setCodeFor({ kind: 'password' });
+				return;
+			}
 			setError(
 				error instanceof Error
 					? error.message
@@ -150,14 +203,23 @@ const Login: React.FC<LoginProps> = ({
 		provider: SignInProvider,
 		ticket: string,
 	) => {
-		const result = await loginWithProvider(provider, ticket);
+		let result: Awaited<ReturnType<typeof loginWithProvider>>;
+		try {
+			result = await loginWithProvider(provider, ticket);
+		} catch (error) {
+			// The ticket stays good for the code.
+			if (error instanceof TwoFactorRequiredError) {
+				setCode('');
+				setCodeFor({ kind: 'provider', provider, ticket });
+				return;
+			}
+			throw error;
+		}
 		if (result === 'not-linked') {
 			onSwitchToRegister({ provider, ticket });
 			return;
 		}
-		logoutChelys();
-		onLoginSuccess();
-		window.location.reload();
+		signedIn();
 	};
 
 	const handleShowPrivacy = () => {
@@ -200,6 +262,62 @@ const Login: React.FC<LoginProps> = ({
 				}}
 				onCancel={() => setRecovering(false)}
 			/>
+		);
+	}
+
+	if (codeFor) {
+		return (
+			<div className='auth-form-container' data-role='two-factor-step'>
+				<h2>{t('Two-factor authentication')}</h2>
+				{error && (
+					<div className='ui-message' data-tone='error'>
+						{error}
+					</div>
+				)}
+				<form onSubmit={submitCode} className='ui-stack'>
+					<p>
+						{t(
+							'Enter the code that your authenticator app shows for Feuillet. Without your phone, one of your recovery codes works too, once.',
+						)}
+					</p>
+					<div className='ui-field' data-spacing='section'>
+						<label htmlFor='two-factor-code'>{t('Code')}</label>
+						<input
+							type='text'
+							id='two-factor-code'
+							value={code}
+							onChange={(e) => setCode(e.target.value)}
+							disabled={isLoading}
+							autoComplete='one-time-code'
+							autoCapitalize='off'
+							spellCheck={false}
+							// biome-ignore lint/a11y/noAutofocus: the only field of this step
+							autoFocus
+						/>
+					</div>
+					<button
+						type='submit'
+						className='button primary'
+						data-state={isLoading ? 'loading' : undefined}
+						disabled={isLoading || !code.trim()}
+					>
+						{isLoading ? t('Logging in...') : t('Log in')}
+					</button>
+					<button
+						type='button'
+						className='button'
+						data-variant='text'
+						data-action='two-factor-back'
+						onClick={() => {
+							setCodeFor(null);
+							setError(null);
+						}}
+						disabled={isLoading}
+					>
+						{t('Back')}
+					</button>
+				</form>
+			</div>
 		);
 	}
 

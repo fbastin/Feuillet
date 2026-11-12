@@ -82,7 +82,7 @@ const ProfileRecoverySection: React.FC = () => {
 				username: user.username,
 			}),
 			t(
-				'Each code works once, to choose a new password from the sign-in page.',
+				'Each code works once: in place of the code of your authenticator app when signing in, or to choose a new password from the sign-in page.',
 			),
 			'',
 			...(codes ?? []),
@@ -109,7 +109,7 @@ const ProfileRecoverySection: React.FC = () => {
 			<h3>{t('Recovery codes')}</h3>
 			<p>
 				{t(
-					'If you forget your password, a recovery code lets you choose a new one from the sign-in page. Feuillet keeps no email address to send you a link. Each code works once.',
+					'If you forget your password, a recovery code lets you choose a new one from the sign-in page; with two-factor authentication, it also replaces the code of your app when signing in. Each code works once.',
 				)}
 			</p>
 

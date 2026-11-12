@@ -52,6 +52,24 @@ export interface SiteInfo {
 	grammar: boolean;
 }
 
+/** Two-factor authentication (server/collab/accounts.js). */
+export interface TwoFactorStatus {
+	enabled: boolean;
+	enabledAt?: number;
+	/** Recovery codes left, which replace a code when the phone is lost. */
+	recoveryCodes: number;
+}
+
+const twoFactorStatusOf = (result: any): TwoFactorStatus => ({
+	enabled: result?.enabled === true,
+	...(Number.isFinite(result?.enabledAt)
+		? { enabledAt: result.enabledAt }
+		: {}),
+	recoveryCodes: Number.isInteger(result?.recoveryCodes)
+		? result.recoveryCodes
+		: 0,
+});
+
 /** Who may create an account on the server (server/collab/accounts.js). */
 export interface SignUpOptions {
 	mode: 'open' | 'invitation';
@@ -245,6 +263,8 @@ export interface AdminAccount {
 	/** Devices signed in. */
 	devices: number;
 	email: 'confirmed' | 'pending' | 'none';
+	/** Whether it signs in with two-factor authentication. */
+	twoFactor?: boolean;
 	/** Projects in its list, its own and others'. */
 	listed: number;
 	/** Projects it owns, and the bytes their files and versions take. */
@@ -577,14 +597,91 @@ class AccountSyncService {
 		server: string,
 		provider: SignInProvider,
 		ticket: string,
+		code?: string,
 	): Promise<AccountSession> {
 		const result = await this.request(
 			server,
 			'POST',
 			`/account/${provider}/login`,
-			{ body: { ticket } },
+			{ body: code ? { ticket, code } : { ticket } },
 		);
 		return { username: result.username, token: result.token, server };
+	}
+
+	/** Whether two-factor authentication is on; null signed out. */
+	async twoFactorStatus(): Promise<TwoFactorStatus | null> {
+		const session = this.userId ? this.getSession(this.userId) : null;
+		if (!session) return null;
+		const result = await this.request(
+			session.server,
+			'GET',
+			'/account/two-factor',
+			{ token: session.token },
+		);
+		return twoFactorStatusOf(result);
+	}
+
+	/**
+	 * Begins two-factor authentication, with the password: a new secret for
+	 * an authenticator app, and its otpauth:// address for a QR code.
+	 */
+	async beginTwoFactor(
+		password: string,
+	): Promise<{ secret: string; uri: string } | null> {
+		const session = this.userId ? this.getSession(this.userId) : null;
+		if (!session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/account/two-factor',
+			{ token: session.token, body: { password } },
+		);
+		return typeof result?.secret === 'string' && typeof result.uri === 'string'
+			? { secret: result.secret, uri: result.uri }
+			: null;
+	}
+
+	/**
+	 * Turns two-factor authentication on with a code of the new secret's;
+	 * with the recovery codes made then, when the account had none.
+	 */
+	async confirmTwoFactor(
+		code: string,
+	): Promise<(TwoFactorStatus & { codes?: string[] }) | null> {
+		const session = this.userId ? this.getSession(this.userId) : null;
+		if (!session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/account/two-factor',
+			{ token: session.token, body: { code } },
+		);
+		return {
+			...twoFactorStatusOf(result),
+			...(Array.isArray(result?.codes)
+				? {
+						codes: result.codes.filter(
+							(entry: unknown) => typeof entry === 'string',
+						),
+					}
+				: {}),
+		};
+	}
+
+	/** Turns it off, with the password and a code (or a recovery code). */
+	async disableTwoFactor(
+		password: string,
+		code: string,
+	): Promise<TwoFactorStatus | null> {
+		const session = this.userId ? this.getSession(this.userId) : null;
+		if (!session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/account/two-factor',
+			{ token: session.token, body: { password, code, remove: true } },
+		);
+		return twoFactorStatusOf(result);
 	}
 
 	/**
@@ -682,13 +779,19 @@ class AccountSyncService {
 		}
 	}
 
+	/**
+	 * Signs in; with two-factor authentication on, `code` is the code of the
+	 * authenticator app or a recovery code (AccountServerError
+	 * `code_required` without it, `wrong_code` with a wrong one).
+	 */
 	async login(
 		server: string,
 		username: string,
 		password: string,
+		code?: string,
 	): Promise<AccountSession> {
 		const result = await this.request(server, 'POST', '/account/login', {
-			body: { username, password },
+			body: code ? { username, password, code } : { username, password },
 		});
 		return { username: result.username, token: result.token, server };
 	}

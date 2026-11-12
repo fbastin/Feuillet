@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 import { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
+import { TwoFactorRequiredError } from '../../services/AuthService';
 import {
 	AccountServerError,
 	accountSyncService,
@@ -43,6 +44,8 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({
 	const [confirmPassword, setConfirmPassword] = useState('');
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
+	// Changed, but signing in takes the code too.
+	const [changedWithTwoFactor, setChangedWithTwoFactor] = useState(false);
 
 	const submit = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -66,6 +69,10 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({
 			await login(username, password);
 			onDone();
 		} catch (caught) {
+			if (caught instanceof TwoFactorRequiredError) {
+				setChangedWithTwoFactor(true);
+				return;
+			}
 			setError(
 				caught instanceof AccountServerError
 					? errorMessage(caught)
@@ -77,6 +84,25 @@ const ResetPassword: React.FC<ResetPasswordProps> = ({
 			setBusy(false);
 		}
 	};
+
+	if (changedWithTwoFactor) {
+		return (
+			<div
+				className='auth-form-container'
+				data-role='password-changed-two-factor'
+			>
+				<h2>{t('Password changed')}</h2>
+				<div className='ui-message' data-tone='success'>
+					{t(
+						'Your new password is set. Two-factor authentication stays on: log in with it and the code that your authenticator app shows.',
+					)}
+				</div>
+				<button type='button' className='button primary' onClick={onCancel}>
+					{t('Log in')}
+				</button>
+			</div>
+		);
+	}
 
 	return (
 		<div className='auth-form-container' data-role='reset-password'>

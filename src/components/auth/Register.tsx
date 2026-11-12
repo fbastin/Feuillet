@@ -12,6 +12,7 @@ import {
 	type SignUpOptions,
 	accountSyncService,
 } from '../../services/AccountSyncService';
+import { TwoFactorRequiredError } from '../../services/AuthService';
 import { notificationService } from '../../services/NotificationService';
 import {
 	validateEmail,
@@ -383,8 +384,24 @@ const Register: React.FC<RegisterProps> = ({
 									disabled={isLoading}
 									onStart={() => setError(null)}
 									onTicket={async (ticket) => {
-										// Already linked: that account opens.
-										const result = await loginWithProvider(provider, ticket);
+										// Already linked: that account opens; with two-factor
+										// authentication, from the log-in page, which asks for
+										// the code.
+										let result: Awaited<ReturnType<typeof loginWithProvider>>;
+										try {
+											result = await loginWithProvider(provider, ticket);
+										} catch (caught) {
+											if (caught instanceof TwoFactorRequiredError) {
+												setError(
+													t(
+														'This {provider} account is linked to an account with two-factor authentication: sign in with {provider} from the log-in page.',
+														{ provider: PROVIDER_NAMES[provider] },
+													),
+												);
+												return;
+											}
+											throw caught;
+										}
 										if (result === 'not-linked') {
 											onLink?.({ provider, ticket });
 											return;

@@ -35,6 +35,8 @@ const ProfileServerAccountSection: React.FC<
 		accountSyncService.getStatus(),
 	);
 	const [password, setPassword] = useState('');
+	// Two-factor authentication's, once the server asks for it.
+	const [code, setCode] = useState<string | null>(null);
 
 	useEffect(() => accountSyncService.addListener(setStatus), []);
 
@@ -64,11 +66,18 @@ const ProfileServerAccountSection: React.FC<
 		onSuccess(null);
 		setIsSubmitting(true);
 		try {
-			const result = await linkServerAccount(user, password, verifyPassword);
+			const result = await linkServerAccount(
+				user,
+				password,
+				verifyPassword,
+				code?.trim() || undefined,
+			);
 			if (result.linked) {
 				setPassword('');
+				setCode(null);
 				onSuccess(result.message);
 			} else {
+				if (result.needsCode) setCode('');
 				onError(result.message);
 			}
 		} finally {
@@ -141,12 +150,26 @@ const ProfileServerAccountSection: React.FC<
 							disabled={isSubmitting}
 						/>
 					</div>
+					{code !== null && (
+						<div className='ui-field'>
+							<label htmlFor='server-account-code'>
+								{t('Code of two-factor authentication')}
+							</label>
+							<input
+								id='server-account-code'
+								value={code}
+								onChange={(event) => setCode(event.target.value)}
+								autoComplete='one-time-code'
+								disabled={isSubmitting}
+							/>
+						</div>
+					)}
 					<div className='ui-actions' data-gap='xs'>
 						<button
 							type='button'
 							className='button primary'
 							onClick={handleLink}
-							disabled={isSubmitting || !password}
+							disabled={isSubmitting || !password || code === ''}
 						>
 							{t('Link to the server')}
 						</button>

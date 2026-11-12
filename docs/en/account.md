@@ -72,6 +72,23 @@ Your account menu, at the top right, opens the profile:
 - **Export Account**: your projects and settings in an archive;
 - **Delete Account**.
 
+## Two-factor authentication
+
+As on Overleaf, signing in may take, besides the password, the code that an
+app on your phone shows: Google Authenticator, Aegis, FreeOTP, or a
+password manager. In the profile, **Account** tab, **Set up two-factor
+authentication** asks for your password, then shows a QR code to scan with
+the app (or its key, to type); the code it then shows turns it on. If your
+account had no recovery codes, Feuillet makes some then: keep them, they
+replace a code when the phone is lost, once each.
+
+From then on, signing in on a device, with the password or with Google or
+ORCID, asks for the code; so does letting Claude in (see
+[Claude](claude.md)). Each code works once. Devices signed in already stay
+so: the **Devices** tab signs them out. A forgotten password changes as
+below, and two-factor authentication stays on. It is turned off in the
+profile, with the password and a code.
+
 ## Forgotten password
 
 Two ways, to prepare in your profile, **Account** tab:

@@ -12,15 +12,29 @@ export async function linkServerAccount(
 	user: User,
 	password: string,
 	verifyPassword: (userId: string, password: string) => Promise<boolean>,
-): Promise<{ linked: boolean; message: string }> {
+	code?: string,
+): Promise<{ linked: boolean; message: string; needsCode?: boolean }> {
 	if (!(await verifyPassword(user.id, password))) {
 		return { linked: false, message: t('Current password is incorrect') };
 	}
-	const result = await authService.linkAccount(user, password);
+	const result = await authService.linkAccount(user, password, code);
 	if (result === 'linked') {
 		return {
 			linked: true,
 			message: t('Your projects are now kept on the server.'),
+		};
+	}
+	// Two-factor authentication: the code too.
+	if (result === 'code_required' || result === 'wrong_code') {
+		return {
+			linked: false,
+			needsCode: true,
+			message:
+				result === 'code_required'
+					? t('Enter the code that your authenticator app shows.')
+					: t(
+							'This code is not right, or was already used. Enter the one your app shows now.',
+						),
 		};
 	}
 	return {

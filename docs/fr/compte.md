@@ -77,6 +77,25 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 - **Exporter le compte** : vos projets et réglages dans une archive;
 - **Supprimer le compte**.
 
+## Double authentification
+
+Comme sur Overleaf, se connecter peut demander, en plus du mot de passe, le
+code que montre une application de votre téléphone : Google Authenticator,
+Aegis, FreeOTP, ou un gestionnaire de mots de passe. Dans le profil, onglet
+**Compte**, **Mettre en place la double authentification** demande votre
+mot de passe, puis montre un code QR à lire avec l'application (ou sa clé,
+à taper); le code qu'elle affiche ensuite l'active. Si votre compte n'avait
+pas de codes de récupération, Feuillet en fait alors : gardez-les, ils
+remplacent un code quand le téléphone est perdu, une fois chacun.
+
+Dès lors, se connecter sur un appareil, avec le mot de passe ou avec
+Google ou ORCID, demande le code; autoriser Claude aussi (voir
+[Claude](claude.md)). Chaque code ne sert qu'une fois. Les appareils déjà
+connectés le restent : l'onglet **Appareils** les déconnecte. Un mot de
+passe oublié se change comme ci-dessous, et la double authentification
+reste active. Elle se désactive dans le profil, avec le mot de passe et un
+code.
+
 ## Mot de passe oublié
 
 Deux moyens, à préparer dans votre profil, onglet **Compte** :

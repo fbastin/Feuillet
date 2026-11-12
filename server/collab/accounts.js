@@ -61,6 +61,22 @@
 //   POST   /account/google    {password, remove: true}   (token)
 //   POST   /account/google/login {ticket}                -> {username, token}
 //   GET, POST /account/orcid, POST /account/orcid/login  the same for ORCID
+//   GET    /account/two-factor                           (token) -> {enabled,
+//                                                        enabledAt,
+//                                                        recoveryCodes}
+//   POST   /account/two-factor {password}                (token) -> {secret,
+//                                                        uri}: a new secret
+//                                                        for an app, to
+//                                                        confirm within 15
+//                                                        minutes
+//   POST   /account/two-factor {code}                    (token) -> {enabled,
+//                                                        enabledAt, codes?}:
+//                                                        on, once a code of
+//                                                        it is right; with
+//                                                        recovery codes made
+//                                                        then if there were
+//                                                        none, shown once
+//   POST   /account/two-factor {password, code, remove: true} (token): off
 //   GET    /account/sign-up                              -> {mode, domains}
 //   POST   /account/sign-up   {email, language}          -> {sent: true}: a
 //                                                        link to create an
@@ -102,11 +118,20 @@
 // address: each opens the account once to choose a new password, which
 // signs every device out. Only their hashes are kept.
 //
+// Two-factor authentication, as Overleaf's: once on, signing in on a device
+// (with the password, Google or ORCID, or to let an application work on the
+// projects, oauth.js) also takes the code of an authenticator app (totp.js),
+// each accepted once, or one of the recovery codes, used up. Without it,
+// /account/login and the others answer `code_required` (the password was
+// right) or `wrong_code`; the devices signed in already stay. A password
+// reset by email or recovery code leaves it on.
+//
 // The token goes in an `Authorization: Bearer` header.
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const totp = require('./totp');
 
 const SESSION_MS = 90 * 24 * 60 * 60 * 1000;
 const SESSION_TOUCH_MS = 24 * 60 * 60 * 1000;
@@ -131,6 +156,8 @@ const GIT_TOKEN = /^fgt_[A-Za-z0-9_-]{43}$/;
 // Writing when a token was last used, at most this often.
 const GIT_TOUCH_MS = 60 * 60 * 1000;
 const EMAIL_CONFIRM_MS = 24 * 60 * 60 * 1000;
+// The time to confirm a new authenticator app with one of its codes.
+const TWO_FACTOR_SETUP_MS = 15 * 60 * 1000;
 // Links to make an account: an administrator's, and one mailed.
 const SIGN_UP_LINK_MS = 7 * 24 * 60 * 60 * 1000;
 const SIGN_UP_MAIL_MS = 24 * 60 * 60 * 1000;
@@ -662,6 +689,43 @@ const createAccounts = ({
 					: { ...entry, ...describeProject(idOf(account), entry) },
 			);
 
+	// Two-factor authentication: the name authenticator apps show for this
+	// server's accounts.
+	const issuer = (() => {
+		try {
+			return `Feuillet (${new URL(appBase).host})`;
+		} catch {
+			return 'Feuillet';
+		}
+	})();
+	const twoFactorOn = (account) => Boolean(account?.twoFactor?.secret);
+
+	// The second factor of `account`, inside withAccount (whose caller
+	// writes it): a one-time code, accepted once, or a recovery code, used
+	// up. Nothing for an account without two-factor authentication.
+	const checkSecondFactor = (account, code) => {
+		if (!twoFactorOn(account)) return null;
+		const given = typeof code === 'string' ? code.trim() : '';
+		if (!given) throw new HttpError(401, 'code_required');
+		const step = totp.verify(account.twoFactor.secret, given, {
+			after: account.twoFactor.lastStep ?? -1,
+		});
+		if (step !== null) {
+			account.twoFactor.lastStep = step;
+			return 'code';
+		}
+		const codes = account.recovery?.codes ?? [];
+		const hash = recoveryHash(given);
+		if (!totp.isCode(given) && codes.includes(hash)) {
+			account.recovery = {
+				...account.recovery,
+				codes: codes.filter((stored) => stored !== hash),
+			};
+			return 'recovery';
+		}
+		throw new HttpError(401, 'wrong_code');
+	};
+
 	// Whether a project's personal invitation is pending (shares.js).
 	let inviteOpen = () => false;
 	const setInviteChecker = (check) => {
@@ -867,17 +931,23 @@ const createAccounts = ({
 		// The ticket stays good for creating an account linked to it.
 		if (!key) throw new HttpError(404, `${id}_not_linked`);
 
-		return withAccount(key, (account) => {
+		if (twoFactorOn(read(key))) limit(`failures:${key}`, MAX_FAILURES_PER_ACCOUNT);
+		const result = await withAccount(key, (account) => {
 			if (account?.[id]?.identity !== identity) {
 				throw new HttpError(404, `${id}_not_linked`);
 			}
+			// Before the ticket is used up: it stays good for the code.
+			const used = checkSecondFactor(account, body.code);
 			if (!providers[id].identityFor(body.ticket, { use: true })) {
 				throw new HttpError(400, 'invalid_ticket');
 			}
 			const token = openSession(account, key, device);
 			write(key, account);
+			if (used === 'recovery') log('signed in with a recovery code');
 			return { username: account.username, token };
 		});
+		clearFailures(key);
+		return result;
 	};
 
 	const linkStatus = (id, account) => ({
@@ -940,14 +1010,18 @@ const createAccounts = ({
 		if (!(await checkPassword(body.password, account.passwordHash))) {
 			throw new HttpError(401, 'wrong_password');
 		}
-		clearFailures(key);
 
-		return withAccount(key, (current) => {
+		// Counted as attempts until the second factor too is right.
+		const result = await withAccount(key, (current) => {
 			if (!current) throw new HttpError(404, 'unknown_username');
+			const used = checkSecondFactor(current, body.code);
 			const token = openSession(current, key, device);
 			write(key, current);
+			if (used === 'recovery') log('signed in with a recovery code');
 			return { username: current.username, token };
 		});
+		clearFailures(key);
+		return result;
 	};
 
 	const logout = (req) =>
@@ -1369,6 +1443,7 @@ const createAccounts = ({
 					: account.emailToken?.expiresAt > now
 						? 'pending'
 						: 'none',
+				twoFactor: twoFactorOn(account),
 				listed: Object.values(account.projects ?? {}).filter(
 					(entry) => !entry.deleted,
 				).length,
@@ -1410,9 +1485,10 @@ const createAccounts = ({
 	// ends with it, as other devices are signed out.
 	const stampOf = (account) => sha256(String(account.passwordHash)).slice(0, 16);
 
-	// Checks a username and password as signing in does, without opening a
-	// session: for letting an application use the account (oauth.js).
-	const verifyCredentials = async (username, password, ip) => {
+	// Checks a username and password as signing in does, and the second
+	// factor, without opening a session: for letting an application use the
+	// account (oauth.js). `code_required` says the password was right.
+	const verifyCredentials = async (username, password, ip, code) => {
 		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
 		const name = normalizeUsername(username);
 		if (!validUsername(name) || typeof password !== 'string') {
@@ -1425,13 +1501,107 @@ const createAccounts = ({
 		if (!(await checkPassword(password, account.passwordHash))) {
 			throw new HttpError(401, 'wrong_password');
 		}
+		const verified = await secondFactorOf(key, code);
 		clearFailures(key);
-		return {
-			id: idOf(account),
-			username: account.username,
-			stamp: stampOf(account),
-		};
+		return verified;
 	};
+
+	// The second factor alone, for an account whose password was checked a
+	// moment ago by verifyCredentials (oauth.js keeps that, for a request).
+	const verifySecondFactor = async (username, code, ip) => {
+		limit(`ip:${ip}`, MAX_ATTEMPTS_PER_IP);
+		const name = normalizeUsername(username);
+		const key = keyOf(name);
+		if (!validUsername(name) || !twoFactorOn(read(key))) {
+			throw new HttpError(400, 'invalid_credentials');
+		}
+		limit(`failures:${key}`, MAX_FAILURES_PER_ACCOUNT);
+		const verified = await secondFactorOf(key, code);
+		clearFailures(key);
+		return verified;
+	};
+
+	const secondFactorOf = (key, code) =>
+		withAccount(key, (account) => {
+			if (!account) throw new HttpError(404, 'unknown_username');
+			if (checkSecondFactor(account, code)) write(key, account);
+			return {
+				id: idOf(account),
+				username: account.username,
+				stamp: stampOf(account),
+			};
+		});
+
+	// Two-factor authentication, from the profile.
+	const twoFactorStatus = (account) => ({
+		enabled: twoFactorOn(account),
+		...(account.twoFactor?.enabledAt ? { enabledAt: account.twoFactor.enabledAt } : {}),
+		recoveryCodes: account.recovery?.codes?.length ?? 0,
+	});
+
+	const getTwoFactor = (req) =>
+		authenticate(req, (account) => ({ body: twoFactorStatus(account) }));
+
+	const setTwoFactor = (req, body) =>
+		authenticate(req, async (account) => {
+			const key = keyOf(account.username);
+			// Off: the password and a code, or a recovery code.
+			if (body.remove === true) {
+				if (!twoFactorOn(account)) return { body: twoFactorStatus(account) };
+				limit(`failures:${key}`, MAX_FAILURES_PER_ACCOUNT);
+				if (!(await checkPassword(String(body.password), account.passwordHash))) {
+					throw new HttpError(401, 'wrong_password');
+				}
+				checkSecondFactor(account, body.code);
+				clearFailures(key);
+				delete account.twoFactor;
+				delete account.twoFactorPending;
+				log('two-factor authentication turned off');
+				return { changed: true, body: twoFactorStatus(account) };
+			}
+			if (twoFactorOn(account)) throw new HttpError(409, 'already_on');
+			// Confirmed by a code of the new secret's.
+			if (body.code !== undefined) {
+				const pending = account.twoFactorPending;
+				if (!pending || pending.createdAt + TWO_FACTOR_SETUP_MS <= Date.now()) {
+					throw new HttpError(410, 'setup_expired');
+				}
+				limit(`failures:${key}`, MAX_FAILURES_PER_ACCOUNT);
+				const step = totp.verify(pending.secret, String(body.code));
+				if (step === null) throw new HttpError(401, 'wrong_code');
+				clearFailures(key);
+				const enabledAt = Date.now();
+				account.twoFactor = { secret: pending.secret, enabledAt, lastStep: step };
+				delete account.twoFactorPending;
+				// Without recovery codes, a lost phone would lose the account.
+				let codes;
+				if (!(account.recovery?.codes?.length > 0)) {
+					codes = Array.from({ length: RECOVERY_CODES }, newRecoveryCode);
+					account.recovery = { createdAt: enabledAt, codes: codes.map(recoveryHash) };
+				}
+				log('two-factor authentication turned on');
+				return {
+					changed: true,
+					body: {
+						...twoFactorStatus(account),
+						...(codes ? { codes, codesCreatedAt: enabledAt } : {}),
+					},
+				};
+			}
+			// Begun with the password: a new secret, for the app.
+			if (!(await checkPassword(String(body.password), account.passwordHash))) {
+				throw new HttpError(401, 'wrong_password');
+			}
+			const secret = totp.newSecret();
+			account.twoFactorPending = { secret, createdAt: Date.now() };
+			return {
+				changed: true,
+				body: {
+					secret,
+					uri: totp.otpauthUri({ secret, account: account.username, issuer }),
+				},
+			};
+		});
 
 	// The account with this id and its projects, or null when it was deleted
 	// or made again.
@@ -1652,6 +1822,8 @@ const createAccounts = ({
 	const routes = {
 		'POST /account/register': (req, body) =>
 			register(body, clientAddress(req), deviceOf(req)),
+		'GET /account/two-factor': (req) => getTwoFactor(req),
+		'POST /account/two-factor': (req, body) => setTwoFactor(req, body),
 		'GET /account/sign-up': () => signUpOptions(),
 		'POST /account/sign-up': (req, body) =>
 			mailSignUpLink(body, clientAddress(req)),
@@ -1730,6 +1902,7 @@ const createAccounts = ({
 		handle,
 		identify,
 		verifyCredentials,
+		verifySecondFactor,
 		accountById,
 		clientAddress,
 		findAccount,

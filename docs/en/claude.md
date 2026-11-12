@@ -22,8 +22,9 @@ Claude** in your account menu.
 
 - **In Claude (web or desktop app)**: open the settings, then the
   connectors, choose "Add custom connector" and paste the address. Claude
-  then asks you to sign in with your Feuillet username and password, and to
-  allow access.
+  then asks you to sign in with your Feuillet username and password (and,
+  with two-factor authentication, the code of your app), and to allow
+  access.
 - **In Claude Code**: in a terminal, run
 
   ```

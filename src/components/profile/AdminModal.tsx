@@ -406,6 +406,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 											<th data-align='end'>{t('Member of')}</th>
 											<th data-align='end'>{t('Space')}</th>
 											<th>{t('Email')}</th>
+											<th>{t('Two-factor')}</th>
 											<th aria-label={t('Actions')} />
 										</tr>
 									</thead>
@@ -456,6 +457,9 @@ const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
 															: account.email === 'pending'
 																? t('To confirm')
 																: '—'}
+													</td>
+													<td data-role='admin-two-factor'>
+														{account.twoFactor ? t('On') : '—'}
 													</td>
 													<td data-align='end'>
 														{!you && !account.admin && (

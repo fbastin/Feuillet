@@ -20,6 +20,8 @@ const ServerAccountLinkForm: React.FC<ServerAccountLinkFormProps> = ({
 }) => {
 	const { user, isGuestUser, verifyPassword } = useAuth();
 	const [password, setPassword] = useState('');
+	// Two-factor authentication's, once the server asks for it.
+	const [code, setCode] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -37,11 +39,18 @@ const ServerAccountLinkForm: React.FC<ServerAccountLinkFormProps> = ({
 		setBusy(true);
 		setError(null);
 		try {
-			const result = await linkServerAccount(user, password, verifyPassword);
+			const result = await linkServerAccount(
+				user,
+				password,
+				verifyPassword,
+				code?.trim() || undefined,
+			);
 			if (result.linked) {
 				setPassword('');
+				setCode(null);
 				onLinked();
 			} else {
+				if (result.needsCode) setCode('');
 				setError(result.message);
 			}
 		} finally {
@@ -74,10 +83,22 @@ const ServerAccountLinkForm: React.FC<ServerAccountLinkFormProps> = ({
 					onChange={(event) => setPassword(event.target.value)}
 					disabled={busy}
 				/>
+				{code !== null && (
+					<input
+						id='link-server-code'
+						className='ui-field-control'
+						autoComplete='one-time-code'
+						placeholder={t('Code')}
+						aria-label={t('Code of two-factor authentication')}
+						value={code}
+						onChange={(event) => setCode(event.target.value)}
+						disabled={busy}
+					/>
+				)}
 				<button
 					type='submit'
 					className='button primary'
-					disabled={busy || !password}
+					disabled={busy || !password || code === ''}
 					aria-busy={busy}
 				>
 					{t('Link to the server')}

@@ -14,7 +14,8 @@ export interface AuthContextType {
 	user: User | null;
 	isAuthenticated: boolean;
 	isInitializing: boolean;
-	login: (username: string, password: string) => Promise<User>;
+	/** `code`: two-factor authentication's, once the server asks for it. */
+	login: (username: string, password: string, code?: string) => Promise<User>;
 	/**
 	 * Signs in with Google or ORCID: 'not-linked' when no account is linked
 	 * to that account.
@@ -22,6 +23,7 @@ export interface AuthContextType {
 	loginWithProvider: (
 		provider: SignInProvider,
 		ticket: string,
+		code?: string,
 	) => Promise<User | 'not-linked'>;
 	register: (
 		username: string,

@@ -116,6 +116,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 							)}
 						</li>
 					)}
+					<li>
+						<strong>{t('Two-factor authentication:')}</strong>&nbsp;
+						{t(
+							'if you turn it on, the key your authenticator app makes its codes from, and which of its codes was used last, so that each works once. Turning it off erases them.',
+						)}
+					</li>
 					{orcid && (
 						<li>
 							<strong>{t('Signing in with ORCID:')}</strong>&nbsp;

@@ -24,7 +24,8 @@ Vous la trouvez, exacte, dans votre profil, onglet **Assistants**, ou par
 - **Dans Claude (web ou application de bureau)** : ouvrez les réglages, puis
   les connecteurs, choisissez « Ajouter un connecteur personnalisé » et
   collez l'adresse. Claude vous demande ensuite de vous connecter avec votre
-  nom d'utilisateur et votre mot de passe Feuillet, et d'autoriser l'accès.
+  nom d'utilisateur et votre mot de passe Feuillet (et, avec la double
+  authentification, le code de votre application), et d'autoriser l'accès.
 - **Dans Claude Code** : dans un terminal, lancez
 
   ```

@@ -83,6 +83,9 @@ const WORDS = {
 		program: (port) => `a program on this computer (port ${port})`,
 		username: 'Feuillet username',
 		password: 'Password',
+		code: 'Code from your authenticator app, or a recovery code',
+		codeAsked: (name) =>
+			`The password of <strong>${name}</strong> is right. Two-factor authentication is on for this account: enter the code your authenticator app shows.`,
 		allow: 'Allow',
 		deny: 'Deny',
 		revoke:
@@ -94,6 +97,8 @@ const WORDS = {
 			wrong_password: 'Wrong password.',
 			too_many_attempts: 'Too many attempts. Try again in 15 minutes.',
 			invalid_credentials: 'Enter your username and password.',
+			wrong_code: 'This code is not right, or was already used.',
+			code_required: 'Enter the code.',
 		},
 	},
 	fr: {
@@ -105,6 +110,9 @@ const WORDS = {
 		program: (port) => `un programme de cet ordinateur (port ${port})`,
 		username: "Nom d'utilisateur Feuillet",
 		password: 'Mot de passe',
+		code: "Code de votre application d'authentification, ou un code de récupération",
+		codeAsked: (name) =>
+			`Le mot de passe de <strong>${name}</strong> est le bon. La double authentification est active pour ce compte : entrez le code que montre votre application d'authentification.`,
 		allow: 'Autoriser',
 		deny: 'Refuser',
 		revoke:
@@ -116,6 +124,8 @@ const WORDS = {
 			wrong_password: 'Mot de passe incorrect.',
 			too_many_attempts: 'Trop de tentatives. Réessayez dans 15 minutes.',
 			invalid_credentials: "Entrez votre nom d'utilisateur et votre mot de passe.",
+			wrong_code: "Ce code n'est pas le bon, ou a déjà servi.",
+			code_required: 'Entrez le code.',
 		},
 	},
 };
@@ -367,10 +377,16 @@ const createOAuth = ({
 <p class="note">${words.back(destination(words, request.redirectUri))}</p>
 <form method="post" action="authorize">
 <input type="hidden" name="request" value="${escapeHtml(request.id)}">
-<label for="username">${words.username}</label>
+${
+	request.secondFactor
+		? `<p>${words.codeAsked(escapeHtml(request.secondFactor.username))}</p>
+<label for="code">${words.code}</label>
+<input id="code" name="code" autocomplete="one-time-code" required autofocus>`
+		: `<label for="username">${words.username}</label>
 <input id="username" name="username" autocomplete="username" required value="${escapeHtml(request.username ?? '')}">
 <label for="password">${words.password}</label>
-<input id="password" name="password" type="password" autocomplete="current-password" required>
+<input id="password" name="password" type="password" autocomplete="current-password" required>`
+}
 <div class="actions"><button class="primary" name="decision" value="allow">${words.allow}</button><button name="decision" value="deny" formnovalidate>${words.deny}</button></div>
 </form>
 <p class="note">${words.revoke}</p>`,
@@ -465,15 +481,37 @@ const createOAuth = ({
 			return;
 		}
 		let account;
+		// The password right a moment ago, for this request: the code alone.
+		const pending =
+			request.secondFactor && request.secondFactor.until > Date.now()
+				? request.secondFactor
+				: null;
+		// Too late for the code: the password again.
+		if (!pending) delete request.secondFactor;
 		try {
-			account = await accounts.verifyCredentials(
-				body.username,
-				body.password,
-				accounts.clientAddress(req),
-			);
+			account = pending
+				? await accounts.verifySecondFactor(
+						pending.username,
+						body.code,
+						accounts.clientAddress(req),
+					)
+				: await accounts.verifyCredentials(
+						body.username,
+						body.password,
+						accounts.clientAddress(req),
+					);
 		} catch (error) {
 			if (typeof error?.code !== 'string' || !Number.isInteger(error.status)) {
 				throw error;
+			}
+			if (!pending && error.code === 'code_required') {
+				// Two-factor authentication: the code next, for 5 minutes.
+				request.secondFactor = {
+					username: String(body.username ?? '').slice(0, 64),
+					until: Date.now() + 5 * 60 * 1000,
+				};
+				consentPage(req, res, request);
+				return;
 			}
 			consentPage(
 				req,
