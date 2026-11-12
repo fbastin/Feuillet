@@ -43,6 +43,9 @@ Le texte ajouté apparaît souligné en vert, le texte retiré barré en rouge.
 - **Dans le texte** : cliquez sur une modification. Une petite barre
   **Accepter / Rejeter** apparaît juste au-dessus, et le panneau
   **Modifications** s'ouvre sur sa carte. La barre disparaît quand vous tapez.
+- **Plusieurs à la fois** : sélectionnez un passage qui en contient
+  plusieurs; sous la sélection, **Accepter (3)** et **Rejeter (3)** décident
+  de toutes celles qu'elle touche, en une fois (un seul Ctrl+Z les rétablit).
 - **Dans le panneau Modifications** (le bouton avec le nombre de
   modifications, dans la barre de l'éditeur) : chaque carte a ses boutons
   **Accepter** et **Rejeter**; en haut, **Tout accepter**, **Tout rejeter** et

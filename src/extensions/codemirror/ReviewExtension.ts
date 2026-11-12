@@ -109,20 +109,25 @@ export function rejectReviewById(view: EditorView, id: string): boolean {
 	);
 }
 
-/** Accepts or rejects every active change, or every resolved one. */
-export function resolveAllReviews(
+/**
+ * Accepts or rejects these changes in one step (one undo). A change inside
+ * another one also decided goes with it.
+ */
+function decideChunks(
 	view: EditorView,
+	chunks: readonly ReviewChunk[],
 	accept: boolean,
-	resolved = false,
 ): boolean {
-	const chunks = getReviewChunks(view.state).filter(
-		(chunk) => Boolean(chunk.resolved) === resolved,
+	const all = getReviewChunks(view.state);
+	const deciding = new Set(chunks.map((chunk) => all.indexOf(chunk)));
+	const outermost = chunks.filter(
+		(chunk) => !chunk.ancestorIndexes.some((index) => deciding.has(index)),
 	);
-	if (!chunks.length) return false;
+	if (!outermost.length) return false;
 
 	try {
 		view.dispatch({
-			changes: chunks.map((chunk) => ({
+			changes: outermost.map((chunk) => ({
 				from: chunk.openStart,
 				to: chunk.closeEnd,
 				insert: accept
@@ -140,6 +145,35 @@ export function resolveAllReviews(
 		moduleLog.error('Error resolving reviews:', error);
 		return false;
 	}
+}
+
+/** Accepts or rejects every active change, or every resolved one. */
+export function resolveAllReviews(
+	view: EditorView,
+	accept: boolean,
+	resolved = false,
+): boolean {
+	return decideChunks(
+		view,
+		getReviewChunks(view.state).filter(
+			(chunk) => Boolean(chunk.resolved) === resolved,
+		),
+		accept,
+	);
+}
+
+/** Accepts or rejects the changes with these ids, as one step. */
+export function decideReviewsById(
+	view: EditorView,
+	ids: readonly string[],
+	accept: boolean,
+): boolean {
+	const wanted = new Set(ids);
+	return decideChunks(
+		view,
+		getReviewChunks(view.state).filter((chunk) => wanted.has(chunk.id)),
+		accept,
+	);
 }
 
 export function replaceReviewTags(
@@ -185,6 +219,7 @@ export const reviewDisplayExtension = [
 		config: reviewConfig,
 		accept: acceptReviewById,
 		reject: rejectReviewById,
+		decide: decideReviewsById,
 	}),
 ];
 

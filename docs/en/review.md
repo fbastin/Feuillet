@@ -40,6 +40,9 @@ Added text shows underlined in green, removed text struck through in red.
 - **In the text**: click a change. A small **Accept / Reject** bar appears
   just above it, and the **Changes** panel opens at its card. The bar goes
   away when you type.
+- **Several at once**: select a passage holding several; under the
+  selection, **Accept (3)** and **Reject (3)** decide all those it touches,
+  at once (a single Ctrl+Z brings them back).
 - **In the Changes panel** (the button with the number of changes, in the
   editor's toolbar): each card has its **Accept** and **Reject** buttons; at
   the top, **Accept all**, **Reject all** and **Resolve all** apply to the
