@@ -18,6 +18,17 @@ export interface GitRemoteAccount {
 	profileUrl?: string;
 }
 
+/** What an account may do with a repository, as the remote says. */
+export interface GitRepositoryAccess {
+	/** Whether it sees it: a private one hides from accounts not added to it. */
+	visible: boolean;
+	/** Whether it may push to it, when the remote says. */
+	canPush?: boolean;
+	/** Who owns it (a login), and whether that is an organization. */
+	owner: string;
+	ownerIsOrganization?: boolean;
+}
+
 export interface GitRemoteCreateRepositoryInput {
 	name: string;
 	description?: string;
@@ -295,6 +306,11 @@ export interface GitRemoteProvider {
 	): Promise<void>;
 	normalizeRepositoryInput?(input: string): string;
 	getAccount?(token: string): Promise<GitRemoteAccount>;
+	/** Whether this token's account sees the repository, and may push to it. */
+	repositoryAccess?(
+		token: string,
+		repositoryId: string,
+	): Promise<GitRepositoryAccess>;
 	createRepository?(
 		token: string,
 		input: GitRemoteCreateRepositoryInput,

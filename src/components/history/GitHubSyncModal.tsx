@@ -43,7 +43,11 @@ import type {
 } from '@/types/gitRemote';
 import type { SharedGitRemote } from '@/types/documents';
 import type { PendingGitImport } from '@/utils/gitPendingImport';
-import { ensureGitRemoteBranch, isRejectedToken } from '@/utils/gitUtils';
+import {
+	ensureGitRemoteBranch,
+	explainRepositoryAccess,
+	isRejectedToken,
+} from '@/utils/gitUtils';
 import GitAccountTokenForm from './GitAccountTokenForm';
 import GitHubActionsSection from './GitHubActionsSection';
 import GitHubBranchSection from './GitHubBranchSection';
@@ -155,6 +159,9 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	const [progress, setProgress] = useState<GitRemoteProgress | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
+	// Before linking the repository a collaborator linked: why this account
+	// could not, if it does not see it.
+	const [sharedAccess, setSharedAccess] = useState<string | null>(null);
 	const importStartedRef = useRef(false);
 
 	const isBusy = busyAction !== null || gitAccount.isLoading;
@@ -185,6 +192,71 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 			document.removeEventListener(GIT_REMOTE_PROGRESS_EVENT, onProgress);
 	}, [projectId]);
 
+	const sharedRepositoryId =
+		sharedRemote?.providerId === provider.id
+			? sharedRemote.repositoryId
+			: undefined;
+
+	// A private repository the account was not added to, or may not push to:
+	// who to ask, rather than the host's « Not Found ».
+	const explainFailure = async (
+		failure: unknown,
+		secrets: GitActionSecrets,
+		fallback: string,
+	): Promise<string> => {
+		const repositoryId =
+			gitSyncService.getConfig(projectId)?.repositoryId ?? sharedRepositoryId;
+		if (repositoryId && !isRejectedToken(failure)) {
+			const plain = await readToken(secrets)
+				.then((token) =>
+					explainRepositoryAccess(
+						provider,
+						token,
+						repositoryId,
+						account?.login,
+						failure,
+					),
+				)
+				.catch(() => null);
+			if (plain) return plain;
+		}
+		return errorMessage(failure, fallback);
+	};
+	// For the status's effect, which reloads on the link only.
+	const explainFailureRef = useRef(explainFailure);
+	explainFailureRef.current = explainFailure;
+
+	useEffect(() => {
+		setSharedAccess(null);
+		if (!isOpen || remote || !account || !sharedRepositoryId) return;
+		let current = true;
+		void readToken(createActionSecrets())
+			.then((token) =>
+				explainRepositoryAccess(
+					provider,
+					token,
+					sharedRepositoryId,
+					account.login,
+					null,
+				),
+			)
+			.then((note) => {
+				if (current) setSharedAccess(note);
+			})
+			.catch(() => {});
+		return () => {
+			current = false;
+		};
+	}, [
+		account,
+		createActionSecrets,
+		isOpen,
+		provider,
+		readToken,
+		remote,
+		sharedRepositoryId,
+	]);
+
 	const run = async (
 		label: string,
 		action: (secrets: GitActionSecrets) => Promise<void>,
@@ -193,12 +265,15 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 		setProgress(null);
 		setError(null);
 		setNotice(null);
+		const secrets = createActionSecrets();
 		try {
-			await action(createActionSecrets());
+			await action(secrets);
 			return true;
 		} catch (actionError) {
 			moduleLog.error(`GitHub action "${label}" failed:`, actionError);
-			setError(errorMessage(actionError, t('Git action failed')));
+			setError(
+				await explainFailure(actionError, secrets, t('Git action failed')),
+			);
 			// An expired or revoked token: connect again right here.
 			if (isRejectedToken(actionError)) setShowTokenForm(true);
 			// What a failed action left (a commit made before the push was
@@ -239,10 +314,15 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	useEffect(() => {
 		if (!isOpen || !linkedTarget) return;
 		setSyncStatus(null);
-		void refreshStatus(createActionSecrets()).catch((statusError) => {
+		const secrets = createActionSecrets();
+		void refreshStatus(secrets).catch(async (statusError) => {
 			moduleLog.warn('Failed to load GitHub sync status:', statusError);
 			setError(
-				errorMessage(statusError, t('Failed to load Git remote status')),
+				await explainFailureRef.current(
+					statusError,
+					secrets,
+					t('Failed to load Git remote status'),
+				),
 			);
 			if (isRejectedToken(statusError)) setShowTokenForm(true);
 		});
@@ -390,6 +470,16 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 	// from the commit it was last synced as, then catches up.
 	const joinSharedRepository = (shared: SharedGitRemote) =>
 		void run('link', async (secrets) => {
+			// An account the repository hides from: GitHub's « Not Found »
+			// would read as an empty branch, and the link as done.
+			const hidden = await explainRepositoryAccess(
+				provider,
+				await readToken(secrets),
+				shared.repositoryId,
+				account?.login,
+				null,
+			);
+			if (hidden) throw new Error(hidden);
 			const repository = {
 				id: shared.repositoryId,
 				label: shared.repositoryLabel,
@@ -1092,6 +1182,15 @@ const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 					},
 				)}
 			</p>
+			{sharedAccess && sharedAccess !== error && (
+				<div
+					className='ui-message'
+					data-tone='warning'
+					data-role='repository-access'
+				>
+					{sharedAccess}
+				</div>
+			)}
 			{renderAnnotationOption()}
 			<div className='ui-actions' data-wrap='true'>
 				<button

@@ -42,6 +42,45 @@ describe('GitHubGitRemoteProvider', () => {
 		}
 	});
 
+	it('tells whether the account sees a repository, may push, and who owns it', async () => {
+		const fetchMock = jest.fn(async (input: Parameters<typeof fetch>[0]) => {
+			const url = String(input);
+			if (url.endsWith('/repos/fbastin/visible'))
+				return response(200, {
+					owner: { login: 'fbastin', type: 'User' },
+					permissions: { push: false },
+				});
+			if (url.endsWith('/repos/fbastin/hidden') || url.endsWith('/repos/acme/hidden'))
+				return response(404, { message: 'Not Found' });
+			if (url.endsWith('/users/fbastin'))
+				return response(200, { login: 'fbastin', type: 'User' });
+			if (url.endsWith('/users/acme'))
+				return response(200, { login: 'acme', type: 'Organization' });
+			return response(500, { message: `Unexpected ${url}` });
+		});
+		globalThis.fetch = fetchMock as typeof fetch;
+		const access = gitHubGitRemoteProvider.repositoryAccess as NonNullable<
+			typeof gitHubGitRemoteProvider.repositoryAccess
+		>;
+
+		await expect(access('token', 'fbastin/visible')).resolves.toEqual({
+			visible: true,
+			canPush: false,
+			owner: 'fbastin',
+			ownerIsOrganization: false,
+		});
+		await expect(access('token', 'fbastin/hidden')).resolves.toEqual({
+			visible: false,
+			owner: 'fbastin',
+			ownerIsOrganization: false,
+		});
+		await expect(access('token', 'acme/hidden')).resolves.toMatchObject({
+			visible: false,
+			owner: 'acme',
+			ownerIsOrganization: true,
+		});
+	});
+
 	it('bootstraps an empty repository and replaces the bootstrap ref with the real root commit', async () => {
 		jest
 			.spyOn(gitHubAPIService, 'getBranchHeadSha')

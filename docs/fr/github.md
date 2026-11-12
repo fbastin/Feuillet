@@ -34,6 +34,22 @@ le nombre de requêtes de chaque compte, par minute et par heure; Feuillet
 reste en deçà, et si la limite est tout de même atteinte, il dit à quelle
 heure réessayer.
 
+### Avec des collaborateurs
+
+Chacun se synchronise avec son propre compte GitHub. Un collaborateur invité
+dans le projet voit qu'il est lié au dépôt; dans la fenêtre GitHub, il se
+connecte à GitHub, puis choisit **Lier le dépôt et récupérer**. Ses commits
+portent son nom.
+
+L'invitation dans Feuillet ne donne pas accès au dépôt sur GitHub. Pour un
+dépôt privé, ajoutez son compte GitHub au dépôt (sur GitHub : **Settings**,
+**Collaborators**, **Add people**; dans une organisation, avec le rôle
+**Write**), et qu'il accepte l'invitation que GitHub lui envoie. Sinon,
+Feuillet le lui dit, avec le nom du propriétaire du dépôt à qui le demander;
+de même si son compte peut lire le dépôt sans pouvoir le modifier. Il peut
+tout de même travailler dans le projet : ses modifications partent vers
+GitHub avec les envois de ceux qui y ont accès.
+
 ## Envoyer et récupérer
 
 Une fois le projet lié, la fenêtre indique où il en est : fichiers modifiés

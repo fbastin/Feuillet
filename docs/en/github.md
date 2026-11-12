@@ -32,6 +32,22 @@ files): count under a minute for 300 commits, and about thirty seconds for
 requests each account makes, per minute and per hour; Feuillet stays below,
 and if the limit is reached anyway, it says at what time to try again.
 
+### With collaborators
+
+Each person syncs with their own GitHub account. A collaborator invited to
+the project sees that it is linked to the repository; in the GitHub window,
+they connect to GitHub, then choose **Link repository and pull**. Their
+commits bear their name.
+
+The invitation in Feuillet gives no access to the repository on GitHub. For
+a private repository, add their GitHub account to it (on GitHub: **Settings**,
+**Collaborators**, **Add people**; in an organization, with the **Write**
+role), and have them accept the invitation GitHub sends them. Otherwise
+Feuillet tells them so, with the name of the repository's owner to ask; the
+same if their account can read the repository but not change it. They can
+still work in the project: their changes go to GitHub with the pushes of
+those who have access.
+
 ## Pushing and pulling
 
 Once the project is linked, the window tells where it stands: files changed

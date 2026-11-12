@@ -76,7 +76,71 @@ export function gitRemoteRequestError(
 						{ provider: providerName },
 					)
 				: `${providerName} API request to '${endpoint.split('?')[0]}' failed (${status})${detail ? `: ${detail}` : ''}`;
-	return Object.assign(new Error(message), { status });
+	return Object.assign(new Error(message), {
+		status,
+		// The token, not the account, lacks the right: its own message stays.
+		...(/not accessible by/i.test(detail ?? '') ? { tokenScope: true } : {}),
+	});
+}
+
+/**
+ * Why an action on a repository failed, said plainly, when the account
+ * cannot see it (a private repository it was not added to) or may not push
+ * to it: who to ask, by their name on the host. Null when that is not why.
+ */
+export async function explainRepositoryAccess(
+	provider: GitRemoteProvider,
+	token: string,
+	repositoryId: string,
+	login: string | undefined,
+	failure: unknown,
+): Promise<string | null> {
+	if (!provider.repositoryAccess) return null;
+	const refused = failure as { status?: number; tokenScope?: boolean } | null;
+	const access = await provider
+		.repositoryAccess(token, repositoryId)
+		.catch(() => null);
+	if (!access) return null;
+	const cannotPush =
+		access.visible &&
+		access.canPush === false &&
+		!refused?.tokenScope &&
+		(refused?.status === 403 || refused?.status === 404);
+	if (access.visible && !cannotPush) return null;
+	const account =
+		login ??
+		(await provider
+			.getAccount?.(token)
+			.then((found) => found.login)
+			.catch(() => undefined));
+	// One's own repository: the token, not the account, is short of rights.
+	if (!account || account.toLowerCase() === access.owner.toLowerCase())
+		return null;
+	const params = {
+		provider: provider.displayName,
+		login: account,
+		repository: repositoryId,
+		owner: access.owner,
+	};
+	if (!access.visible)
+		return access.ownerIsOrganization
+			? t(
+					'Your {provider} account ({login}) does not see the repository {repository}: it is private and your account has no access to it, or it was deleted. Ask an owner of the {owner} organization to give your account access on {provider}, then try again.',
+					params,
+				)
+			: t(
+					'Your {provider} account ({login}) does not see the repository {repository}: it is private and your account was not added to it, or it was deleted. Ask its owner, {owner}, to add you as a collaborator on {provider} (Settings › Collaborators), accept the invitation {provider} sends you, then try again.',
+					params,
+				);
+	return access.ownerIsOrganization
+		? t(
+				'Your {provider} account ({login}) can read the repository {repository} but not change it. Ask an owner of the {owner} organization to give your account the Write role on {provider}, then try again.',
+				params,
+			)
+		: t(
+				'Your {provider} account ({login}) can read the repository {repository} but not change it. Ask its owner, {owner}, to give you write access on {provider}, then try again.',
+				params,
+			);
 }
 
 /**

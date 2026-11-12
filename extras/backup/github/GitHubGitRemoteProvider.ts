@@ -890,6 +890,34 @@ export const gitHubGitRemoteProvider: GitRemoteProvider = {
 			profileUrl: user.html_url,
 		};
 	},
+	repositoryAccess: async (token, repositoryId) => {
+		const [owner, repo] = repositoryParts(repositoryId);
+		try {
+			const repository = await request<{
+				owner: { login: string; type?: string };
+				permissions?: { push?: boolean };
+			}>(token, `repos/${owner}/${repo}`);
+			return {
+				visible: true,
+				canPush: repository.permissions?.push,
+				owner: repository.owner.login,
+				ownerIsOrganization: repository.owner.type === 'Organization',
+			};
+		} catch (error) {
+			if ((error as { status?: number }).status !== 404) throw error;
+		}
+		// GitHub hides a private repository from accounts not added to it;
+		// who owns it is public.
+		const account = await request<{ login: string; type?: string }>(
+			token,
+			`users/${encodeURIComponent(owner)}`,
+		).catch(() => null);
+		return {
+			visible: false,
+			owner: account?.login ?? owner,
+			ownerIsOrganization: account?.type === 'Organization',
+		};
+	},
 	createRepository: async (token, input) => {
 		const repository = await gitHubAPIService.createRepository(token, input);
 		return {

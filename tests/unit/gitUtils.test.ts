@@ -1,4 +1,6 @@
+import type { GitRemoteProvider, GitRepositoryAccess } from '../../src/types/gitRemote';
 import {
+	explainRepositoryAccess,
 	gitRemoteApiRequest,
 	gitRemoteRequestError,
 	isRateLimited,
@@ -200,6 +202,71 @@ describe('gitUtils', () => {
 			expect(gitRemoteRequestError('GitHub', 'repos/a/b?_=1', 500, 'boom').message).toBe(
 				"GitHub API request to 'repos/a/b' failed (500): boom",
 			);
+		});
+	});
+
+	describe('a repository the account cannot see or change', () => {
+		const providerWith = (access: GitRepositoryAccess | Error) =>
+			({
+				displayName: 'GitHub',
+				repositoryAccess: jest.fn(async () => {
+					if (access instanceof Error) throw access;
+					return access;
+				}),
+				getAccount: jest.fn(async () => ({ login: 'coauteur' })),
+			}) as unknown as GitRemoteProvider;
+		const notFound = gitRemoteRequestError('GitHub', 'repos/fbastin/these/branches', 404, 'Not Found');
+
+		it("names the account and the repository's owner when it is hidden", async () => {
+			const message = await explainRepositoryAccess(
+				providerWith({ visible: false, owner: 'fbastin' }),
+				'token',
+				'fbastin/these',
+				undefined,
+				notFound,
+			);
+			expect(message).toContain('(coauteur)');
+			expect(message).toContain('fbastin/these');
+			expect(message).toContain('Ask its owner, fbastin, to add you as a collaborator');
+		});
+
+		it("an organization's: one of its owners", async () => {
+			const message = await explainRepositoryAccess(
+				providerWith({ visible: false, owner: 'acme', ownerIsOrganization: true }),
+				'token',
+				'acme/these',
+				'coauteur',
+				notFound,
+			);
+			expect(message).toContain('Ask an owner of the acme organization');
+		});
+
+		it('a refused push when the account may only read', async () => {
+			const refused = gitRemoteRequestError('GitHub', 'repos/fbastin/these/git/refs', 404, 'Not Found', undefined, 'POST');
+			const message = await explainRepositoryAccess(
+				providerWith({ visible: true, canPush: false, owner: 'fbastin' }),
+				'token',
+				'fbastin/these',
+				'coauteur',
+				refused,
+			);
+			expect(message).toContain('can read the repository fbastin/these but not change it');
+		});
+
+		it('not when access is not why: pushing allowed, a token short of rights, one’s own repository, no answer', async () => {
+			const refused = gitRemoteRequestError('GitHub', 'repos/fbastin/these/git/refs', 403, 'Resource not accessible by personal access token', undefined, 'POST');
+			await expect(
+				explainRepositoryAccess(providerWith({ visible: true, canPush: true, owner: 'fbastin' }), 'token', 'fbastin/these', 'coauteur', notFound),
+			).resolves.toBeNull();
+			await expect(
+				explainRepositoryAccess(providerWith({ visible: true, canPush: false, owner: 'fbastin' }), 'token', 'fbastin/these', 'coauteur', refused),
+			).resolves.toBeNull();
+			await expect(
+				explainRepositoryAccess(providerWith({ visible: false, owner: 'fbastin' }), 'token', 'fbastin/these', 'FBastin', notFound),
+			).resolves.toBeNull();
+			await expect(
+				explainRepositoryAccess(providerWith(new Error('offline')), 'token', 'fbastin/these', 'coauteur', notFound),
+			).resolves.toBeNull();
 		});
 	});
 });
