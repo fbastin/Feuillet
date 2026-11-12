@@ -206,8 +206,10 @@ besoin derrière le bouton **⋯**).
 
 Comme dans les réglages d'Overleaf, **Paramètres** règle l'**Interligne** de
 l'éditeur (serré, normal ou large, dans **Apparence**) et la **Fermeture
-automatique des parenthèses** : quand elle est coupée, taper `{`, `(`, `[`
-ou un guillemet n'écrit pas le caractère fermant.
+automatique des parenthèses** : quand elle est coupée, taper `{`, `[` ou
+`$` n'écrit pas le caractère fermant. En LaTeX, comme sur Overleaf, `$`
+s'écrit par paire (`$|$`), une `(` seule et les guillemets ne se ferment
+pas, et rien ne se ferme après une barre oblique inverse (`\$`, `\{`).
 
 Quand la fenêtre est étroite, les outils les moins utilisés de la barre de
 l'éditeur passent dans le menu **…**.

@@ -195,8 +195,9 @@ page (behind the **⋯** button when needed).
 
 As in Overleaf's settings, **Settings** sets the editor's **Line height**
 (compact, normal or wide, under **Appearance**) and **Auto-close brackets**:
-when it is off, typing `{`, `(`, `[` or a quote does not write the closing
-one.
+when it is off, typing `{`, `[` or `$` does not write the closing one. In
+LaTeX, as on Overleaf, `$` comes in pairs (`$|$`), a lone `(` and quotes are
+not closed, and nothing is closed after a backslash (`\$`, `\{`).
 
 When the window is narrow, the least used tools of the editor's toolbar go
 into the **…** menu.

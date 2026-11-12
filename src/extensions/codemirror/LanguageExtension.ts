@@ -16,6 +16,7 @@ import { latex } from 'codemirror-lang-latex';
 import { withAnnotationMasking } from './annotations/annotationMasking';
 import { createBibtexCheck } from './BibtexCheckExtension';
 import { environmentMatching } from './environmentMatching';
+import { latexCloseBrackets } from './latexCloseBrackets';
 import { bibtexHoverDocs } from './languageDocs/bibtexDocs';
 import { latexHoverDocs } from './languageDocs/latexDocs';
 import { createLatexCodeCheck } from './LatexCodeCheckExtension';
@@ -66,6 +67,8 @@ export const createLanguageExtension = (
 				),
 				// \begin{…} and its \end{…} marked together, as brackets.
 				environmentMatching,
+				// $ auto-closed, nothing after a backslash, as on Overleaf.
+				latexCloseBrackets,
 				...(enableLinting ? [createLatexCodeCheck(options.fileName)] : []),
 				...(enableTooltips ? [latexHoverDocs] : []),
 			];
