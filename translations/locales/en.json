@@ -450,6 +450,8 @@
   "As you type (instant)": "As you type (instant)",
   "Ascending": "Ascending",
   "Ask Claude": "Ask Claude",
+  "Fix this compile error: {message}": "Fix this compile error: {{message}}",
+  "Ask Claude to fix this error": "Ask Claude to fix this error",
   "Assistants": "Assistants",
   "Assistants such as Claude:": "Assistants such as Claude:",
   "Assistants work on the projects kept on the server.": "Assistants work on the projects kept on the server.",

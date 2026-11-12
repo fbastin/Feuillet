@@ -233,3 +233,50 @@ Output written on _template.pdf (3 pages).`;
         });
     });
 });
+describe('which file an error is in', () => {
+	it('stays the source file after other files and parentheses closed', () => {
+		const log = [
+			'(./main.tex',
+			'LaTeX2e <2025-11-01>',
+			'(/usr/local/texlive/2026/texmf-dist/tex/latex/base/article.cls',
+			'Document Class: article 2024/06/29 v1.4n Standard LaTeX document class',
+			'(/usr/local/texlive/2026/texmf-dist/tex/latex/base/size10.clo))',
+			'(./main.aux)',
+			'Overfull \\hbox (12.0pt too wide) in paragraph at lines 3--4',
+			'(./chapitres/intro.tex',
+			'! Undefined control sequence.',
+			'l.7 Le \\textbff',
+			'               {gras}',
+			')',
+			'! Undefined control sequence.',
+			'l.9 \\foo',
+			'',
+			')',
+		].join('\n');
+		const errors = parseLatexLog(log)
+			.filter((error) => error.type === 'error')
+			.map(({ file, path, line }) => ({ file, path, line }));
+		expect(errors).toEqual([
+			{ file: 'intro.tex', path: 'chapitres/intro.tex', line: 7 },
+			{ file: 'main.tex', path: 'main.tex', line: 9 },
+		]);
+	});
+
+	it("has no project path in TeX's own files", () => {
+		const log = [
+			'(./main.tex',
+			'(/usr/local/texlive/2026/texmf-dist/tex/latex/tools/array.sty',
+			'! Package array Error: Illegal pream-token (q): `c\' used.',
+			'',
+			'See the array package documentation for explanation.',
+			'Type  H <return>  for immediate help.',
+			' ...',
+			'',
+			'l.3 \\begin{tabular}{q}',
+			'))',
+		].join('\n');
+		const [error] = parseLatexLog(log).filter((entry) => entry.type === 'error');
+		expect(error.file).toBe('array.sty');
+		expect(error.path).toBeUndefined();
+	});
+});

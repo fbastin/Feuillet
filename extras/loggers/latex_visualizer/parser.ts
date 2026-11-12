@@ -7,6 +7,9 @@ export interface ParsedError {
 	message: string;
 	line?: number;
 	file?: string;
+	/** The file's path in the project (chapitres/intro.tex), when TeX read
+	 * it from there rather than from its own tree. */
+	path?: string;
 	lineContent?: string;
 	fullMessage?: string;
 	/** The lines TeX shows between the message and the line, for hints. */
@@ -23,12 +26,17 @@ export function parseLatexLog(log: string): ParsedError[] {
 	const lines = preprocessLogLines(transcript).split('\n');
 
 	const result: ParsedError[] = [];
-	const fileStack: string[] = [];
+	// What each ( TeX printed opened: a source file, or null for anything
+	// else (main.aux, "(12.0pt too wide)"), so that each ) closes its own.
+	const fileStack: (string | null)[] = [];
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 		followOpenFiles(fileStack, line);
-		const contextFile = fileStack[fileStack.length - 1] ?? DEFAULT_FILE;
+		const openPath = innermostFile(fileStack);
+		const contextFile = openPath
+			? openPath.split('/').pop() || openPath
+			: DEFAULT_FILE;
 
 		const parsed =
 			extractLatexError(lines, i, contextFile) ??
@@ -41,6 +49,9 @@ export function parseLatexLog(log: string): ParsedError[] {
 
 		if (parsed) {
 			parsed.hint ??= latexHint(parsed);
+			// ./chapitres/intro.tex is the project's; /usr/…/article.cls is not.
+			if (openPath && !openPath.startsWith('/') && parsed.file === contextFile)
+				parsed.path = openPath.replace(/^\.\//, '');
 			result.push(parsed);
 		}
 	}
@@ -169,9 +180,18 @@ function preprocessLogLines(log: string): string {
 	return processedLines.join('\n');
 }
 
+/** The source file being read: the innermost one opened. */
+function innermostFile(fileStack: (string | null)[]): string | undefined {
+	for (let i = fileStack.length - 1; i >= 0; i--) {
+		const entry = fileStack[i];
+		if (entry !== null) return entry;
+	}
+	return undefined;
+}
+
 // TeX prints "(file" when it opens a file and ")" when it closes it. The
 // stack is carried from line to line so that the log is read only once.
-function followOpenFiles(fileStack: string[], line: string): void {
+function followOpenFiles(fileStack: (string | null)[], line: string): void {
 	for (let j = 0; j < line.length; j++) {
 		const char = line[j];
 
@@ -180,9 +200,9 @@ function followOpenFiles(fileStack: string[], line: string): void {
 				.substring(j + 1)
 				.match(/^(_?[^()\s]*\.(?:tex|sty|cls|def|fd|cfg|clo|ltx|bbl))/);
 			if (fileMatch) {
-				const filePath = fileMatch[1];
-				const fileName = filePath.split('/').pop() || filePath;
-				fileStack.push(fileName);
+				fileStack.push(fileMatch[1]);
+			} else {
+				fileStack.push(null);
 			}
 		} else if (char === ')') {
 			if (fileStack.length > 0) fileStack.pop();

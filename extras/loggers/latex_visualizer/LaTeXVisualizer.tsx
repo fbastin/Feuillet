@@ -3,8 +3,10 @@ import { t } from '@/i18n';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 
+import { AssistantIcon } from '@/components/common/Icons';
 import { PluginHeader } from '@/components/common/PluginHeader';
 import type { LoggerProps } from '@/plugins/PluginInterface';
+import { askClaude } from '@/utils/askClaude';
 import { formatFileSize } from '@/utils/fileUtils';
 import { PLUGIN_NAME, PLUGIN_VERSION } from './LaTeXVisualizerPlugin';
 import { type ParsedError, parseLatexLog } from './parser';
@@ -37,6 +39,21 @@ const LaTeXVisualizer: React.FC<LoggerProps> = ({ log, onLineClick }) => {
 		if (error.line && onLineClick) {
 			onLineClick(error.line, error.file);
 		}
+	};
+
+	// As Overleaf's Error Assist: Claude reads the file through the Feuillet
+	// connector and proposes its fix as suggestions.
+	const askClaudeToFix = (error: ParsedError) => {
+		const message = (error.fullMessage || error.message).trim();
+		askClaude({
+			// Its place in the project, when the log says (not TeX's own files).
+			path: error.path ? `/${error.path}` : undefined,
+			line: error.line,
+			selection: error.lineContent,
+			request: t('Fix this compile error: {message}', {
+				message: message.length > 600 ? `${message.slice(0, 600)}…` : message,
+			}),
+		});
 	};
 
 	const getErrorTypeIcon = (type: string) => {
@@ -160,6 +177,21 @@ const LaTeXVisualizer: React.FC<LoggerProps> = ({ log, onLineClick }) => {
 												title={t('Go to line {line}', { line: error.line })}
 											>
 												{t('Line {line}', { line: error.line })}
+											</button>
+										)}
+										{error.type === 'error' && (
+											<button
+												type='button'
+												className='button secondary'
+												data-action='ask-claude-error'
+												onClick={(event) => {
+													event.stopPropagation();
+													askClaudeToFix(error);
+												}}
+												title={t('Ask Claude to fix this error')}
+											>
+												<AssistantIcon />
+												{t('Ask Claude')}
 											</button>
 										)}
 									</div>

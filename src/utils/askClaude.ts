@@ -71,6 +71,26 @@ export function askClaudePrompt(
 	return parts.join('\n');
 }
 
+/**
+ * Opens « Ask Claude » from elsewhere than its button (an error of the
+ * log, say), with where and what already filled in.
+ */
+export const ASK_CLAUDE_EVENT = 'feuillet-ask-claude';
+
+export interface AskClaudeRequest {
+	path?: string;
+	line?: number;
+	selection?: string;
+	request: string;
+}
+
+export const askClaude = (detail: AskClaudeRequest): void => {
+	document.dispatchEvent(
+		// One editor's dialog takes it: the first cancels it for the others.
+		new CustomEvent(ASK_CLAUDE_EVENT, { detail, cancelable: true }),
+	);
+};
+
 /** claude.ai with the message ready to send. */
 export const claudeUrl = (prompt: string) =>
 	`https://claude.ai/new?q=${encodeURIComponent(prompt)}`;

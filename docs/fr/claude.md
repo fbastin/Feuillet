@@ -63,6 +63,11 @@ demande nomme le projet, le fichier et la ligne.
   copiée : collez-la si la zone de saisie est vide.
 - **Copier pour Claude Code** la copie, à coller dans Claude Code.
 
+Dans le journal de compilation, chaque erreur a aussi son bouton **Demander
+à Claude**, comme l'aide aux erreurs d'Overleaf : la demande, déjà écrite,
+nomme le fichier et la ligne de l'erreur et cite son message; Claude lit le
+fichier par le connecteur et propose sa correction en suggestion.
+
 ## Déconnecter Claude
 
 Dans votre profil, onglet **Assistants**, **Déconnecter** retire l'accès

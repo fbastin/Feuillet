@@ -61,6 +61,11 @@ file and the line.
   paste it if the message box is empty.
 - **Copy for Claude Code** copies it, to paste in Claude Code.
 
+In the compile log, each error has its **Ask Claude** button too, as
+Overleaf's error assist: the request, already written, names the error's
+file and line and quotes its message; Claude reads the file through the
+connector and proposes its fix as a suggestion.
+
 ## Disconnecting Claude
 
 In your profile, **Assistants** tab, **Disconnect** takes away an

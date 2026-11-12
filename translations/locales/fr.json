@@ -450,6 +450,8 @@
   "As you type (instant)": "Pendant la saisie (instantané)",
   "Ascending": "Croissant",
   "Ask Claude": "Demander à Claude",
+  "Fix this compile error: {message}": "Corrige cette erreur de compilation : {{message}}",
+  "Ask Claude to fix this error": "Demander à Claude de corriger cette erreur",
   "Assistants": "Assistants",
   "Assistants such as Claude:": "Les assistants comme Claude :",
   "Assistants work on the projects kept on the server.": "Les assistants travaillent sur les projets conservés sur le serveur.",

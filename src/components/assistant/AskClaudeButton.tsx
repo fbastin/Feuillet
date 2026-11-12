@@ -4,14 +4,16 @@
 // subscription) or copied for Claude Code. Claude then works on the project
 // through the Feuillet connector, its changes coming back as suggestions.
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { t } from '@/i18n';
 import { useCollab } from '../../hooks/useCollab';
 import { fileStoreService } from '../../services/FileStoreService';
 import type { DocumentList } from '../../types/documents';
 import {
+	ASK_CLAUDE_EVENT,
 	type AskClaudeContext,
+	type AskClaudeRequest,
 	askClaudePrompt,
 	claudeUrl,
 	passageOf,
@@ -51,6 +53,27 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 		setNotice(null);
 	};
 	const close = () => setContext(null);
+
+	const projectName = data?.projectMetadata?.name ?? '';
+	// Asked from elsewhere (the log's errors), with the request written.
+	useEffect(() => {
+		const ask = (event: Event) => {
+			if (event.defaultPrevented) return;
+			event.preventDefault();
+			const { request: asked, ...location } = (
+				event as CustomEvent<AskClaudeRequest>
+			).detail;
+			setContext({
+				projectName,
+				projectId: fileStoreService.getCurrentProjectId() ?? '',
+				...location,
+			});
+			setRequest(asked);
+			setNotice(null);
+		};
+		document.addEventListener(ASK_CLAUDE_EVENT, ask);
+		return () => document.removeEventListener(ASK_CLAUDE_EVENT, ask);
+	}, [projectName]);
 
 	const passage = passageOf(context?.selection);
 	const prompt = context ? askClaudePrompt(context, request) : '';
