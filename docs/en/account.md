@@ -89,6 +89,19 @@ so: the **Devices** tab signs them out. A forgotten password changes as
 below, and two-factor authentication stays on. It is turned off in the
 profile, with the password and a code.
 
+## Being told of changes
+
+As on Overleaf, when the way your account is signed in to changes, Feuillet
+tells you at your account email (see below), in the language of your
+interface: a new password (changed in the profile, through a link for a
+forgotten password or with a recovery code), two-factor authentication
+turned on or off, new recovery codes, sign-in with Google or ORCID added or
+removed, a new Git token. When another address is confirmed for your
+account, or the address removed, it is that address which is told. If you
+did not make the change, change your password and sign out the devices you
+do not recognise, in your profile. Without an account email, or on a server
+that sends no emails, nothing is sent.
+
 ## Forgotten password
 
 Two ways, to prepare in your profile, **Account** tab:

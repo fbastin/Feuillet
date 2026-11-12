@@ -2,7 +2,11 @@
 // Feuillet's few emails, as Overleaf's: confirming the account's email
 // address, a link to choose a new password, an invitation to a project, a
 // link to make an account (where accounts need an invitation, accounts.js),
-// and a reply to one's comment or a mention in one (reviewNotices.js).
+// a reply to one's comment or a mention in one (reviewNotices.js), and a
+// change to how one's account is signed in to or recovered (the password,
+// two-factor authentication, recovery codes, its address, Google or ORCID,
+// a Git token), so that a change its owner did not make does not go
+// unseen.
 // They go through the SMTP server given by SMTP_URL (such as
 // smtps://user:password@smtp.example.org:465), from MAIL_FROM (such as
 // "Feuillet <noreply@example.org>"). Without both, Feuillet sends none and
@@ -18,8 +22,9 @@
 // three quarters of them, so that recovering accounts still works; and 10
 // to one address. Review emails take at most a quarter, invitations and
 // them three quarters together, and 5 to one address apart from the rest:
-// they never stop an account's recovery. They are counted in memory, from
-// the server's start.
+// they never stop an account's recovery. Security emails too take at most a
+// quarter, and 5 to one address apart from the rest. They are counted in
+// memory, from the server's start.
 
 const crypto = require('node:crypto');
 
@@ -27,6 +32,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const DAILY_LIMIT = 200;
 const PER_RECIPIENT = 10;
 const REVIEW_PER_RECIPIENT = 5;
+const SECURITY_PER_RECIPIENT = 5;
 
 // Some of a comment in an email: as written, line breaks kept, not too long.
 const excerpt = (text, max = 600) => {
@@ -143,6 +149,57 @@ const MESSAGES = {
 				'Vous recevez ce message parce que votre compte Feuillet participe à ce projet. Pour ne plus en recevoir, décochez « Courriels de relecture » dans votre profil.',
 			].join('\n'),
 		}),
+		security: ({ username, change, how, provider, label, link }) => {
+			const what = {
+				password: {
+					subject: 'Le mot de passe de votre compte Feuillet a changé',
+					line: `Le mot de passe de votre compte Feuillet « ${username} » vient d'être changé${how === 'recovery-code' ? ' avec un code de récupération' : how === 'email-link' ? ' par le lien envoyé à cette adresse' : ''}. Vos autres appareils devront se reconnecter.`,
+				},
+				'two-factor-on': {
+					subject: 'Double authentification activée sur votre compte Feuillet',
+					line: `La double authentification vient d'être activée sur votre compte Feuillet « ${username} » : se connecter demandera désormais, en plus du mot de passe, un code de votre application.`,
+				},
+				'two-factor-off': {
+					subject: 'Double authentification désactivée sur votre compte Feuillet',
+					line: `La double authentification vient d'être désactivée sur votre compte Feuillet « ${username} » : se connecter ne demande plus que le mot de passe.`,
+				},
+				'recovery-codes': {
+					subject: 'Nouveaux codes de récupération pour votre compte Feuillet',
+					line: `De nouveaux codes de récupération viennent d'être créés pour votre compte Feuillet « ${username} » ; les précédents ne servent plus.`,
+				},
+				'email-changed': {
+					subject: "L'adresse de votre compte Feuillet a changé",
+					line: `Une autre adresse courriel vient d'être confirmée pour votre compte Feuillet « ${username} » : celle-ci n'est plus la sienne et ne servira plus à le récupérer.`,
+				},
+				'email-removed': {
+					subject: "L'adresse de votre compte Feuillet a été retirée",
+					line: `Cette adresse vient d'être retirée de votre compte Feuillet « ${username} » : elle ne servira plus à le récupérer.`,
+				},
+				linked: {
+					subject: `Connexion avec ${provider} ajoutée à votre compte Feuillet`,
+					line: `Votre compte Feuillet « ${username} » peut maintenant s'ouvrir avec un compte ${provider}.`,
+				},
+				unlinked: {
+					subject: `Connexion avec ${provider} retirée de votre compte Feuillet`,
+					line: `Votre compte Feuillet « ${username} » ne s'ouvre plus avec un compte ${provider}.`,
+				},
+				'git-token': {
+					subject: 'Nouveau jeton Git pour votre compte Feuillet',
+					line: `Un jeton Git${label ? ` (« ${oneLine(label, 60)} »)` : ''} vient d'être créé pour votre compte Feuillet « ${username} » : avec lui, Git ouvre tous ses projets.`,
+				},
+			}[change];
+			return {
+				subject: what.subject,
+				text: [
+					`Bonjour ${username},`,
+					'',
+					what.line,
+					'',
+					"Si c'est vous, il n'y a rien à faire. Sinon, ouvrez Feuillet, changez votre mot de passe dans votre profil (votre nom, en haut à droite) et déconnectez les appareils que vous ne reconnaissez pas :",
+					link,
+				].join('\n'),
+			};
+		},
 	},
 	en: {
 		confirm: ({ username, link }) => ({
@@ -222,6 +279,57 @@ const MESSAGES = {
 				'You get this message because your Feuillet account takes part in this project. To get no more, untick "Review emails" in your profile.',
 			].join('\n'),
 		}),
+		security: ({ username, change, how, provider, label, link }) => {
+			const what = {
+				password: {
+					subject: 'The password of your Feuillet account was changed',
+					line: `The password of your Feuillet account "${username}" was just changed${how === 'recovery-code' ? ' with a recovery code' : how === 'email-link' ? ' through the link sent to this address' : ''}. Your other devices will have to sign in again.`,
+				},
+				'two-factor-on': {
+					subject: 'Two-factor authentication turned on for your Feuillet account',
+					line: `Two-factor authentication was just turned on for your Feuillet account "${username}": signing in will now take, besides the password, a code from your app.`,
+				},
+				'two-factor-off': {
+					subject: 'Two-factor authentication turned off for your Feuillet account',
+					line: `Two-factor authentication was just turned off for your Feuillet account "${username}": signing in now takes the password alone.`,
+				},
+				'recovery-codes': {
+					subject: 'New recovery codes for your Feuillet account',
+					line: `New recovery codes were just made for your Feuillet account "${username}"; the former ones no longer work.`,
+				},
+				'email-changed': {
+					subject: 'The address of your Feuillet account was changed',
+					line: `Another email address was just confirmed for your Feuillet account "${username}": this one is no longer its address and will no longer recover it.`,
+				},
+				'email-removed': {
+					subject: 'The address of your Feuillet account was removed',
+					line: `This address was just removed from your Feuillet account "${username}": it will no longer recover it.`,
+				},
+				linked: {
+					subject: `Sign-in with ${provider} added to your Feuillet account`,
+					line: `Your Feuillet account "${username}" can now be opened with a ${provider} account.`,
+				},
+				unlinked: {
+					subject: `Sign-in with ${provider} removed from your Feuillet account`,
+					line: `Your Feuillet account "${username}" no longer opens with a ${provider} account.`,
+				},
+				'git-token': {
+					subject: 'New Git token for your Feuillet account',
+					line: `A Git token${label ? ` ("${oneLine(label, 60)}")` : ''} was just made for your Feuillet account "${username}": with it, Git opens all its projects.`,
+				},
+			}[change];
+			return {
+				subject: what.subject,
+				text: [
+					`Hello ${username},`,
+					'',
+					what.line,
+					'',
+					'If this was you, there is nothing to do. Otherwise, open Feuillet, change your password in your profile (your name, top right) and sign out the devices you do not recognise:',
+					link,
+				].join('\n'),
+			};
+		},
 	},
 };
 
@@ -255,6 +363,7 @@ const createMailer = ({
 	let sent = [];
 	const sentTo = new Map();
 	const reviewTo = new Map();
+	const securityTo = new Map();
 	const startedAt = now();
 
 	const prune = (map, since) => {
@@ -271,11 +380,13 @@ const createMailer = ({
 		sent = sent.filter((entry) => entry.at > since);
 		prune(sentTo, since);
 		prune(reviewTo, since);
+		prune(securityTo, since);
 		const recipient = crypto
 			.createHash('sha256')
 			.update(String(to).toLowerCase())
 			.digest('hex');
-		const perAddress = kind === 'review' ? reviewTo : sentTo;
+		const perAddress =
+			kind === 'review' ? reviewTo : kind === 'security' ? securityTo : sentTo;
 		const toThem = perAddress.get(recipient) ?? [];
 		const ofKinds = (...kinds) =>
 			sent.filter((entry) => kinds.includes(entry.kind)).length;
@@ -288,8 +399,14 @@ const createMailer = ({
 				ofKinds(...inviting) >= Math.floor((limit * 3) / 4)) ||
 			(kind === 'review' &&
 				(ofKinds('review') >= Math.floor(limit / 4) ||
-					ofKinds(...inviting) >= Math.floor((limit * 3) / 4)));
-		const perLimit = kind === 'review' ? REVIEW_PER_RECIPIENT : PER_RECIPIENT;
+					ofKinds(...inviting) >= Math.floor((limit * 3) / 4))) ||
+			(kind === 'security' && ofKinds('security') >= Math.floor(limit / 4));
+		const perLimit =
+			kind === 'review'
+				? REVIEW_PER_RECIPIENT
+				: kind === 'security'
+					? SECURITY_PER_RECIPIENT
+					: PER_RECIPIENT;
 		if (full || toThem.length >= perLimit) {
 			const which = toThem.length >= perLimit ? 'to one address' : 'a day';
 			log(`${kind} email not sent: limit of emails ${which} reached`);
@@ -314,6 +431,10 @@ const createMailer = ({
 			passage,
 			comment,
 			written,
+			change,
+			how,
+			provider,
+			label,
 		},
 	) => {
 		const french = /^fr\b/i.test(String(language ?? ''));
@@ -329,6 +450,10 @@ const createMailer = ({
 			passage,
 			comment,
 			written,
+			change,
+			how,
+			provider,
+			label,
 		});
 		take(kind, to);
 		try {

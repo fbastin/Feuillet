@@ -96,6 +96,21 @@ passe oublié se change comme ci-dessous, et la double authentification
 reste active. Elle se désactive dans le profil, avec le mot de passe et un
 code.
 
+## Être prévenu des changements
+
+Comme sur Overleaf, quand la façon d'ouvrir votre compte change, Feuillet
+vous prévient au courriel de votre compte (voir plus bas), dans la langue
+de votre interface : un nouveau mot de passe (changé dans le profil, par un
+lien pour un mot de passe oublié ou avec un code de récupération), la
+double authentification activée ou désactivée, de nouveaux codes de
+récupération, la connexion avec Google ou ORCID ajoutée ou retirée, un
+nouveau jeton Git. Quand une autre adresse est confirmée pour votre compte,
+ou l'adresse retirée, c'est cette adresse-là qui est prévenue. Si le
+changement ne vient pas de vous, changez votre mot de passe et déconnectez
+les appareils que vous ne reconnaissez pas, dans votre profil. Sans
+courriel de compte, ou sur un serveur qui n'envoie pas de courriels, rien
+n'est envoyé.
+
 ## Mot de passe oublié
 
 Deux moyens, à préparer dans votre profil, onglet **Compte** :

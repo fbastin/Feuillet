@@ -8,7 +8,9 @@
 //
 // Each account is one JSON file in ACCOUNTS_DIR, named after a hash of the
 // lower-case username. Passwords are kept as scrypt hashes and sessions as
-// SHA-256 hashes of their tokens.
+// SHA-256 hashes of their tokens. A change to how an account is signed in
+// to or recovered is told at its address, as Overleaf's security emails
+// (tellOwner, mail.js).
 //
 //   POST   /account/register  {username, password}       -> {username, token}
 //   POST   /account/login     {username, password}       -> {username, token}
@@ -634,6 +636,31 @@ const createAccounts = ({
 
 	// Finds the account and session a request's token belongs to, and keeps
 	// a session in use from expiring.
+	// As Overleaf's security emails: a change to how the account is signed in
+	// to or recovered goes to its address (or `to`, the address it had), so
+	// that one its owner did not make does not go unseen. Never in the way
+	// of the change: an email that cannot go is only logged (mail.js).
+	const tellOwner = (account, notice) => {
+		if (!mailer || !notice) return;
+		const to = notice.to ?? account.email?.address;
+		if (!to) return;
+		const language = listPreferences(account).find(
+			(entry) => entry.key === 'setting:language',
+		)?.value;
+		mailer
+			.send('security', {
+				to,
+				language: typeof language === 'string' ? language : undefined,
+				username: account.username,
+				change: notice.change,
+				how: notice.how,
+				provider: notice.provider,
+				label: notice.label,
+				link: `${appBase}/`,
+			})
+			.catch(() => {});
+	};
+
 	const authenticate = (req, change) => {
 		const match = /^Bearer ([0-9a-f]{64})\.([A-Za-z0-9_-]{20,100})$/.exec(
 			req.headers.authorization ?? '',
@@ -662,6 +689,8 @@ const createAccounts = ({
 				account.lastUsedAt = Math.max(account.lastUsedAt ?? 0, now);
 				write(key, account);
 			}
+			// Once the change is kept.
+			if (result?.changed) tellOwner(account, result.notice);
 			return result?.body;
 		});
 	};
@@ -967,22 +996,31 @@ const createAccounts = ({
 			}
 			const key = keyOf(account.username);
 			if (body.remove === true) {
+				const linked = Boolean(account[id]);
 				dropLinkOwner(id, account[id]?.identity, key);
 				delete account[id];
 				log(`${PROVIDER_NAMES[id]} account unlinked`);
-				return { changed: true, body: linkStatus(id, account) };
+				return {
+					changed: true,
+					body: linkStatus(id, account),
+					...(linked
+						? { notice: { change: 'unlinked', provider: PROVIDER_NAMES[id] } }
+						: {}),
+				};
 			}
 			const identity = ticketIdentity(id, body.ticket);
 			const owner = linkOwner(id, identity);
 			if (owner && owner !== key) throw new HttpError(409, `${id}_taken`);
 			providers[id].identityFor(body.ticket, { use: true });
+			let notice;
 			if (account[id]?.identity !== identity) {
 				dropLinkOwner(id, account[id]?.identity, key);
 				account[id] = { identity, linkedAt: Date.now() };
 				setLinkOwner(id, identity, key);
 				log(`${PROVIDER_NAMES[id]} account linked`);
+				notice = { change: 'linked', provider: PROVIDER_NAMES[id] };
 			}
-			return { changed: true, body: linkStatus(id, account) };
+			return { changed: true, body: linkStatus(id, account), notice };
 		});
 
 	// Whether a password is the account's, as a device that signed in with
@@ -1042,7 +1080,7 @@ const createAccounts = ({
 			delete account.reset;
 			// Other devices sign in again with the new password.
 			account.sessions = { [sessionId]: account.sessions[sessionId] };
-			return { changed: true };
+			return { changed: true, notice: { change: 'password' } };
 		});
 
 	// How many recovery codes are left, and when they were made.
@@ -1066,7 +1104,11 @@ const createAccounts = ({
 			const createdAt = Date.now();
 			account.recovery = { createdAt, codes: codes.map(recoveryHash) };
 			log('recovery codes made');
-			return { changed: true, body: { codes, createdAt } };
+			return {
+				changed: true,
+				body: { codes, createdAt },
+				notice: { change: 'recovery-codes' },
+			};
 		});
 
 	// The account's Git tokens that still work: made with its password.
@@ -1133,6 +1175,7 @@ const createAccounts = ({
 			return {
 				changed: true,
 				body: { token, tokens: listGitTokens(account) },
+				notice: { change: 'git-token', label },
 			};
 		});
 
@@ -1200,6 +1243,7 @@ const createAccounts = ({
 			account.sessions = {};
 			delete account.reset;
 			write(key, account);
+			tellOwner(account, { change: 'password', how: 'recovery-code' });
 			return {
 				username: account.username,
 				remaining: account.recovery.codes.length,
@@ -1234,11 +1278,18 @@ const createAccounts = ({
 			}
 			const key = keyOf(account.username);
 			if (body.remove === true) {
-				dropEmailOwner(account.email?.address, key);
+				const removed = account.email?.address;
+				dropEmailOwner(removed, key);
 				delete account.email;
 				delete account.emailToken;
 				log('recovery address removed');
-				return { changed: true, body: emailStatus(account) };
+				return {
+					changed: true,
+					body: emailStatus(account),
+					...(removed
+						? { notice: { change: 'email-removed', to: removed } }
+						: {}),
+				};
 			}
 			const address = normalizeEmail(body.address);
 			if (!validEmail(address)) throw new HttpError(400, 'invalid_email');
@@ -1287,14 +1338,18 @@ const createAccounts = ({
 			if (owner && owner !== parsed.key) {
 				throw new HttpError(409, 'email_taken');
 			}
-			if (account.email?.address !== pending.address) {
-				dropEmailOwner(account.email?.address, parsed.key);
+			const former = account.email?.address;
+			if (former !== pending.address) {
+				dropEmailOwner(former, parsed.key);
 			}
 			setEmailOwner(pending.address, parsed.key);
 			account.email = { address: pending.address, confirmedAt: Date.now() };
 			delete account.emailToken;
 			write(parsed.key, account);
 			log('recovery address confirmed');
+			if (former && former !== pending.address) {
+				tellOwner(account, { change: 'email-changed', to: former });
+			}
 			return { address: account.email.address };
 		});
 	};
@@ -1355,6 +1410,7 @@ const createAccounts = ({
 			account.sessions = {};
 			delete account.reset;
 			write(parsed.key, account);
+			tellOwner(account, { change: 'password', how: 'email-link' });
 			return account.username;
 		});
 		clearFailures(parsed.key);
@@ -1557,7 +1613,11 @@ const createAccounts = ({
 				delete account.twoFactor;
 				delete account.twoFactorPending;
 				log('two-factor authentication turned off');
-				return { changed: true, body: twoFactorStatus(account) };
+				return {
+					changed: true,
+					body: twoFactorStatus(account),
+					notice: { change: 'two-factor-off' },
+				};
 			}
 			if (twoFactorOn(account)) throw new HttpError(409, 'already_on');
 			// Confirmed by a code of the new secret's.
@@ -1586,6 +1646,7 @@ const createAccounts = ({
 						...twoFactorStatus(account),
 						...(codes ? { codes, codesCreatedAt: enabledAt } : {}),
 					},
+					notice: { change: 'two-factor-on' },
 				};
 			}
 			// Begun with the password: a new secret, for the app.

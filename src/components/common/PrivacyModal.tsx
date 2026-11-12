@@ -101,7 +101,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						<strong>{t('Your account:')}</strong>&nbsp;
 						{mail
 							? t(
-									'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your email address, if you gave one, which serves only to send you a link if you forget your password, through {mailer}; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects, the words added to your dictionary and your preferences (the settings of the editor, such as its keybindings and its theme, your Git commit email and your color), to find them on your other devices.',
+									'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your email address, if you gave one, which serves only to send you a link if you forget your password, to tell you when the way your account is signed in to changes (its password, two-factor authentication, the sites you sign in with, a Git token...), and for the review emails, through {mailer}; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects, the words added to your dictionary and your preferences (the settings of the editor, such as its keybindings and its theme, your Git commit email and your color), to find them on your other devices.',
 									{ mailer },
 								)
 							: t(
@@ -277,7 +277,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						<li data-role='privacy-mail'>
 							{mail.privacy ? (
 								<Trans
-									i18nKey='<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
+									i18nKey='<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, tell you of a change to the way your account is signed in to, or invite someone to a project, go through {provider}, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
 									values={{ provider: mailer }}
 									components={{
 										strong: <strong />,
@@ -292,7 +292,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 								/>
 							) : (
 								<Trans
-									i18nKey='<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to'
+									i18nKey='<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, tell you of a change to the way your account is signed in to, or invite someone to a project, go through {provider}, with the address they are sent to'
 									values={{ provider: mailer }}
 									components={{ strong: <strong /> }}
 								/>
