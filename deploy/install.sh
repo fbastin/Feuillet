@@ -2,11 +2,54 @@
 # deploy/install.sh
 # Sets up or updates Feuillet on this server: web root, Apache virtual host,
 # nightly backups, collaboration and TeX Live servers (Docker) and HTTPS
-# certificate. Safe to run again after an update. Run with sudo:
+# certificate. Safe to run again after an update. Run with sudo, giving the
+# server's address the first time (it is kept in /etc/feuillet/site.env):
+#   sudo deploy/install.sh latex.example.org
 #   sudo deploy/install.sh
 set -euo pipefail
 
-DOMAIN=feuillet.slashbin.net
+if [ "$(id -u)" -ne 0 ]; then
+	echo "Run with sudo: sudo $0 ${1:-}" >&2
+	exit 1
+fi
+
+# The server's address, which the Apache virtual host, the certificate, the
+# servers (deploy/docker-compose.yml) and deploy/publish.sh go by.
+SITE_ENV=/etc/feuillet/site.env
+saved_domain() {
+	if [ -r "$SITE_ENV" ]; then sed -n 's/^DOMAIN=//p' "$SITE_ENV" | tail -n 1; fi
+}
+SAVED=$(saved_domain)
+DOMAIN=${1:-$SAVED}
+# Installed before the address was a setting.
+if [ -z "$DOMAIN" ] && [ -d /var/www/feuillet.slashbin.net ]; then
+	DOMAIN=feuillet.slashbin.net
+fi
+if [ -z "$DOMAIN" ]; then
+	echo "Give this server's address, the name its DNS record points here:" >&2
+	echo "  sudo $0 latex.example.org" >&2
+	exit 1
+fi
+if ! [[ $DOMAIN =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]]; then
+	echo "\"$DOMAIN\" is not a server address (such as latex.example.org, in lowercase)." >&2
+	exit 1
+fi
+if [ -n "$SAVED" ] && [ "$DOMAIN" != "$SAVED" ]; then
+	echo "This server is set up for $SAVED ($SITE_ENV). To move it to $DOMAIN," >&2
+	echo "change DOMAIN= there, then run sudo $0 again." >&2
+	exit 1
+fi
+install -d -m 755 /etc/feuillet
+if [ "$DOMAIN" != "$SAVED" ]; then
+	cat >"$SITE_ENV" <<SITE
+# Feuillet: this server's address, set by deploy/install.sh and read by
+# deploy/publish.sh and deploy/docker-compose.yml.
+DOMAIN=$DOMAIN
+SITE
+	chmod 644 "$SITE_ENV"
+	echo "Saved DOMAIN=$DOMAIN in $SITE_ENV."
+fi
+
 WEBROOT=/var/www/$DOMAIN
 HERE=$(cd "$(dirname "$0")" && pwd)
 OWNER=${SUDO_USER:-root}
@@ -16,11 +59,7 @@ SSL_CONF=$SITES/$DOMAIN-le-ssl.conf
 # reach it through this socket, in a directory of the group www-data only.
 TEXLIVE_SOCKET_DIR=/var/lib/feuillet/texlive-socket
 TEXLIVE_SOCKET=$TEXLIVE_SOCKET_DIR/texlive.sock
-
-if [ "$(id -u)" -ne 0 ]; then
-	echo "Run with sudo: sudo $0" >&2
-	exit 1
-fi
+COMPOSE=(docker compose --env-file "$SITE_ENV" -f "$HERE/docker-compose.yml")
 
 # certbot copies the virtual host once; later proxy routes are added to its
 # copy, before </VirtualHost>. A route goes to the server's root, or with a
@@ -98,7 +137,8 @@ if [ -e "$SSL_CONF" ]; then
 	add_proxy_route "$SSL_CONF" /.well-known/oauth-protected-resource 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-protected-resource
 	add_proxy_route "$SSL_CONF" /docs 1234 "« Ouvrir dans Feuillet » links and forms, as Overleaf's /docs (server/collab/docs.js)." /docs
 else
-	install -m 644 "$HERE/apache/$DOMAIN.conf" "$SITES/$DOMAIN.conf"
+	sed "s/@DOMAIN@/$DOMAIN/g" "$HERE/apache/feuillet.conf" >"$SITES/$DOMAIN.conf"
+	chmod 644 "$SITES/$DOMAIN.conf"
 	a2ensite -q "$DOMAIN"
 fi
 apache2ctl configtest
@@ -168,7 +208,7 @@ fi
 
 echo "== Collaboration, TeX Live and LanguageTool servers (the first builds download about 3 GB for each year of TeX Live, and 250 MB)"
 install -d -o root -g www-data -m 0750 "$TEXLIVE_SOCKET_DIR"
-docker compose -f "$HERE/docker-compose.yml" up -d --build
+"${COMPOSE[@]}" up -d --build
 for _ in $(seq 1 60); do
 	if curl -fsS http://127.0.0.1:1234/health >/dev/null; then break; fi
 	sleep 1

@@ -1403,7 +1403,7 @@
   "Feuillet has no visit statistics, no advertising and no tracking cookies.": "Feuillet n'a ni statistiques de visite, ni publicité, ni témoins de suivi.",
   "Feuillet has sent too many emails today, so the invitation to {email} was not sent: copy its link and send it yourself.": "Feuillet a envoyé trop de courriels aujourd'hui : l'invitation à {{email}} n'est pas partie. Copiez son lien et envoyez-le vous-même.",
   "Feuillet is free software (AGPL), based on TeXlyre. The code of the site and of its servers is on <github>GitHub</github>.": "Feuillet est un logiciel libre (AGPL), basé sur TeXlyre. Le code du site et de ses serveurs est sur <github>GitHub</github>.",
-  "Feuillet is hosted at feuillet.slashbin.net. For any question, <issues>open an issue on GitHub</issues>.": "Feuillet est hébergé sur feuillet.slashbin.net. Pour toute question, <issues>ouvrez une demande sur GitHub</issues>.",
+  "Feuillet is hosted at {host}. For any question, <issues>open an issue on GitHub</issues>.": "Feuillet est hébergé sur {{host}}. Pour toute question, <issues>ouvrez une demande sur GitHub</issues>.",
   "Feuillet recovery codes for {username}": "Codes de récupération Feuillet de {{username}}",
   "Field order:": "Ordre des champs :",
   "Fields": "Champs",

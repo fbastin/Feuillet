@@ -1,10 +1,14 @@
 # Feuillet — documentation
 
 - **[English guide](en/README.md)**: getting started, collaborating, review,
-  versions, GitHub, Claude, account and privacy.
+  versions, GitHub, Claude, account and privacy, running your own server.
 - **[Guide en français](fr/README.md)** : premiers pas, collaborer,
-  relecture, versions, GitHub, Claude, compte et confidentialité.
+  relecture, versions, GitHub, Claude, compte et confidentialité, installer
+  son serveur.
 
-Feuillet runs at / est en ligne à <https://feuillet.slashbin.net>.
+Try it at / à essayer sur <https://feuillet.slashbin.net>, a small server /
+un petit serveur.
 
-Hosting / hébergement : [`deploy/README.md`](../deploy/README.md) (English).
+Your own server / votre propre serveur: [English](en/hosting.md) ·
+[français](fr/heberger.md); every setting / chaque réglage:
+[`deploy/README.md`](../deploy/README.md).

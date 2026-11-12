@@ -29,6 +29,10 @@ describe('buildWorkflow', () => {
 		expect(isFeuilletWorkflow('name: mine\n')).toBe(false);
 	});
 
+	it('names the Feuillet it was made on, whichever server that is', () => {
+		expect(text).toContain(`# (${window.location.origin}). It compiles`);
+	});
+
 	it('compiles the main file in its folder, with the engine and TeX Live of the project', () => {
 		expect(text).toContain('container: texlive/texlive:TL2025-historic');
 		expect(text).toContain(

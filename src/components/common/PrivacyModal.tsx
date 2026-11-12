@@ -29,7 +29,8 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 			<div className='ui-stack' data-gap='md' data-role='privacy'>
 				<p>
 					<Trans
-						i18nKey='Feuillet is hosted at feuillet.slashbin.net. For any question, <issues>open an issue on GitHub</issues>.'
+						i18nKey='Feuillet is hosted at {host}. For any question, <issues>open an issue on GitHub</issues>.'
+						values={{ host: window.location.host }}
 						components={{
 							issues: (
 								<TransLink

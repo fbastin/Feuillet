@@ -1,4 +1,9 @@
-# Deploying Feuillet on feuillet.slashbin.net
+# Deploying Feuillet
+
+How a Feuillet server is set up, and every setting: feuillet.slashbin.net is
+the example throughout, and `deploy/install.sh` takes your own address. The
+user guide gives the steps in short, with what the machine needs:
+[English](../docs/en/hosting.md) · [Français](../docs/fr/heberger.md).
 
 Feuillet is served as static files by Apache. Collaboration goes through a
 small server ([`server/collab`](../server/collab)) that every editor connects
@@ -55,7 +60,7 @@ imported ones; the in-browser LaTeX compiler stays available in the project
 settings, for instance to work offline.
 
 ```
-browser ──https──▶ Apache ── /                  ▶ /var/www/feuillet.slashbin.net (deploy/publish.sh)
+browser ──https──▶ Apache ── /                  ▶ /var/www/DOMAIN (deploy/publish.sh)
                          ├─ /collab/  (wss, http) ▶ 127.0.0.1:1234 feuillet-collab  (Docker)
                          ├─ /docs     (http)      ▶ 127.0.0.1:1234 (« Ouvrir dans Feuillet »)
                          └─ /texlive/ (wss, http) ▶ /var/lib/feuillet/texlive-socket/texlive.sock
@@ -66,14 +71,23 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/feuil
 
 ## First installation
 
-1. DNS: add a `CNAME` record `feuillet` → `tireur.no-ip.org` for `slashbin.net`
-   (same target as the other subdomains).
-2. Run `sudo deploy/install.sh`. It creates the web root, installs and enables
-   the Apache virtual host, builds and starts both servers with Docker (the
-   TeX Live image downloads about 3 GB) and requests the HTTPS certificate
-   with certbot.
+1. DNS: a record for the server's address that leads to this machine, with
+   ports 80 and 443 open. For feuillet.slashbin.net, a `CNAME` record
+   `feuillet` → `tireur.no-ip.org` for `slashbin.net` (same target as the
+   other subdomains).
+2. Run `sudo deploy/install.sh latex.example.org`, with the server's
+   address. It keeps it in `/etc/feuillet/site.env` (`DOMAIN=`), which later
+   runs, `deploy/publish.sh` and `deploy/docker-compose.yml` read (a server
+   installed before that file, with the web root
+   `/var/www/feuillet.slashbin.net`, keeps that address).
+   It creates the web root `/var/www/DOMAIN`, installs and enables the
+   Apache virtual host (`deploy/apache/feuillet.conf`, for that address),
+   builds and starts the servers with Docker (the TeX Live image downloads
+   about 3 GB) and requests the HTTPS certificate with certbot.
 3. Run `deploy/publish.sh` (no sudo, Node.js 22 or newer) to build and publish
-   the application.
+   the application. The servers it goes to by default are this address's:
+   it writes them in the build's `userdata.json`, where `texlyre.config.ts`
+   names feuillet.slashbin.net's.
 
 ## Sign in with GitHub
 
@@ -373,8 +387,9 @@ that name and administer the server.
   copy of the previous file next to it), rebuilds the containers and leaves
   the certificate alone.
 - Application: `deploy/publish.sh`.
-- TeX Live packages: `sudo docker compose -f deploy/docker-compose.yml build --pull texlive`
-  then `sudo docker compose -f deploy/docker-compose.yml up -d texlive`.
+- TeX Live packages: `sudo docker compose --env-file /etc/feuillet/site.env -f deploy/docker-compose.yml build --pull texlive`
+  then `sudo docker compose --env-file /etc/feuillet/site.env -f deploy/docker-compose.yml up -d texlive`
+  (the file gives the server's address, `DOMAIN`).
 
 ## Years of TeX Live
 

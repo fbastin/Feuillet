@@ -87,9 +87,14 @@ export const buildWorkflow = (settings: WorkflowSettings): string => {
 	const { path, folder, job } = partsOf(settings.mainFile);
 	const pdf = folder ? `${folder}/${job}.pdf` : `${job}.pdf`;
 	const { image, label } = texliveImage(settings.version, settings.latestYear);
+	// The Feuillet it was made on: this one.
+	const site =
+		typeof window === 'undefined'
+			? 'https://feuillet.slashbin.net'
+			: window.location.origin;
 	return [
 		WORKFLOW_MARKER,
-		'# (https://feuillet.slashbin.net). It compiles the project on GitHub at',
+		`# (${site}). It compiles the project on GitHub at`,
 		'# each push and pull request, as Feuillet does: same main document,',
 		'# engine and TeX Live. The PDF is in each run, under « Artifacts ».',
 		"# Feuillet rewrites this file when the project's settings change.",

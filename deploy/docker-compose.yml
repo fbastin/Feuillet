@@ -1,8 +1,10 @@
 # deploy/docker-compose.yml
 # Feuillet servers, reachable only from this machine; Apache exposes them as
-# wss://feuillet.slashbin.net/collab/ and wss://feuillet.slashbin.net/texlive/,
-# the second through a Unix socket in /var/lib/feuillet/texlive-socket, which
-# install.sh makes for the group www-data.
+# wss://DOMAIN/collab/ and wss://DOMAIN/texlive/, the second through a Unix
+# socket in /var/lib/feuillet/texlive-socket, which install.sh makes for the
+# group www-data. DOMAIN, the server's address, is in /etc/feuillet/site.env
+# (deploy/install.sh):
+#   sudo docker compose --env-file /etc/feuillet/site.env -f deploy/docker-compose.yml …
 name: feuillet
 
 # What the servers write (accounts created and deleted, errors): three
@@ -15,7 +17,7 @@ x-logging: &logging
 
 # What every TeX Live server shares (the latest and other years).
 x-texlive-environment: &texlive-environment
-  ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
+  ALLOWED_ORIGINS: "https://${DOMAIN:?give docker compose --env-file /etc/feuillet/site.env (deploy/install.sh)}"
   MAX_CONCURRENT: "2"
   COMPILE_TIMEOUT_MS: "180000"
   SHELL_ESCAPE: "full"
@@ -60,8 +62,8 @@ services:
     ports:
       - "127.0.0.1:1234:1234"
     environment:
-      ALLOWED_ORIGINS: "https://feuillet.slashbin.net"
-      PUBLIC_URL: "https://feuillet.slashbin.net/collab"
+      ALLOWED_ORIGINS: "https://${DOMAIN:?give docker compose --env-file /etc/feuillet/site.env (deploy/install.sh)}"
+      PUBLIC_URL: "https://${DOMAIN:?give docker compose --env-file /etc/feuillet/site.env (deploy/install.sh)}/collab"
       # For assistants (Claude) to compile projects (server/collab/mcp.js),
       # through the TeX Live server's socket.
       TEXLIVE_URL: "ws+unix:///texlive-socket/texlive.sock:/"
