@@ -937,11 +937,14 @@ class AccountSyncService {
 
 	/**
 	 * Opens a project granted to the account, once its list has it under
-	 * that link with its name (not as a project met by a link).
+	 * that link with its name (not as a project met by a link): the page
+	 * loads again on that link, since the read-only one still open would
+	 * otherwise write its own address back as it closes.
 	 */
 	async openGranted(link: string): Promise<void> {
 		if (this.userId) await this.sync(this.userId).catch(() => {});
 		window.location.hash = `yjs:${link}`;
+		window.location.reload();
 	}
 
 	/**
