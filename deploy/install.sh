@@ -26,10 +26,6 @@ saved() {
 SAVED=$(saved DOMAIN)
 SAVED_WEB=$(saved WEB)
 DOMAIN=${1:-$SAVED}
-# Installed before the address was a setting.
-if [ -z "$DOMAIN" ] && [ -d /var/www/feuillet.slashbin.net ]; then
-	DOMAIN=feuillet.slashbin.net
-fi
 if [ -z "$DOMAIN" ]; then
 	echo "Give this server's address, the name its DNS record points here:" >&2
 	echo "  sudo $0 feuillet.example.org" >&2
@@ -47,10 +43,7 @@ fi
 
 WEB=${2:-$SAVED_WEB}
 if [ -z "$WEB" ]; then
-	if [ -d "/var/www/$DOMAIN" ]; then
-		# Installed before the web server was a setting: with Apache.
-		WEB=apache
-	elif command -v apache2ctl >/dev/null && ! command -v nginx >/dev/null; then
+	if command -v apache2ctl >/dev/null && ! command -v nginx >/dev/null; then
 		WEB=apache
 	elif command -v nginx >/dev/null && ! command -v apache2ctl >/dev/null; then
 		WEB=nginx

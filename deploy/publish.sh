@@ -11,10 +11,6 @@ saved_domain() {
 	if [ -r "$SITE_ENV" ]; then sed -n 's/^DOMAIN=//p' "$SITE_ENV" | tail -n 1; fi
 }
 DOMAIN=${DOMAIN:-$(saved_domain)}
-# Installed before the address was a setting.
-if [ -z "$DOMAIN" ] && [ -d /var/www/feuillet.slashbin.net ]; then
-	DOMAIN=feuillet.slashbin.net
-fi
 if [ -z "$DOMAIN" ]; then
 	echo "No server address in $SITE_ENV: run sudo deploy/install.sh <address> first." >&2
 	exit 1
