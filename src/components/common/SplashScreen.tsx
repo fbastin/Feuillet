@@ -3,7 +3,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 
 import { t } from '@/i18n';
-import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
+import feuilletLogo from '../../assets/images/feuillet.svg';
 
 interface SplashScreenProps {
 	isVisible: boolean;
@@ -26,7 +26,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ isVisible }) => {
 		<div className={`splash-screen ${themeLoaded ? 'theme-loaded' : ''}`}>
 			<div className='splash-content'>
 				<div className='splash-logo'>
-					<img src={texlyreLogo} alt={t('TeXlyre')} />
+					<img src={feuilletLogo} alt={t('TeXlyre')} />
 				</div>
 				<h1 className='splash-title'>{t('TeXlyre')}</h1>
 				<div className='splash-loading'>

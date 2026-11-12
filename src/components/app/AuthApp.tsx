@@ -3,7 +3,7 @@ import type React from 'react';
 import { useState } from 'react';
 
 import { t } from '@/i18n';
-import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
+import feuilletLogo from '../../assets/images/feuillet.svg';
 import { useTheme } from '../../hooks/useTheme';
 import {
 	inviteOf,
@@ -67,7 +67,7 @@ const AuthApp: React.FC<AuthContainerProps> = ({
 				<div className='auth-header'>
 					<div className='auth-logo-wrapper'>
 						<img
-							src={texlyreLogo}
+							src={feuilletLogo}
 							className='auth-logo'
 							alt={t('TeXlyre logo')}
 						/>

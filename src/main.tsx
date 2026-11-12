@@ -126,7 +126,7 @@ if (
 			if (registration.active) {
 				registration.active.postMessage({
 					type: 'CACHE_URLS',
-					urls: [`${BASE_PATH}/assets/images/TeXlyre_notext_192.png`],
+					urls: [`${BASE_PATH}/assets/images/feuillet-192.png`],
 				});
 			}
 		} catch (error) {

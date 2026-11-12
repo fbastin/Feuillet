@@ -42,10 +42,22 @@ const config: TexlyreConfig = {
         },
         icons: [
             {
-                src: './assets/images/TeXlyre_notext_192.png',
+                src: './assets/images/feuillet-192.png',
                 sizes: '192x192',
                 type: 'image/png',
-                purpose: 'any maskable',
+                purpose: 'any',
+            },
+            {
+                src: './assets/images/feuillet-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any',
+            },
+            {
+                src: './assets/images/feuillet-maskable-512.png',
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable',
             },
         ],
         display: 'standalone',

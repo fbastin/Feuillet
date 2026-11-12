@@ -13,7 +13,7 @@ import {
 import { notificationService } from '../../services/NotificationService';
 import { downloadFile } from '../../utils/archiveUtils';
 import { outputFileName } from '../../utils/fileImportUtils';
-import texlyreLogo from '../../assets/images/TeXlyre_notext.png';
+import feuilletLogo from '../../assets/images/feuillet.svg';
 import { useAuth } from '../../hooks/useAuth';
 import { useWheelScroll } from '../../hooks/useWheelScroll';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
@@ -718,7 +718,7 @@ const ProjectApp: React.FC<ProjectManagerProps> = ({
 						rel='noreferrer'
 						title={APP_NAME}
 					>
-						<img src={texlyreLogo} className='logo' alt={APP_NAME} />
+						<img src={feuilletLogo} className='logo' alt={APP_NAME} />
 					</a>
 				</div>
 

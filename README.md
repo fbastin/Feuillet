@@ -1,3 +1,5 @@
+<img src="src/assets/images/feuillet.svg" alt="" width="88" align="right">
+
 # Feuillet
 
 Feuillet is a collaborative LaTeX editor in the spirit of
