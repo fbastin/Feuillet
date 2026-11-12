@@ -21,7 +21,7 @@ services:
     # environment:
     #   MAX_CONCURRENT: "1"
 
-  # Without grammar checking, whose LanguageTool takes 2 GB of memory:
+  # Without grammar checking, whose LanguageTool takes up to 3 GB of memory:
   # collab:
   #   environment:
   #     GRAMMAR_URL: ""

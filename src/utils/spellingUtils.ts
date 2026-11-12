@@ -484,8 +484,8 @@ export function interfaceSpellingLanguage(language: string): SpellingLanguage {
 	return 'en-US';
 }
 
-// LanguageTool's code for each language (server/collab/grammar.js), with the
-// country its rules need.
+// LanguageTool's code for each language, with the country its rules need;
+// server/collab/grammar.js takes these only (LANGUAGES).
 const GRAMMAR_LANGUAGES: Record<SpellingLanguage, string> = {
 	fr: 'fr',
 	'en-US': 'en-US',

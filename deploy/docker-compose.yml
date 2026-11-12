@@ -159,7 +159,8 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    mem_limit: 2g
+    # Its heap, 2 GB (server/languagetool/Dockerfile), and the rest of Java.
+    mem_limit: 3g
     cpus: 2
     pids_limit: 128
 

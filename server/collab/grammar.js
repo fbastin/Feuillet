@@ -38,11 +38,35 @@ const WARM_ATTEMPTS = 20;
 // fine): once more, a moment later, within the same time limit, rather than
 // at the editor's next try, 15 seconds on.
 const RETRY_DELAY_MS = 1500;
-const LANGUAGE = /^(?:auto|[a-z]{2,3}(?:-[A-Z]{2})?)$/;
+// The editor's languages, as LanguageTool names them (GRAMMAR_LANGUAGES,
+// src/utils/spellingUtils.ts), and only these: LanguageTool keeps the rules
+// of every language it has checked, about 1 GB for these 15 (its memory:
+// server/languagetool/Dockerfile); asked for Ukrainian and Slovak on top of
+// them, it ran out of memory and stopped.
+const LANGUAGES = new Set([
+	'fr',
+	'en-US',
+	'en-GB',
+	'de-DE',
+	'es',
+	'it',
+	'pt-BR',
+	'pt-PT',
+	'nl',
+	'ca-ES',
+	'pl-PL',
+	'ru-RU',
+	'sv',
+	'da-DK',
+	'ro-RO',
+]);
 const RULE = /^[A-Za-z0-9_]{1,100}$/;
 // What the source of LaTeX or Typst makes look wrong: several spaces, which
-// print as one, and the spaces before « : ; ! ? », which babel adds.
-const ALWAYS_DISABLED = ['WHITESPACE_RULE', 'CONSECUTIVE_SPACES', 'FRENCH_WHITESPACE'];
+// print as one, and the spaces before « : ; ! ? », which babel adds. The
+// same for every check: LanguageTool makes and keeps rules for each
+// language and list of rules turned off, 20 to 40 MB each, so the rules
+// each account turns off are left out here, from what it finds.
+const ALWAYS_DISABLED = ['WHITESPACE_RULE', 'CONSECUTIVE_SPACES', 'FRENCH_WHITESPACE'].join(',');
 // Spelling, which Feuillet's own checker does with the user's dictionary.
 const SPELLING_RULE = /MORFOLOGIK|HUNSPELL|SPELLING_RULE|SPELLER/;
 
@@ -109,7 +133,11 @@ const createGrammar = ({
 			for (const language of WARM_LANGUAGES) {
 				const response = await fetch(`${base}/v2/check`, {
 					method: 'POST',
-					body: new URLSearchParams({ text: 'Bonjour.', language }),
+					body: new URLSearchParams({
+						text: 'Bonjour.',
+						language,
+						disabledRules: ALWAYS_DISABLED,
+					}),
 					signal: AbortSignal.timeout(TIMEOUT_MS * 2),
 				});
 				if (!response.ok) throw new Error(`status ${response.status}`);
@@ -172,11 +200,11 @@ const createGrammar = ({
 
 	const check = async (body) => {
 		const language = typeof body?.language === 'string' ? body.language : '';
-		if (!LANGUAGE.test(language)) throw new GrammarError(400, 'invalid_language');
+		if (!LANGUAGES.has(language)) throw new GrammarError(400, 'invalid_language');
 		const annotation = cleanAnnotation(body.annotation);
 		const asked = Array.isArray(body.disabledRules) ? body.disabledRules : [];
 		if (asked.length > MAX_DISABLED_RULES) throw new GrammarError(400, 'invalid_rules');
-		const disabled = new Set(ALWAYS_DISABLED);
+		const disabled = new Set();
 		for (const rule of asked) {
 			if (typeof rule !== 'string' || !RULE.test(rule)) {
 				throw new GrammarError(400, 'invalid_rules');
@@ -193,7 +221,7 @@ const createGrammar = ({
 					body: new URLSearchParams({
 						data: JSON.stringify({ annotation }),
 						language,
-						disabledRules: [...disabled].join(','),
+						disabledRules: ALWAYS_DISABLED,
 					}),
 					signal,
 				});
@@ -206,7 +234,10 @@ const createGrammar = ({
 			if (!response.ok) throw new GrammarError(502, 'grammar_failed');
 			const result = await response.json();
 			return (Array.isArray(result?.matches) ? result.matches : [])
-				.filter((match) => !SPELLING_RULE.test(String(match?.rule?.id ?? '')))
+				.filter((match) => {
+					const rule = String(match?.rule?.id ?? '');
+					return !SPELLING_RULE.test(rule) && !disabled.has(rule);
+				})
 				.map(cleanMatch)
 				.filter(
 					(match) =>
@@ -269,4 +300,4 @@ const createGrammar = ({
 	return { handles, handle, status };
 };
 
-module.exports = { createGrammar, cleanAnnotation, ALWAYS_DISABLED };
+module.exports = { createGrammar, cleanAnnotation, LANGUAGES };

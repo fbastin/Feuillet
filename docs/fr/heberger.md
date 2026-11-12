@@ -23,7 +23,7 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
   décompressée : prévoyez au moins 30 Go libres sur le disque, plus vos
   projets. Le serveur TeX Live est borné à 4 Go de mémoire et 4
   processeurs, deux compilations à la fois; celui de TeX Live 2025, à 3 Go
-  et 3 processeurs; la vérification de la grammaire (LanguageTool), à 2 Go.
+  et 3 processeurs; la vérification de la grammaire (LanguageTool), à 3 Go.
   Une machine de 4 processeurs et 8 Go de mémoire suffit pour commencer;
   ces bornes sont dans
   [`deploy/docker-compose.yml`](../../deploy/docker-compose.yml), et se

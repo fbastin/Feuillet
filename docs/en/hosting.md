@@ -21,7 +21,7 @@ This page gives the steps. Each setting is detailed in
   image of about 3 GB to download, more once unpacked: allow at least 30 GB
   of free disk, plus your projects. The TeX Live server is bounded to 4 GB
   of memory and 4 CPUs, two compiles at a time; the TeX Live 2025 one, to
-  3 GB and 3 CPUs; grammar checking (LanguageTool), to 2 GB. A machine with
+  3 GB and 3 CPUs; grammar checking (LanguageTool), to 3 GB. A machine with
   4 CPUs and 8 GB of memory is enough to start with; these bounds are in
   [`deploy/docker-compose.yml`](../../deploy/docker-compose.yml), and
   change in `/etc/feuillet/docker-compose.override.yml` (see below).

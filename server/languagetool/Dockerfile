@@ -30,6 +30,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -fsS -o /dev/null http://127.0.0.1:8010/v2/languages || exit 1
 
 # --public: on the container's network, where only the collaboration server
-# is; no Access-Control-Allow-Origin: browsers never call it.
-CMD ["java", "-Xms256m", "-Xmx1200m", "-XX:-UsePerfData", "-cp", "languagetool-server.jar", \
+# is; no Access-Control-Allow-Origin: browsers never call it. The rules of
+# the editor's 15 languages keep about 1 GB (measured on 6.6: 1030 MB), with
+# four long checks at once 1.2 GB: 2 GB of heap. Should that run out, it
+# stops at once and Docker starts it again, rather than answering nothing.
+CMD ["java", "-Xms256m", "-Xmx2g", "-XX:+ExitOnOutOfMemoryError", "-XX:-UsePerfData", "-cp", "languagetool-server.jar", \
      "org.languagetool.server.HTTPServer", "--port", "8010", "--public", "--config", "server.properties"]
