@@ -78,7 +78,11 @@ browser ──https──▶ Apache or nginx ── /                  ▶ /var/
    (`sudo deploy/install.sh feuillet.example.org nginx`). It keeps them in
    `/etc/feuillet/site.env` (`DOMAIN=`, `WEB=`), which later runs,
    `deploy/publish.sh` and `deploy/docker-compose.yml` read.
-   It creates the web root `/var/www/DOMAIN`, sets up the web server for
+   It first checks the machine and stops, saying what to do, if something
+   is missing: Docker answering, Docker Compose 2.24 or newer, curl,
+   openssl, the web server and certbot's plugin for it, port 1234 free; it
+   warns of less than 30 GB free for Docker, of less than 8 GB of memory,
+   and of an address that does not resolve yet. Then it creates the web root `/var/www/DOMAIN`, sets up the web server for
    that address (Apache: `deploy/apache/feuillet.conf`; nginx: see below),
    builds and starts the servers with Docker (the TeX Live image downloads
    about 3 GB) and requests the HTTPS certificate with certbot
@@ -647,6 +651,52 @@ so the container is bounded (`docker-compose.yml`; yours in
   bounds, and a flaw of the Linux kernel is easier to reach with any program
   than with TeX alone. Overleaf compiles each project in a container of its
   own; here connections share one, under different uids.
+
+## Uninstalling
+
+Make a last backup first, if anything should be kept (`sudo
+feuillet-backup`, see Backups). Then the servers, with their data
+(accounts, projects, versions, Git repositories) and the images built for
+them:
+
+```
+sudo feuillet-compose down -v --rmi local
+```
+
+Without `-v`, the data stays in Docker's volumes, and a later `install.sh`
+finds it again. The images of TeX Live they were built from go with
+`sudo docker rmi texlive/texlive:latest texlive/texlive:TL2025-historic`.
+
+Then what `install.sh` set up, `feuillet.example.org` being the address:
+
+```
+sudo rm -f /etc/cron.d/feuillet-backup /usr/local/sbin/feuillet-backup \
+  /usr/local/sbin/feuillet-restore /usr/local/sbin/feuillet-compose
+sudo rm -rf /etc/feuillet /var/lib/feuillet /var/www/feuillet.example.org
+```
+
+With Apache, its sites (and the copies `install.sh` kept of them,
+`*.avant-*`):
+
+```
+sudo a2dissite feuillet.example.org feuillet.example.org-le-ssl
+sudo rm /etc/apache2/sites-available/feuillet.example.org*
+sudo systemctl reload apache2
+```
+
+With nginx:
+
+```
+sudo rm /etc/nginx/sites-enabled/feuillet.example.org \
+  /etc/nginx/sites-available/feuillet.example.org \
+  /etc/nginx/snippets/feuillet.conf /etc/nginx/conf.d/feuillet.conf
+sudo systemctl reload nginx
+```
+
+And the certificate: `sudo certbot delete --cert-name feuillet.example.org`.
+The backups (`/var/backups/feuillet`, and wherever `BACKUP_COPY_TO` copies
+them) and their log (`/var/log/feuillet-backup.log`) stay until you remove
+them: they hold your users' data.
 
 ## Local development
 

@@ -60,7 +60,10 @@ This page gives the steps. Each setting is detailed in
    ```
 
    The script takes the web server installed, Apache or nginx; if both are,
-   name yours: `sudo deploy/install.sh feuillet.example.org nginx`. It keeps
+   name yours: `sudo deploy/install.sh feuillet.example.org nginx`. It first
+   checks the machine: if something is missing (Docker, a recent enough
+   Docker Compose, certbot's plugin…), it stops and says what to install,
+   before changing anything. It keeps
    the address and that choice in `/etc/feuillet/site.env`, creates the
    site's folder (`/var/www/feuillet.example.org`, owned by your account),
    installs the site in it, sets up nightly backups, builds and starts the
@@ -175,3 +178,11 @@ at their next visit.
   changed code. The link to the code, at the bottom of the page, leads to
   the repository named by `organizationName` and `projectName` in
   `texlyre.config.ts`: point it to your copy.
+
+## Uninstalling
+
+`sudo feuillet-compose down -v --rmi local` removes the servers, with their
+data (accounts, projects, versions): make a last backup first if anything
+should stay. The rest of what `install.sh` set up, the web server's site
+and the certificate go as [`deploy/README.md`](../../deploy/README.md) says,
+in "Uninstalling". The backups stay until you remove them.

@@ -70,6 +70,69 @@ if [ -n "$SAVED_WEB" ] && [ "$WEB" != "$SAVED_WEB" ]; then
 	echo "change WEB= there, then run sudo $0 again." >&2
 	exit 1
 fi
+
+# Before anything changes: what is missing stops the installation, with
+# what to do; what would only slow or limit Feuillet is said.
+echo "== Checks"
+problems=()
+need() {
+	command -v "$1" >/dev/null || problems+=("$1 is missing: $2")
+}
+need docker "install Docker (docs/en/hosting.md)"
+need curl "sudo apt install curl"
+need openssl "sudo apt install openssl"
+need systemctl "Feuillet's installation needs systemd"
+if command -v docker >/dev/null; then
+	if ! docker info >/dev/null 2>&1; then
+		problems+=("Docker does not answer: sudo systemctl start docker")
+	fi
+	compose=$(docker compose version --short 2>/dev/null || true)
+	if [ -z "$compose" ]; then
+		problems+=("Docker Compose is missing: sudo apt install docker-compose-v2")
+	elif ! printf '2.24.0\n%s\n' "${compose#v}" | sort -V -C; then
+		problems+=("Docker Compose $compose is too old, 2.24 or newer is needed: take Docker from its own repository (https://docs.docker.com/engine/install/)")
+	fi
+fi
+case $WEB in
+apache)
+	need apache2ctl "sudo apt install apache2"
+	need a2enmod "sudo apt install apache2"
+	;;
+nginx) need nginx "sudo apt install nginx" ;;
+esac
+if [ "$WEB" != none ] && [ ! -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+	if ! command -v certbot >/dev/null; then
+		problems+=("certbot is missing: sudo apt install certbot python3-certbot-$WEB")
+	elif ! certbot plugins 2>/dev/null | grep -q "^\* $WEB\$"; then
+		problems+=("certbot's $WEB plugin is missing: sudo apt install python3-certbot-$WEB")
+	fi
+fi
+# The collaboration server's port, unless this server already has it.
+if command -v ss >/dev/null && [ -n "$(ss -Hltn 'sport = :1234')" ] &&
+	! docker inspect feuillet-collab >/dev/null 2>&1; then
+	problems+=("Port 1234 is taken, which the collaboration server needs: sudo ss -ltnp 'sport = :1234' tells by what")
+fi
+if [ ${#problems[@]} -gt 0 ]; then
+	printf '%s\n' "${problems[@]}" >&2
+	exit 1
+fi
+warn() { echo "Warning: $*"; }
+# The images of TeX Live take about 3 GB each to download, more unpacked.
+if ! docker image inspect feuillet-texlive >/dev/null 2>&1; then
+	docker_root=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || echo /var/lib/docker)
+	free_gb=$(df -P -BG "$docker_root" 2>/dev/null | awk 'NR == 2 { print $4 + 0 }')
+	if [ "${free_gb:-0}" -lt 30 ]; then
+		warn "${free_gb:-?} GB free for Docker ($docker_root); the first installation takes about 20 GB, and 30 GB are advised (docs/en/hosting.md)."
+	fi
+fi
+memory_gb=$(awk '/^MemTotal:/ { print int($2 / 1048576 + 0.5) }' /proc/meminfo)
+if [ "${memory_gb:-0}" -lt 7 ]; then
+	warn "this machine has ${memory_gb:-?} GB of memory, 8 are advised: with less, deploy/docker-compose.override.example.yml shows how to do without TeX Live 2025."
+fi
+if [ "$WEB" != none ] && ! getent hosts "$DOMAIN" >/dev/null; then
+	warn "$DOMAIN does not resolve yet: the HTTPS certificate waits for its DNS record."
+fi
+
 install -d -m 755 /etc/feuillet
 # A value of site.env, the file's other lines kept.
 set_site() {
@@ -340,15 +403,22 @@ chmod 755 /usr/local/sbin/feuillet-compose
 echo "== Collaboration, TeX Live and LanguageTool servers (the first builds download about 3 GB for each year of TeX Live, and 250 MB)"
 install -d -o root -g www-data -m 0750 "$TEXLIVE_SOCKET_DIR"
 "${COMPOSE[@]}" up -d --build
-for _ in $(seq 1 60); do
-	if curl -fsS http://127.0.0.1:1234/health >/dev/null; then break; fi
-	sleep 1
-done
+# Waits for a server to answer; otherwise shows why, from its last lines.
+wait_for() {
+	local name=$1 container=$2
+	shift 2
+	for _ in $(seq 1 90); do
+		if "$@" >/dev/null 2>&1; then return 0; fi
+		sleep 1
+	done
+	echo "The $name server does not answer. Its last lines (sudo docker logs $container):" >&2
+	docker logs --tail 30 "$container" >&2 || true
+	echo "The servers' state: sudo feuillet-compose ps" >&2
+	exit 1
+}
+wait_for collaboration feuillet-collab curl -fsS http://127.0.0.1:1234/health
 curl -fsS http://127.0.0.1:1234/health && echo
-for _ in $(seq 1 60); do
-	if curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health >/dev/null; then break; fi
-	sleep 1
-done
+wait_for "TeX Live" feuillet-texlive curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health
 curl -fsS --unix-socket "$TEXLIVE_SOCKET" http://localhost/health && echo
 # The other years of TeX Live that projects may choose (OTHER_YEARS in
 # docker-compose.yml), each on its own socket.
@@ -398,4 +468,17 @@ else
 	echo "  sudo certbot --$WEB -d $DOMAIN --redirect"
 fi
 
-echo "Done. Publish the application with: deploy/publish.sh (no sudo needed)"
+# As the world sees it, if this machine can reach its own address.
+if [ "$WEB" != none ] && [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+	if curl -fsS --max-time 15 "https://$DOMAIN/collab/health" >/dev/null 2>&1; then
+		echo "https://$DOMAIN/collab/health answers."
+	else
+		warn "https://$DOMAIN/collab/health does not answer from this machine: check the firewall (ports 80 and 443) and the DNS record."
+	fi
+fi
+
+if [ -e "$WEBROOT/index.html" ]; then
+	echo "Done. After an update, publish the application with: deploy/publish.sh (no sudo needed)"
+else
+	echo "Done. Publish the application with: deploy/publish.sh (no sudo needed)"
+fi

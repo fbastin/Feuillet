@@ -66,6 +66,9 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 
    Le script prend le serveur web installé, Apache ou nginx; si les deux le
    sont, nommez le vôtre : `sudo deploy/install.sh feuillet.exemple.org nginx`.
+   Il vérifie d'abord la machine : s'il manque quelque chose (Docker,
+   Docker Compose assez récent, le greffon de certbot…), il s'arrête en
+   disant quoi installer, avant d'avoir rien changé.
    Il garde l'adresse et ce choix dans `/etc/feuillet/site.env`, crée le
    dossier du site (`/var/www/feuillet.exemple.org`, à votre compte), y
    installe le site, prépare les sauvegardes de chaque nuit, construit et lance les
@@ -184,3 +187,12 @@ nouvelle application, que les navigateurs prennent à leur visite suivante.
   modifié. Le lien vers le code, en bas de page, mène au dépôt nommé par
   `organizationName` et `projectName` dans `texlyre.config.ts` : faites-le
   pointer vers votre copie.
+
+## Désinstaller
+
+`sudo feuillet-compose down -v --rmi local` retire les serveurs, avec leurs
+données (comptes, projets, versions) : faites d'abord une dernière
+sauvegarde si quelque chose doit rester. Le reste de ce qu'`install.sh` a
+mis en place, le site du serveur web et le certificat se retirent comme le
+dit [`deploy/README.md`](../../deploy/README.md), section « Uninstalling ».
+Les sauvegardes, elles, restent jusqu'à ce que vous les supprimiez.
