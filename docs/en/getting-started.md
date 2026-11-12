@@ -317,3 +317,11 @@ stays still. Escape ends the presentation, at the page reached. To present on
 a projector while keeping the editor in view, first open the PDF in a
 separate window (**Open output in new window**, beside the compile button),
 drag it to the projector, then start presentation mode there.
+
+### The PDF in a dark theme
+
+With a dark theme, as on Overleaf, the PDF is shown in dark colours: its
+pages' colours are inverted on screen, while the PDF itself, downloaded or
+presented, keeps its own. The sun button of the PDF toolbar shows it in its
+own colours, the moon button in dark colours again; the choice is kept, and
+is also in **Settings**, *PDF Output*: **Dark PDF with a dark theme**.

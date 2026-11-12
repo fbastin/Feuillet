@@ -122,6 +122,13 @@
 	cursor: pointer;
 }
 
+/* Dark PDF (settings.ts, pdf-renderer-dark): the pages' colours inverted,
+   their hues kept (links stay blue), a little short of black and white;
+   the page under its canvas too, while it is drawn. */
+.pdf-renderer-container[data-dark-pdf="true"] .pdf-full-viewer-container .page {
+	filter: invert(0.9) hue-rotate(180deg);
+}
+
 /* Presentation mode: the PDF alone on black, one page centred on the
    screen, without the toolbar; the pointer hides when still. */
 .pdf-renderer-container[data-presenting="true"] {

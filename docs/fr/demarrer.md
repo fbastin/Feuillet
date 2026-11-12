@@ -342,3 +342,12 @@ Pour présenter sur un projecteur en gardant l'éditeur sous les yeux, ouvrez
 d'abord le PDF dans une fenêtre à part (**Ouvrir la sortie dans une nouvelle
 fenêtre**, à côté du bouton de compilation), glissez-la sur le projecteur,
 puis lancez-y le mode présentation.
+
+### Le PDF avec un thème sombre
+
+Avec un thème sombre, comme sur Overleaf, le PDF s'affiche en couleurs
+sombres : les couleurs de ses pages sont inversées à l'écran, alors que le
+PDF lui-même, téléchargé ou présenté, garde les siennes. Le bouton soleil de
+la barre du PDF le montre dans ses couleurs, le bouton lune de nouveau en
+couleurs sombres; le choix est gardé, et se trouve aussi dans
+**Paramètres**, *Sortie PDF* : **PDF sombre avec un thème sombre**.

@@ -27,11 +27,14 @@ import {
 	ZoomOutIcon,
 	ExpandIcon,
 	MinimizeIcon,
+	MoonIcon,
 	PresentationIcon,
+	SunIcon,
 } from '@/components/common/Icons';
 import { getPdfRendererSettings } from './settings';
 import { useSettings } from '@/hooks/useSettings';
 import { useProperties } from '@/hooks/useProperties';
+import { useTheme } from '@/hooks/useTheme';
 import type { RendererProps } from '@/plugins/PluginInterface';
 import { PdfJsFullViewer, type PdfJsFullViewerHandle } from './PdfJsFullViewer';
 import './styles.css';
@@ -130,8 +133,9 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	headerTitle,
 	memoryOptimized = false,
 }) => {
-	const { getSetting } = useSettings();
+	const { getSetting, updateSetting } = useSettings();
 	const { getProperty, setProperty, registerProperty } = useProperties();
+	const { isCurrentVariantDark } = useTheme();
 
 	const pdfRendererEnable =
 		(getSetting('pdf-renderer-enable')?.value as boolean) ?? true;
@@ -139,6 +143,8 @@ const PdfRenderer: React.FC<RendererProps> = ({
 		(getSetting('pdf-renderer-text-selection')?.value as boolean) ?? true;
 	const pdfRendererAnnotations =
 		(getSetting('pdf-renderer-annotations')?.value as boolean) ?? true;
+	const pdfRendererDark =
+		(getSetting('pdf-renderer-dark')?.value as boolean) ?? true;
 
 	const [numPages, setNumPages] = useState(0);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -823,6 +829,11 @@ const PdfRenderer: React.FC<RendererProps> = ({
 			className='pdf-renderer-container ui-viewer'
 			data-surface='base'
 			data-presenting={isPresenting ? 'true' : undefined}
+			data-dark-pdf={
+				isCurrentVariantDark && pdfRendererDark && !isPresenting
+					? 'true'
+					: undefined
+			}
 			ref={containerRef}
 			tabIndex={-1}
 			onMouseEnter={() => {
@@ -969,6 +980,26 @@ const PdfRenderer: React.FC<RendererProps> = ({
 							>
 								{scrollView ? <PageIcon /> : <ScrollIcon />}
 							</button>
+
+							{isCurrentVariantDark && (
+								<button
+									type='button'
+									onClick={() =>
+										updateSetting('pdf-renderer-dark', !pdfRendererDark)
+									}
+									className='ui-icon-button'
+									data-variant='control'
+									data-action='dark-pdf'
+									aria-pressed={pdfRendererDark}
+									title={
+										pdfRendererDark
+											? t('Show the PDF in its own colours')
+											: t('Show the PDF in dark colours')
+									}
+								>
+									{pdfRendererDark ? <SunIcon /> : <MoonIcon />}
+								</button>
+							)}
 
 							<button
 								type='button'

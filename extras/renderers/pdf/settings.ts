@@ -79,4 +79,19 @@ export const getPdfRendererSettings = (): Setting[] => [
 		dependsOn: { id: 'pdf-renderer-enable', value: true, nest: true },
 		disabledReason: t('Requires: Enhanced PDF Renderer'),
 	},
+	// As Overleaf's dark-mode PDF: with a dark theme, the pages' colours
+	// inverted on screen, which the toolbar's button also turns off and on.
+	{
+		id: 'pdf-renderer-dark',
+		category: t('Renderers'),
+		subcategory: t('PDF Output'),
+		type: 'checkbox',
+		label: t('Dark PDF with a dark theme'),
+		description: t(
+			'With a dark theme, shows the pages with their colours inverted, on screen only: the PDF itself is unchanged, and presenting shows its own colours',
+		),
+		defaultValue: true,
+		dependsOn: { id: 'pdf-renderer-enable', value: true, nest: true },
+		disabledReason: t('Requires: Enhanced PDF Renderer'),
+	},
 ];
