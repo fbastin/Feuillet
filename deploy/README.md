@@ -503,9 +503,10 @@ and keeps the archives in the pre-release `app-builds` of the repository:
   browser (600 MB), named after its content: uploaded again only when it
   changes.
 
-The archives are reproducible: the same files give the same bytes, whoever
-packs them. Those of the 15 latest commits stay, with the `core/` they
-need; the rest goes.
+`core/` goes up once for each content, with its sum beside it
+(`feuillet-core-<key>.sha256`), which the manifests of later commits give.
+The archives of the 15 latest commits stay, with the `core/` they need;
+the rest goes.
 
 `deploy/publish.sh --download` (the default without Node.js 22) takes the
 archive of the commit checked out (`git rev-parse HEAD`), from the

@@ -8,9 +8,12 @@
 #   feuillet-core-<key>.tar.gz     core/, the compilers that run in the
 #                                  browser (600 MB), named after its content
 #                                  and uploaded only when that changes
-# Archives are reproducible (sorted, dated 1970, no owner): the same files
-# give the same bytes. The 15 latest commits keep theirs, and the cores
-# they need.
+#   feuillet-core-<key>.sha256     its SHA-256 sum, which the manifests of
+#                                  later commits give: packed again
+#                                  elsewhere, by other versions of tar and
+#                                  gzip, the same files would give other
+#                                  bytes
+# The 15 latest commits keep their archives, and the cores they need.
 name: App archive
 
 on:
@@ -60,13 +63,7 @@ jobs:
           mkdir -p out
           (cd dist && pack --exclude=./core .) >"out/feuillet-app-$GITHUB_SHA.tar.gz"
           (cd dist/core && pack .) >"out/feuillet-core-$core.tar.gz"
-          {
-            echo "commit=$GITHUB_SHA"
-            echo "app_sha256=$(sha256sum "out/feuillet-app-$GITHUB_SHA.tar.gz" | cut -d' ' -f1)"
-            echo "core=$core"
-            echo "core_sha256=$(sha256sum "out/feuillet-core-$core.tar.gz" | cut -d' ' -f1)"
-          } >"out/feuillet-app-$GITHUB_SHA.txt"
-          cat "out/feuillet-app-$GITHUB_SHA.txt"
+          sha256sum "out/feuillet-core-$core.tar.gz" | cut -d' ' -f1 >"out/feuillet-core-$core.sha256"
           ls -la out
           echo "CORE=$core" >>"$GITHUB_ENV"
 
@@ -80,11 +77,31 @@ jobs:
               --title "Feuillet application builds" \
               --notes "The application built for each recent commit of main, which deploy/publish.sh --download takes in place of a build (.github/workflows/app-archive.yml). Not a release: the archives of older commits go."
           fi
-          # The core only if this content is not there yet: the same
-          # content gives the same archive.
-          if ! gh release view "$RELEASE" --json assets --jq '.assets[].name' | grep -qx "feuillet-core-$CORE.tar.gz"; then
+          assets=$(gh release view "$RELEASE" --json assets --jq '.assets[].name')
+          has() { grep -qx "$1" <<<"$assets"; }
+          # The core only if this content is not there yet; the sum is then
+          # the one of the archive there.
+          if ! has "feuillet-core-$CORE.tar.gz"; then
             gh release upload "$RELEASE" "out/feuillet-core-$CORE.tar.gz"
+            gh release upload "$RELEASE" --clobber "out/feuillet-core-$CORE.sha256"
+          elif has "feuillet-core-$CORE.sha256"; then
+            rm "out/feuillet-core-$CORE.sha256"
+            gh release download "$RELEASE" --pattern "feuillet-core-$CORE.sha256" --dir out
+          else
+            # Uploaded before its sum was: the sum of the archive there.
+            gh release download "$RELEASE" --pattern "feuillet-core-$CORE.tar.gz" --dir there
+            sha256sum "there/feuillet-core-$CORE.tar.gz" | cut -d' ' -f1 >"out/feuillet-core-$CORE.sha256"
+            gh release upload "$RELEASE" --clobber "out/feuillet-core-$CORE.sha256"
           fi
+          core_sum=$(tr -d '[:space:]' <"out/feuillet-core-$CORE.sha256")
+          [[ $core_sum =~ ^[0-9a-f]{64}$ ]]
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "app_sha256=$(sha256sum "out/feuillet-app-$GITHUB_SHA.tar.gz" | cut -d' ' -f1)"
+            echo "core=$CORE"
+            echo "core_sha256=$core_sum"
+          } >"out/feuillet-app-$GITHUB_SHA.txt"
+          cat "out/feuillet-app-$GITHUB_SHA.txt"
           # The manifest last: once it is there, the rest is.
           gh release upload "$RELEASE" --clobber "out/feuillet-app-$GITHUB_SHA.tar.gz"
           gh release upload "$RELEASE" --clobber "out/feuillet-app-$GITHUB_SHA.txt"
@@ -110,7 +127,7 @@ jobs:
             drop=false
             if [[ $name =~ ^feuillet-app-([0-9a-f]{40})\.(tar\.gz|txt)$ ]]; then
               grep -qx "${BASH_REMATCH[1]}" keep.txt || drop=true
-            elif [[ $name =~ ^feuillet-core-([0-9a-f]{16})\.tar\.gz$ ]]; then
+            elif [[ $name =~ ^feuillet-core-([0-9a-f]{16})\.(tar\.gz|sha256)$ ]]; then
               grep -qx "${BASH_REMATCH[1]}" cores.txt || drop=true
             fi
             if $drop; then
