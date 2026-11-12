@@ -1,10 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="136" height="20" role="img" aria-label="Ouvrir dans Feuillet">
+<svg xmlns="http://www.w3.org/2000/svg" width="153" height="20" role="img" aria-label="Ouvrir dans Feuillet">
 <title>Ouvrir dans Feuillet</title>
 <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
-<clipPath id="r"><rect width="136" height="20" rx="3" fill="#fff"/></clipPath>
-<g clip-path="url(#r)"><rect width="78" height="20" fill="#555"/><rect x="78" width="58" height="20" fill="#2f7d4a"/><rect width="136" height="20" fill="url(#s)"/></g>
+<clipPath id="r"><rect width="153" height="20" rx="3" fill="#fff"/></clipPath>
+<g clip-path="url(#r)"><rect width="95" height="20" fill="#555"/><rect x="95" width="58" height="20" fill="#27774a"/><rect width="153" height="20" fill="url(#s)"/></g>
+<svg x="5" y="3" width="14" height="14" viewBox="0 0 512 512"><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512"><rect width="512" height="512" fill="#fff"/><path d="M256,8 V382" stroke="#000" stroke-width="34" stroke-linecap="round"/></mask><path mask="url(#m)" fill="#fff" d="M256,28 C300,70 420,150 424,272 C428,372 352,430 256,434 C160,430 84,372 88,272 C92,150 212,70 256,28 Z"/><path d="M256,426 C256,450 250,470 234,490" stroke="#fff" stroke-width="34" stroke-linecap="round" fill="none"/></svg>
 <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
-<text x="39.0" y="15" fill="#010101" fill-opacity=".3">Ouvrir dans</text><text x="39.0" y="14">Ouvrir dans</text>
-<text x="107.0" y="15" fill="#010101" fill-opacity=".3">Feuillet</text><text x="107.0" y="14">Feuillet</text>
+<text x="56.0" y="15" fill="#010101" fill-opacity=".3">Ouvrir dans</text><text x="56.0" y="14">Ouvrir dans</text>
+<text x="124.0" y="15" fill="#010101" fill-opacity=".3">Feuillet</text><text x="124.0" y="14">Feuillet</text>
 </g>
 </svg>
