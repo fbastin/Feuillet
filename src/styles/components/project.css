@@ -227,6 +227,26 @@
 	white-space: nowrap;
 }
 
+/* The access requests waiting for the owner, as Overleaf's badge. */
+.button.share-button .share-button-requests {
+	min-width: 1.4em;
+	padding: 0 0.35em;
+	border-radius: 999px;
+	background: var(--pico-primary);
+	color: var(--pico-primary-inverse);
+	font-size: 0.75em;
+	font-weight: 700;
+	line-height: 1.4em;
+	text-align: center;
+}
+
+/* The access requests, in the Share dialog. */
+.share-project .project-share-requests {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
 /* What is used less in the Share dialog, folded away. */
 .share-project details.share-more {
 	margin: 0;

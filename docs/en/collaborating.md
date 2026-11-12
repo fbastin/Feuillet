@@ -41,6 +41,20 @@ back access given by a link**, the owner replaces the editing link or the
 read-only link with a new one: the old one stops working. Invited people
 follow the change by themselves.
 
+### Asking for more access
+
+As on Overleaf, whoever reads a project, by a read-only link or as a reader,
+may ask its owner to review or edit it, and a reviewer to edit it: **Ask for
+access**, next to « Read-only » in the header, opens the **Share** dialog,
+with **Ask to review** and **Ask to edit**. You need an account, signed in.
+The owner is told by email and by a number on their **Share** button; in
+the dialog, **Access requests** lists who asks for what, with **Grant** and
+**Decline**. Granted, the person becomes a member with that role, and the
+project is in their list under its new link, once; they are told by email,
+and the header offers **Open it for editing**. Declined, they keep the
+access they had, and are told too. Until the owner decides, the request can
+be withdrawn from the dialog.
+
 ### Removing someone, leaving a project
 
 In the list of members, **Remove** takes a person off: the link of their role

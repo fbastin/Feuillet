@@ -63,6 +63,14 @@
 //   POST /share/invites {project, revoke: invite} -> {invites}
 //   POST /share/accept {invite}      (token) -> {project, role, name, type}:
 //                                    the account becomes a member
+//   POST /share/request {project, role, name, language} (token) ->
+//                                    {requested}: asks the owner for more
+//                                    access, as Overleaf's "Request access"
+//   POST /share/request {project, cancel: true} (token) -> {requested: null}
+//   POST /share/members {project, grant: username, name, type} (owner): the
+//                                    request granted, the account a member
+//                                    with the role it asked for
+//   POST /share/members {project, decline: username} (owner)
 //
 // `project` is an editing id, or for /share/edit any link the account holds.
 // Knowing an editing id is what lets someone edit the project, so it also
@@ -84,6 +92,16 @@
 // address is confirmed, at most MAX_INVITE_MAILS a day for each owner (and
 // within mail.js's limits), and never says to whom an address belongs.
 //
+// Access requests, as Overleaf's: whoever reads a project, as a member or
+// by a link, may ask its owner to review or edit it, and whoever reviews
+// it to edit it. The owner is told by email (at most once a day for one
+// account's request) and by the count on the Share button
+// (/share/edit's `requests`), and grants or declines in the share dialog
+// (/share/members `requests`); the account is told the answer by email.
+// Granted, it becomes a member with that role, its list naming the project
+// by that role's link in place of the one it had. One request by account;
+// one already met (the account an editor since) is no longer listed.
+//
 // Deleting a project for good, as on Overleaf, erases its documents, files
 // and versions (`eraseProject`, given by the server), takes it off every
 // list, and leaves only {deleted: true} in its file, so that none of its
@@ -96,7 +114,8 @@
 // (reviews/<review>.json: the same), one per editing id given out
 // (edits/<edit>.json: the same) and one per pending invitation
 // (invites/<invite>.json: {project, role, name, type, createdAt,
-// expiresAt}).
+// expiresAt}). A project's file keeps its access requests too (requests:
+// {account: {username, role, name, createdAt, mailedAt}}).
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -114,6 +133,8 @@ const INVITE_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_INVITES = 50;
 // Invitations one owner may have mailed in 24 hours.
 const MAX_INVITE_MAILS = 30;
+// Access requests a project keeps at once.
+const MAX_REQUESTS = 50;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const PROJECT_TYPES = ['latex', 'typst'];
@@ -125,6 +146,16 @@ class HttpError extends Error {
 		this.code = code;
 	}
 }
+
+// A project's name as a device gives it, kept on one line.
+const projectName = (name) =>
+	typeof name === 'string'
+		? name
+				// biome-ignore lint/suspicious/noControlCharactersInRegex: removes them.
+				.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ')
+				.trim()
+				.slice(0, 200)
+		: '';
 
 const isViewId = (id) => VIEW_ID.test(id);
 const isReviewId = (id) => REVIEW_ID.test(id);
@@ -325,9 +356,13 @@ const createShares = ({
 			replaceEdit(project);
 		}
 
+		const asked = pendingRequests(record);
+		const mine = asked.find(([id]) => id === account)?.[1];
 		return {
 			owner: role === 'owner' ? 'you' : record.owner ? 'other' : 'none',
 			role,
+			...(role === 'owner' ? { requests: asked.length } : {}),
+			...(mine ? { requested: mine.role } : {}),
 			...(edits ? { edit: editOf(project) } : {}),
 			...(found.kind === 'review' && reviews
 				? { review: reviewOf(project) }
@@ -340,6 +375,26 @@ const createShares = ({
 		Object.values(record.members ?? {})
 			.map(({ username, role }) => ({ username, role }))
 			.sort((a, b) => a.username.localeCompare(b.username));
+
+	// The access requests still to decide: not the owner's, nor met since
+	// (the account given that role or more), oldest first.
+	const pendingRequests = (record) =>
+		Object.entries(record.requests ?? {})
+			.filter(([id, request]) => {
+				if (id === record.owner) return false;
+				const role = record.members?.[id]?.role;
+				return !(
+					role === 'editor' ||
+					(role === 'reviewer' && request.role === 'reviewer')
+				);
+			})
+			.sort(([, a], [, b]) => a.createdAt - b.createdAt);
+	const listRequests = (record) =>
+		pendingRequests(record).map(([, { username, role, createdAt }]) => ({
+			username,
+			role,
+			createdAt,
+		}));
 
 	// The links an account's list names a project by.
 	const linkIdsOf = (entry) =>
@@ -493,7 +548,9 @@ const createShares = ({
 		const changes =
 			Boolean(body.add) ||
 			typeof body.remove === 'string' ||
-			typeof body.transfer === 'string';
+			typeof body.transfer === 'string' ||
+			typeof body.grant === 'string' ||
+			typeof body.decline === 'string';
 		const reachesByLink = found.access === 'edit' || found.access === 'review';
 		if (changes ? role !== 'owner' : !(role || reachesByLink)) {
 			throw new HttpError(403, 'not_owner');
@@ -520,6 +577,8 @@ const createShares = ({
 		} else if (typeof body.transfer === 'string') {
 			await transferOwnership(project, account, body.transfer, body);
 			log('project owner changed');
+		} else if (typeof body.grant === 'string' || typeof body.decline === 'string') {
+			shared = decideRequest(project, account, body);
 		}
 
 		await shared;
@@ -528,6 +587,7 @@ const createShares = ({
 		return {
 			members: listMembers(record),
 			visitors: listVisitors(record),
+			...(record.owner === account ? { requests: listRequests(record) } : {}),
 			...(owner ? { owner } : {}),
 			// The editing link is the owner's to hand out.
 			...(record.owner === account ? { edit: editOf(project) } : {}),
@@ -568,6 +628,120 @@ const createShares = ({
 		}
 	};
 
+	// What an account reaches a project with: by its role, or by the link it
+	// opened it with; null by a replaced link, for someone no member.
+	const reachOf = (record, account, found) => {
+		const role = roleOf(record, account);
+		if (role === 'owner' || role === 'editor' || found.access === 'edit') {
+			return 'edit';
+		}
+		if (role === 'reviewer' || found.access === 'review') return 'review';
+		if (role === 'reader' || found.access === 'view') return 'view';
+		return null;
+	};
+
+	const shareRequest = async (req, body) => {
+		const found = lookup(body.project);
+		if (!found) throw new HttpError(400, 'invalid_project');
+		const account = await accounts.identify(req);
+		const { project } = found;
+		const record = readProject(project);
+		const requests = { ...(record.requests ?? {}) };
+		if (body.cancel === true) {
+			if (requests[account]) {
+				delete requests[account];
+				writeProject(project, { ...record, requests });
+				log('access request withdrawn');
+			}
+			return { requested: null };
+		}
+		const reach = reachOf(record, account, found);
+		if (!reach) throw new HttpError(403, 'link_replaced');
+		if (reach === 'edit') throw new HttpError(400, 'has_access');
+		const role = body.role;
+		const allowed = reach === 'view' ? ['reviewer', 'editor'] : ['editor'];
+		if (!allowed.includes(role)) throw new HttpError(400, 'invalid_role');
+		if (!record.owner) throw new HttpError(409, 'no_owner');
+		const username = accounts.usernameOf(account);
+		if (!username) throw new HttpError(401, 'signed_out');
+		const previous = requests[account];
+		if (!previous && pendingRequests(record).length >= MAX_REQUESTS) {
+			throw new HttpError(413, 'too_many_requests');
+		}
+		const now = Date.now();
+		// The owner is told once a day at most of one account's request.
+		const tell = previous?.role !== role || !(previous?.mailedAt > now - DAY_MS);
+		const name = projectName(body.name) || previous?.name || '';
+		requests[account] = {
+			username,
+			role,
+			name,
+			createdAt: previous?.role === role ? previous.createdAt : now,
+			mailedAt: tell ? now : previous.mailedAt,
+		};
+		writeProject(project, { ...record, requests });
+		log('access requested');
+		const contact = tell && mailer ? accounts.reviewContactOf(record.owner) : null;
+		if (contact?.email) {
+			mailer
+				.send('access-request', {
+					to: contact.email,
+					language: contact.language,
+					username: accounts.usernameOf(record.owner) ?? '',
+					inviter: username,
+					project: name,
+					role,
+					link: `${appBase}/#yjs:${editOf(project)}`,
+				})
+				.catch(() => {});
+		}
+		return { requested: role };
+	};
+
+	// The owner's answer: granted, the account becomes a member with the
+	// role it asked for, its list naming the project by that role's link in
+	// place of the one it had (as for a new owner); the account is told.
+	const decideRequest = async (project, owner, body) => {
+		const granted = typeof body.grant === 'string';
+		const wanted = String(granted ? body.grant : body.decline)
+			.trim()
+			.toLowerCase();
+		const record = readProject(project);
+		const entry = pendingRequests(record).find(
+			([, request]) => request.username.toLowerCase() === wanted,
+		);
+		if (!entry) throw new HttpError(404, 'unknown_request');
+		const [id, request] = entry;
+		const { [id]: _decided, ...others } = record.requests;
+		writeProject(project, { ...record, requests: others });
+		const username = accounts.usernameOf(id);
+		if (!username) return;
+		if (granted) {
+			await accounts.unshareProject(username, names(project));
+			await addMember(project, { id, username }, request.role, {
+				name: projectName(body.name) || request.name,
+				type: body.type,
+			});
+		}
+		log(granted ? 'access request granted' : 'access request declined');
+		const contact = mailer ? accounts.reviewContactOf(id) : null;
+		if (!contact?.email) return;
+		mailer
+			.send('access-decision', {
+				to: contact.email,
+				language: contact.language,
+				username,
+				inviter: accounts.usernameOf(owner) ?? '',
+				project: projectName(body.name) || request.name,
+				role: request.role,
+				why: granted ? 'granted' : 'declined',
+				link: granted
+					? `${appBase}/#yjs:${linkOf(project, request.role)}`
+					: `${appBase}/`,
+			})
+			.catch(() => {});
+	};
+
 	// Leaving a project shared with one, as Overleaf's "Leave". Someone who
 	// came by a link only, without being a member, just stops listing it.
 	const shareLeave = async (req, body) => {
@@ -575,8 +749,13 @@ const createShares = ({
 		if (!found) throw new HttpError(400, 'invalid_project');
 		const account = await accounts.identify(req);
 		const { project } = found;
-		const role = roleOf(readProject(project), account);
+		const record = readProject(project);
+		const role = roleOf(record, account);
 		if (role === 'owner') throw new HttpError(400, 'owner_cannot_leave');
+		if (record.requests?.[account]) {
+			const { [account]: _dropped, ...requests } = record.requests;
+			writeProject(project, { ...record, requests });
+		}
 		if (role) {
 			await dropMember(project, account);
 			log('collaborator left');
@@ -973,6 +1152,7 @@ const createShares = ({
 		'/share/copy': (req, body) => shareCopy(req, body),
 		'/share/invites': (req, body) => shareInvites(req, body),
 		'/share/accept': (req, body) => acceptInvite(req, body),
+		'/share/request': (req, body) => shareRequest(req, body),
 	};
 
 	const handles = (url) => Object.hasOwn(routes, url);

@@ -23,6 +23,8 @@ import { useGlobalKeyboard } from '../../hooks/useGlobalKeyboard';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useOffline } from '../../hooks/useOffline';
 import { useSettings } from '../../hooks/useSettings';
+import { useAccessRequests } from '../../hooks/useAccessRequests';
+import { accountSyncService } from '../../services/AccountSyncService';
 import { usePeerFileSync } from '../../hooks/usePeerFileSync';
 import { useBrowserCompilerMigration } from '../../hooks/useBrowserCompilerMigration';
 import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
@@ -201,6 +203,15 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 	const [showPrivacy, setShowPrivacy] = useState(false);
 
 	const shareUrl = `${window.location.origin}${window.location.pathname}#${docUrl}`;
+	// Access requests, as on Overleaf: counted on the Share button for the
+	// owner; asked for, and their answer, for whoever reads or reviews.
+	const accessRequests = useAccessRequests(
+		docUrl.startsWith('yjs:') ? docUrl.slice(4) : '',
+		docUrl.startsWith('yjs:') &&
+			!!user &&
+			!isGuestUser(user) &&
+			getSetting('collab-provider-type')?.value === 'websocket',
+	);
 	const selectedDocument = doc?.documents?.find((d) => d.id === localDocId);
 	const projectName = doc?.projectMetadata?.name || 'Untitled Project';
 	const projectDescription = doc?.projectMetadata?.description || '';
@@ -796,6 +807,55 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 									<EditIcon />
 								</button>
 							)}
+							{(readOnly || reviewOnly) &&
+								(accessRequests.granted ? (
+									accessRequests.granted.edit ? (
+										<a
+											className='button primary'
+											data-size='sm'
+											data-action='open-granted'
+											href={`#yjs:${accessRequests.granted.edit}`}
+											onClick={(event) => {
+												event.preventDefault();
+												event.stopPropagation();
+												const edit = accessRequests.granted?.edit;
+												if (edit) void accountSyncService.openGranted(edit);
+											}}
+										>
+											{t('Open it for editing')}
+										</a>
+									) : (
+										<span className='ui-meta' data-role='access-granted'>
+											{t(
+												'Your request was granted: open the project again from the project list.',
+											)}
+										</span>
+									)
+								) : accessRequests.requested ? (
+									<span
+										className='ui-badge'
+										data-variant='label'
+										data-role='access-requested'
+										title={t('Waiting for the owner to decide')}
+									>
+										{t('Access asked')}
+									</span>
+								) : (
+									!isGuestUser(user) && (
+										<button
+											type='button'
+											className='button secondary'
+											data-size='sm'
+											data-action='request-access'
+											onClick={(event) => {
+												event.stopPropagation();
+												setShowShareModal(true);
+											}}
+										>
+											{t('Ask for access')}
+										</button>
+									)
+								))}
 							{provider?.awareness && (
 								<div
 									className='project-awareness'
@@ -835,6 +895,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 					<ShareProjectButton
 						className='header-share-button'
 						onOpenShareModal={() => setShowShareModal(true)}
+						requests={readOnly ? 0 : accessRequests.count}
 					/>
 
 					{!isGuestUser(user) && !isOfflineMode && (

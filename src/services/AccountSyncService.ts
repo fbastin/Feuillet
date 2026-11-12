@@ -131,7 +131,26 @@ export interface ProjectAccess {
 	edit?: string;
 	review?: string;
 	view?: string;
+	/** For the owner: how many access requests wait. */
+	requests?: number;
+	/** For whoever asked: the role asked for, until the owner decides. */
+	requested?: RequestedRole;
 }
+
+/** What one may ask a project's owner for, as Overleaf's "Request access". */
+export type RequestedRole = 'editor' | 'reviewer';
+
+/** An access request, as its project's owner sees it. */
+export interface AccessRequest {
+	username: string;
+	role: RequestedRole;
+	createdAt: number;
+}
+
+/** Told when a project's access requests change (useAccessRequests). */
+export const ACCESS_REQUESTS_CHANGED = 'feuillet:access-requests-changed';
+
+const REQUESTED_ROLES: readonly string[] = ['editor', 'reviewer'];
 
 export type MemberRole = 'editor' | 'reviewer' | 'reader';
 export type ProjectRole = 'owner' | MemberRole;
@@ -903,7 +922,97 @@ class AccountSyncService {
 		// current one of its kind.
 		const current = links[projectLinkKind(projectId)];
 		if (current) await this.rememberEditLink(userId, projectId, current);
-		return { owner, role, ...links };
+		return {
+			owner,
+			role,
+			...links,
+			...(Number.isInteger(result?.requests)
+				? { requests: result.requests }
+				: {}),
+			...(REQUESTED_ROLES.includes(result?.requested)
+				? { requested: result.requested as RequestedRole }
+				: {}),
+		};
+	}
+
+	/**
+	 * Opens a project granted to the account, once its list has it under
+	 * that link with its name (not as a project met by a link).
+	 */
+	async openGranted(link: string): Promise<void> {
+		if (this.userId) await this.sync(this.userId).catch(() => {});
+		window.location.hash = `yjs:${link}`;
+	}
+
+	/**
+	 * Asks the project's owner for more access, as Overleaf's "Request
+	 * access", or withdraws the request (`role` null): the role asked for,
+	 * or null.
+	 */
+	async requestAccess(
+		projectId: string,
+		role: RequestedRole | null,
+		name: string,
+	): Promise<RequestedRole | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) throw new AccountServerError('signed_out', 401);
+		const project = projectLinkService.serverId(projectId);
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/share/request',
+			{
+				token: session.token,
+				body: role ? { project, role, name } : { project, cancel: true },
+			},
+		);
+		window.dispatchEvent(
+			new CustomEvent(ACCESS_REQUESTS_CHANGED, { detail: { projectId } }),
+		);
+		return REQUESTED_ROLES.includes(result?.requested)
+			? (result.requested as RequestedRole)
+			: null;
+	}
+
+	/**
+	 * The access requests waiting on a project, for its owner, after
+	 * granting or declining one: granted, the account becomes a member with
+	 * the role it asked for. Null without an account.
+	 */
+	async accessRequests(
+		projectId: string,
+		decision: {
+			grant?: string;
+			decline?: string;
+			name?: string;
+			type?: string;
+		} = {},
+	): Promise<AccessRequest[] | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) return null;
+		const result = await this.request(
+			session.server,
+			'POST',
+			'/share/members',
+			{
+				token: session.token,
+				body: { project: projectLinkService.serverId(projectId), ...decision },
+			},
+		);
+		if (decision.grant || decision.decline) {
+			window.dispatchEvent(
+				new CustomEvent(ACCESS_REQUESTS_CHANGED, { detail: { projectId } }),
+			);
+		}
+		return Array.isArray(result?.requests)
+			? result.requests.filter(
+					(request: AccessRequest) =>
+						typeof request?.username === 'string' &&
+						REQUESTED_ROLES.includes(request.role),
+				)
+			: [];
 	}
 
 	/** Whether this device can ask the collaboration server for anything. */

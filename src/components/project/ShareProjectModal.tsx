@@ -14,6 +14,7 @@ import {
 	AccountServerError,
 	accountSyncService,
 	type ProjectAccess,
+	type RequestedRole,
 } from '../../services/AccountSyncService';
 import { requestReadOnlyProjectId } from '../../services/ReadOnlyLinkService';
 import { typesetterRegistryService } from '../../services/TypesetterRegistryService';
@@ -70,6 +71,41 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 	const [accessBusy, setAccessBusy] = useState(false);
 	// Who was just made the owner, from this dialog.
 	const [handedTo, setHandedTo] = useState<string | null>(null);
+	// Whoever reads or reviews may ask the owner for more, as on Overleaf.
+	const asks =
+		getSetting('collab-provider-type')?.value === 'websocket' &&
+		(readOnly || reviewOnly);
+	const [requestBusy, setRequestBusy] = useState(false);
+	const [requestError, setRequestError] = useState<string | null>(null);
+
+	const askAccess = useCallback(
+		async (role: RequestedRole | null) => {
+			setRequestError(null);
+			setRequestBusy(true);
+			try {
+				const requested = await accountSyncService.requestAccess(
+					projectId,
+					role,
+					projectName,
+				);
+				setAccess((current) =>
+					current ? { ...current, requested: requested ?? undefined } : current,
+				);
+			} catch (error) {
+				const code = error instanceof AccountServerError ? error.code : '';
+				setRequestError(
+					code === 'no_owner'
+						? t('This project has no owner to ask.')
+						: code === 'unreachable'
+							? t('Could not reach the collaboration server.')
+							: t('Could not send the request.'),
+				);
+			} finally {
+				setRequestBusy(false);
+			}
+		},
+		[projectId, projectName],
+	);
 
 	const loadReadOnlyLink = useCallback(
 		async (reset: boolean) => {
@@ -121,13 +157,14 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 	}, [isOpen, serverLinks, loadReadOnlyLink]);
 
 	useEffect(() => {
-		if (isOpen && serverLinks) void changeAccess({});
+		if (isOpen && (serverLinks || asks)) void changeAccess({});
 		if (!isOpen) {
+			setRequestError(null);
 			setConfirmEditReplace(false);
 			setAccess(undefined);
 			setHandedTo(null);
 		}
-	}, [isOpen, serverLinks, changeAccess]);
+	}, [isOpen, serverLinks, asks, changeAccess]);
 	const typesetters = useTypesetterConfig();
 	const lsps = useLSPConfig();
 	const preferences = useSharedToolPreferences();
@@ -289,6 +326,106 @@ const ShareProjectModal: React.FC<ShareProjectModalProps> = ({
 							)}
 						</section>
 					))}
+
+				{/* As Overleaf's "Request access": a reader asks to review or
+				    edit, a reviewer to edit; the owner decides. */}
+				{asks && (
+					<section className='ui-stack' data-gap='xs' data-role='share-request'>
+						<strong>{t('Ask the owner for more access')}</strong>
+						{(requestError || (!access && accessError)) && (
+							<div className='ui-message' data-tone='warning'>
+								{requestError ?? accessError}
+							</div>
+						)}
+						{access === undefined ? (
+							accessError ? null : (
+								<p className='ui-meta'>{t('Loading...')}</p>
+							)
+						) : access === null ? (
+							<ServerAccountLinkForm
+								reason={t('Asking for access needs it.')}
+								onLinked={() => void changeAccess({})}
+							/>
+						) : access.role === 'editor' || access.role === 'owner' ? (
+							<div className='ui-actions' data-align='between'>
+								<span className='ui-meta' data-role='request-granted'>
+									{t('Your request was granted: you can edit this project.')}
+								</span>
+								{access.edit && (
+									<a
+										className='button primary'
+										data-action='open-granted'
+										href={`#yjs:${access.edit}`}
+										onClick={(event) => {
+											event.preventDefault();
+											onClose();
+											if (access.edit) {
+												void accountSyncService.openGranted(access.edit);
+											}
+										}}
+									>
+										{t('Open it for editing')}
+									</a>
+								)}
+							</div>
+						) : access.owner === 'none' ? (
+							<p className='ui-meta'>
+								{t('This project has no owner to ask.')}
+							</p>
+						) : access.requested ? (
+							<div className='ui-actions' data-align='between'>
+								<span className='ui-meta' data-role='request-pending'>
+									{access.requested === 'editor'
+										? t(
+												'You asked to edit this project; its owner will decide.',
+											)
+										: t(
+												'You asked to review this project; its owner will decide.',
+											)}
+								</span>
+								<button
+									type='button'
+									className='button secondary'
+									data-action='withdraw-request'
+									disabled={requestBusy}
+									onClick={() => void askAccess(null)}
+								>
+									{t('Withdraw the request')}
+								</button>
+							</div>
+						) : (
+							<>
+								<p className='ui-meta'>
+									{t(
+										'The owner is told by email and in the project; their answer comes to you by email.',
+									)}
+								</p>
+								<div className='ui-actions' data-align='end'>
+									{readOnly && !reviewOnly && access.role !== 'reviewer' && (
+										<button
+											type='button'
+											className='button secondary'
+											data-action='ask-review'
+											disabled={requestBusy}
+											onClick={() => void askAccess('reviewer')}
+										>
+											{t('Ask to review')}
+										</button>
+									)}
+									<button
+										type='button'
+										className='button primary'
+										data-action='ask-edit'
+										disabled={requestBusy}
+										onClick={() => void askAccess('editor')}
+									>
+										{t('Ask to edit')}
+									</button>
+								</div>
+							</>
+						)}
+					</section>
+				)}
 
 				{/* As on Overleaf's link sharing: a link to edit, one to read. */}
 				<section className='ui-stack' data-gap='sm' data-role='share-links'>

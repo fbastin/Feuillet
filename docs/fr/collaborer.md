@@ -44,6 +44,22 @@ propriétaire remplace le lien de modification ou le lien en lecture seule par
 un nouveau : l'ancien cesse de fonctionner. Les personnes invitées suivent le
 changement d'elles-mêmes.
 
+### Demander plus d'accès
+
+Comme sur Overleaf, qui lit un projet, par un lien en lecture seule ou comme
+lecteur, peut demander à son propriétaire de le relire ou de le modifier, et
+un réviseur de le modifier : **Demander l'accès**, à côté de « Lecture
+seule » dans l'en-tête, ouvre la fenêtre **Partager**, avec **Demander à
+relire** et **Demander à modifier**. Il faut un compte, connecté. Le
+propriétaire est prévenu par courriel et par un nombre sur son bouton
+**Partager**; dans la fenêtre, **Demandes d'accès** dit qui demande quoi,
+avec **Accorder** et **Refuser**. Accordée, la personne devient membre avec
+ce rôle, et le projet est dans sa liste sous son nouveau lien, une seule
+fois; elle est prévenue par courriel, et l'en-tête propose **L'ouvrir pour
+le modifier**. Refusée, elle garde l'accès qu'elle avait, et est prévenue
+aussi. Tant que le propriétaire n'a pas décidé, la demande peut être retirée
+depuis la fenêtre.
+
 ### Retirer quelqu'un, quitter un projet
 
 Dans la liste des membres, **Retirer** enlève une personne : le lien de son

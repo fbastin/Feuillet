@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import i18next, { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
 import {
+	type AccessRequest,
 	AccountServerError,
 	type InviteMailing,
 	type MembersChange,
@@ -36,6 +37,9 @@ const errorMessage = (error: unknown): string => {
 	}
 	if (code === 'too_many_invites') {
 		return t('Too many invitations are pending; take some back first.');
+	}
+	if (code === 'unknown_request') {
+		return t('This request was already answered.');
 	}
 	return t('Could not manage the collaborators.');
 };
@@ -106,6 +110,21 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 	const [sending, setSending] = useState(false);
 	// The member about to be made the owner, once confirmed.
 	const [newOwner, setNewOwner] = useState<string | null>(null);
+	// Access requests waiting, as Overleaf's; null from a server without.
+	const [requests, setRequests] = useState<AccessRequest[] | null>(null);
+
+	useEffect(() => {
+		let cancelled = false;
+		accountSyncService
+			.accessRequests(projectId)
+			.then((found) => {
+				if (!cancelled) setRequests(found);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
+	}, [projectId]);
 	const { user } = useAuth();
 
 	const change = useCallback(
@@ -124,6 +143,28 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 		},
 		[projectId],
 	);
+
+	// Granted, the account becomes a member with the role it asked for.
+	const decide = async (request: AccessRequest, grant: boolean) => {
+		setError(null);
+		setBusy(true);
+		try {
+			setRequests(
+				await accountSyncService.accessRequests(
+					projectId,
+					grant
+						? { grant: request.username, name: projectName, type: projectType }
+						: { decline: request.username },
+				),
+			);
+		} catch (caught) {
+			setError(errorMessage(caught));
+			setBusy(false);
+			return;
+		}
+		setBusy(false);
+		if (grant) await change({});
+	};
 
 	useEffect(() => {
 		void change();
@@ -490,6 +531,45 @@ const ProjectMembersSection: React.FC<ProjectMembersSectionProps> = ({
 			{error && (
 				<div className='ui-message' data-tone='warning'>
 					{error}
+				</div>
+			)}
+			{requests && requests.length > 0 && (
+				<div className='ui-stack' data-gap='xs' data-role='access-requests'>
+					<strong>{t('Access requests')}</strong>
+					<ul className='project-share-members project-share-requests'>
+						{requests.map((request) => (
+							<li
+								key={request.username}
+								className='project-share-member'
+								data-username={request.username}
+							>
+								<span>{request.username}</span>
+								<span className='ui-meta'>
+									{request.role === 'editor'
+										? t('Asks to edit')
+										: t('Asks to review')}
+								</span>
+								<button
+									type='button'
+									className='button primary'
+									data-action='grant-request'
+									disabled={busy}
+									onClick={() => void decide(request, true)}
+								>
+									{t('Grant')}
+								</button>
+								<button
+									type='button'
+									className='button secondary'
+									data-action='decline-request'
+									disabled={busy}
+									onClick={() => void decide(request, false)}
+								>
+									{t('Decline')}
+								</button>
+							</li>
+						))}
+					</ul>
 				</div>
 			)}
 			{members &&

@@ -2,7 +2,8 @@
 // Feuillet's few emails, as Overleaf's: confirming the account's email
 // address, a link to choose a new password, an invitation to a project, a
 // link to make an account (where accounts need an invitation, accounts.js),
-// a reply to one's comment or a mention in one (reviewNotices.js), and a
+// a reply to one's comment or a mention in one (reviewNotices.js), a
+// request for more access to one's project and its answer (shares.js), and a
 // change to how one's account is signed in to or recovered (the password,
 // two-factor authentication, recovery codes, its address, Google or ORCID,
 // a Git token), so that a change its owner did not make does not go
@@ -20,8 +21,9 @@
 // anyone, and the mail provider would close the sending account: at most
 // MAIL_DAILY_LIMIT emails (200 by default) in any 24 hours, invitations
 // three quarters of them, so that recovering accounts still works; and 10
-// to one address. Review emails take at most a quarter, invitations and
-// them three quarters together, and 5 to one address apart from the rest:
+// to one address. Review emails and access requests take at most a quarter,
+// invitations and them three quarters together, and 5 to one address apart
+// from the rest:
 // they never stop an account's recovery. Security emails too take at most a
 // quarter, and 5 to one address apart from the rest. They are counted in
 // memory, from the server's start.
@@ -200,6 +202,50 @@ const MESSAGES = {
 				].join('\n'),
 			};
 		},
+		'access-request': ({ username, inviter, project, role, link }) => ({
+			subject:
+				role === 'editor'
+					? `${inviter} demande à modifier « ${project} »`
+					: `${inviter} demande à relire « ${project} »`,
+			text: [
+				`Bonjour ${username},`,
+				'',
+				role === 'editor'
+					? `${inviter} demande à pouvoir modifier votre projet « ${project} » sur Feuillet.`
+					: `${inviter} demande à pouvoir relire votre projet « ${project} » sur Feuillet : le commenter et y suggérer des modifications.`,
+				'',
+				'Pour accepter ou refuser, ouvrez le projet, puis Partager :',
+				link,
+				'',
+				`D'ici là, ${inviter} garde son accès actuel.`,
+			].join('\n'),
+		}),
+		'access-decision': ({ username, inviter, project, role, why, link }) =>
+			why === 'granted'
+				? {
+						subject:
+							role === 'editor'
+								? `Vous pouvez maintenant modifier « ${project} »`
+								: `Vous pouvez maintenant relire « ${project} »`,
+						text: [
+							`Bonjour ${username},`,
+							'',
+							role === 'editor'
+								? `${inviter} a accepté votre demande : vous pouvez maintenant modifier le projet « ${project} ».`
+								: `${inviter} a accepté votre demande : vous pouvez maintenant relire le projet « ${project} », le commenter et y suggérer des modifications.`,
+							'',
+							'Ouvrez-le ici :',
+							link,
+						].join('\n'),
+					}
+				: {
+						subject: `Votre demande d'accès à « ${project} »`,
+						text: [
+							`Bonjour ${username},`,
+							'',
+							`${inviter} n'a pas accepté votre demande de ${role === 'editor' ? 'modifier' : 'relire'} le projet « ${project} ». Vous gardez l'accès que vous aviez.`,
+						].join('\n'),
+					},
 	},
 	en: {
 		confirm: ({ username, link }) => ({
@@ -330,6 +376,50 @@ const MESSAGES = {
 				].join('\n'),
 			};
 		},
+		'access-request': ({ username, inviter, project, role, link }) => ({
+			subject:
+				role === 'editor'
+					? `${inviter} asks to edit "${project}"`
+					: `${inviter} asks to review "${project}"`,
+			text: [
+				`Hello ${username},`,
+				'',
+				role === 'editor'
+					? `${inviter} asks to be able to edit your project "${project}" on Feuillet.`
+					: `${inviter} asks to be able to review your project "${project}" on Feuillet: comment on it and suggest changes.`,
+				'',
+				'To grant or decline, open the project, then Share:',
+				link,
+				'',
+				`Until then, ${inviter} keeps their current access.`,
+			].join('\n'),
+		}),
+		'access-decision': ({ username, inviter, project, role, why, link }) =>
+			why === 'granted'
+				? {
+						subject:
+							role === 'editor'
+								? `You can now edit "${project}"`
+								: `You can now review "${project}"`,
+						text: [
+							`Hello ${username},`,
+							'',
+							role === 'editor'
+								? `${inviter} granted your request: you can now edit the project "${project}".`
+								: `${inviter} granted your request: you can now review the project "${project}", comment on it and suggest changes.`,
+							'',
+							'Open it here:',
+							link,
+						].join('\n'),
+					}
+				: {
+						subject: `Your request for access to "${project}"`,
+						text: [
+							`Hello ${username},`,
+							'',
+							`${inviter} did not grant your request to ${role === 'editor' ? 'edit' : 'review'} the project "${project}". You keep the access you had.`,
+						].join('\n'),
+					},
 	},
 };
 
@@ -385,25 +475,31 @@ const createMailer = ({
 			.createHash('sha256')
 			.update(String(to).toLowerCase())
 			.digest('hex');
-		const perAddress =
-			kind === 'review' ? reviewTo : kind === 'security' ? securityTo : sentTo;
+		// Telling one account of another's doing: review emails, access
+		// requests and their answers.
+		const notices = ['review', 'access-request', 'access-decision'];
+		const notice = notices.includes(kind);
+		const perAddress = notice
+			? reviewTo
+			: kind === 'security'
+				? securityTo
+				: sentTo;
 		const toThem = perAddress.get(recipient) ?? [];
 		const ofKinds = (...kinds) =>
 			sent.filter((entry) => kinds.includes(entry.kind)).length;
 		// Links to make an account count as invitations: asked for by anyone
 		// at an address allowed, they never stop an account's recovery.
-		const inviting = ['invite', 'signup', 'review'];
+		const inviting = ['invite', 'signup', ...notices];
 		const full =
 			sent.length >= limit ||
 			((kind === 'invite' || kind === 'signup') &&
 				ofKinds(...inviting) >= Math.floor((limit * 3) / 4)) ||
-			(kind === 'review' &&
-				(ofKinds('review') >= Math.floor(limit / 4) ||
+			(notice &&
+				(ofKinds(...notices) >= Math.floor(limit / 4) ||
 					ofKinds(...inviting) >= Math.floor((limit * 3) / 4))) ||
 			(kind === 'security' && ofKinds('security') >= Math.floor(limit / 4));
-		const perLimit =
-			kind === 'review'
-				? REVIEW_PER_RECIPIENT
+		const perLimit = notice
+			? REVIEW_PER_RECIPIENT
 				: kind === 'security'
 					? SECURITY_PER_RECIPIENT
 					: PER_RECIPIENT;
