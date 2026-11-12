@@ -59,21 +59,22 @@ There are no visit statistics, no advertising and no tracking cookies.
 
 ## Hosting
 
-Feuillet runs on a Linux machine with Apache and Docker, at an address of its
-own:
+Feuillet runs on a Linux machine with Docker and Apache or nginx, at an
+address of its own:
 
 ```bash
 git clone https://github.com/fbastin/Feuillet.git
 cd Feuillet
-sudo deploy/install.sh feuillet.example.org   # servers, Apache site, HTTPS
+sudo deploy/install.sh feuillet.example.org   # servers, web site, HTTPS
 deploy/publish.sh                             # the app, built for that address
 ```
 
 The guide gives the steps, what the machine needs and what to set up next:
 [English](docs/en/hosting.md) · [Français](docs/fr/heberger.md).
-[`deploy/README.md`](deploy/README.md) details every setting: Apache serves
-the app and proxies the collaboration and TeX Live servers, which run in
-Docker.
+[`deploy/README.md`](deploy/README.md) details every setting: the web server
+serves the app and proxies the collaboration and TeX Live servers, which run
+in Docker; another web server than Apache or nginx needs only the routes it
+lists.
 
 ## Development
 

@@ -11,8 +11,9 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 ## Ce qu'il faut
 
 - **Une machine Linux** joignable depuis Internet, sous Ubuntu 24.04 ou
-  Debian : les scripts d'installation utilisent Apache, Docker et systemd.
-  Un compte qui peut utiliser `sudo`.
+  Debian : les scripts d'installation utilisent Docker, systemd et un
+  serveur web, Apache ou nginx (un autre aussi, voir plus bas). Un compte
+  qui peut utiliser `sudo`.
 - **Une adresse**, par exemple `feuillet.exemple.org`, dont l'enregistrement
   DNS (`A`, `AAAA` ou `CNAME`) mène à cette machine, avec les ports 80 et
   443 ouverts : le certificat HTTPS de Let's Encrypt en a besoin. Feuillet
@@ -29,10 +30,16 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 
 ## Installer
 
-1. **Les logiciels.** Sous Ubuntu 24.04 :
+1. **Les logiciels.** Sous Ubuntu 24.04, avec Apache :
 
    ```
-   sudo apt install git curl rsync apache2 certbot python3-certbot-apache docker.io docker-compose-v2
+   sudo apt install git curl rsync docker.io docker-compose-v2 apache2 certbot python3-certbot-apache
+   ```
+
+   ou avec nginx :
+
+   ```
+   sudo apt install git curl rsync docker.io docker-compose-v2 nginx certbot python3-certbot-nginx
    ```
 
    Docker Compose doit être en version 2.24 ou plus récente
@@ -55,9 +62,11 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
    sudo deploy/install.sh feuillet.exemple.org
    ```
 
-   Le script garde l'adresse dans `/etc/feuillet/site.env`, crée le dossier
-   du site (`/var/www/feuillet.exemple.org`, à votre compte), installe le site
-   Apache, prépare les sauvegardes de chaque nuit, construit et lance les
+   Le script prend le serveur web installé, Apache ou nginx; si les deux le
+   sont, nommez le vôtre : `sudo deploy/install.sh feuillet.exemple.org nginx`.
+   Il garde l'adresse et ce choix dans `/etc/feuillet/site.env`, crée le
+   dossier du site (`/var/www/feuillet.exemple.org`, à votre compte), y
+   installe le site, prépare les sauvegardes de chaque nuit, construit et lance les
    serveurs avec Docker (collaboration, TeX Live, LanguageTool), puis
    demande le certificat HTTPS : certbot vous demande alors une adresse
    courriel et d'accepter ses conditions. La première fois, il télécharge
@@ -87,6 +96,16 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 Pour vérifier, `curl https://feuillet.exemple.org/collab/health` et
 `curl https://feuillet.exemple.org/texlive/health` répondent
 `{"status":"ok",…}`.
+
+### Un autre serveur web
+
+Avec Caddy, Traefik ou un proxy sur une autre machine, lancez
+`sudo deploy/install.sh feuillet.exemple.org none` : le script installe
+tout le reste, sans serveur web ni certificat. Les adresses que votre
+serveur web doit servir et faire suivre (`/`, `/collab/`, `/texlive/`…)
+sont dans [`deploy/README.md`](../../deploy/README.md), section « Another
+web server »; [`deploy/nginx/routes.conf`](../../deploy/nginx/routes.conf)
+en est un exemple complet.
 
 ## Ce qui se règle ensuite
 

@@ -5,7 +5,7 @@ stands for the server's address throughout. The
 user guide gives the steps in short, with what the machine needs:
 [English](../docs/en/hosting.md) · [Français](../docs/fr/heberger.md).
 
-Feuillet is served as static files by Apache. Collaboration goes through a
+Feuillet is served as static files by Apache or nginx. Collaboration goes through a
 small server ([`server/collab`](../server/collab)) that every editor connects
 to, so collaborators do not need to be online at the same time and there is
 no peer-to-peer connection limit:
@@ -60,13 +60,13 @@ imported ones; the in-browser LaTeX compiler stays available in the project
 settings, for instance to work offline.
 
 ```
-browser ──https──▶ Apache ── /                  ▶ /var/www/DOMAIN (deploy/publish.sh)
-                         ├─ /collab/  (wss, http) ▶ 127.0.0.1:1234 feuillet-collab  (Docker)
-                         ├─ /docs     (http)      ▶ 127.0.0.1:1234 (« Ouvrir dans Feuillet »)
-                         └─ /texlive/ (wss, http) ▶ /var/lib/feuillet/texlive-socket/texlive.sock
-                                                     feuillet-texlive (Docker, no network)
-                                                       └─▶ texlive-2025.sock
-                                                           feuillet-texlive-2025 (same)
+browser ──https──▶ Apache or nginx ── /                  ▶ /var/www/DOMAIN (deploy/publish.sh)
+                                  ├─ /collab/  (wss, http) ▶ 127.0.0.1:1234 feuillet-collab  (Docker)
+                                  ├─ /docs     (http)      ▶ 127.0.0.1:1234 (« Ouvrir dans Feuillet »)
+                                  └─ /texlive/ (wss, http) ▶ /var/lib/feuillet/texlive-socket/texlive.sock
+                                                              feuillet-texlive (Docker, no network)
+                                                                └─▶ texlive-2025.sock
+                                                                    feuillet-texlive-2025 (same)
 ```
 
 ## First installation
@@ -74,16 +74,58 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/DOMAI
 1. DNS: a record (`A`, `AAAA` or `CNAME`) for the server's address that
    leads to this machine, with ports 80 and 443 open.
 2. Run `sudo deploy/install.sh feuillet.example.org`, with the server's
-   address. It keeps it in `/etc/feuillet/site.env` (`DOMAIN=`), which later
-   runs, `deploy/publish.sh` and `deploy/docker-compose.yml` read.
-   It creates the web root `/var/www/DOMAIN`, installs and enables the
-   Apache virtual host (`deploy/apache/feuillet.conf`, for that address),
+   address, and the web server if Apache and nginx are both installed
+   (`sudo deploy/install.sh feuillet.example.org nginx`). It keeps them in
+   `/etc/feuillet/site.env` (`DOMAIN=`, `WEB=`), which later runs,
+   `deploy/publish.sh` and `deploy/docker-compose.yml` read.
+   It creates the web root `/var/www/DOMAIN`, sets up the web server for
+   that address (Apache: `deploy/apache/feuillet.conf`; nginx: see below),
    builds and starts the servers with Docker (the TeX Live image downloads
-   about 3 GB) and requests the HTTPS certificate with certbot.
+   about 3 GB) and requests the HTTPS certificate with certbot
+   (`python3-certbot-apache` or `python3-certbot-nginx`).
 3. Run `deploy/publish.sh` (no sudo, Node.js 22 or newer) to build and publish
    the application. The servers it goes to by default are this address's:
    it writes them in the build's `userdata.json`, in place of those
    `texlyre.config.ts` names.
+
+## nginx
+
+With `WEB=nginx`, `install.sh` writes three files, from `deploy/nginx/`:
+
+- `/etc/nginx/sites-available/DOMAIN` (`feuillet.conf`), enabled in
+  `sites-enabled`: the server block, written once, to which
+  `certbot --nginx` then adds HTTPS and a redirect from HTTP;
+- `/etc/nginx/snippets/feuillet.conf` (`routes.conf`), which that block
+  includes: the web root and the routes of Apache's virtual host, written
+  again at each run so that an update reaches them;
+- `/etc/nginx/conf.d/feuillet.conf` (`maps.conf`): two maps the routes use,
+  for WebSocket and for caching.
+
+The routes do what Apache does, with what nginx would otherwise do
+differently: `.mjs` served as JavaScript (pdf.js and Typst run their
+workers from such modules, which browsers refuse under another type),
+`.wav`, `.ttf` and `.otf` with their types, scripts, styles and WebAssembly
+compressed, the client's address passed on in `X-Forwarded-For`, requests
+up to 512 MiB (Git pushes), streamed rather than buffered, and no time
+limit on open WebSocket connections. nginx runs as `www-data`, which may
+open the TeX Live server's socket.
+
+## Another web server
+
+With `sudo deploy/install.sh feuillet.example.org none`, `install.sh` does
+all but the web server and its certificate: Caddy, Traefik, or a proxy on
+another machine then serves Feuillet with these routes (`deploy/nginx/routes.conf`
+is a complete example):
+
+| Path | To | Notes |
+| --- | --- | --- |
+| `/` | the files of `/var/www/DOMAIN` (`deploy/publish.sh`) | a missing file answers 404 with `/404.html`; `.mjs` as `text/javascript`; `Cache-Control: public, max-age=31536000, immutable` for the files directly in `/assets/`, `no-cache` for `index.html`, `sw.js`, `manifest.json` and `userdata*.json` |
+| `/collab/` | `http://127.0.0.1:1234/`, without `/collab` | WebSocket; the client's address appended to `X-Forwarded-For`, of which the server takes the last; requests up to 512 MiB; no time limit on open connections |
+| `/texlive/` | the Unix socket `/var/lib/feuillet/texlive-socket/texlive.sock`, path `/` | WebSocket; the web server's user must be in the group `www-data` to open it |
+| `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource` | `http://127.0.0.1:1234`, the path kept | prefixes: `…/oauth-protected-resource/collab/mcp` too |
+| `/docs` | `http://127.0.0.1:1234`, the path kept | forms up to 10 MB |
+
+The address must be served over HTTPS, at its root.
 
 ## Sign in with GitHub
 
@@ -239,7 +281,7 @@ project: it reads, searches and compiles, suggests changes as tracked changes,
 and comments. Its connections are listed, and can be ended, in the profile's
 Assistants tab; changing the password ends them too.
 
-`deploy/install.sh` adds the Apache routes Claude looks for
+`deploy/install.sh` adds the routes Claude looks for
 (`/.well-known/oauth-authorization-server` and
 `/.well-known/oauth-protected-resource`); the connections are kept in the
 `collab-mcp` volume, and compiles go to the TeX Live container through its
@@ -378,10 +420,11 @@ that name and administer the server.
 
 ## Updating
 
-- Servers and Apache routes: `sudo deploy/install.sh` again. It adds any
-  missing proxy route to the HTTPS virtual host created by certbot (keeping a
-  copy of the previous file next to it), rebuilds the containers and leaves
-  the certificate alone.
+- Servers and web server routes: `sudo deploy/install.sh` again. With
+  Apache, it adds any missing proxy route to the HTTPS virtual host created
+  by certbot (keeping a copy of the previous file next to it); with nginx,
+  it writes the routes and maps again. It rebuilds the containers and
+  leaves the certificate alone.
 - Application: `deploy/publish.sh`.
 - TeX Live packages: `sudo docker compose --env-file /etc/feuillet/site.env -f deploy/docker-compose.yml build --pull texlive`
   then `sudo docker compose --env-file /etc/feuillet/site.env -f deploy/docker-compose.yml up -d texlive`
@@ -432,8 +475,8 @@ only `{"deleted": true}`, so that none of its links opens it again. The
 privacy page in the app says so.
 
 The containers' logs are rotated: three files of 10 MB at most each
-(`x-logging` in `docker-compose.yml`). Apache's own logs follow the system's
-logrotate (14 days).
+(`x-logging` in `docker-compose.yml`). Apache's and nginx's own logs follow
+the system's logrotate (14 days on Debian and Ubuntu).
 
 ## Checks
 
@@ -486,7 +529,7 @@ bounded (`docker-compose.yml`) and connections are kept apart:
 - As on Overleaf, documents may run programs (`-shell-escape`): Inkscape for
   the `svg` package, TikZ's externalization, PythonTeX, gnuplot… So that they
   reach nothing, the container has no network (`network_mode: none`), not even
-  this machine's: Apache and the collaboration server reach it through a Unix
+  this machine's: the web server and the collaboration server reach it through a Unix
   socket in `/var/lib/feuillet/texlive-socket`, a directory of the group
   `www-data` that compiles cannot open. The server refuses full shell escape
   (`SHELL_ESCAPE=full`) if it finds a network interface other than loopback,

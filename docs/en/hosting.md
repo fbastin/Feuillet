@@ -11,8 +11,8 @@ This page gives the steps. Each setting is detailed in
 ## What you need
 
 - **A Linux machine** reachable from the Internet, running Ubuntu 24.04 or
-  Debian: the install scripts use Apache, Docker and systemd. An account
-  that may use `sudo`.
+  Debian: the install scripts use Docker, systemd and a web server, Apache
+  or nginx (another one too, see below). An account that may use `sudo`.
 - **An address**, such as `feuillet.example.org`, whose DNS record (`A`,
   `AAAA` or `CNAME`) leads to that machine, with ports 80 and 443 open: the
   Let's Encrypt HTTPS certificate needs them. Feuillet takes the whole
@@ -27,10 +27,16 @@ This page gives the steps. Each setting is detailed in
 
 ## Installing
 
-1. **The software.** On Ubuntu 24.04:
+1. **The software.** On Ubuntu 24.04, with Apache:
 
    ```
-   sudo apt install git curl rsync apache2 certbot python3-certbot-apache docker.io docker-compose-v2
+   sudo apt install git curl rsync docker.io docker-compose-v2 apache2 certbot python3-certbot-apache
+   ```
+
+   or with nginx:
+
+   ```
+   sudo apt install git curl rsync docker.io docker-compose-v2 nginx certbot python3-certbot-nginx
    ```
 
    Docker Compose must be version 2.24 or newer (`docker compose version`);
@@ -52,9 +58,11 @@ This page gives the steps. Each setting is detailed in
    sudo deploy/install.sh feuillet.example.org
    ```
 
-   The script keeps the address in `/etc/feuillet/site.env`, creates the
+   The script takes the web server installed, Apache or nginx; if both are,
+   name yours: `sudo deploy/install.sh feuillet.example.org nginx`. It keeps
+   the address and that choice in `/etc/feuillet/site.env`, creates the
    site's folder (`/var/www/feuillet.example.org`, owned by your account),
-   installs the Apache site, sets up nightly backups, builds and starts the
+   installs the site in it, sets up nightly backups, builds and starts the
    servers with Docker (collaboration, TeX Live, LanguageTool), then asks
    for the HTTPS certificate: certbot then asks for an email address and to
    accept its terms. The first time, it downloads a few gigabytes; allow a
@@ -84,6 +92,16 @@ This page gives the steps. Each setting is detailed in
 To check, `curl https://feuillet.example.org/collab/health` and
 `curl https://feuillet.example.org/texlive/health` answer
 `{"status":"ok",…}`.
+
+### Another web server
+
+With Caddy, Traefik or a proxy on another machine, run
+`sudo deploy/install.sh feuillet.example.org none`: the script installs
+everything else, without a web server or certificate. The addresses your
+web server must serve and pass on (`/`, `/collab/`, `/texlive/`…) are in
+[`deploy/README.md`](../../deploy/README.md), "Another web server";
+[`deploy/nginx/routes.conf`](../../deploy/nginx/routes.conf) is a complete
+example.
 
 ## What to set up next
 

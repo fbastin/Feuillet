@@ -1,25 +1,30 @@
 #!/usr/bin/env bash
 # deploy/install.sh
-# Sets up or updates Feuillet on this server: web root, Apache virtual host,
-# nightly backups, collaboration and TeX Live servers (Docker) and HTTPS
-# certificate. Safe to run again after an update. Run with sudo, giving the
-# server's address the first time (it is kept in /etc/feuillet/site.env):
+# Sets up or updates Feuillet on this server: web root, web server (Apache
+# or nginx), nightly backups, collaboration and TeX Live servers (Docker)
+# and HTTPS certificate. Safe to run again after an update. Run with sudo,
+# giving the server's address the first time, and the web server if both
+# are installed (they are kept in /etc/feuillet/site.env); "none" leaves the
+# web server and its certificate to you (deploy/README.md, "Another web
+# server"):
 #   sudo deploy/install.sh feuillet.example.org
+#   sudo deploy/install.sh feuillet.example.org nginx
 #   sudo deploy/install.sh
 set -euo pipefail
 
 if [ "$(id -u)" -ne 0 ]; then
-	echo "Run with sudo: sudo $0 ${1:-}" >&2
+	echo "Run with sudo: sudo $0 $*" >&2
 	exit 1
 fi
 
-# The server's address, which the Apache virtual host, the certificate, the
-# servers (deploy/docker-compose.yml) and deploy/publish.sh go by.
+# The server's address, which the web server, the certificate, the servers
+# (deploy/docker-compose.yml) and deploy/publish.sh go by; and the web server.
 SITE_ENV=/etc/feuillet/site.env
-saved_domain() {
-	if [ -r "$SITE_ENV" ]; then sed -n 's/^DOMAIN=//p' "$SITE_ENV" | tail -n 1; fi
+saved() {
+	if [ -r "$SITE_ENV" ]; then sed -n "s/^$1=//p" "$SITE_ENV" | tail -n 1; fi
 }
-SAVED=$(saved_domain)
+SAVED=$(saved DOMAIN)
+SAVED_WEB=$(saved WEB)
 DOMAIN=${1:-$SAVED}
 # Installed before the address was a setting.
 if [ -z "$DOMAIN" ] && [ -d /var/www/feuillet.slashbin.net ]; then
@@ -39,15 +44,49 @@ if [ -n "$SAVED" ] && [ "$DOMAIN" != "$SAVED" ]; then
 	echo "change DOMAIN= there, then run sudo $0 again." >&2
 	exit 1
 fi
+
+WEB=${2:-$SAVED_WEB}
+if [ -z "$WEB" ]; then
+	if [ -d "/var/www/$DOMAIN" ]; then
+		# Installed before the web server was a setting: with Apache.
+		WEB=apache
+	elif command -v apache2ctl >/dev/null && ! command -v nginx >/dev/null; then
+		WEB=apache
+	elif command -v nginx >/dev/null && ! command -v apache2ctl >/dev/null; then
+		WEB=nginx
+	elif command -v nginx >/dev/null; then
+		echo "Apache and nginx are both installed: name the one Feuillet goes through:" >&2
+		echo "  sudo $0 $DOMAIN apache    (or nginx)" >&2
+		exit 1
+	else
+		echo "Install a web server first, Apache or nginx (docs/en/hosting.md), or" >&2
+		echo "set up your own (deploy/README.md, \"Another web server\"):" >&2
+		echo "  sudo $0 $DOMAIN none" >&2
+		exit 1
+	fi
+fi
+case $WEB in
+apache | nginx | none) ;;
+*)
+	echo "\"$WEB\" is not a web server Feuillet installs with: apache, nginx or none." >&2
+	exit 1
+	;;
+esac
+if [ -n "$SAVED_WEB" ] && [ "$WEB" != "$SAVED_WEB" ]; then
+	echo "This server goes through $SAVED_WEB ($SITE_ENV). To move it to $WEB," >&2
+	echo "change WEB= there, then run sudo $0 again." >&2
+	exit 1
+fi
 install -d -m 755 /etc/feuillet
-if [ "$DOMAIN" != "$SAVED" ]; then
+if [ "$DOMAIN" != "$SAVED" ] || [ "$WEB" != "$SAVED_WEB" ]; then
 	cat >"$SITE_ENV" <<SITE
-# Feuillet: this server's address, set by deploy/install.sh and read by
-# deploy/publish.sh and deploy/docker-compose.yml.
+# Feuillet: this server's address and web server, set by deploy/install.sh
+# and read by deploy/publish.sh and deploy/docker-compose.yml.
 DOMAIN=$DOMAIN
+WEB=$WEB
 SITE
 	chmod 644 "$SITE_ENV"
-	echo "Saved DOMAIN=$DOMAIN in $SITE_ENV."
+	echo "Saved DOMAIN=$DOMAIN and WEB=$WEB in $SITE_ENV."
 fi
 
 WEBROOT=/var/www/$DOMAIN
@@ -55,8 +94,9 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 OWNER=${SUDO_USER:-root}
 SITES=/etc/apache2/sites-available
 SSL_CONF=$SITES/$DOMAIN-le-ssl.conf
-# The TeX Live server has no network: Apache and the collaboration server
-# reach it through this socket, in a directory of the group www-data only.
+# The TeX Live server has no network: the web server and the collaboration
+# server reach it through this socket, in a directory of the group www-data
+# only (Apache's and nginx's on Debian and Ubuntu).
 TEXLIVE_SOCKET_DIR=/var/lib/feuillet/texlive-socket
 TEXLIVE_SOCKET=$TEXLIVE_SOCKET_DIR/texlive.sock
 COMPOSE=(docker compose --env-file "$SITE_ENV" -f "$HERE/docker-compose.yml")
@@ -126,23 +166,57 @@ texlive_socket_route() {
 echo "== Web root $WEBROOT (owned by $OWNER, filled by deploy/publish.sh)"
 install -d -o "$OWNER" -g www-data -m 2775 "$WEBROOT"
 
-echo "== Apache virtual host"
-a2enmod -q proxy proxy_http proxy_wstunnel headers rewrite ssl
-if [ -e "$SSL_CONF" ]; then
-	add_proxy_route "$SSL_CONF" /collab/ 1234 "Real-time collaboration server (deploy/docker-compose.yml)."
-	# /texlive/ follows the TeX Live server once it runs, further down.
-	# Where applications such as Claude look for how to sign in to the
-	# collaboration server's /collab/mcp (server/collab/oauth.js).
-	add_proxy_route "$SSL_CONF" /.well-known/oauth-authorization-server 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-authorization-server
-	add_proxy_route "$SSL_CONF" /.well-known/oauth-protected-resource 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-protected-resource
-	add_proxy_route "$SSL_CONF" /docs 1234 "« Ouvrir dans Feuillet » links and forms, as Overleaf's /docs (server/collab/docs.js)." /docs
-else
-	sed "s/@DOMAIN@/$DOMAIN/g" "$HERE/apache/feuillet.conf" >"$SITES/$DOMAIN.conf"
-	chmod 644 "$SITES/$DOMAIN.conf"
-	a2ensite -q "$DOMAIN"
-fi
-apache2ctl configtest
-systemctl reload apache2
+# Apache: the virtual host once; certbot copies it into $SSL_CONF (HTTPS),
+# to which later runs add the routes it lacks.
+apache_site() {
+	a2enmod -q proxy proxy_http proxy_wstunnel headers rewrite ssl
+	if [ -e "$SSL_CONF" ]; then
+		add_proxy_route "$SSL_CONF" /collab/ 1234 "Real-time collaboration server (deploy/docker-compose.yml)."
+		# /texlive/ follows the TeX Live server once it runs, further down.
+		# Where applications such as Claude look for how to sign in to the
+		# collaboration server's /collab/mcp (server/collab/oauth.js).
+		add_proxy_route "$SSL_CONF" /.well-known/oauth-authorization-server 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-authorization-server
+		add_proxy_route "$SSL_CONF" /.well-known/oauth-protected-resource 1234 "Sign-in for assistants (server/collab/oauth.js)." /.well-known/oauth-protected-resource
+		add_proxy_route "$SSL_CONF" /docs 1234 "« Ouvrir dans Feuillet » links and forms, as Overleaf's /docs (server/collab/docs.js)." /docs
+	else
+		sed "s/@DOMAIN@/$DOMAIN/g" "$HERE/apache/feuillet.conf" >"$SITES/$DOMAIN.conf"
+		chmod 644 "$SITES/$DOMAIN.conf"
+		a2ensite -q "$DOMAIN"
+	fi
+	apache2ctl configtest
+	systemctl reload apache2
+}
+
+# nginx: the site once (certbot --nginx then adds HTTPS to it); its routes
+# and maps at each run, so that an update reaches them.
+nginx_site() {
+	local site=/etc/nginx/sites-available/$DOMAIN
+	install -d -m 755 /etc/nginx/snippets
+	sed "s/@DOMAIN@/$DOMAIN/g" "$HERE/nginx/routes.conf" >/etc/nginx/snippets/feuillet.conf
+	chmod 644 /etc/nginx/snippets/feuillet.conf
+	install -m 644 "$HERE/nginx/maps.conf" /etc/nginx/conf.d/feuillet.conf
+	if [ ! -e "$site" ]; then
+		sed "s/@DOMAIN@/$DOMAIN/g" "$HERE/nginx/feuillet.conf" >"$site"
+		chmod 644 "$site"
+	fi
+	ln -sfn "$site" "/etc/nginx/sites-enabled/$DOMAIN"
+	nginx -t
+	systemctl reload nginx
+}
+
+case $WEB in
+nginx)
+	echo "== nginx site"
+	nginx_site
+	;;
+apache)
+	echo "== Apache virtual host"
+	apache_site
+	;;
+none)
+	echo "== Web server: yours, with the routes of deploy/README.md (\"Another web server\")"
+	;;
+esac
 
 echo "== Collaboration server settings (/etc/feuillet/collab.env)"
 install -d -m 755 /etc/feuillet
@@ -247,20 +321,24 @@ for _ in $(seq 1 90); do
 done
 echo "LanguageTool: $(docker inspect --format '{{.State.Health.Status}}' feuillet-languagetool 2>/dev/null || echo missing)"
 
-echo "== Apache: /texlive/ through the TeX Live server's socket"
-texlive_socket_route "$SSL_CONF" add
-texlive_socket_route "$SITES/$DOMAIN.conf"
-apache2ctl configtest
-systemctl reload apache2
+if [ "$WEB" = apache ]; then
+	echo "== Apache: /texlive/ through the TeX Live server's socket"
+	texlive_socket_route "$SSL_CONF" add
+	texlive_socket_route "$SITES/$DOMAIN.conf"
+	apache2ctl configtest
+	systemctl reload apache2
+fi
 
 echo "== HTTPS certificate"
-if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
+if [ "$WEB" = none ]; then
+	echo "Left to your web server, for $DOMAIN."
+elif [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
 	echo "Certificate already present; certbot renews it automatically."
 elif getent hosts "$DOMAIN" >/dev/null; then
-	certbot --apache -d "$DOMAIN" --redirect
+	certbot "--$WEB" -d "$DOMAIN" --redirect
 else
 	echo "$DOMAIN does not resolve yet. Create the DNS record, then run:"
-	echo "  sudo certbot --apache -d $DOMAIN --redirect"
+	echo "  sudo certbot --$WEB -d $DOMAIN --redirect"
 fi
 
 echo "Done. Publish the application with: deploy/publish.sh (no sudo needed)"
