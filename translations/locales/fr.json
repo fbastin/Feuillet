@@ -3718,6 +3718,8 @@
   "Control character": "Caractère de contrôle",
   "More information": "Plus d'information",
   "Go to the linked file: {fileName}": "Aller au fichier lié : {{fileName}}",
+  "Go to « {title} »": "Aller à « {{title}} »",
+  "Position in the outline": "Position dans le plan",
   "It signs you in to your Feuillet account, on any device, and encrypts your tokens in this browser.": "Il vous connecte à votre compte Feuillet, sur tout appareil, et chiffre vos jetons dans ce navigateur.",
   "Your password signs you in to your Feuillet account on any device; the server keeps only a hash of it. In this browser, it also encrypts sensitive information such as GitHub tokens and API keys. Your projects remain readable in this browser's storage: on a shared computer, sign out and clear Feuillet's browser data before leaving.": "Votre mot de passe vous connecte à votre compte Feuillet sur tout appareil; le serveur n'en garde qu'une empreinte. Dans ce navigateur, il chiffre aussi les données sensibles, comme les jetons GitHub et les clés d'API. Vos projets restent lisibles dans le stockage de ce navigateur : sur un ordinateur partagé, déconnectez-vous et effacez les données de Feuillet dans le navigateur avant de partir.",
   "TeX Live, full distribution": "TeX Live, distribution complète",

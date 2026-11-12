@@ -16,6 +16,8 @@ interface PluginHeaderProps {
 	fileName: string;
 	filePath?: string;
 	pathPrefix?: React.ReactNode;
+	/** After the path: where the cursor is in the outline. */
+	pathTrail?: React.ReactNode;
 	pluginName?: string;
 	pluginVersion?: string;
 	tooltipInfo?: string | string[];
@@ -99,6 +101,7 @@ export const PluginHeader: React.FC<PluginHeaderProps> = ({
 	fileName,
 	filePath,
 	pathPrefix,
+	pathTrail,
 	pluginName,
 	pluginVersion,
 	tooltipInfo,
@@ -156,6 +159,7 @@ export const PluginHeader: React.FC<PluginHeaderProps> = ({
 							<LinkIcon />
 						</button>
 					)}
+					{pathTrail}
 					{formattedTooltip && (
 						<InfoTooltip
 							title={

@@ -82,6 +82,7 @@ import OverflowControls, {
 	type OverflowItem,
 } from '../common/OverflowControls';
 import { PluginControlGroup, PluginHeader } from '../common/PluginHeader';
+import SectionTrail from './SectionTrail';
 import PluginToolbar, { type ToolbarEntry } from '../common/PluginToolbar';
 import UnlinkedDocumentNotice from './UnlinkedDocumentNotice';
 import InsertFigureModal from './InsertFigureModal';
@@ -866,6 +867,14 @@ const EditorContent: React.FC<{
 						isEditingFile
 							? filePath || fileInfo.filePath
 							: linkedFileInfo?.filePath
+					}
+					pathTrail={
+						<SectionTrail
+							viewRef={viewRef}
+							fileName={
+								isEditingFile ? fileInfo.fileName : linkedFileInfo?.fileName
+							}
+						/>
 					}
 					pluginName={isEditingFile ? 'Text Editor' : 'Document Editor'}
 					pluginVersion='1.0.0'

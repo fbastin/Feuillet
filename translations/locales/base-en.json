@@ -3983,6 +3983,8 @@
   "Control character": "Control character",
   "More information": "More information",
   "Go to the linked file: {fileName}": "Go to the linked file: {{fileName}}",
+  "Go to « {title} »": "Go to « {{title}} »",
+  "Position in the outline": "Position in the outline",
   "It signs you in to your Feuillet account, on any device, and encrypts your tokens in this browser.": "It signs you in to your Feuillet account, on any device, and encrypts your tokens in this browser.",
   "Your password signs you in to your Feuillet account on any device; the server keeps only a hash of it. In this browser, it also encrypts sensitive information such as GitHub tokens and API keys. Your projects remain readable in this browser's storage: on a shared computer, sign out and clear Feuillet's browser data before leaving.": "Your password signs you in to your Feuillet account on any device; the server keeps only a hash of it. In this browser, it also encrypts sensitive information such as GitHub tokens and API keys. Your projects remain readable in this browser's storage: on a shared computer, sign out and clear Feuillet's browser data before leaving.",
   "TeX Live, full distribution": "TeX Live, full distribution",
