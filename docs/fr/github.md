@@ -208,10 +208,11 @@ Feuillet.
 ## Un badge « Ouvrir dans Feuillet »
 
 Dans le `README.md` d'un dépôt public, ce badge permet à quiconque de
-l'ouvrir dans Feuillet d'un clic (remplacez `PROPRIETAIRE/DEPOT`) :
+l'ouvrir dans Feuillet d'un clic (remplacez `feuillet.exemple.org` par
+l'adresse du serveur et `PROPRIETAIRE/DEPOT` par le dépôt) :
 
 ```markdown
-[![Ouvrir dans Feuillet](https://feuillet.slashbin.net/badges/ouvrir-dans-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/PROPRIETAIRE/DEPOT/archive/HEAD.zip)
+[![Ouvrir dans Feuillet](https://feuillet.exemple.org/badges/ouvrir-dans-feuillet.svg)](https://feuillet.exemple.org/docs?snip_uri=https://github.com/PROPRIETAIRE/DEPOT/archive/HEAD.zip)
 ```
 
 Le badge s'affiche ainsi : ![Ouvrir dans Feuillet](../../public/badges/ouvrir-dans-feuillet.svg).

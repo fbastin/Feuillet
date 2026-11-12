@@ -4,7 +4,7 @@
 
 ## Créer un compte
 
-Sur <https://feuillet.slashbin.net>, choisissez **Créer un compte** et donnez
+Sur la page d'accueil de Feuillet, choisissez **Créer un compte** et donnez
 un nom d'utilisateur, un mot de passe et, si vous le voulez, une adresse
 courriel : un lien envoyé à cette adresse la confirme, et elle servira si
 vous oubliez votre mot de passe (voir [Compte](compte.md)). Le compte
@@ -55,9 +55,10 @@ avec TeX Live dès sa création.
 ### Ouvrir dans Feuillet
 
 Comme « Open in Overleaf », un lien ou un formulaire d'une autre page crée un
-projet dans Feuillet. L'adresse est `https://feuillet.slashbin.net/docs`, avec
-les mêmes champs que celle d'Overleaf (`https://www.overleaf.com/docs`) :
-remplacer l'une par l'autre suffit.
+projet dans Feuillet. L'adresse est celle du serveur suivie de `/docs`
+(`https://feuillet.exemple.org/docs`), avec les mêmes champs que celle
+d'Overleaf (`https://www.overleaf.com/docs`) : remplacer l'une par l'autre
+suffit.
 
 - `snip_uri` : l'adresse d'un fichier (`.tex`, `.bib`, image…) ou d'une
   archive `.zip`, ou une adresse `data:`. Plusieurs fichiers :
@@ -80,10 +81,11 @@ d'un fichier **Depuis une URL externe**. Il garde la demande 30
 minutes, en mémoire seulement : passé ce délai, rouvrez le lien.
 
 Pour un dépôt GitHub public, ce badge ouvre une copie du dépôt (remplacez
-`PROPRIETAIRE/DEPOT`) :
+`feuillet.exemple.org` par l'adresse du serveur et `PROPRIETAIRE/DEPOT` par
+le dépôt) :
 
 ```markdown
-[![Ouvrir dans Feuillet](https://feuillet.slashbin.net/badges/ouvrir-dans-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/PROPRIETAIRE/DEPOT/archive/HEAD.zip)
+[![Ouvrir dans Feuillet](https://feuillet.exemple.org/badges/ouvrir-dans-feuillet.svg)](https://feuillet.exemple.org/docs?snip_uri=https://github.com/PROPRIETAIRE/DEPOT/archive/HEAD.zip)
 ```
 
 Le badge anglais est `badges/open-in-feuillet.svg`. Pour garder le projet

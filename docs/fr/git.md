@@ -38,7 +38,7 @@ commence par `fgt_` : votre mot de passe Feuillet n'y fonctionne pas, et
 Feuillet le dit à Git (« This is not a Git token »).
 
 ```
-git clone -c user.name="alice" -c user.email="alice@example.org" https://alice@feuillet.slashbin.net/collab/git/<projet> "Thèse"
+git clone -c user.name="alice" -c user.email="alice@example.org" https://alice@feuillet.exemple.org/collab/git/<projet> "Thèse"
 ```
 
 Le propriétaire du projet et ses éditeurs le clonent, tirent et poussent;

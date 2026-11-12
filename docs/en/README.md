@@ -3,9 +3,8 @@
 *[Français](../fr/README.md)*
 
 Feuillet is an online collaborative LaTeX editor in the spirit of Overleaf,
-linked to GitHub. You may try it at <https://feuillet.slashbin.net>, a small
-server meant for small groups; for a lab, a course or a team,
-[run your own server](hosting.md).
+linked to GitHub, that you install on your own server (see
+[Running your own server](hosting.md)).
 
 It comes from [TeXlyre](https://texlyre.org) and keeps its editor: LaTeX
 and Typst, a visual editor, spell checking, formulas, diagrams. It adds a
@@ -13,7 +12,8 @@ server that keeps projects and accounts, with sharing, review, versions,
 compiling with TeX Live, GitHub sync, Git and working with Claude.
 
 The interface is in French or English, as chosen in the settings; this
-guide names the buttons as they read in English.
+guide names the buttons as they read in English. Its examples write the
+server's address `feuillet.example.org`: replace it with yours.
 
 ## Contents
 

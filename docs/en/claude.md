@@ -10,13 +10,14 @@ role in each project allows. Its changes arrive as
 
 ## Connecting Claude
 
-The connector's address is:
+The connector's address is the server's followed by `/collab/mcp`, for
+instance:
 
 ```
-https://feuillet.slashbin.net/collab/mcp
+https://feuillet.example.org/collab/mcp
 ```
 
-You also find it in your profile, **Assistants** tab, or through **Connect
+You find it, exactly, in your profile, **Assistants** tab, or through **Connect
 Claude** in your account menu.
 
 - **In Claude (web or desktop app)**: open the settings, then the
@@ -26,7 +27,7 @@ Claude** in your account menu.
 - **In Claude Code**: in a terminal, run
 
   ```
-  claude mcp add --transport http feuillet https://feuillet.slashbin.net/collab/mcp
+  claude mcp add --transport http feuillet https://feuillet.example.org/collab/mcp
   ```
 
   then type `/mcp` in Claude Code to sign in.

@@ -4,7 +4,7 @@
 
 ## Creating an account
 
-At <https://feuillet.slashbin.net>, choose **Create account** and give a
+On Feuillet's home page, choose **Create account** and give a
 username, a password and, if you wish, an email address: a link sent there
 confirms it, and it will serve if you forget your password (see
 [Account](account.md)). The account exists in your
@@ -54,9 +54,9 @@ with TeX Live from the start.
 ### Open in Feuillet
 
 As "Open in Overleaf", a link or a form on another page creates a project in
-Feuillet. The address is `https://feuillet.slashbin.net/docs`, with the same
-fields as Overleaf's (`https://www.overleaf.com/docs`): replacing one with
-the other is enough.
+Feuillet. The address is the server's followed by `/docs`
+(`https://feuillet.example.org/docs`), with the same fields as Overleaf's
+(`https://www.overleaf.com/docs`): replacing one with the other is enough.
 
 - `snip_uri`: the address of a file (`.tex`, `.bib`, image…) or of a `.zip`
   archive, or a `data:` address. Several files:
@@ -79,10 +79,11 @@ does. It keeps the request for 30 minutes, in memory only: after that, open
 the link again.
 
 For a public GitHub repository, this badge opens a copy of the repository
-(replace `OWNER/REPO`):
+(replace `feuillet.example.org` with the server's address and `OWNER/REPO`
+with the repository):
 
 ```markdown
-[![Open in Feuillet](https://feuillet.slashbin.net/badges/open-in-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/OWNER/REPO/archive/HEAD.zip)
+[![Open in Feuillet](https://feuillet.example.org/badges/open-in-feuillet.svg)](https://feuillet.example.org/docs?snip_uri=https://github.com/OWNER/REPO/archive/HEAD.zip)
 ```
 
 The French badge is `badges/ouvrir-dans-feuillet.svg`. To keep the project

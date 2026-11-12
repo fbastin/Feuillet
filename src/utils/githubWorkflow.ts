@@ -5,6 +5,8 @@
 // glossaries and nomenclatures, shell escape. The PDF is kept as the run's
 // artifact; errors make the run fail, as a check on pull requests.
 
+import { APP_SOURCE_URL } from '@/branding';
+
 export const WORKFLOW_PATH = '.github/workflows/feuillet.yml';
 /** The first line of a workflow Feuillet wrote, and may rewrite. */
 export const WORKFLOW_MARKER = '# Made by Feuillet';
@@ -89,9 +91,7 @@ export const buildWorkflow = (settings: WorkflowSettings): string => {
 	const { image, label } = texliveImage(settings.version, settings.latestYear);
 	// The Feuillet it was made on: this one.
 	const site =
-		typeof window === 'undefined'
-			? 'https://feuillet.slashbin.net'
-			: window.location.origin;
+		typeof window === 'undefined' ? APP_SOURCE_URL : window.location.origin;
 	return [
 		WORKFLOW_MARKER,
 		`# (${site}). It compiles the project on GitHub at`,

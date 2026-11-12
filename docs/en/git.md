@@ -36,7 +36,7 @@ with `fgt_`: your Feuillet password does not work there, and Feuillet tells
 Git so ("This is not a Git token").
 
 ```
-git clone -c user.name="alice" -c user.email="alice@example.org" https://alice@feuillet.slashbin.net/collab/git/<project> "Thesis"
+git clone -c user.name="alice" -c user.email="alice@example.org" https://alice@feuillet.example.org/collab/git/<project> "Thesis"
 ```
 
 The project's owner and its editors clone, pull and push; its reviewers and

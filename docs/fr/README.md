@@ -3,10 +3,8 @@
 *[English](../en/README.md)*
 
 Feuillet est un éditeur LaTeX collaboratif en ligne, dans l'esprit
-d'Overleaf, relié à GitHub. On peut l'essayer à l'adresse
-<https://feuillet.slashbin.net>, un petit serveur prévu pour de petits
-groupes; pour un laboratoire, un cours ou une équipe,
-[installez votre propre serveur](heberger.md).
+d'Overleaf, relié à GitHub, qui s'installe sur votre propre serveur (voir
+[Installer son serveur](heberger.md)).
 
 Il est issu de [TeXlyre](https://texlyre.org) et en garde l'éditeur : LaTeX
 et Typst, éditeur visuel, correcteur d'orthographe, formules, diagrammes. Il
@@ -15,7 +13,9 @@ relecture, les versions, la compilation avec TeX Live, la synchronisation
 avec GitHub, Git et le travail avec Claude.
 
 L'interface est en français ou en anglais, au choix dans les réglages; ce
-guide nomme les boutons tels qu'ils s'affichent en français.
+guide nomme les boutons tels qu'ils s'affichent en français. Ses exemples
+écrivent l'adresse du serveur `feuillet.exemple.org` : remplacez-la par
+celle du vôtre.
 
 ## Sommaire
 

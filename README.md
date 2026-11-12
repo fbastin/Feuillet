@@ -1,10 +1,8 @@
 # Feuillet
 
 Feuillet is a collaborative LaTeX editor in the spirit of
-[Overleaf](https://www.overleaf.com), with GitHub integration. You may try it
-at **<https://feuillet.slashbin.net>**, a small server meant for small
-groups; for a lab, a course or a team, run your own (see
-[Hosting](#hosting)).
+[Overleaf](https://www.overleaf.com), with GitHub integration, that you run
+on your own server (see [Hosting](#hosting)).
 
 It is a fork of [TeXlyre](https://github.com/TeXlyre/texlyre), a local-first
 LaTeX and Typst editor that runs in the browser. Feuillet keeps TeXlyre's
@@ -67,8 +65,8 @@ own:
 ```bash
 git clone https://github.com/fbastin/Feuillet.git
 cd Feuillet
-sudo deploy/install.sh latex.example.org   # servers, Apache site, HTTPS
-deploy/publish.sh                          # the app, built for that address
+sudo deploy/install.sh feuillet.example.org   # servers, Apache site, HTTPS
+deploy/publish.sh                             # the app, built for that address
 ```
 
 The guide gives the steps, what the machine needs and what to set up next:

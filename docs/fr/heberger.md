@@ -2,11 +2,8 @@
 
 *[English](../en/hosting.md)*
 
-<https://feuillet.slashbin.net> est un petit serveur, sur une seule
-machine : il sert à essayer Feuillet et à de petits groupes. Pour un
-laboratoire, un cours ou une équipe, installez votre propre Feuillet : c'est
-le même logiciel, sur votre machine, à votre adresse, avec vos comptes et
-vos projets.
+Feuillet s'installe sur votre propre machine, à votre adresse, avec vos
+comptes et vos projets : pour un laboratoire, un cours ou une équipe.
 
 Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 [`deploy/README.md`](../../deploy/README.md), en anglais.
@@ -16,10 +13,10 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 - **Une machine Linux** joignable depuis Internet, sous Ubuntu 24.04 ou
   Debian : les scripts d'installation utilisent Apache, Docker et systemd.
   Un compte qui peut utiliser `sudo`.
-- **Une adresse**, par exemple `latex.exemple.org`, dont l'enregistrement
+- **Une adresse**, par exemple `feuillet.exemple.org`, dont l'enregistrement
   DNS (`A`, `AAAA` ou `CNAME`) mène à cette machine, avec les ports 80 et
   443 ouverts : le certificat HTTPS de Let's Encrypt en a besoin. Feuillet
-  occupe toute l'adresse, à sa racine (pas `exemple.org/latex/`).
+  occupe toute l'adresse, à sa racine (pas `exemple.org/feuillet/`).
 - **De la place pour compiler**, ce qui demande le plus. Chaque année de
   TeX Live est une image d'environ 3 Go à télécharger, davantage une fois
   décompressée : prévoyez au moins 30 Go libres sur le disque, plus vos
@@ -55,11 +52,11 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
 3. **Les serveurs**, en donnant l'adresse :
 
    ```
-   sudo deploy/install.sh latex.exemple.org
+   sudo deploy/install.sh feuillet.exemple.org
    ```
 
    Le script garde l'adresse dans `/etc/feuillet/site.env`, crée le dossier
-   du site (`/var/www/latex.exemple.org`, à votre compte), installe le site
+   du site (`/var/www/feuillet.exemple.org`, à votre compte), installe le site
    Apache, prépare les sauvegardes de chaque nuit, construit et lance les
    serveurs avec Docker (collaboration, TeX Live, LanguageTool), puis
    demande le certificat HTTPS : certbot vous demande alors une adresse
@@ -75,7 +72,7 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
    Il construit Feuillet pour votre adresse et le copie dans le dossier du
    site. La première fois, il télécharge ses dépendances.
 
-5. **Votre compte.** Ouvrez `https://latex.exemple.org` et choisissez
+5. **Votre compte.** Ouvrez `https://feuillet.exemple.org` et choisissez
    **Créer un compte**. Pour administrer le serveur, nommez ce compte dans
    `/etc/feuillet/collab.env` :
 
@@ -87,8 +84,8 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
    alors **Administration** : les comptes, la place prise, les projets
    orphelins, la dernière sauvegarde.
 
-Pour vérifier, `curl https://latex.exemple.org/collab/health` et
-`curl https://latex.exemple.org/texlive/health` répondent
+Pour vérifier, `curl https://feuillet.exemple.org/collab/health` et
+`curl https://feuillet.exemple.org/texlive/health` répondent
 `{"status":"ok",…}`.
 
 ## Ce qui se règle ensuite
@@ -103,7 +100,7 @@ relancez `sudo deploy/install.sh` après chaque changement.
   invitations s'ouvrent dans le logiciel de courriel de qui invite.
 - **Se connecter avec GitHub, Google ou ORCID** : chaque service demande
   d'y inscrire votre Feuillet, avec son adresse de retour, par exemple
-  `https://latex.exemple.org/collab/github/callback`.
+  `https://feuillet.exemple.org/collab/github/callback`.
 - **Les sauvegardes** : chaque nuit dans `/var/backups/feuillet`; une copie
   sur une autre machine se règle dans `/etc/feuillet/backup.env`. Une
   sauvegarde restée sur la même machine ne protège pas d'une panne de son
@@ -113,9 +110,8 @@ relancez `sudo deploy/install.sh` après chaque changement.
   `OTHER_YEARS` de `deploy/docker-compose.yml`.
 
 Claude et Git n'ont rien à régler : le connecteur est à
-`https://latex.exemple.org/collab/mcp`, et les projets se clonent depuis
-`https://latex.exemple.org/collab/git/…`. Dans ce guide, remplacez
-`feuillet.slashbin.net` par votre adresse.
+`https://feuillet.exemple.org/collab/mcp`, et les projets se clonent depuis
+`https://feuillet.exemple.org/collab/git/…`.
 
 ## Mettre à jour
 
@@ -133,9 +129,9 @@ nouvelle application, que les navigateurs prennent à leur visite suivante.
 ## Avant d'ouvrir votre serveur à d'autres
 
 - **La page de confidentialité** (le lien **Confidentialité**, en bas de
-  page) décrit ce que fait feuillet.slashbin.net : courriels envoyés par
-  Gmail, journaux du serveur web gardés 14 jours, sauvegardes gardées deux
-  semaines. Adaptez-la à ce que fait le vôtre, dans
+  page) décrit un serveur précis : courriels envoyés par Gmail, journaux
+  du serveur web gardés 14 jours, sauvegardes gardées deux semaines.
+  Adaptez-la à ce que fait le vôtre, dans
   [`src/components/common/PrivacyModal.tsx`](../../src/components/common/PrivacyModal.tsx)
   et ses traductions (`translations/locales/fr.json`, `en.json`) : c'est
   vous qui répondez des données de vos utilisateurs, selon les lois qui

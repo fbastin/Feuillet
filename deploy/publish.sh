@@ -20,7 +20,7 @@ if [ -z "$DOMAIN" ]; then
 	exit 1
 fi
 if ! [[ $DOMAIN =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]]; then
-	echo "\"$DOMAIN\" is not a server address (such as latex.example.org, in lowercase)." >&2
+	echo "\"$DOMAIN\" is not a server address (such as feuillet.example.org, in lowercase)." >&2
 	exit 1
 fi
 WEBROOT=${WEBROOT:-/var/www/$DOMAIN}

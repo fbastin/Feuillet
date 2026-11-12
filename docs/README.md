@@ -6,9 +6,6 @@
   relecture, versions, GitHub, Claude, compte et confidentialité, installer
   son serveur.
 
-Try it at / à essayer sur <https://feuillet.slashbin.net>, a small server /
-un petit serveur.
-
 Your own server / votre propre serveur: [English](en/hosting.md) ·
 [français](fr/heberger.md); every setting / chaque réglage:
 [`deploy/README.md`](../deploy/README.md).

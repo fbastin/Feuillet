@@ -4,7 +4,7 @@
 # nightly backups, collaboration and TeX Live servers (Docker) and HTTPS
 # certificate. Safe to run again after an update. Run with sudo, giving the
 # server's address the first time (it is kept in /etc/feuillet/site.env):
-#   sudo deploy/install.sh latex.example.org
+#   sudo deploy/install.sh feuillet.example.org
 #   sudo deploy/install.sh
 set -euo pipefail
 
@@ -27,11 +27,11 @@ if [ -z "$DOMAIN" ] && [ -d /var/www/feuillet.slashbin.net ]; then
 fi
 if [ -z "$DOMAIN" ]; then
 	echo "Give this server's address, the name its DNS record points here:" >&2
-	echo "  sudo $0 latex.example.org" >&2
+	echo "  sudo $0 feuillet.example.org" >&2
 	exit 1
 fi
 if ! [[ $DOMAIN =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]]; then
-	echo "\"$DOMAIN\" is not a server address (such as latex.example.org, in lowercase)." >&2
+	echo "\"$DOMAIN\" is not a server address (such as feuillet.example.org, in lowercase)." >&2
 	exit 1
 fi
 if [ -n "$SAVED" ] && [ "$DOMAIN" != "$SAVED" ]; then

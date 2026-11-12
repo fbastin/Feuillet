@@ -1,7 +1,7 @@
 # Deploying Feuillet
 
-How a Feuillet server is set up, and every setting: feuillet.slashbin.net is
-the example throughout, and `deploy/install.sh` takes your own address. The
+How a Feuillet server is set up, and every setting; `feuillet.example.org`
+stands for the server's address throughout. The
 user guide gives the steps in short, with what the machine needs:
 [English](../docs/en/hosting.md) · [Français](../docs/fr/heberger.md).
 
@@ -71,23 +71,19 @@ browser ──https──▶ Apache ── /                  ▶ /var/www/DOMAI
 
 ## First installation
 
-1. DNS: a record for the server's address that leads to this machine, with
-   ports 80 and 443 open. For feuillet.slashbin.net, a `CNAME` record
-   `feuillet` → `tireur.no-ip.org` for `slashbin.net` (same target as the
-   other subdomains).
-2. Run `sudo deploy/install.sh latex.example.org`, with the server's
+1. DNS: a record (`A`, `AAAA` or `CNAME`) for the server's address that
+   leads to this machine, with ports 80 and 443 open.
+2. Run `sudo deploy/install.sh feuillet.example.org`, with the server's
    address. It keeps it in `/etc/feuillet/site.env` (`DOMAIN=`), which later
-   runs, `deploy/publish.sh` and `deploy/docker-compose.yml` read (a server
-   installed before that file, with the web root
-   `/var/www/feuillet.slashbin.net`, keeps that address).
+   runs, `deploy/publish.sh` and `deploy/docker-compose.yml` read.
    It creates the web root `/var/www/DOMAIN`, installs and enables the
    Apache virtual host (`deploy/apache/feuillet.conf`, for that address),
    builds and starts the servers with Docker (the TeX Live image downloads
    about 3 GB) and requests the HTTPS certificate with certbot.
 3. Run `deploy/publish.sh` (no sudo, Node.js 22 or newer) to build and publish
    the application. The servers it goes to by default are this address's:
-   it writes them in the build's `userdata.json`, where `texlyre.config.ts`
-   names feuillet.slashbin.net's.
+   it writes them in the build's `userdata.json`, in place of those
+   `texlyre.config.ts` names.
 
 ## Sign in with GitHub
 
@@ -96,9 +92,9 @@ offer "Sign in with GitHub" instead, register a GitHub OAuth App once:
 
 1. On GitHub: Settings → Developer settings → OAuth Apps → New OAuth App.
    - Application name: `Feuillet`
-   - Homepage URL: `https://feuillet.slashbin.net`
+   - Homepage URL: `https://feuillet.example.org`
    - Authorization callback URL:
-     `https://feuillet.slashbin.net/collab/github/callback`
+     `https://feuillet.example.org/collab/github/callback`
 2. Register it, then generate a client secret.
 3. Put both in `/etc/feuillet/collab.env` (created by `deploy/install.sh`,
    readable by root only, kept out of the repository):
@@ -125,7 +121,7 @@ a hash of its identifier. To offer it, create an OAuth client once:
 1. In the Google Cloud console (https://console.cloud.google.com), create a
    project (or pick one), then go to **Google Auth Platform**:
    - **Branding**: app name `Feuillet`, a support email, the home page
-     `https://feuillet.slashbin.net`; authorized domain `slashbin.net`. Leave
+     `https://feuillet.example.org`; authorized domain `example.org`. Leave
      the logo out: with one, Google asks for a brand verification first.
    - **Audience**: user type **External**, then **Publish app**. The
      `openid` scope is not sensitive, so the app needs no verification;
@@ -134,7 +130,7 @@ a hash of its identifier. To offer it, create an OAuth client once:
 2. **Clients** → **Create client** → type **Web application**:
    - Authorized JavaScript origins: none needed.
    - Authorized redirect URI:
-     `https://feuillet.slashbin.net/collab/google/callback`
+     `https://feuillet.example.org/collab/google/callback`
 3. Put its client ID and secret in `/etc/feuillet/collab.env`:
 
    ```
@@ -161,9 +157,9 @@ client of ORCID's free public API once:
 1. Sign in to https://orcid.org (an ORCID account with a verified email),
    then open **Developer tools** (https://orcid.org/developer-tools) and
    **Register for the free ORCID public API**.
-2. Fill in: name `Feuillet`, website `https://feuillet.slashbin.net`, a short
+2. Fill in: name `Feuillet`, website `https://feuillet.example.org`, a short
    description (a collaborative LaTeX editor), and the redirect URI
-   `https://feuillet.slashbin.net/collab/orcid/callback`.
+   `https://feuillet.example.org/collab/orcid/callback`.
 3. Put its client ID (`APP-…`) and secret in `/etc/feuillet/collab.env`:
 
    ```
@@ -229,13 +225,13 @@ which address.
 ## Claude (MCP connector)
 
 The collaboration server lets Claude work on an account's projects through
-the Model Context Protocol: `https://feuillet.slashbin.net/collab/mcp`
+the Model Context Protocol: `https://feuillet.example.org/collab/mcp`
 (server/collab/mcp.js). Nothing needs registering:
 
 - in Claude (web or desktop app): Settings → Connectors → Add custom
   connector, with that address;
 - in Claude Code: `claude mcp add --transport http feuillet
-  https://feuillet.slashbin.net/collab/mcp`, then `/mcp` to sign in.
+  https://feuillet.example.org/collab/mcp`, then `/mcp` to sign in.
 
 Claude signs in on a Feuillet page with the account's username and password
 (server/collab/oauth.js), and then works with the account's role in each
@@ -258,7 +254,7 @@ owner and editors clone it with Git, pull and push, and its reviewers and
 readers clone and pull it (server/collab/git.js):
 
 ```
-git clone https://alice@feuillet.slashbin.net/collab/git/<project>
+git clone https://alice@feuillet.example.org/collab/git/<project>
 ```
 
 Nothing needs setting up: the `/collab/` route carries it, and the image
@@ -441,16 +437,16 @@ logrotate (14 days).
 
 ## Checks
 
-- `curl https://feuillet.slashbin.net/collab/health` returns
+- `curl https://feuillet.example.org/collab/health` returns
   `{"status":"ok",...}`.
-- `curl https://feuillet.slashbin.net/texlive/health` returns
+- `curl https://feuillet.example.org/texlive/health` returns
   `{"status":"ok","connections":…,"compiling":…,"queued":…,"shellEscape":"full"}`;
   `"restricted"` means the server found a network and refused to let
   documents run programs (`sudo docker logs feuillet-texlive` says why).
 - `sudo docker logs feuillet-collab` and `sudo docker logs feuillet-texlive`
   show rejected origins, if any, and one line per compile (engine, status,
-  duration). Only `https://feuillet.slashbin.net` is allowed
-  (`ALLOWED_ORIGINS` in `docker-compose.yml`).
+  duration). Only the server's own address is allowed (`ALLOWED_ORIGINS`
+  in `docker-compose.yml`).
 - Files larger than 100 MiB are refused (`MAX_FILE_BYTES`).
 - `sudo docker logs feuillet-collab` shows each account created or deleted.
   An account without a confirmed email address nor recovery codes cannot be

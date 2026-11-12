@@ -11,13 +11,14 @@ rejetez.
 
 ## Connecter Claude
 
-L'adresse du connecteur est :
+L'adresse du connecteur est celle du serveur suivie de `/collab/mcp`, par
+exemple :
 
 ```
-https://feuillet.slashbin.net/collab/mcp
+https://feuillet.exemple.org/collab/mcp
 ```
 
-Vous la trouvez aussi dans votre profil, onglet **Assistants**, ou par
+Vous la trouvez, exacte, dans votre profil, onglet **Assistants**, ou par
 **Connecter Claude** dans le menu de votre compte.
 
 - **Dans Claude (web ou application de bureau)** : ouvrez les réglages, puis
@@ -27,7 +28,7 @@ Vous la trouvez aussi dans votre profil, onglet **Assistants**, ou par
 - **Dans Claude Code** : dans un terminal, lancez
 
   ```
-  claude mcp add --transport http feuillet https://feuillet.slashbin.net/collab/mcp
+  claude mcp add --transport http feuillet https://feuillet.exemple.org/collab/mcp
   ```
 
   puis tapez `/mcp` dans Claude Code pour vous connecter.

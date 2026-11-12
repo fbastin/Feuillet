@@ -199,10 +199,11 @@ your commits to GitHub, then **Pull from GitHub** in Feuillet.
 ## An "Open in Feuillet" badge
 
 In a public repository's `README.md`, this badge lets anyone open it in
-Feuillet in one click (replace `OWNER/REPO`):
+Feuillet in one click (replace `feuillet.example.org` with the server's
+address and `OWNER/REPO` with the repository):
 
 ```markdown
-[![Open in Feuillet](https://feuillet.slashbin.net/badges/open-in-feuillet.svg)](https://feuillet.slashbin.net/docs?snip_uri=https://github.com/OWNER/REPO/archive/HEAD.zip)
+[![Open in Feuillet](https://feuillet.example.org/badges/open-in-feuillet.svg)](https://feuillet.example.org/docs?snip_uri=https://github.com/OWNER/REPO/archive/HEAD.zip)
 ```
 
 The badge looks like this: ![Open in Feuillet](../../public/badges/open-in-feuillet.svg).
