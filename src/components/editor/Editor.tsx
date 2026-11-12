@@ -24,6 +24,7 @@ import { useComments } from '../../hooks/useComments';
 import { usePeerFileSync } from '../../hooks/usePeerFileSync';
 import { usePluginFileInfo } from '../../hooks/usePluginFileInfo';
 import { useProjectLink } from '../../hooks/useProjectLink';
+import { SOURCEMAP_QUERY } from '../../extensions/codemirror/editorContextMenu';
 import { useSourceMap } from '../../hooks/useSourceMap';
 import { useSettings } from '../../hooks/useSettings';
 import type {
@@ -393,9 +394,16 @@ const EditorContent: React.FC<{
 	useEffect(() => {
 		if (!isSourceMapAvailable) return;
 		const handler = () => handleForwardSyncRef.current();
+		// The editor's right-click menu asks before offering it.
+		const answer = (event: Event) => {
+			(event as CustomEvent<{ available: boolean }>).detail.available = true;
+		};
 		document.addEventListener('trigger-sourcemap-forward', handler);
-		return () =>
+		document.addEventListener(SOURCEMAP_QUERY, answer);
+		return () => {
 			document.removeEventListener('trigger-sourcemap-forward', handler);
+			document.removeEventListener(SOURCEMAP_QUERY, answer);
+		};
 	}, [isSourceMapAvailable]);
 
 	useEffect(() => {

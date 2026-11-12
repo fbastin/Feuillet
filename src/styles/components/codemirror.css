@@ -825,6 +825,91 @@
 	border-top: 1px solid var(--accent-border);
 }
 
+/* The right-click menu (editorContextMenu.ts), as the spelling one, at the
+   pointer; on the page itself, not in the editor, whose panes would clip it. */
+.cm-context-menu {
+	position: fixed;
+	display: flex;
+	flex-direction: column;
+	min-width: 16rem;
+	max-width: min(26rem, calc(100vw - 8px));
+	padding: var(--space-xs) 0;
+	background-color: var(--pico-background);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	box-shadow: var(--shadow-md);
+	color: var(--text-color);
+	font-family: var(
+		--texlyre-font-family,
+		var(
+			--slim-font-family,
+			var(--mobile-font-family, Inter, system-ui, sans-serif)
+		)
+	);
+	font-size: var(--font-size-small);
+	z-index: var(--z-tooltip);
+}
+
+.cm-context-menu:focus {
+	outline: none;
+}
+
+.cm-context-menu .cm-context-menu-item {
+	display: flex;
+	align-items: baseline;
+	gap: var(--space-sm);
+	width: 100%;
+	margin: 0;
+	padding: 4px var(--space-sm) 4px var(--space-xs);
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.cm-context-menu .cm-context-menu-item:is(:hover, :focus) {
+	background-color: var(--pico-primary-focus);
+	box-shadow: none;
+	outline: none;
+}
+
+.cm-context-menu .cm-context-menu-check {
+	flex: 0 0 1em;
+	text-align: center;
+}
+
+.cm-context-menu .cm-context-menu-label {
+	flex: 1;
+}
+
+.cm-context-menu .cm-context-menu-keys {
+	padding: 0;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--pico-muted-color, var(--text-color));
+	white-space: nowrap;
+	font: inherit;
+	font-size: 0.9em;
+}
+
+.cm-context-menu .cm-context-menu-divider {
+	margin: var(--space-xs) 0;
+	border: 0;
+	border-top: 1px solid var(--accent-border);
+}
+
+.cm-context-menu .cm-context-menu-status {
+	max-width: 24rem;
+	padding: 4px var(--space-sm);
+	color: var(--pico-muted-color, var(--text-color));
+	font-style: italic;
+}
+
 .codemirror-editor-container .cm-lsp-document-highlight {
 	background-color: var(--pico-primary-focus);
 	border-radius: var(--radius-xs);

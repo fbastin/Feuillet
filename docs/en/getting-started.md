@@ -209,6 +209,14 @@ a line, **Ctrl+J** shows or hides the review panel and **Ctrl+Shift+A**
 turns track changes on or off. The full list opens from the **Keyboard Map** link at the bottom of the
 page (behind the **⋯** button when needed).
 
+A right-click in the text opens the editor's menu, as on Overleaf: **Cut**,
+**Copy**, **Paste**, **Select all**; **Jump to location in PDF** once the
+project is compiled; **Add comment** on the selection; for those who may
+decide, accepting or rejecting the tracked changes of the selection, and
+turning track changes on or off. A right-click outside the selection first
+puts the cursor there; on a misspelt word it gives the spelling suggestions,
+and Shift+right-click the browser's own menu.
+
 As in Overleaf's settings, **Settings** sets the editor's **Line height**
 (compact, normal or wide, under **Appearance**) and **Auto-close brackets**:
 when it is off, typing `{`, `[` or `$` does not write the closing one. In

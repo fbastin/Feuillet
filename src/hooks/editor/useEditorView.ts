@@ -62,6 +62,7 @@ import {
 	overleafSelectionKeys,
 } from '../../extensions/codemirror/multipleSelections';
 import { overleafEditorKeys } from '../../extensions/codemirror/overleafKeys';
+import { editorContextMenu } from '../../extensions/codemirror/editorContextMenu';
 import {
 	createBold as createLatexBold,
 	createItalic as createLatexItalic,
@@ -477,6 +478,10 @@ export const useEditorView = (
 				...foldKeymap,
 				...completionKeymap,
 			]),
+			editorContextMenu({
+				comments: enableComments && !isViewOnly,
+				reviews: enableReviews,
+			}),
 			buildCursorTrackingExtension(),
 			buildCommentTrackingExtension(),
 			searchHighlightExtension,

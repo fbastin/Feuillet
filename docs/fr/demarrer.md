@@ -223,6 +223,15 @@ va à une ligne, **Ctrl+J** affiche ou masque le panneau de relecture et
 complète s'ouvre par le lien **Mappage du clavier**, en bas de la page (au
 besoin derrière le bouton **⋯**).
 
+Un clic droit dans le texte ouvre le menu de l'éditeur, comme sur Overleaf :
+**Couper**, **Copier**, **Coller**, **Tout sélectionner**; **Aller à cet
+endroit dans le PDF** une fois le projet compilé; **Ajouter un
+commentaire** sur la sélection; pour qui peut décider, accepter ou rejeter
+les modifications suivies de la sélection, et activer ou désactiver le
+suivi des modifications. Un clic droit hors de la sélection y place d'abord
+le curseur; sur un mot mal orthographié, il donne les suggestions
+d'orthographe, et Maj+clic droit le menu du navigateur.
+
 Comme dans les réglages d'Overleaf, **Paramètres** règle l'**Interligne** de
 l'éditeur (serré, normal ou large, dans **Apparence**) et la **Fermeture
 automatique des parenthèses** : quand elle est coupée, taper `{`, `[` ou
