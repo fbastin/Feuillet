@@ -19,8 +19,11 @@ and compiling with TeX Live.
   over WebSocket and stored on the server
   ([`server/collab`](server/collab)), instead of peer-to-peer connections:
   collaborators need not be online at the same time.
-- **Accounts on the server.** The same projects on every device; a guest
-  session still works without an account.
+- **Accounts on the server.** The same projects on every device, and the
+  same preferences; signing in with a password, GitHub, Google or ORCID,
+  with two-factor authentication and recovery codes; sign-up open, by
+  invitation or for chosen email domains. A guest session still works
+  without an account.
 - **A project list.** Your projects, those shared with you, archived ones
   and the trash; copying a project; leaving a shared one; deleting one for
   good erases it from the server.
@@ -34,18 +37,26 @@ and compiling with TeX Live.
 - **Versions.** Saved automatically with their authors; labels, comparing
   any two, restoring a file or the whole project, downloading a version.
 - **Compiling with TeX Live** on the server ([`server/texlive`](server/texlive)):
-  pdfLaTeX, XeLaTeX or LuaLaTeX, with the main document and engine set for
-  the whole project, draft mode, stopping at the first error, SyncTeX, and
-  explanations of common errors in French.
-- **GitHub.** Sign in with GitHub, create or link a repository, push and
-  pull with merging, Git history; GitLab, Gitea and Forgejo too.
+  pdfLaTeX, XeLaTeX or LuaLaTeX, with the main document, engine and TeX Live
+  year set for the whole project, auto compile, draft mode, stopping at the
+  first error, SyncTeX, and explanations of common errors in French.
+- **GitHub and Git.** Sign in with GitHub, create or link a repository, push
+  and pull with merging, Git history; GitLab, Gitea and Forgejo too. Each
+  project can also be cloned with Git, and what is pushed appears at once.
 - **Claude.** An MCP connector with its own OAuth, so that Claude (claude.ai,
   the desktop app or Claude Code) reads, searches, compiles, comments and
   suggests changes under the user's own subscription; an "Ask Claude" button
   in the editor.
 - **Editor.** A visual editor with figure and table toolbars, a LaTeX code
-  check, spell checking with Hunspell (in 15 languages), and going to a
-  collaborator's cursor from their avatar.
+  check, spell checking with Hunspell (in 15 languages), grammar and style
+  checking with LanguageTool on the server
+  ([`server/languagetool`](server/languagetool)), a symbol palette, searching
+  the bibliography from `\cite{…}`, the commands a project defines in the
+  completion, a presentation mode, and going to a collaborator's cursor from
+  their avatar.
+- **Administration.** For the accounts named administrators: the server's
+  disk, emails, backups and compiles, every account with its projects, the
+  links to sign up.
 
 From TeXlyre, Feuillet keeps Typst, language servers (LSP), the bibliography
 tools (Zotero, OpenAlex), draw.io and TikZ diagrams, MathLive formulas,
@@ -118,6 +129,7 @@ Feuillet is built on [TeXlyre](https://github.com/TeXlyre/texlyre) and, through 
 - **[tex-fmt](https://github.com/WGUNDERWOOD/tex-fmt)** - LaTeX code formatter
 - **[TeXcount](https://app.uio.no/ifi/texcount/)** - Word counter for LaTeX documents
 - **[BibTeX-Tidy](https://github.com/FlamingTempura/bibtex-tidy)** - BibTeX file cleaner and formatter
+- **[LanguageTool](https://languagetool.org)** (LGPL 2.1 or later) - Grammar and style checking, its official release run on the server (`server/languagetool`)
 - **[Hunspell](https://github.com/hunspell/hunspell)** through **[hunspell-wasm](https://github.com/rotemdan/hunspell-wasm)** (MPL 1.1, GPL 2.0 or LGPL 2.0) - Spell checking, with the dictionaries packaged by [wooorm/dictionaries](https://github.com/wooorm/dictionaries): French of [Grammalecte](https://grammalecte.net/) (MPL 2.0); English of [SCOWL](http://wordlist.aspell.net/) (MIT and BSD); German of [igerman98](https://www.j3e.de/ispell/igerman98/index_en.html) (GPL 2.0 or 3.0); Spanish of [RLA-ES](https://github.com/sbosio/rla-es) (GPL 3.0, LGPL 3.0 or MPL 1.1); Italian of [plio.it](http://www.plio.it) (GPL 3.0); Brazilian Portuguese of [LibreOffice](https://github.com/LibreOffice/dictionaries) (LGPL 3.0 or MPL 2.0); European Portuguese of [Natura](https://natura.di.uminho.pt) (GPL 2.0, LGPL 2.1 or MPL 1.1); Dutch of [OpenTaal](https://github.com/OpenTaal/opentaal-hunspell) (BSD or CC BY 3.0); Catalan of [Softcatalà](https://github.com/Softcatala/catalan-dict-tools) (GPL 2.0 or LGPL 2.1); Polish of [SJP.PL](http://extensions.openoffice.org/en/project/polish-dictionary-pack) (GPL 3.0, LGPL 3.0 or MPL 2.0); Russian of [LibreOffice](https://github.com/LibreOffice/dictionaries) (BSD); Swedish of [Den stora svenska ordlistan](https://extensions.libreoffice.org/extensions/swedish-spelling-dictionary-den-stora-svenska-ordlistan) (LGPL 3.0); Danish of [Stavekontrolden](https://stavekontrolden.dk) (GPL 2.0, LGPL 2.1 or MPL 1.1); Romanian of [RoSpell](https://rospell.wordpress.com) (GPL 2.0, LGPL 2.1 or MPL 1.1)
 
 ### Typst Tools
