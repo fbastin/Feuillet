@@ -66,7 +66,7 @@ address of its own:
 git clone https://github.com/fbastin/Feuillet.git
 cd Feuillet
 sudo deploy/install.sh feuillet.example.org   # servers, web site, HTTPS
-deploy/publish.sh                             # the app, built for that address
+deploy/publish.sh                             # the app, for that address
 ```
 
 The guide gives the steps, what the machine needs and what to set up next:

@@ -43,8 +43,9 @@ This page gives the steps. Each setting is detailed in
    Docker Compose must be version 2.24 or newer (`docker compose version`);
    otherwise, take Docker
    [from its own repository](https://docs.docker.com/engine/install/).
-   Building the app also takes Node.js 22 or newer, for instance with
-   [nvm](https://github.com/nvm-sh/nvm): `nvm install 22`.
+   Node.js is not needed: the app comes built from GitHub (step 4). To
+   build it yourself, as for a changed copy, take Node.js 22 or newer, for
+   instance with [nvm](https://github.com/nvm-sh/nvm): `nvm install 22`.
 
 2. **The code**, with your usual account (not `root`):
 
@@ -78,8 +79,13 @@ This page gives the steps. Each setting is detailed in
    deploy/publish.sh
    ```
 
-   It builds Feuillet for your address and copies it to the site's folder.
-   The first time, it downloads its dependencies.
+   It takes the app as GitHub built it for the commit you have (some ten
+   minutes after each change of Feuillet, for the 15 latest ones), checks
+   it, sets your address in it and copies it to the site's folder. The
+   first time, it also downloads the compilers that run in the browser
+   (600 MB), which it keeps in `~/.cache/feuillet` until they change. With
+   Node.js 22 or newer on the machine, it builds the app instead;
+   `deploy/publish.sh --download` or `--build` chooses.
 
 5. **Your account.** Open `https://feuillet.example.org` and choose **Create
    account**. To administer the server, name that account in

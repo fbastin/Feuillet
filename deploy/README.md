@@ -87,10 +87,12 @@ browser ──https──▶ Apache or nginx ── /                  ▶ /var/
    builds and starts the servers with Docker (the TeX Live image downloads
    about 3 GB) and requests the HTTPS certificate with certbot
    (`python3-certbot-apache` or `python3-certbot-nginx`).
-3. Run `deploy/publish.sh` (no sudo, Node.js 22 or newer) to build and publish
-   the application. The servers it goes to by default are this address's:
-   it writes them in the build's `userdata.json`, in place of those
-   `texlyre.config.ts` names.
+3. Run `deploy/publish.sh` (no sudo) to publish the application. The
+   servers it goes to by default are this address's: it writes them in its
+   `userdata.json`, in place of those `texlyre.config.ts` names. With
+   Node.js 22 or newer, it builds the application here (`--build`);
+   otherwise it downloads it built (`--download`, see "Application
+   archives").
 
 ## nginx
 
@@ -476,7 +478,8 @@ connect again with new tickets.
   by certbot (keeping a copy of the previous file next to it); with nginx,
   it writes the routes and maps again. It rebuilds the containers and
   leaves the certificate alone.
-- Application: `deploy/publish.sh`.
+- Application: `deploy/publish.sh`, built here or downloaded (see
+  Application archives).
 - TeX Live packages: `sudo feuillet-compose build --pull texlive` then
   `sudo feuillet-compose up -d texlive`.
 
@@ -485,6 +488,34 @@ connect again with new tickets.
 the address in `/etc/feuillet/site.env`, and your
 `/etc/feuillet/docker-compose.override.yml` if any. `sudo feuillet-compose
 ps`, `logs collab` or `restart collab` work the same way.
+
+## Application archives
+
+So that a server needs neither Node.js nor 3 GB and minutes to build the
+application, GitHub builds it for each commit of `main`
+([`.github/workflows/app-archive.yml`](../.github/workflows/app-archive.yml))
+and keeps the archives in the pre-release `app-builds` of the repository:
+
+- `feuillet-app-<commit>.tar.gz`, the application without `core/` (75 MB);
+- `feuillet-app-<commit>.txt`, its manifest: the commit, the archive's
+  SHA-256 sum, and the `core/` it needs, with its sum;
+- `feuillet-core-<key>.tar.gz`, `core/`, the compilers that run in the
+  browser (600 MB), named after its content: uploaded again only when it
+  changes.
+
+The archives are reproducible: the same files give the same bytes, whoever
+packs them. Those of the 15 latest commits stay, with the `core/` they
+need; the rest goes.
+
+`deploy/publish.sh --download` (the default without Node.js 22) takes the
+archive of the commit checked out (`git rev-parse HEAD`), from the
+repository the copy was cloned from (`origin` on GitHub; elsewhere,
+`FEUILLET_RELEASES=https://…/releases/download/app-builds`), checks both
+sums, keeps `core/` in `~/.cache/feuillet` from one publication to the
+next, sets the server's address, and copies to the web root only the files
+that changed. A copy with local changes, or a commit GitHub has not built
+yet (some ten minutes after a push), needs a build (`--build`). A fork
+builds its own archives once Actions is turned on for it.
 
 ## Your own settings
 

@@ -1,0 +1,120 @@
+# .github/workflows/app-archive.yml
+# Builds the application for each commit of main, so that a server can
+# publish it without Node.js nor a build of its own (deploy/publish.sh
+# --download). The archives go to the pre-release "app-builds":
+#   feuillet-app-<commit>.tar.gz   the application, without core/
+#   feuillet-app-<commit>.txt      its manifest: commit, app_sha256, core,
+#                                  core_sha256
+#   feuillet-core-<key>.tar.gz     core/, the compilers that run in the
+#                                  browser (600 MB), named after its content
+#                                  and uploaded only when that changes
+# Archives are reproducible (sorted, dated 1970, no owner): the same files
+# give the same bytes. The 15 latest commits keep theirs, and the cores
+# they need.
+name: App archive
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One at a time; a newer push replaces the one waiting.
+concurrency:
+  group: app-archive
+  cancel-in-progress: false
+
+env:
+  RELEASE: app-builds
+  KEEP: 15
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.13.1
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Pack
+        run: |
+          set -euo pipefail
+          pack() { tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -cf - "$@" | gzip -n -6; }
+          # core/ by its content, whichever way its files came.
+          core=$(cd dist/core && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
+          mkdir -p out
+          (cd dist && pack --exclude=./core .) >"out/feuillet-app-$GITHUB_SHA.tar.gz"
+          (cd dist/core && pack .) >"out/feuillet-core-$core.tar.gz"
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "app_sha256=$(sha256sum "out/feuillet-app-$GITHUB_SHA.tar.gz" | cut -d' ' -f1)"
+            echo "core=$core"
+            echo "core_sha256=$(sha256sum "out/feuillet-core-$core.tar.gz" | cut -d' ' -f1)"
+          } >"out/feuillet-app-$GITHUB_SHA.txt"
+          cat "out/feuillet-app-$GITHUB_SHA.txt"
+          ls -la out
+          echo "CORE=$core" >>"$GITHUB_ENV"
+
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE" >/dev/null 2>&1; then
+            gh release create "$RELEASE" --prerelease --target "$GITHUB_SHA" \
+              --title "Feuillet application builds" \
+              --notes "The application built for each recent commit of main, which deploy/publish.sh --download takes in place of a build (.github/workflows/app-archive.yml). Not a release: the archives of older commits go."
+          fi
+          # The core only if this content is not there yet: the same
+          # content gives the same archive.
+          if ! gh release view "$RELEASE" --json assets --jq '.assets[].name' | grep -qx "feuillet-core-$CORE.tar.gz"; then
+            gh release upload "$RELEASE" "out/feuillet-core-$CORE.tar.gz"
+          fi
+          # The manifest last: once it is there, the rest is.
+          gh release upload "$RELEASE" --clobber "out/feuillet-app-$GITHUB_SHA.tar.gz"
+          gh release upload "$RELEASE" --clobber "out/feuillet-app-$GITHUB_SHA.txt"
+
+      - name: Prune
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE" --jq '.id')
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases/$id/assets?per_page=100" \
+            --jq '.[] | [.id, .name, .created_at] | @tsv' >assets.tsv
+          # The latest commits' manifests, newest first.
+          grep -P '\tfeuillet-app-[0-9a-f]{40}\.txt\t' assets.tsv | sort -t$'\t' -k3,3r |
+            cut -f2 | sed -E 's/^feuillet-app-([0-9a-f]{40})\.txt$/\1/' >commits.txt
+          head -n "$KEEP" commits.txt >keep.txt
+          mkdir -p manifests
+          while read -r commit; do
+            gh release download "$RELEASE" --pattern "feuillet-app-$commit.txt" --dir manifests --clobber
+          done <keep.txt
+          cat manifests/*.txt | sed -n 's/^core=//p' | sort -u >cores.txt
+          while IFS=$'\t' read -r asset name _; do
+            drop=false
+            if [[ $name =~ ^feuillet-app-([0-9a-f]{40})\.(tar\.gz|txt)$ ]]; then
+              grep -qx "${BASH_REMATCH[1]}" keep.txt || drop=true
+            elif [[ $name =~ ^feuillet-core-([0-9a-f]{16})\.tar\.gz$ ]]; then
+              grep -qx "${BASH_REMATCH[1]}" cores.txt || drop=true
+            fi
+            if $drop; then
+              echo "Removing $name"
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset"
+            fi
+          done <assets.tsv
