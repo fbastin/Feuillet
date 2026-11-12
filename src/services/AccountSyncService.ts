@@ -151,6 +151,8 @@ export interface AccessRequest {
 export const ACCESS_REQUESTS_CHANGED = 'feuillet:access-requests-changed';
 
 const REQUESTED_ROLES: readonly string[] = ['editor', 'reviewer'];
+// How long opening a granted project waits for the project list.
+const OPEN_GRANTED_WAIT_MS = 5000;
 
 export type MemberRole = 'editor' | 'reviewer' | 'reader';
 export type ProjectRole = 'owner' | MemberRole;
@@ -942,7 +944,12 @@ class AccountSyncService {
 	 * otherwise write its own address back as it closes.
 	 */
 	async openGranted(link: string): Promise<void> {
-		if (this.userId) await this.sync(this.userId).catch(() => {});
+		if (this.userId) {
+			await Promise.race([
+				this.sync(this.userId).catch(() => {}),
+				new Promise((resolve) => setTimeout(resolve, OPEN_GRANTED_WAIT_MS)),
+			]);
+		}
 		window.location.hash = `yjs:${link}`;
 		window.location.reload();
 	}

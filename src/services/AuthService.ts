@@ -1286,7 +1286,10 @@ class AuthService {
 	async removeSyncedProject(project: Project): Promise<void> {
 		const db = await this.getDatabase();
 		await db.delete(this.PROJECT_STORE, project.id);
-		await cleanupProjectDatabases(project);
+		// Its databases go once nothing holds them: those of a project open
+		// here wait until it closes, without holding up the account's sync
+		// (a deletion blocked by an open connection waits as long).
+		void cleanupProjectDatabases(project);
 	}
 }
 
