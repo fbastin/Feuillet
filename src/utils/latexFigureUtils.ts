@@ -40,6 +40,33 @@ export const isFigureImage = (path: string): boolean =>
 export const canPreviewImage = (path: string): boolean =>
 	PREVIEW_EXTENSIONS.includes(extensionOf(path));
 
+/**
+ * A name LaTeX can include for this image: its own, or, without a known
+ * extension (an address such as …/image?id=3), the one its first bytes say
+ * (PNG, JPEG, PDF, EPS); null when it is none of them.
+ */
+export const figureImageName = (
+	name: string,
+	content: ArrayBuffer,
+): string | null => {
+	if (isFigureImage(name)) return name;
+	const bytes = new Uint8Array(content.slice(0, 8));
+	const starts = (...values: number[]) =>
+		values.every((value, i) => bytes[i] === value);
+	const extension = starts(0x89, 0x50, 0x4e, 0x47)
+		? 'png'
+		: starts(0xff, 0xd8, 0xff)
+			? 'jpg'
+			: starts(0x25, 0x50, 0x44, 0x46)
+				? 'pdf'
+				: starts(0x25, 0x21, 0x50, 0x53)
+					? 'eps'
+					: null;
+	if (!extension) return null;
+	const stem = name.replace(/\.[^./]*$/, '').trim() || 'image';
+	return `${stem}.${extension}`;
+};
+
 /** A label for the figure of an image, e.g. fig:plan-du-site. */
 export const figureLabel = (path: string): string => {
 	const name = (path.split('/').pop() ?? '').replace(/\.[^.]+$/, '');
@@ -93,12 +120,17 @@ export const insertFigure = (
 	caption?: { from: number; to: number },
 ): void => {
 	const { state } = view;
-	const line = state.doc.lineAt(state.selection.main.head);
+	const head = state.selection.main.head;
+	const line = state.doc.lineAt(head);
 	const blank = line.text.trim() === '';
-	const from = blank ? line.from : line.to;
-	const offset = from + (blank ? 0 : 1);
+	// At the start of a line (\end{document}, say): before it, not after.
+	const before = !blank && state.sliceDoc(line.from, head).trim() === '';
+	const from = blank || before ? line.from : line.to;
+	const offset = from + (blank || before ? 0 : 1);
 	view.dispatch({
-		changes: { from, to: line.to, insert: blank ? text : `\n${text}` },
+		changes: before
+			? { from, insert: `${text}\n` }
+			: { from, to: line.to, insert: blank ? text : `\n${text}` },
 		selection: caption
 			? { anchor: offset + caption.from, head: offset + caption.to }
 			: { anchor: offset + text.length },

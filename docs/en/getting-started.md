@@ -122,6 +122,12 @@ figure for an image, `\input` for a `.tex` file, `\bibliography` (or
 `\addbibresource` with biblatex) for a `.bib`, `#include` or
 `#bibliography` in Typst, else its path.
 
+The **Figure** button of the editor's toolbar takes the image from the
+project's files, the computer, another project or a URL, as on Overleaf;
+the last two keep their source, to be refreshed as other imported files.
+With the cursor at the start of a line (on `\end{document}`, say), the
+figure goes before it.
+
 In `\cite{…}` (and `\citep`, `\parencite`…), as Overleaf's advanced
 reference search, the editor offers the entries of the project's `.bib` files
 from any words of their key, authors, title, year or journal, in any order

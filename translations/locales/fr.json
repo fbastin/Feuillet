@@ -3138,6 +3138,8 @@
   "The password could not be changed on the server. Check your connection and try again.": "Le mot de passe n'a pas pu être changé sur le serveur. Vérifiez votre connexion et réessayez.",
   "The PDF could not be made.": "Le PDF n'a pas pu être produit.",
   "The project has no image yet.": "Le projet n'a encore aucune image.",
+  "This project has no image.": "Ce projet n'a pas d'image.",
+  "This file is not an image LaTeX can include (PNG, JPEG, PDF or EPS).": "Ce fichier n'est pas une image que LaTeX peut inclure (PNG, JPEG, PDF ou EPS).",
   "The project is compiled now with TeX Live, with its main document and its compiler.": "Le projet est compilé maintenant avec TeX Live, avec son document principal et son compilateur.",
   "The project was restored to this version.": "Le projet a été restauré à cette version.",
   "The project {name} did not compile. Open it to see its log.": "Le projet {{name}} n'a pas pu être compilé. Ouvrez-le pour voir son journal.",

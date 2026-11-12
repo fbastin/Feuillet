@@ -3379,6 +3379,8 @@
   "The password could not be changed on the server. Check your connection and try again.": "The password could not be changed on the server. Check your connection and try again.",
   "The PDF could not be made.": "The PDF could not be made.",
   "The project has no image yet.": "The project has no image yet.",
+  "This project has no image.": "This project has no image.",
+  "This file is not an image LaTeX can include (PNG, JPEG, PDF or EPS).": "This file is not an image LaTeX can include (PNG, JPEG, PDF or EPS).",
   "The project is compiled now with TeX Live, with its main document and its compiler.": "The project is compiled now with TeX Live, with its main document and its compiler.",
   "The project was restored to this version.": "The project was restored to this version.",
   "The project {name} did not compile. Open it to see its log.": "The project {{name}} did not compile. Open it to see its log.",
