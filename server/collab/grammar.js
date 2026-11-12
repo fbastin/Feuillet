@@ -33,6 +33,11 @@ const TIMEOUT_MS = 45 * 1000;
 const WARM_LANGUAGES = ['fr', 'en-US'];
 const WARM_DELAY_MS = 10 * 1000;
 const WARM_ATTEMPTS = 20;
+// The first check of a language not used yet may fail at once, a server
+// error, while LanguageTool makes its rules (de-AT: 502 in 1.3 s, then
+// fine): once more, a moment later, within the same time limit, rather than
+// at the editor's next try, 15 seconds on.
+const RETRY_DELAY_MS = 1500;
 const LANGUAGE = /^(?:auto|[a-z]{2,3}(?:-[A-Z]{2})?)$/;
 const RULE = /^[A-Za-z0-9_]{1,100}$/;
 // What the source of LaTeX or Typst makes look wrong: several spaces, which
@@ -88,7 +93,12 @@ const cleanMatch = (match) => ({
 	},
 });
 
-const createGrammar = ({ accounts, url, log = () => {} }) => {
+const createGrammar = ({
+	accounts,
+	url,
+	log = () => {},
+	retryDelayMs = RETRY_DELAY_MS,
+}) => {
 	const base = (url || '').replace(/\/+$/, '');
 	const recent = new Map();
 	let active = 0;
@@ -176,15 +186,23 @@ const createGrammar = ({ accounts, url, log = () => {} }) => {
 		if (active >= MAX_CONCURRENT) throw new GrammarError(503, 'busy');
 		active++;
 		try {
-			const response = await fetch(`${base}/v2/check`, {
-				method: 'POST',
-				body: new URLSearchParams({
-					data: JSON.stringify({ annotation }),
-					language,
-					disabledRules: [...disabled].join(','),
-				}),
-				signal: AbortSignal.timeout(TIMEOUT_MS),
-			});
+			const signal = AbortSignal.timeout(TIMEOUT_MS);
+			const ask = () =>
+				fetch(`${base}/v2/check`, {
+					method: 'POST',
+					body: new URLSearchParams({
+						data: JSON.stringify({ annotation }),
+						language,
+						disabledRules: [...disabled].join(','),
+					}),
+					signal,
+				});
+			let response = await ask();
+			if (response.status >= 500) {
+				await response.arrayBuffer().catch(() => {});
+				await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+				response = await ask();
+			}
 			if (!response.ok) throw new GrammarError(502, 'grammar_failed');
 			const result = await response.json();
 			return (Array.isArray(result?.matches) ? result.matches : [])
