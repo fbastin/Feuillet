@@ -312,8 +312,41 @@ export interface AdminOverview {
 		/** A backup that failed after the last one made. */
 		failed?: { time: number; error: string };
 	} | null;
+	/**
+	 * The TeX Live servers (server/texlive/server.js, GET /status): null when
+	 * the collaboration server does not reach them, ok false when they do
+	 * not answer.
+	 */
+	compile?: AdminCompileStatus | null;
+	/** LanguageTool: null on an older server. */
+	grammar?: { enabled: boolean; ok?: boolean } | null;
 	accounts: AdminAccount[];
 	orphans: AdminOrphan[];
+}
+
+/** A TeX Live server's load, and what it did since it started. */
+export interface AdminCompileStatus {
+	ok: boolean;
+	year?: number | null;
+	shellEscape?: 'full' | 'restricted';
+	maxConcurrent?: number;
+	maxQueue?: number;
+	connections?: number;
+	compiling?: number;
+	queued?: number;
+	accountsCompiling?: number;
+	accountsWaiting?: number;
+	since?: number;
+	compiles?: number;
+	failed?: number;
+	timedOut?: number;
+	refused?: number;
+	compileMs?: number;
+	waited?: number;
+	waitMs?: number;
+	longestWaitMs?: number;
+	/** The other years' servers. */
+	others?: AdminCompileStatus[];
 }
 
 export interface MembersChange {

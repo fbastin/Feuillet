@@ -60,6 +60,7 @@
 //   WORK_DIR            root of the per-connection working trees (default ./work)
 //   MAX_CONCURRENT      compiles running at once (default 2)
 //   MAX_QUEUE           compiles waiting for a slot before refusing (default 20)
+//   MAX_QUEUE_PER_ACCOUNT  of which one account's, by its ticket (default 4)
 //   MAX_CONNECTIONS     open connections (default 100)
 //   COMPILE_TIMEOUT_MS  per-compile limit (default 180000)
 //   IDLE_TIMEOUT_MS     closes connections without requests (default 900000)
@@ -113,6 +114,7 @@ const ticketKey = (() => {
 const workDir = path.resolve(process.env.WORK_DIR || 'work');
 const maxConcurrent = readInt('MAX_CONCURRENT', 2);
 const maxQueue = readInt('MAX_QUEUE', 20);
+const maxQueuePerAccount = readInt('MAX_QUEUE_PER_ACCOUNT', 4);
 const maxConnections = readInt('MAX_CONNECTIONS', 100);
 const compileTimeoutMs = readInt('COMPILE_TIMEOUT_MS', 180_000);
 const idleTimeoutMs = readInt('IDLE_TIMEOUT_MS', 900_000);
@@ -407,27 +409,82 @@ const writtenAt = (filePath) =>
 		() => null,
 	);
 
-// Compile slots shared by all connections.
+// Compile slots shared by all connections, handed out fairly between the
+// accounts their tickets are for (a connection without one is its own): a
+// free slot goes to the first waiting compile of the account with the
+// fewest compiles running, so that one account compiling over and over
+// cannot hold every slot while others wait. Nobody waiting, an account may
+// use them all. An account has at most MAX_QUEUE_PER_ACCOUNT compiles
+// waiting (one per connection: each compiles one at a time).
 let running = 0;
+const runningBy = new Map();
 const waiting = [];
 
-const acquireSlot = () => {
-	if (running < maxConcurrent) {
-		running++;
-		return Promise.resolve();
-	}
-	if (waiting.length >= maxQueue) {
-		return Promise.reject(
-			new Error('The TeX Live server is busy. Try again in a moment.'),
-		);
-	}
-	return new Promise((resolve) => waiting.push(resolve));
+// What the administration page shows (GET /status), since the start.
+const stats = {
+	since: Date.now(),
+	compiles: 0,
+	failed: 0,
+	timedOut: 0,
+	refused: 0,
+	compileMs: 0,
+	waited: 0,
+	waitMs: 0,
+	longestWaitMs: 0,
 };
 
-const releaseSlot = () => {
-	const next = waiting.shift();
-	if (next) next();
-	else running--;
+const startSlot = (owner) => {
+	running++;
+	runningBy.set(owner, (runningBy.get(owner) ?? 0) + 1);
+};
+
+const acquireSlot = (owner) => {
+	if (running < maxConcurrent) {
+		startSlot(owner);
+		return Promise.resolve();
+	}
+	const busy = (message) => {
+		stats.refused++;
+		return Promise.reject(new Error(message));
+	};
+	if (waiting.length >= maxQueue) {
+		return busy('The TeX Live server is busy. Try again in a moment.');
+	}
+	if (waiting.filter((entry) => entry.owner === owner).length >= maxQueuePerAccount) {
+		return busy(
+			'Your other compiles are still waiting for the TeX Live server. Try again once they are done.',
+		);
+	}
+	const since = Date.now();
+	return new Promise((resolve) =>
+		waiting.push({
+			owner,
+			resolve: () => {
+				const waited = Date.now() - since;
+				stats.waited++;
+				stats.waitMs += waited;
+				stats.longestWaitMs = Math.max(stats.longestWaitMs, waited);
+				resolve();
+			},
+		}),
+	);
+};
+
+const releaseSlot = (owner) => {
+	running--;
+	const left = (runningBy.get(owner) ?? 1) - 1;
+	if (left > 0) runningBy.set(owner, left);
+	else runningBy.delete(owner);
+	if (waiting.length === 0) return;
+	// The first of those whose account runs the fewest.
+	const load = (entry) => runningBy.get(entry.owner) ?? 0;
+	let next = 0;
+	for (let i = 1; i < waiting.length; i++) {
+		if (load(waiting[i]) < load(waiting[next])) next = i;
+	}
+	const [entry] = waiting.splice(next, 1);
+	startSlot(entry.owner);
+	entry.resolve();
 };
 
 // Session uids, reused in the order they were released.
@@ -453,8 +510,11 @@ const killUid = async (uid) => {
 
 class Session {
 	// uid is null when compiles run as the server's own user.
-	constructor(uid) {
+	// owner: whom its compiles count for in sharing the slots, the account
+	// of its ticket or else the connection itself.
+	constructor(uid, owner = crypto.randomUUID()) {
 		this.uid = uid;
+		this.owner = owner;
 		this.root = path.join(workDir, crypto.randomUUID());
 		this.dir = path.join(this.root, 'project');
 		this.home = path.join(this.root, 'home');
@@ -853,6 +913,12 @@ class Session {
 		);
 		// Nothing a compile started goes on once it ends.
 		if (this.uid !== null) await killUid(this.uid);
+		if (!stopped) {
+			stats.compiles++;
+			stats.compileMs += Date.now() - started;
+			if (status !== 0) stats.failed++;
+			if (timedOut) stats.timedOut++;
+		}
 		log(
 			`compiled with ${engine}${draft ? ' (draft)' : ''}: status ${status} in ${Date.now() - started} ms`,
 		);
@@ -980,13 +1046,13 @@ class Session {
 			format,
 		});
 		if (this.stopped) return stoppedReply();
-		await acquireSlot();
+		await acquireSlot(this.owner);
 		try {
 			if (this.closed) return { status: 1, log: 'Connection closed.', format };
 			if (this.stopped) return stoppedReply();
 			return await this.compile(request.mainFile, format, options);
 		} finally {
-			releaseSlot();
+			releaseSlot(this.owner);
 		}
 	}
 
@@ -1094,9 +1160,79 @@ const server = http.createServer((req, res) => {
 		);
 		return;
 	}
+	if ((req.url || '').split('?')[0] === '/status') {
+		void sendStatus(req, res);
+		return;
+	}
 	res.writeHead(404, { 'Content-Type': 'text/plain' });
 	res.end('Feuillet TeX Live server\n');
 });
+
+// Another year's server's status, through its socket; {ok: false} when it
+// does not answer.
+const statusOf = (socket, ticket) =>
+	new Promise((resolve) => {
+		const request = http.get(
+			{
+				socketPath: socket,
+				path: '/status',
+				headers: ticket ? { 'X-Feuillet-Ticket': ticket } : {},
+				timeout: 2000,
+			},
+			(response) => {
+				const chunks = [];
+				response.on('data', (chunk) => chunks.push(chunk));
+				response.on('end', () => {
+					try {
+						const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+						resolve(response.statusCode === 200 ? { ok: true, ...body } : { ok: false });
+					} catch {
+						resolve({ ok: false });
+					}
+				});
+			},
+		);
+		request.on('timeout', () => request.destroy());
+		request.on('error', () => resolve({ ok: false }));
+	});
+
+// For the administration page (server/collab/admin.js): this server's load
+// and what it did since it started, and the other years' servers', for a
+// ticket signed for "status" only; no account is named.
+const sendStatus = async (req, res) => {
+	const ticket = String(req.headers['x-feuillet-ticket'] ?? '');
+	const shown = ticketKey ? ticketOf([`${TICKET_PROTOCOL}${ticket}`]) : { subject: 'status' };
+	if (shown?.subject !== 'status') {
+		res.writeHead(403, { 'Content-Type': 'application/json' });
+		res.end(JSON.stringify({ error: 'forbidden' }));
+		return;
+	}
+	const others = await Promise.all(
+		[...otherYears].map(async ([year, socket]) => ({
+			year: Number(year),
+			...(await statusOf(socket, ticket)),
+		})),
+	);
+	res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+	res.end(
+		JSON.stringify({
+			year: ownYear ? Number(ownYear) : null,
+			shellEscape,
+			tickets: Boolean(ticketKey),
+			maxConcurrent,
+			maxQueue,
+			maxQueuePerAccount,
+			connections: wss.clients.size,
+			compiling: running,
+			queued: waiting.length,
+			// How many accounts compile, and wait, now.
+			accountsCompiling: runningBy.size,
+			accountsWaiting: new Set(waiting.map((entry) => entry.owner)).size,
+			...stats,
+			others,
+		}),
+	);
+};
 
 const wss = new WebSocketServer({
 	noServer: true,
@@ -1138,7 +1274,7 @@ wss.on('connection', (conn, req) => {
 		conn.close(1013, 'Too many connections');
 		return;
 	}
-	const session = new Session(uid);
+	const session = new Session(uid, req.ticket?.subject);
 	let queue = Promise.resolve();
 	let idleTimer = null;
 	// The other years' servers this connection compiled with, and where its

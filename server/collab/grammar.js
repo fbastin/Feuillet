@@ -234,7 +234,21 @@ const createGrammar = ({ accounts, url, log = () => {} }) => {
 		}
 	};
 
-	return { handles, handle };
+	// For the administration page: whether LanguageTool answers.
+	const status = async () => {
+		if (!base) return { enabled: false };
+		try {
+			const response = await fetch(`${base}/v2/languages`, {
+				signal: AbortSignal.timeout(3000),
+			});
+			await response.arrayBuffer();
+			return { enabled: true, ok: response.ok };
+		} catch {
+			return { enabled: true, ok: false };
+		}
+	};
+
+	return { handles, handle, status };
 };
 
 module.exports = { createGrammar, cleanAnnotation, ALWAYS_DISABLED };

@@ -5,7 +5,11 @@
 //
 //   GET  /admin          (token) -> {admin}: whether the account is one
 //   GET  /admin/overview (token, admin) -> {you, server, mail, backup,
-//                        accounts}
+//                        compile, grammar, accounts}: compile, the TeX Live
+//                        servers' load and what they did since they
+//                        started (server/texlive/server.js, GET /status),
+//                        {ok: false} when they do not answer; grammar,
+//                        whether LanguageTool answers
 //   POST /admin/delete {account, username} (token, admin) -> {deleted:
 //                        true}: the account with this id, if it still has
 //                        this name; neither one's own nor another
@@ -175,6 +179,9 @@ const createAdmin = ({
 	openProjects = () => new Set(),
 	storedProjects = async () => new Set(),
 	startedAt = Date.now(),
+	// The TeX Live servers' load and LanguageTool's state, or null.
+	compileStatus = null,
+	grammarStatus = null,
 	log,
 }) => {
 	const names = new Set(
@@ -263,6 +270,10 @@ const createAdmin = ({
 
 	const overview = async (req) => {
 		const caller = await requireAdmin(req);
+		const [compile, grammar] = await Promise.all([
+			compileStatus ? compileStatus() : null,
+			grammarStatus ? grammarStatus() : null,
+		]);
 		const [files, versions, documents, accountBytes, gitBytes, freeBytes] =
 			await Promise.all([
 				sizesIn(dirs.files),
@@ -303,6 +314,8 @@ const createAdmin = ({
 			},
 			mail: mailer ? mailer.stats() : null,
 			backup: backupState(backupStatusDir),
+			compile,
+			grammar,
 			// Never their ids.
 			orphans: orphans.map(({ project, ...orphan }) => orphan),
 			accounts: accounts.summaries().map((account) => {

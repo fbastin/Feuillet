@@ -15,6 +15,7 @@
 // (compileTickets.js), when this server makes them.
 
 const crypto = require('node:crypto');
+const http = require('node:http');
 const WebSocket = require('ws');
 
 const ENGINES = ['pdflatex', 'latex', 'xelatex', 'lualatex'];
@@ -84,7 +85,59 @@ const createCompiler = ({ url, origin, ticketFor = () => null, timeoutMs = 240_0
 			);
 		});
 
-	return { compile };
+	// Where GET /status is: the socket of ws+unix:///path.sock:/, or the
+	// host of ws://host:port/.
+	const statusTarget = (() => {
+		const unix = /^ws\+unix:\/\/(\/[^:]+):/.exec(url);
+		if (unix) return { socketPath: unix[1], path: '/status' };
+		try {
+			const address = new URL(url);
+			return {
+				host: address.hostname,
+				port: address.port || 80,
+				path: `${address.pathname.replace(/\/+$/, '')}/status`,
+			};
+		} catch {
+			return null;
+		}
+	})();
+
+	/**
+	 * The TeX Live servers' load and what they did since they started
+	 * (server/texlive/server.js), for the administration page; {ok: false}
+	 * when they do not answer.
+	 */
+	const status = () =>
+		new Promise((resolve) => {
+			if (!statusTarget) {
+				resolve({ ok: false });
+				return;
+			}
+			const ticket = ticketFor('status');
+			const request = http.get(
+				{
+					...statusTarget,
+					headers: ticket ? { 'X-Feuillet-Ticket': ticket } : {},
+					timeout: 4000,
+				},
+				(response) => {
+					const chunks = [];
+					response.on('data', (chunk) => chunks.push(chunk));
+					response.on('end', () => {
+						try {
+							const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+							resolve(response.statusCode === 200 ? { ok: true, ...body } : { ok: false });
+						} catch {
+							resolve({ ok: false });
+						}
+					});
+				},
+			);
+			request.on('timeout', () => request.destroy());
+			request.on('error', () => resolve({ ok: false }));
+		});
+
+	return { compile, status };
 };
 
 /**

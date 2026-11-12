@@ -400,6 +400,12 @@ the top right. It shows:
 - the emails sent in the last 24 hours, against `MAIL_DAILY_LIMIT`;
 - the last backup, and whether it failed, is more than a day old or stays
   on this machine;
+- compiling: each TeX Live server's compiles running and waiting now, and
+  since it started its compiles, those with errors, stopped at the time
+  limit or refused for lack of room, how long they took and waited; and
+  whether LanguageTool answers. The collaboration server asks the TeX Live
+  servers (`GET /status`, with a ticket of its own: nobody else may), which
+  name no account;
 - every account: when it was made and last used, its signed-in devices,
   how many projects it owns and is a member of, the space the projects it
   owns take, and whether its email address is confirmed. Neither the
@@ -668,7 +674,13 @@ so the container is bounded (`docker-compose.yml`; yours in
   own rules make glossaries and nomenclatures. LuaLaTeX runs without its
   socket library.
 - At most `MAX_CONCURRENT` (2) compiles run at once, others wait in a queue of
-  20; each compile stops after `COMPILE_TIMEOUT_MS` (3 minutes).
+  20 (`MAX_QUEUE`); each compile stops after `COMPILE_TIMEOUT_MS` (3 minutes).
+  The slots are shared fairly between accounts, by their tickets: a free one
+  goes to the waiting compile of the account with the fewest running, so
+  that an account compiling over and over cannot hold them all while others
+  wait; nobody waiting, an account may use them all. An account has at most
+  `MAX_QUEUE_PER_ACCOUNT` (4) compiles waiting. The administration page
+  shows whether compiles wait long or are refused.
 - Each project's files are kept by content in the volume `texlive-file-cache`
   (`FILE_CACHE_DIR`), for that project alone (the page sends a key only its
   members know) and readable by the servers only (0700), so that a project

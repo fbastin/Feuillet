@@ -357,8 +357,17 @@ const compileTickets = createCompileTickets({
 	log,
 });
 
+// The TeX Live server, for assistants to compile (mcp.js) and for the
+// administration page to show its load.
+const compiler = createCompiler({
+	url: process.env.TEXLIVE_URL,
+	origin: process.env.TEXLIVE_ORIGIN || allowedOrigins[0],
+	ticketFor: compileTickets.forAccount,
+});
 const admin = createAdmin({
 	admins: (process.env.ADMIN_ACCOUNTS || '').split(','),
+	compileStatus: compiler ? () => compiler.status() : null,
+	grammarStatus: () => grammar.status(),
 	accounts,
 	shares,
 	mailer,
@@ -415,11 +424,7 @@ const mcp = createMcp({
 	files: projectFiles,
 	history,
 	notices: reviewNotices,
-	compiler: createCompiler({
-		url: process.env.TEXLIVE_URL,
-		origin: process.env.TEXLIVE_ORIGIN || allowedOrigins[0],
-		ticketFor: compileTickets.forAccount,
-	}),
+	compiler,
 	log,
 });
 
