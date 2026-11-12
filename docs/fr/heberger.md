@@ -25,8 +25,10 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
   processeurs, deux compilations à la fois; celui de TeX Live 2025, à 3 Go
   et 3 processeurs; la vérification de la grammaire (LanguageTool), à 2 Go.
   Une machine de 4 processeurs et 8 Go de mémoire suffit pour commencer;
-  ces bornes se règlent dans
-  [`deploy/docker-compose.yml`](../../deploy/docker-compose.yml).
+  ces bornes sont dans
+  [`deploy/docker-compose.yml`](../../deploy/docker-compose.yml), et se
+  changent dans `/etc/feuillet/docker-compose.override.yml` (voir plus
+  bas).
 
 ## Installer
 
@@ -89,7 +91,7 @@ Cette page donne la marche à suivre. Le détail de chaque réglage est dans
    ADMIN_ACCOUNTS=votrenom
    ```
 
-   puis relancez `sudo deploy/install.sh`. Le menu de votre compte offre
+   puis `sudo feuillet-compose up -d collab`. Le menu de votre compte offre
    alors **Administration** : les comptes, la place prise, les projets
    orphelins, la dernière sauvegarde, et les liens pour créer un compte.
    Créez votre compte avant de réserver l'inscription aux invitations
@@ -112,7 +114,8 @@ en est un exemple complet.
 ## Ce qui se règle ensuite
 
 Tout est dans `/etc/feuillet/collab.env`, lisible par `root` seulement;
-relancez `sudo deploy/install.sh` après chaque changement.
+après chaque changement, `sudo feuillet-compose up -d collab` le fait
+relire (`sudo deploy/install.sh` aussi).
 [`deploy/README.md`](../../deploy/README.md) décrit chaque réglage.
 
 - **Qui peut créer un compte** : tout le monde, par défaut. Avec
@@ -132,8 +135,12 @@ relancez `sudo deploy/install.sh` après chaque changement.
   sauvegarde restée sur la même machine ne protège pas d'une panne de son
   disque.
 - **Les années de TeX Live** : la plus récente, et 2025, celle d'arXiv. Sur
-  une machine modeste, retirez le service `texlive-2025` et la ligne
-  `OTHER_YEARS` de `deploy/docker-compose.yml`.
+  une machine modeste, copiez
+  [`deploy/docker-compose.override.example.yml`](../../deploy/docker-compose.override.example.yml)
+  dans `/etc/feuillet/docker-compose.override.yml`, qui retire TeX Live
+  2025, puis relancez `sudo deploy/install.sh`. Vos changements aux
+  serveurs vont dans ce fichier : hors du dépôt, ils restent à chaque mise
+  à jour.
 
 Claude et Git n'ont rien à régler : le connecteur est à
 `https://feuillet.exemple.org/collab/mcp`, et les projets se clonent depuis
@@ -162,13 +169,16 @@ nouvelle application, que les navigateurs prennent à leur visite suivante.
   monde peut créer un compte, n'importe qui peut encore compiler : voyez
   `SIGN_UP` ci-dessus.
 - **La page de confidentialité** (le lien **Confidentialité**, en bas de
-  page) décrit un serveur précis : courriels envoyés par Gmail, journaux
-  du serveur web gardés 14 jours, sauvegardes gardées deux semaines.
-  Adaptez-la à ce que fait le vôtre, dans
-  [`src/components/common/PrivacyModal.tsx`](../../src/components/common/PrivacyModal.tsx)
-  et ses traductions (`translations/locales/fr.json`, `en.json`) : c'est
-  vous qui répondez des données de vos utilisateurs, selon les lois qui
-  s'appliquent à vous.
+  page) dit ce qui change d'un serveur à l'autre d'après vos réglages de
+  `collab.env` : à qui écrire (`PRIVACY_CONTACT`, une adresse courriel ou
+  une page web), le service qui envoie les courriels (reconnu d'après
+  `SMTP_URL` pour Gmail, sinon `MAIL_PROVIDER`), la durée des journaux du
+  serveur web (`WEB_LOG_DAYS`) et celle des sauvegardes. Le reste décrit
+  Feuillet tel que ce dépôt le fait : si vous changez ce que fait votre
+  serveur, changez la page avec, dans
+  [`src/components/common/PrivacyModal.tsx`](../../src/components/common/PrivacyModal.tsx).
+  C'est vous qui répondez des données de vos utilisateurs, selon les lois
+  qui s'appliquent à vous.
 - **La licence.** Feuillet est sous licence AGPL 3.0 : si vous modifiez son
   code et l'offrez à d'autres sur votre serveur, donnez-leur accès au code
   modifié. Le lien vers le code, en bas de page, mène au dépôt nommé par

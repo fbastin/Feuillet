@@ -92,6 +92,8 @@
 //                       (default: the first of ALLOWED_ORIGINS)
 //   ADMIN_ACCOUNTS      comma-separated names of the accounts that see the
 //                       administration page; unset, none does
+//   PRIVACY_CONTACT, MAIL_PROVIDER, MAIL_PROVIDER_PRIVACY_URL, WEB_LOG_DAYS
+//                       what the privacy page says of this server (site.js)
 //   SIGN_UP             who may create an account: "open" (default), anyone;
 //                       "invitation", whoever has an invitation to a project
 //                       or a link from an administrator (accounts.js)
@@ -116,6 +118,7 @@ const { createAdmin } = require('./admin');
 const { createMailer } = require('./mail');
 const { createCompiler } = require('./compile');
 const { createCompileTickets, readTicketKey } = require('./compileTickets');
+const { createSite } = require('./site');
 const { createProjectCopier } = require('./copy');
 const { createUrlFetcher } = require('./fetch');
 const { createOpenLinks } = require('./docs');
@@ -336,6 +339,15 @@ const openLinks = createOpenLinks({
 
 // Grammar and style checking with LanguageTool, for signed-in accounts.
 const grammar = createGrammar({ accounts, url: process.env.GRAMMAR_URL, log });
+// What the privacy page says of this server (site.js).
+const site = createSite({
+	google,
+	orcid,
+	grammar: Boolean(process.env.GRAMMAR_URL),
+	backupStatusDir: process.env.BACKUP_STATUS_DIR
+		? path.resolve(process.env.BACKUP_STATUS_DIR)
+		: null,
+});
 // Tickets to compile on the TeX Live server, for accounts and the projects
 // they own.
 const compileTickets = createCompileTickets({
@@ -588,9 +600,11 @@ const server = http.createServer((req, res) => {
 								? grammar
 								: compileTickets.handles(url)
 									? compileTickets
-									: oauth.handlesAccount(url)
-										? { handle: (request, response) => oauth.handleAccount(request, response) }
-										: null;
+									: site.handles(url)
+										? site
+										: oauth.handlesAccount(url)
+											? { handle: (request, response) => oauth.handleAccount(request, response) }
+											: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {

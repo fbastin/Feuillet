@@ -22,8 +22,9 @@ This page gives the steps. Each setting is detailed in
   of free disk, plus your projects. The TeX Live server is bounded to 4 GB
   of memory and 4 CPUs, two compiles at a time; the TeX Live 2025 one, to
   3 GB and 3 CPUs; grammar checking (LanguageTool), to 2 GB. A machine with
-  4 CPUs and 8 GB of memory is enough to start with; these bounds are set
-  in [`deploy/docker-compose.yml`](../../deploy/docker-compose.yml).
+  4 CPUs and 8 GB of memory is enough to start with; these bounds are in
+  [`deploy/docker-compose.yml`](../../deploy/docker-compose.yml), and
+  change in `/etc/feuillet/docker-compose.override.yml` (see below).
 
 ## Installing
 
@@ -85,7 +86,7 @@ This page gives the steps. Each setting is detailed in
    ADMIN_ACCOUNTS=yourname
    ```
 
-   then run `sudo deploy/install.sh` again. Your account menu then offers
+   then `sudo feuillet-compose up -d collab`. Your account menu then offers
    **Administration**: the accounts, the space taken, orphan projects, the
    last backup, and links to create an account. Create your account before
    keeping sign-up to invitations (see below).
@@ -106,8 +107,9 @@ example.
 
 ## What to set up next
 
-Everything is in `/etc/feuillet/collab.env`, readable by `root` only; run
-`sudo deploy/install.sh` again after each change.
+Everything is in `/etc/feuillet/collab.env`, readable by `root` only;
+after each change, `sudo feuillet-compose up -d collab` reads it again
+(`sudo deploy/install.sh` too).
 [`deploy/README.md`](../../deploy/README.md) describes each setting.
 
 - **Who may create an account**: anyone, by default. With
@@ -126,8 +128,12 @@ Everything is in `/etc/feuillet/collab.env`, readable by `root` only; run
   machine is set in `/etc/feuillet/backup.env`. A backup left on the same
   machine does not protect from its disk failing.
 - **Years of TeX Live**: the latest, and 2025, arXiv's. On a modest
-  machine, remove the `texlive-2025` service and the `OTHER_YEARS` line
-  from `deploy/docker-compose.yml`.
+  machine, copy
+  [`deploy/docker-compose.override.example.yml`](../../deploy/docker-compose.override.example.yml)
+  to `/etc/feuillet/docker-compose.override.yml`, which removes TeX Live
+  2025, then run `sudo deploy/install.sh` again. Your changes to the
+  servers go in that file: out of the repository, they stay through every
+  update.
 
 Claude and Git need nothing set up: the connector is at
 `https://feuillet.example.org/collab/mcp`, and projects clone from
@@ -155,12 +161,15 @@ at their next visit.
   then not enough to use it. If anyone may create an account, anyone may
   still compile: see `SIGN_UP` above.
 - **The privacy page** (the **Privacy** link at the bottom of the page)
-  describes one server in particular: emails sent through Gmail, web server
-  logs kept 14 days, backups kept two weeks. Adapt it to what yours
-  does, in
-  [`src/components/common/PrivacyModal.tsx`](../../src/components/common/PrivacyModal.tsx)
-  and its translations (`translations/locales/en.json`, `fr.json`): you
-  answer for your users' data, under the laws that apply to you.
+  says what differs from one server to another from your settings in
+  `collab.env`: whom to ask (`PRIVACY_CONTACT`, an email address or a web
+  page), the service that sends the emails (recognized from `SMTP_URL` for
+  Gmail, otherwise `MAIL_PROVIDER`), how long the web server keeps its logs
+  (`WEB_LOG_DAYS`) and how long the backups last. The rest describes
+  Feuillet as this repository makes it: if you change what your server
+  does, change the page with it, in
+  [`src/components/common/PrivacyModal.tsx`](../../src/components/common/PrivacyModal.tsx).
+  You answer for your users' data, under the laws that apply to you.
 - **The license.** Feuillet is licensed under the AGPL 3.0: if you change
   its code and offer it to others on your server, give them access to the
   changed code. The link to the code, at the bottom of the page, leads to

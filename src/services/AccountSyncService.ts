@@ -36,6 +36,22 @@ export interface AccountSession {
 	server: string;
 }
 
+/**
+ * What the privacy page says of this server in particular
+ * (server/collab/site.js).
+ */
+export interface SiteInfo {
+	/** Whom to ask: an email address or a web page; null, the code's issues. */
+	contact: string | null;
+	/** The service that sends the emails; null when the server sends none. */
+	mail: { provider: string | null; privacy: string | null } | null;
+	webLogDays: number;
+	/** Nightly backups kept (0: all); null until one is made. */
+	backupDays: number | null;
+	signIn: { google: boolean; orcid: boolean };
+	grammar: boolean;
+}
+
 /** Who may create an account on the server (server/collab/accounts.js). */
 export interface SignUpOptions {
 	mode: 'open' | 'invitation';
@@ -470,6 +486,40 @@ class AccountSyncService {
 				domains: Array.isArray(result?.domains)
 					? result.domains.filter((entry: unknown) => typeof entry === 'string')
 					: [],
+			};
+		} catch {
+			return null;
+		}
+	}
+
+	/** What the privacy page says of this server; null when it does not tell. */
+	async siteInfo(): Promise<SiteInfo | null> {
+		const server = this.serverFor(this.userId);
+		if (!server) return null;
+		try {
+			const result = await this.request(server, 'GET', '/site');
+			const text = (value: unknown) =>
+				typeof value === 'string' && value ? value : null;
+			const days = (value: unknown) =>
+				Number.isInteger(value) && (value as number) >= 0
+					? (value as number)
+					: null;
+			return {
+				contact: text(result?.contact),
+				mail:
+					result?.mail && typeof result.mail === 'object'
+						? {
+								provider: text(result.mail.provider),
+								privacy: text(result.mail.privacy),
+							}
+						: null,
+				webLogDays: days(result?.webLogDays) ?? 14,
+				backupDays: days(result?.backupDays),
+				signIn: {
+					google: result?.signIn?.google === true,
+					orcid: result?.signIn?.orcid === true,
+				},
+				grammar: result?.grammar === true,
 			};
 		} catch {
 			return null;

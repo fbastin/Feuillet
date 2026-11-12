@@ -1,0 +1,29 @@
+# deploy/docker-compose.override.example.yml
+# Your own changes to the servers of deploy/docker-compose.yml, kept out of
+# the repository so that `git pull` never meets them: copy this file to
+# /etc/feuillet/docker-compose.override.yml, keep what you need, then run
+# sudo deploy/install.sh. install.sh and feuillet-compose read it after
+# docker-compose.yml, whose settings it changes or adds to (Docker Compose
+# merges them: https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/).
+services:
+  # A modest machine: without TeX Live 2025, which then starts only with
+  # the profile "texlive-2025", which nothing asks for. Projects that chose
+  # it compile with the latest. If it was running, stop it once:
+  #   sudo feuillet-compose rm -sf texlive-2025
+  texlive-2025:
+    profiles: ["texlive-2025"]
+  texlive:
+    environment:
+      OTHER_YEARS: ""
+    # The latest TeX Live's bounds: memory, processors, compiles at once.
+    # mem_limit: 2g
+    # cpus: 2
+    # environment:
+    #   MAX_CONCURRENT: "1"
+
+  # Without grammar checking, whose LanguageTool takes 2 GB of memory:
+  # collab:
+  #   environment:
+  #     GRAMMAR_URL: ""
+  # languagetool:
+  #   profiles: ["languagetool"]

@@ -109,7 +109,11 @@ SSL_CONF=$SITES/$DOMAIN-le-ssl.conf
 # only (Apache's and nginx's on Debian and Ubuntu).
 TEXLIVE_SOCKET_DIR=/var/lib/feuillet/texlive-socket
 TEXLIVE_SOCKET=$TEXLIVE_SOCKET_DIR/texlive.sock
+# Changes of one's own to the servers, out of the repository so that git
+# pull never meets them (deploy/docker-compose.override.example.yml).
+OVERRIDE=/etc/feuillet/docker-compose.override.yml
 COMPOSE=(docker compose --env-file "$SITE_ENV" -f "$HERE/docker-compose.yml")
+if [ -e "$OVERRIDE" ]; then COMPOSE+=(-f "$OVERRIDE"); fi
 
 # certbot copies the virtual host once; later proxy routes are added to its
 # copy, before </VirtualHost>. A route goes to the server's root, or with a
@@ -259,6 +263,9 @@ ADMIN_ACCOUNTS=
 # for a link, mailed to them (see deploy/README.md).
 SIGN_UP=open
 SIGN_UP_DOMAINS=
+# What the privacy page says of this server (see deploy/README.md, "Your own
+# settings"): whom to ask, an email address or an https:// page.
+PRIVACY_CONTACT=
 SETTINGS
 	echo "Created /etc/feuillet/collab.env (GitHub sign-in stays off until it is filled in)."
 else
@@ -273,6 +280,10 @@ else
 	if ! grep -q '^SIGN_UP=' /etc/feuillet/collab.env; then
 		printf '\n# Who may create an account: open (anyone) or invitation (an invitation to a\n# project, or a link from the administration page); with invitation,\n# SIGN_UP_DOMAINS lets the addresses of these domains (comma-separated) ask\n# for a link, mailed to them (see deploy/README.md).\nSIGN_UP=open\nSIGN_UP_DOMAINS=\n' >>/etc/feuillet/collab.env
 		echo "Added SIGN_UP=open to /etc/feuillet/collab.env: SIGN_UP=invitation keeps new accounts to invitations (deploy/README.md)."
+	fi
+	if ! grep -q '^PRIVACY_CONTACT=' /etc/feuillet/collab.env; then
+		printf '\n# What the privacy page says of this server (see deploy/README.md, "Your own\n# settings"): whom to ask, an email address or an https:// page.\nPRIVACY_CONTACT=\n' >>/etc/feuillet/collab.env
+		echo "Added PRIVACY_CONTACT= to /etc/feuillet/collab.env: whom the privacy page tells to ask (deploy/README.md)."
 	fi
 	if ! grep -q '^ORCID_CLIENT_ID=' /etc/feuillet/collab.env; then
 		printf '\n# "Sign in with ORCID": register a client of ORCID'"'"'s public API (see\n# deploy/README.md), fill in its client id and secret, then run\n# deploy/install.sh again.\nORCID_CLIENT_ID=\nORCID_CLIENT_SECRET=\n' >>/etc/feuillet/collab.env
@@ -317,6 +328,21 @@ if docker inspect feuillet-collab >/dev/null 2>&1; then
 	/usr/local/sbin/feuillet-backup 2>&1 | tee -a /var/log/feuillet-backup.log ||
 		echo "The backup failed; the update goes on."
 fi
+
+# The same command for whoever administers the servers, with the same files:
+#   sudo feuillet-compose logs collab
+cat >/usr/local/sbin/feuillet-compose <<COMPOSE_COMMAND
+#!/bin/sh
+# Feuillet's servers, as deploy/install.sh runs them (written by it): docker
+# compose with $HERE/docker-compose.yml, the address in $SITE_ENV,
+# and $OVERRIDE if there is one.
+#   sudo feuillet-compose ps | logs collab | restart collab | build --pull texlive
+if [ -e "$OVERRIDE" ]; then
+	exec docker compose --env-file "$SITE_ENV" -f "$HERE/docker-compose.yml" -f "$OVERRIDE" "\$@"
+fi
+exec docker compose --env-file "$SITE_ENV" -f "$HERE/docker-compose.yml" "\$@"
+COMPOSE_COMMAND
+chmod 755 /usr/local/sbin/feuillet-compose
 
 echo "== Collaboration, TeX Live and LanguageTool servers (the first builds download about 3 GB for each year of TeX Live, and 250 MB)"
 install -d -o root -g www-data -m 0750 "$TEXLIVE_SOCKET_DIR"

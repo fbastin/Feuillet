@@ -1,11 +1,26 @@
 // src/components/common/PrivacyModal.tsx
+// What Feuillet keeps, for how long, and which other services are involved.
+// What differs from one server to another (whom to ask, the service that
+// sends its emails, how long its logs and backups last, its sign-ins and
+// grammar checking) the server says (server/collab/site.js); until it does,
+// or for a server that does not, the page says what Feuillet's own does.
 import { t } from '@/i18n';
 import { Trans } from 'react-i18next';
 import type React from 'react';
+import { useEffect, useState } from 'react';
 
 import { InfoIcon } from './Icons';
 import Modal from './Modal';
 import { APP_SOURCE_URL } from '@/branding';
+import {
+	type SiteInfo,
+	accountSyncService,
+} from '../../services/AccountSyncService';
+
+const GMAIL = {
+	provider: 'Gmail',
+	privacy: 'https://policies.google.com/privacy',
+};
 
 interface PrivacyModalProps {
 	isOpen: boolean;
@@ -18,6 +33,27 @@ const TransLink: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = ({
 }) => <a {...props}>{children}</a>;
 
 const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
+	const [site, setSite] = useState<SiteInfo | null>(null);
+
+	useEffect(() => {
+		if (!isOpen) return;
+		let current = true;
+		void accountSyncService.siteInfo().then((info) => {
+			if (current) setSite(info);
+		});
+		return () => {
+			current = false;
+		};
+	}, [isOpen]);
+
+	const mail = site ? site.mail : GMAIL;
+	const mailer = mail?.provider || t('its mail service');
+	const google = site?.signIn.google ?? true;
+	const orcid = site?.signIn.orcid ?? true;
+	const grammar = site?.grammar ?? true;
+	const backupDays = site?.backupDays ?? 14;
+	const contact = site?.contact ?? null;
+
 	return (
 		<Modal
 			isOpen={isOpen}
@@ -27,42 +63,67 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 			size='medium'
 		>
 			<div className='ui-stack' data-gap='md' data-role='privacy'>
-				<p>
-					<Trans
-						i18nKey='Feuillet is hosted at {host}. For any question, <issues>open an issue on GitHub</issues>.'
-						values={{ host: window.location.host }}
-						components={{
-							issues: (
-								<TransLink
-									href={`${APP_SOURCE_URL}/issues`}
-									target='_blank'
-									rel='noreferrer'
-								/>
-							),
-						}}
-					/>
+				<p data-role='privacy-host'>
+					{contact ? (
+						<Trans
+							i18nKey='Feuillet is hosted at {host}. For any question: <contact>{contact}</contact>.'
+							values={{ host: window.location.host, contact }}
+							components={{
+								contact: (
+									<TransLink
+										href={contact.includes('@') ? `mailto:${contact}` : contact}
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					) : (
+						<Trans
+							i18nKey='Feuillet is hosted at {host}. For any question, <issues>open an issue on GitHub</issues>.'
+							values={{ host: window.location.host }}
+							components={{
+								issues: (
+									<TransLink
+										href={`${APP_SOURCE_URL}/issues`}
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					)}
 				</p>
 
 				<h3>{t("What Feuillet's server keeps")}</h3>
 				<ul data-role='privacy-server'>
 					<li>
 						<strong>{t('Your account:')}</strong>&nbsp;
-						{t(
-							'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your email address, if you gave one, which serves only to send you a link if you forget your password, through Gmail; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects, the words added to your dictionary and your preferences (the settings of the editor, such as its keybindings and its theme, your Git commit email and your color), to find them on your other devices.',
-						)}
+						{mail
+							? t(
+									'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your email address, if you gave one, which serves only to send you a link if you forget your password, through {mailer}; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects, the words added to your dictionary and your preferences (the settings of the editor, such as its keybindings and its theme, your Git commit email and your color), to find them on your other devices.',
+									{ mailer },
+								)
+							: t(
+									'your username and a hash of your password, never the password itself; a hash of each of your recovery codes, if you made some; your signed-in devices, with the names of their browser and system (such as Firefox on Linux), which you see and sign out in your profile; the list of your projects, the words added to your dictionary and your preferences (the settings of the editor, such as its keybindings and its theme, your Git commit email and your color), to find them on your other devices.',
+								)}
 					</li>
-					<li>
-						<strong>{t('Signing in with Google:')}</strong>&nbsp;
-						{t(
-							'if you link a Google account, a hash of its identifier, which recognizes it; never its address, its name or its picture, which Feuillet does not ask Google for. Unlinking it, or deleting your account, erases it.',
-						)}
-					</li>
-					<li>
-						<strong>{t('Signing in with ORCID:')}</strong>&nbsp;
-						{t(
-							'if you link an ORCID account, a hash of its ORCID iD, which recognizes it; never the iD itself nor your name, which ORCID also sends and Feuillet does not keep. Unlinking it, or deleting your account, erases it.',
-						)}
-					</li>
+					{google && (
+						<li>
+							<strong>{t('Signing in with Google:')}</strong>&nbsp;
+							{t(
+								'if you link a Google account, a hash of its identifier, which recognizes it; never its address, its name or its picture, which Feuillet does not ask Google for. Unlinking it, or deleting your account, erases it.',
+							)}
+						</li>
+					)}
+					{orcid && (
+						<li>
+							<strong>{t('Signing in with ORCID:')}</strong>&nbsp;
+							{t(
+								'if you link an ORCID account, a hash of its ORCID iD, which recognizes it; never the iD itself nor your name, which ORCID also sends and Feuillet does not keep. Unlinking it, or deleting your account, erases it.',
+							)}
+						</li>
+					)}
 					<li>
 						<strong>{t('Your projects:')}</strong>&nbsp;
 						{t(
@@ -111,22 +172,27 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 							'what a link or a form of another page gives to /docs (LaTeX code, addresses of files) stays 30 minutes in the memory of the server, the time to create the project, and is never written to disk.',
 						)}
 					</li>
-					<li>
-						<strong>{t('Review emails:')}</strong>&nbsp;
-						{t(
-							'to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them.',
-						)}
-					</li>
-					<li>
-						<strong>{t('Grammar checking:')}</strong>&nbsp;
-						{t(
-							'when it is on (Settings), the paragraphs in view of the document you edit go to the server, which checks them with LanguageTool, on the same machine and without access to the Internet, and keeps nothing of them, not even in its logs.',
-						)}
-					</li>
-					<li>
+					{mail && (
+						<li>
+							<strong>{t('Review emails:')}</strong>&nbsp;
+							{t(
+								'to tell you that someone replied in a comment thread you wrote in, or mentioned you (@name), the server reads the comment in the document and mails your confirmed address; unticking « Review emails » in the profile stops them.',
+							)}
+						</li>
+					)}
+					{grammar && (
+						<li>
+							<strong>{t('Grammar checking:')}</strong>&nbsp;
+							{t(
+								'when it is on (Settings), the paragraphs in view of the document you edit go to the server, which checks them with LanguageTool, on the same machine and without access to the Internet, and keeps nothing of them, not even in its logs.',
+							)}
+						</li>
+					)}
+					<li data-role='privacy-logs'>
 						<strong>{t('Server logs:')}</strong>&nbsp;
 						{t(
-							"the web server notes the IP address and the pages asked for, kept 14 days. The collaboration server notes events such as an account's creation, with its name, but never a project's content or id; it keeps 30 MB of notes at most, erasing the oldest first.",
+							"the web server notes the IP address and the pages asked for, kept {days} days. The collaboration server notes events such as an account's creation, with its name, but never a project's content or id; it keeps 30 MB of notes at most, erasing the oldest first.",
+							{ days: site?.webLogDays ?? 14 },
 						)}
 					</li>
 				</ul>
@@ -150,9 +216,14 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 					{t(
 						'In the project list, deleting one of your projects for good erases it from the server, with its documents, files and versions, for its collaborators as well; you may also leave a project shared with you. In your profile, you may disconnect an assistant, export your data and delete your account, which erases the projects you own from the server.',
 					)}{' '}
-					{t(
-						"The server's backups, made each night, keep what was erased for two weeks at most; only the server's administrator can read them.",
-					)}{' '}
+					{backupDays > 0
+						? t(
+								"The server's backups, made each night, keep what was erased for {days} days at most; only the server's administrator can read them.",
+								{ days: backupDays },
+							)
+						: t(
+								"The server's backups, made each night, keep what was erased until its administrator deletes them; only they can read them.",
+							)}{' '}
 					{t(
 						"The server's administrator sees, on an administration page, each account's name, when it was made and last used, how many devices and projects it has, the space its projects take and whether its email address is confirmed, but neither the address nor the projects; they may delete an account, with the projects it owns, and the projects no one can find any more: those on no account's list, a guest's among them, and those whose owner's account was deleted.",
 					)}
@@ -196,53 +267,68 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						/>
 					</li>
 
-					<li>
-						<Trans
-							i18nKey='<strong>Google (Gmail):</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through Gmail, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
-							components={{
-								strong: <strong />,
-								privacy: (
-									<TransLink
-										href='https://policies.google.com/privacy'
-										target='_blank'
-										rel='noreferrer'
-									/>
-								),
-							}}
-						/>
-					</li>
+					{mail && (
+						<li data-role='privacy-mail'>
+							{mail.privacy ? (
+								<Trans
+									i18nKey='<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to (<privacy>Privacy Policy</privacy>)'
+									values={{ provider: mailer }}
+									components={{
+										strong: <strong />,
+										privacy: (
+											<TransLink
+												href={mail.privacy}
+												target='_blank'
+												rel='noreferrer'
+											/>
+										),
+									}}
+								/>
+							) : (
+								<Trans
+									i18nKey='<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to'
+									values={{ provider: mailer }}
+									components={{ strong: <strong /> }}
+								/>
+							)}
+						</li>
+					)}
 
-					<li>
-						<Trans
-							i18nKey='<strong>Google (sign-in):</strong> when you sign in with Google, Google learns that you sign in to Feuillet, and Feuillet learns only which Google account it is (<privacy>Privacy Policy</privacy>)'
-							components={{
-								strong: <strong />,
-								privacy: (
-									<TransLink
-										href='https://policies.google.com/privacy'
-										target='_blank'
-										rel='noreferrer'
-									/>
-								),
-							}}
-						/>
-					</li>
+					{google && (
+						<li>
+							<Trans
+								i18nKey='<strong>Google (sign-in):</strong> when you sign in with Google, Google learns that you sign in to Feuillet, and Feuillet learns only which Google account it is (<privacy>Privacy Policy</privacy>)'
+								components={{
+									strong: <strong />,
+									privacy: (
+										<TransLink
+											href='https://policies.google.com/privacy'
+											target='_blank'
+											rel='noreferrer'
+										/>
+									),
+								}}
+							/>
+						</li>
+					)}
 
-					<li>
-						<Trans
-							i18nKey='<strong>ORCID (sign-in):</strong> when you sign in with ORCID, ORCID learns that you sign in to Feuillet, and Feuillet learns only which ORCID iD it is (<privacy>Privacy Policy</privacy>)'
-							components={{
-								strong: <strong />,
-								privacy: (
-									<TransLink
-										href='https://info.orcid.org/privacy-policy/'
-										target='_blank'
-										rel='noreferrer'
-									/>
-								),
-							}}
-						/>
-					</li>
+					{orcid && (
+						<li>
+							<Trans
+								i18nKey='<strong>ORCID (sign-in):</strong> when you sign in with ORCID, ORCID learns that you sign in to Feuillet, and Feuillet learns only which ORCID iD it is (<privacy>Privacy Policy</privacy>)'
+								components={{
+									strong: <strong />,
+									privacy: (
+										<TransLink
+											href='https://info.orcid.org/privacy-policy/'
+											target='_blank'
+											rel='noreferrer'
+										/>
+									),
+								}}
+							/>
+						</li>
+					)}
 
 					<li>
 						<Trans

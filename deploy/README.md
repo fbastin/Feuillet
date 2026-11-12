@@ -473,9 +473,49 @@ connect again with new tickets.
   it writes the routes and maps again. It rebuilds the containers and
   leaves the certificate alone.
 - Application: `deploy/publish.sh`.
-- TeX Live packages: `sudo docker compose --env-file /etc/feuillet/site.env -f deploy/docker-compose.yml build --pull texlive`
-  then `sudo docker compose --env-file /etc/feuillet/site.env -f deploy/docker-compose.yml up -d texlive`
-  (the file gives the server's address, `DOMAIN`).
+- TeX Live packages: `sudo feuillet-compose build --pull texlive` then
+  `sudo feuillet-compose up -d texlive`.
+
+`feuillet-compose`, which `install.sh` writes in `/usr/local/sbin`, is
+`docker compose` with the files `install.sh` uses: `deploy/docker-compose.yml`,
+the address in `/etc/feuillet/site.env`, and your
+`/etc/feuillet/docker-compose.override.yml` if any. `sudo feuillet-compose
+ps`, `logs collab` or `restart collab` work the same way.
+
+## Your own settings
+
+What is yours stays out of the repository, in `/etc/feuillet`, so that
+`git pull` never meets it and updates keep it:
+
+- `collab.env`: the collaboration server's settings (sign-in, email,
+  administrators, sign-up, privacy page); after a change, `sudo
+  feuillet-compose up -d collab` is enough (`install.sh` does it too).
+- `docker-compose.override.yml`: changes to the servers of
+  `docker-compose.yml`, which Docker Compose merges with it: without
+  TeX Live 2025 on a modest machine, other memory or processor bounds,
+  without grammar checking... Copy
+  [`docker-compose.override.example.yml`](docker-compose.override.example.yml)
+  there and keep what you need, then `sudo deploy/install.sh`.
+- `backup.env`: the backups (see Backups).
+
+The privacy page (the **Privacy** link at the bottom of the page) says what
+differs from one server to another as the collaboration server tells it
+(`server/collab/site.js`), from `collab.env`:
+
+- `PRIVACY_CONTACT`: whom to ask, an email address or an `https://` page;
+  without it, the page points to the issues of the code's repository;
+- the service that sends the emails: told by `SMTP_URL` for Gmail, Outlook
+  and Fastmail; otherwise name it, with its privacy policy,
+  `MAIL_PROVIDER=Example Mail` and `MAIL_PROVIDER_PRIVACY_URL=https://…`;
+- `WEB_LOG_DAYS`: how long your web server keeps its logs (14 by default,
+  as Debian and Ubuntu rotate Apache's and nginx's);
+- how long the backups keep what was erased, from `BACKUP_KEEP`
+  (`backup.env`), as the last backup tells; Google and ORCID sign-in, and
+  grammar checking, only when they are on.
+
+Beyond that, the page describes Feuillet as this repository makes it: if
+you change what your server does, change the page with it
+([`src/components/common/PrivacyModal.tsx`](../src/components/common/PrivacyModal.tsx)).
 
 ## Years of TeX Live
 
@@ -496,16 +536,18 @@ Each spring, when `latest` moves to a new year, `install.sh` says so. The
 projects that chose the year before then compile with the new one (their
 menu says so), unless a server offers it. To keep it, as for 2026:
 
-1. In `docker-compose.yml`, copy the `texlive-2025` service as
-   `texlive-2026`, with `TEXLIVE_IMAGE: texlive/texlive:TL2026-historic`,
+1. In `/etc/feuillet/docker-compose.override.yml` (see Your own settings),
+   add a service `texlive-2026` as `texlive-2025` is in
+   `docker-compose.yml`, with `TEXLIVE_IMAGE: texlive/texlive:TL2026-historic`,
    `container_name: feuillet-texlive-2026` and
    `SOCKET_PATH: "/socket/texlive-2026.sock"`.
-2. Add it to the latest's `OTHER_YEARS`:
+2. Give the latest's `OTHER_YEARS` there:
    `"2025=/socket/texlive-2025.sock,2026=/socket/texlive-2026.sock"`.
 3. Run `sudo deploy/install.sh`.
 
 A year nobody uses any more is removed the other way round (its service,
-its entry in `OTHER_YEARS`, then `sudo docker image prune`).
+its entry in `OTHER_YEARS`, then `sudo docker image prune`); TeX Live 2025
+is turned off as `docker-compose.override.example.yml` shows.
 
 Documents are kept in the `feuillet_collab-data` volume, file contents in
 `feuillet_collab-files`, accounts in `feuillet_collab-accounts` (one JSON
@@ -561,12 +603,14 @@ most, and keeps nothing. Spelling stays with Feuillet's own checker. The
 first check of each language takes a few seconds, while LanguageTool makes
 its rules; later ones take milliseconds. `sudo docker inspect --format
 '{{.State.Health.Status}}' feuillet-languagetool` says how it is. Leaving
-`GRAMMAR_URL` out of `docker-compose.yml` turns grammar checking off.
+`GRAMMAR_URL` empty (`docker-compose.override.example.yml`) turns grammar
+checking off.
 
 ## TeX Live server limits
 
-Anyone who can open Feuillet can compile on this server, so the container is
-bounded (`docker-compose.yml`) and connections are kept apart:
+Any account can compile on this server (see Compiling: for accounts only),
+so the container is bounded (`docker-compose.yml`; yours in
+`docker-compose.override.yml`) and connections are kept apart:
 
 - each connection compiles under its own uid, in a directory that only this
   uid can open, with its own home and temporary directory. The server runs as
