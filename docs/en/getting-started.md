@@ -172,13 +172,17 @@ under: `/main.tex › Methods › Data` (parts, chapters, sections… in LaTeX,
 headings in Typst). A click on one puts the cursor there.
 
 The spell checker underlines mistakes in LaTeX and Typst text; a right click
-offers corrections. Its language follows the document's: babel's or
-polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst. The words added
+offers corrections. It knows 15 languages: French, English (United States
+and United Kingdom), German, Spanish, Italian, Portuguese (Brazil and
+Portugal), Dutch, Catalan, Polish, Russian, Swedish, Danish and Romanian.
+Its language follows the document's: babel's or polyglossia's in LaTeX,
+`#set text(lang: "en")`'s in Typst, otherwise the one the text is written
+in; **Settings**, **Spell checking** sets one. The words added
 to the dictionary are seen, removed or added in **Settings**, **Words added
 to the dictionary**; your account takes them to your other devices.
 
 As Writefull does on Overleaf, grammar and style are checked too, with
-LanguageTool on Feuillet's server, in English and French: mistakes are
+LanguageTool on Feuillet's server, in the same languages: mistakes are
 underlined in blue (spelling stays red). Hovering a mistake shows the
 explanation and the corrections, one click away; **Ignore** puts it aside,
 **Turn this rule off** turns the rule off everywhere (rules turned off are

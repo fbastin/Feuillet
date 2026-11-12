@@ -225,29 +225,42 @@ const LANGUAGE_NAMES: Record<string, SpellingLanguage> = {
 	ukenglish: 'en-GB',
 	australian: 'en-GB',
 	newzealand: 'en-GB',
+	german: 'de',
+	ngerman: 'de',
+	austrian: 'de',
+	naustrian: 'de',
+	swissgerman: 'de',
+	nswissgerman: 'de',
+	spanish: 'es',
+	mexican: 'es',
+	italian: 'it',
+	brazil: 'pt-BR',
+	brazilian: 'pt-BR',
+	portuguese: 'pt-PT',
+	portuges: 'pt-PT',
+	dutch: 'nl',
+	catalan: 'ca',
+	polish: 'pl',
+	russian: 'ru',
+	swedish: 'sv',
+	danish: 'da',
+	romanian: 'ro',
 };
 
 // Other languages babel knows, which have no dictionary here.
 const OTHER_LANGUAGES = new Set([
 	'afrikaans',
 	'arabic',
-	'austrian',
 	'basque',
-	'brazil',
-	'brazilian',
 	'breton',
 	'bulgarian',
-	'catalan',
 	'chinese',
 	'croatian',
 	'czech',
-	'danish',
-	'dutch',
 	'esperanto',
 	'estonian',
 	'finnish',
 	'galician',
-	'german',
 	'greek',
 	'hebrew',
 	'hindi',
@@ -255,7 +268,6 @@ const OTHER_LANGUAGES = new Set([
 	'icelandic',
 	'indonesian',
 	'irish',
-	'italian',
 	'japanese',
 	'korean',
 	'latin',
@@ -263,26 +275,15 @@ const OTHER_LANGUAGES = new Set([
 	'lithuanian',
 	'magyar',
 	'malay',
-	'naustrian',
-	'ngerman',
 	'norsk',
 	'norwegian',
-	'nswissgerman',
 	'nynorsk',
 	'persian',
-	'polish',
-	'portuges',
-	'portuguese',
-	'romanian',
-	'russian',
 	'scottish',
 	'serbian',
 	'slovak',
 	'slovene',
 	'slovenian',
-	'spanish',
-	'swedish',
-	'swissgerman',
 	'thai',
 	'turkish',
 	'ukrainian',
@@ -295,6 +296,8 @@ const languageNamed = (name: string): SpellingLanguage | null | undefined => {
 	if (Object.hasOwn(LANGUAGE_NAMES, key)) return LANGUAGE_NAMES[key];
 	return OTHER_LANGUAGES.has(key) ? null : undefined;
 };
+
+const base = (language: string) => language.split('-')[0];
 
 const stripComments = (source: string) =>
 	source.replace(/(^|[^\\])%.*$/gm, '$1');
@@ -315,8 +318,11 @@ export function declaredLanguage(
 	if (polyglossia) {
 		const language = languageNamed(polyglossia[2]);
 		const variant = /variant\s*=\s*(\w+)/.exec(polyglossia[1] ?? '')?.[1];
-		if (language === 'en-US' && variant) {
-			return languageNamed(variant) ?? language;
+		// A variant of the same language: British English, Brazilian
+		// Portuguese.
+		const byVariant = variant ? languageNamed(variant) : undefined;
+		if (language && byVariant && base(byVariant) === base(language)) {
+			return byVariant;
 		}
 		return language;
 	}
@@ -338,6 +344,22 @@ export function declaredLanguage(
 	}
 	return undefined;
 }
+
+// Typst's language codes (ISO 639-1) with a dictionary here, besides
+// English and Portuguese, which also look at the region.
+const TYPST_LANGUAGES: Record<string, SpellingLanguage> = {
+	fr: 'fr',
+	de: 'de',
+	es: 'es',
+	it: 'it',
+	nl: 'nl',
+	ca: 'ca',
+	pl: 'pl',
+	ru: 'ru',
+	sv: 'sv',
+	da: 'da',
+	ro: 'ro',
+};
 
 // Regions whose English is British.
 const BRITISH_REGIONS = new Set(['gb', 'uk', 'au', 'nz', 'ie', 'za', 'in']);
@@ -364,83 +386,92 @@ export function declaredTypstLanguage(
 		const args = text.slice(start, end);
 		const lang = /\blang\s*:\s*"([^"]*)"/.exec(args)?.[1]?.toLowerCase();
 		if (!lang) continue;
-		if (lang === 'fr') return 'fr';
-		if (lang !== 'en') return null;
 		const region = /\bregion\s*:\s*"([^"]*)"/.exec(args)?.[1]?.toLowerCase();
-		return region && BRITISH_REGIONS.has(region) ? 'en-GB' : 'en-US';
+		if (lang === 'en') {
+			return region && BRITISH_REGIONS.has(region) ? 'en-GB' : 'en-US';
+		}
+		// Portuguese is Brazil's unless the region says Portugal.
+		if (lang === 'pt') return region === 'pt' ? 'pt-PT' : 'pt-BR';
+		return Object.hasOwn(TYPST_LANGUAGES, lang) ? TYPST_LANGUAGES[lang] : null;
 	}
 	return undefined;
 }
 
-const FRENCH_WORDS = new Set([
-	'au',
-	'aux',
-	'avec',
-	'ce',
-	'cette',
-	'dans',
-	'des',
-	'du',
-	'en',
-	'est',
-	'et',
-	'il',
-	'la',
-	'le',
-	'les',
-	'leur',
-	'mais',
-	'nous',
-	'où',
-	'par',
-	'pas',
-	'pour',
-	'que',
-	'qui',
-	'sont',
-	'sur',
-	'un',
-	'une',
-]);
+// The most common short words of each language, chosen apart from those of
+// its neighbours (Spanish and Portuguese, Swedish and Danish...), so that a
+// few lines tell them apart.
+const COMMON_WORDS: Array<[SpellingLanguage, ReadonlySet<string>]> = (
+	[
+		[
+			'fr',
+			'au aux avec ce cette dans des du est et il le les leur mais nous où par pas pour qui sont sur une',
+		],
+		[
+			'en-US',
+			'an and are be by can for from have in is it not of that the this to was we which with',
+		],
+		[
+			'de',
+			'der die das und ist nicht mit den dem sich auf für ein eine auch werden wird von zu im sind bei oder wir nach',
+		],
+		[
+			'es',
+			'el los las del y más pero sus también cuando muy hay sino está están según',
+		],
+		[
+			'pt-BR',
+			'os da do das dos em não ao é na foi são pelo pela isso essa também um uma',
+		],
+		[
+			'it',
+			'di che della delle degli nel nella sono non gli anche come più alla dei questo questa essere è il per una con',
+		],
+		[
+			'nl',
+			'het een van dat op zijn met voor niet aan ook als bij door wordt worden deze naar maar wel',
+		],
+		[
+			'ca',
+			'els amb dels aquest aquesta però és són més també seva seu pel per i',
+		],
+		[
+			'pl',
+			'się nie że jest przez dla są ale oraz który która które jak tego jego w z',
+		],
+		[
+			'ru',
+			'и в не на что с по как это для из к от у же но так его она он они мы при был были',
+		],
+		[
+			'sv',
+			'och att är av för inte ett också mycket vara kommer dessa denna detta till från ska mellan där hur när deras våra bara några varje',
+		],
+		[
+			'da',
+			'og at er af ikke et også meget være kommer disse denne dette til fra skal mellem hvor hvis når deres vores kun nogle hver',
+		],
+		[
+			'ro',
+			'și în cu pe care nu din este sunt pentru mai sau ale prin această acest fost',
+		],
+	] as Array<[SpellingLanguage, string]>
+).map(([language, words]) => [language, new Set(words.split(' '))]);
 
-const ENGLISH_WORDS = new Set([
-	'an',
-	'and',
-	'are',
-	'be',
-	'by',
-	'can',
-	'for',
-	'from',
-	'have',
-	'in',
-	'is',
-	'it',
-	'not',
-	'of',
-	'that',
-	'the',
-	'this',
-	'to',
-	'was',
-	'we',
-	'which',
-	'with',
-]);
-
-// French or English, from the most common words of `text`, when it clearly
-// is one of them.
+// The language `text` is written in, from its most common words, when it
+// clearly is one of those with a dictionary here (Portuguese as Brazil's,
+// English as the United States'): at least 8 of them, twice as many as of
+// any other language.
 export function guessLanguage(text: string): SpellingLanguage | undefined {
-	let french = 0;
-	let english = 0;
+	const counts = new Map<SpellingLanguage, number>();
 	for (const [word] of text.toLowerCase().matchAll(/\p{L}+/gu)) {
-		if (FRENCH_WORDS.has(word)) french++;
-		else if (ENGLISH_WORDS.has(word)) english++;
+		for (const [language, words] of COMMON_WORDS) {
+			if (words.has(word))
+				counts.set(language, (counts.get(language) ?? 0) + 1);
+		}
 	}
-	if (french + english < 10) return undefined;
-	if (french >= 2 * english) return 'fr';
-	if (english >= 2 * french) return 'en-US';
-	return undefined;
+	const [best, second] = [...counts].sort((a, b) => b[1] - a[1]);
+	if (!best || best[1] < 8) return undefined;
+	return !second || best[1] >= 2 * second[1] ? best[0] : undefined;
 }
 
 // The dictionary that goes with the interface language.
@@ -448,5 +479,30 @@ export function interfaceSpellingLanguage(language: string): SpellingLanguage {
 	const code = language.toLowerCase();
 	if (code.startsWith('fr')) return 'fr';
 	if (code === 'en-gb') return 'en-GB';
+	if (code.startsWith('de')) return 'de';
+	if (code.startsWith('it')) return 'it';
 	return 'en-US';
 }
+
+// LanguageTool's code for each language (server/collab/grammar.js), with the
+// country its rules need.
+const GRAMMAR_LANGUAGES: Record<SpellingLanguage, string> = {
+	fr: 'fr',
+	'en-US': 'en-US',
+	'en-GB': 'en-GB',
+	de: 'de-DE',
+	es: 'es',
+	it: 'it',
+	'pt-BR': 'pt-BR',
+	'pt-PT': 'pt-PT',
+	nl: 'nl',
+	ca: 'ca-ES',
+	pl: 'pl-PL',
+	ru: 'ru-RU',
+	sv: 'sv',
+	da: 'da-DK',
+	ro: 'ro-RO',
+};
+
+export const grammarLanguageOf = (language: SpellingLanguage): string =>
+	GRAMMAR_LANGUAGES[language];

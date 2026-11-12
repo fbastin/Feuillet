@@ -182,15 +182,19 @@ lesquels se trouve le curseur suivent : `/main.tex › Méthodes › Données`
 d'eux y place le curseur.
 
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
-Typst; un clic droit propose des corrections. La langue suit celle du
-document : celle de babel ou de polyglossia en LaTeX, celle de
-`#set text(lang: "fr")` en Typst. Les mots ajoutés au dictionnaire se
+Typst; un clic droit propose des corrections. Il connaît 15 langues :
+français, anglais (États-Unis et Royaume-Uni), allemand, espagnol, italien,
+portugais (Brésil et Portugal), néerlandais, catalan, polonais, russe,
+suédois, danois et roumain. La langue suit celle du document : celle de
+babel ou de polyglossia en LaTeX, celle de `#set text(lang: "fr")` en
+Typst, sinon celle dans laquelle le texte est écrit; **Paramètres**,
+**Vérification orthographique** en impose une. Les mots ajoutés au dictionnaire se
 revoient, se retirent ou s'ajoutent dans **Paramètres**, **Mots ajoutés au
 dictionnaire**; le compte les emporte sur vos autres appareils.
 
 Comme le fait Writefull sur Overleaf, la grammaire et le style sont aussi
-vérifiés, avec LanguageTool sur le serveur de Feuillet, en français et en
-anglais : les fautes sont soulignées en bleu (l'orthographe reste en rouge).
+vérifiés, avec LanguageTool sur le serveur de Feuillet, dans les mêmes
+langues : les fautes sont soulignées en bleu (l'orthographe reste en rouge).
 Le survol d'une faute montre l'explication et les corrections, à choisir d'un
 clic; **Ignorer** l'écarte, **Désactiver cette règle** coupe la règle partout
 (les règles désactivées se réactivent dans **Paramètres**). Les commandes,

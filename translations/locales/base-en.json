@@ -4591,5 +4591,17 @@
   "The server's backups, made each night, keep what was erased for {days} days at most; only the server's administrator can read them.": "The server's backups, made each night, keep what was erased for {{days}} days at most; only the server's administrator can read them.",
   "The server's backups, made each night, keep what was erased until its administrator deletes them; only they can read them.": "The server's backups, made each night, keep what was erased until its administrator deletes them; only they can read them.",
   "<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to (<privacy>Privacy Policy</privacy>)": "<strong>{{provider}}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {{provider}}, with the address they are sent to (<privacy>Privacy Policy</privacy>)",
-  "<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to": "<strong>{{provider}}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {{provider}}, with the address they are sent to"
+  "<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to": "<strong>{{provider}}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {{provider}}, with the address they are sent to",
+  "German": "German",
+  "Spanish": "Spanish",
+  "Italian": "Italian",
+  "Portuguese (Brazil)": "Portuguese (Brazil)",
+  "Portuguese (Portugal)": "Portuguese (Portugal)",
+  "Dutch": "Dutch",
+  "Catalan": "Catalan",
+  "Polish": "Polish",
+  "Russian": "Russian",
+  "Swedish": "Swedish",
+  "Danish": "Danish",
+  "Romanian": "Romanian"
 }

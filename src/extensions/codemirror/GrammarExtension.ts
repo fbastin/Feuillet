@@ -46,6 +46,7 @@ import {
 import {
 	declaredLanguage,
 	declaredTypstLanguage,
+	grammarLanguageOf,
 	guessLanguage,
 	interfaceSpellingLanguage,
 	isProse,
@@ -320,7 +321,7 @@ class GrammarPlugin {
 				const matches = await accountSyncService.checkGrammar(
 					this.options.userId,
 					{
-						language,
+						language: grammarLanguageOf(language),
 						annotation: chunk.annotation,
 						disabledRules: disabled,
 					},

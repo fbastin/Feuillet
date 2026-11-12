@@ -4318,5 +4318,17 @@
   "The server's backups, made each night, keep what was erased for {days} days at most; only the server's administrator can read them.": "Les sauvegardes du serveur, faites chaque nuit, gardent au plus {{days}} jours ce qui a été effacé; seul l'administrateur du serveur peut les lire.",
   "The server's backups, made each night, keep what was erased until its administrator deletes them; only they can read them.": "Les sauvegardes du serveur, faites chaque nuit, gardent ce qui a été effacé jusqu'à ce que son administrateur les supprime; lui seul peut les lire.",
   "<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to (<privacy>Privacy Policy</privacy>)": "<strong>{{provider}} :</strong> les courriels qui confirment le courriel de votre compte, envoient un lien pour un mot de passe oublié, ou invitent quelqu'un à un projet, passent par {{provider}}, avec l'adresse à laquelle ils sont envoyés (<privacy>Politique de confidentialité</privacy>)",
-  "<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to": "<strong>{{provider}} :</strong> les courriels qui confirment le courriel de votre compte, envoient un lien pour un mot de passe oublié, ou invitent quelqu'un à un projet, passent par {{provider}}, avec l'adresse à laquelle ils sont envoyés"
+  "<strong>{provider}:</strong> the emails that confirm your account email, send a link for a forgotten password, or invite someone to a project, go through {provider}, with the address they are sent to": "<strong>{{provider}} :</strong> les courriels qui confirment le courriel de votre compte, envoient un lien pour un mot de passe oublié, ou invitent quelqu'un à un projet, passent par {{provider}}, avec l'adresse à laquelle ils sont envoyés",
+  "German": "Allemand",
+  "Spanish": "Espagnol",
+  "Italian": "Italien",
+  "Portuguese (Brazil)": "Portugais (Brésil)",
+  "Portuguese (Portugal)": "Portugais (Portugal)",
+  "Dutch": "Néerlandais",
+  "Catalan": "Catalan",
+  "Polish": "Polonais",
+  "Russian": "Russe",
+  "Swedish": "Suédois",
+  "Danish": "Danois",
+  "Romanian": "Roumain"
 }

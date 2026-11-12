@@ -1,5 +1,25 @@
 // src/types/spelling.ts
-export type SpellingLanguage = 'fr' | 'en-US' | 'en-GB';
+// The languages Feuillet has a dictionary for (spelling.worker.ts), as
+// Overleaf offers many.
+export const SPELLING_LANGUAGES = [
+	'fr',
+	'en-US',
+	'en-GB',
+	'de',
+	'es',
+	'it',
+	'pt-BR',
+	'pt-PT',
+	'nl',
+	'ca',
+	'pl',
+	'ru',
+	'sv',
+	'da',
+	'ro',
+] as const;
+
+export type SpellingLanguage = (typeof SPELLING_LANGUAGES)[number];
 
 // 'auto' follows the language the document declares, then the language its
 // text is written in, then the interface language.

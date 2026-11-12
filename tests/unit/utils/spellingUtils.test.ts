@@ -4,6 +4,7 @@ import {
 	declaredLanguage,
 	declaredTypstLanguage,
 	guessLanguage,
+	grammarLanguageOf,
 	interfaceSpellingLanguage,
 	isProse,
 	proseWords,
@@ -145,8 +146,26 @@ describe('declaredLanguage', () => {
 		expect(declaredLanguage('\\setdefaultlanguage[variant=british]{english}')).toBe('en-GB');
 	});
 
+	it('knows the other languages with a dictionary, by their babel names', () => {
+		expect(declaredLanguage('\\usepackage[ngerman]{babel}')).toBe('de');
+		expect(declaredLanguage('\\usepackage[nswissgerman]{babel}')).toBe('de');
+		expect(declaredLanguage('\\usepackage[spanish,mexican]{babel}')).toBe('es');
+		expect(declaredLanguage('\\usepackage[english,italian]{babel}')).toBe('it');
+		expect(declaredLanguage('\\usepackage[brazil]{babel}')).toBe('pt-BR');
+		expect(declaredLanguage('\\usepackage[portuguese]{babel}')).toBe('pt-PT');
+		expect(declaredLanguage('\\usepackage[main=dutch,english]{babel}')).toBe('nl');
+		expect(declaredLanguage('\\usepackage[catalan]{babel}')).toBe('ca');
+		expect(declaredLanguage('\\usepackage[polish]{babel}')).toBe('pl');
+		expect(declaredLanguage('\\usepackage[russian]{babel}')).toBe('ru');
+		expect(declaredLanguage('\\usepackage[swedish]{babel}')).toBe('sv');
+		expect(declaredLanguage('\\usepackage[danish]{babel}')).toBe('da');
+		expect(declaredLanguage('\\usepackage[romanian]{babel}')).toBe('ro');
+		expect(declaredLanguage('\\setmainlanguage[variant=brazilian]{portuguese}')).toBe('pt-BR');
+		expect(declaredLanguage('\\setmainlanguage[variant=swiss]{german}')).toBe('de');
+	});
+
 	it('tells languages without a dictionary from none at all', () => {
-		expect(declaredLanguage('\\usepackage[ngerman]{babel}')).toBeNull();
+		expect(declaredLanguage('\\usepackage[greek]{babel}')).toBeNull();
 		expect(declaredLanguage('\\documentclass{article}\n\\usepackage[T1]{fontenc}')).toBeUndefined();
 		expect(declaredLanguage('% \\usepackage[french]{babel}\n\\begin{document}')).toBeUndefined();
 	});
@@ -166,6 +185,35 @@ describe('guessLanguage', () => {
 		).toBe('en-US');
 		expect(guessLanguage('\\section{Introduction}')).toBeUndefined();
 	});
+
+	it('recognizes the other languages with a dictionary, neighbours apart', () => {
+		const samples: Record<string, string> = {
+			de: 'Das Modell wird mit einer Methode gelöst, die die Daten und die Struktur des Problems nutzt, um in einer vernünftigen Zeit Lösungen zu finden, und das ist auch das Ziel dieser Arbeit.',
+			es: 'El modelo se resuelve con un método que utiliza los datos y la estructura del problema para encontrar soluciones en un tiempo razonable, pero también es muy rápido cuando hay muchas variables.',
+			it: 'Il modello è risolto con un metodo che utilizza i dati e la struttura del problema per trovare soluzioni in un tempo ragionevole, e questo è anche lo scopo della ricerca nella tesi.',
+			'pt-BR': 'O modelo é resolvido por um método que usa os dados e a estrutura do problema para encontrar soluções em um tempo razoável, e isso também foi o objetivo das pesquisas dos autores.',
+			nl: 'Het model wordt opgelost met een methode die de gegevens en de structuur van het probleem gebruikt om in een redelijke tijd oplossingen te vinden, maar dat is niet het doel van deze studie.',
+			ca: "El model es resol amb un mètode que utilitza les dades i l'estructura del problema per trobar solucions en un temps raonable, i aquest és també l'objectiu dels autors amb aquesta tesi.",
+			pl: 'Model jest rozwiązywany metodą, która wykorzystuje dane oraz strukturę problemu, aby znaleźć rozwiązania w rozsądnym czasie, ale nie jest to jedyny cel tego badania, który się przez lata zmieniał.',
+			ru: 'Модель решается методом, который использует данные и структуру задачи, чтобы найти решения за разумное время, и это не единственная цель, но для нас это так.',
+			sv: 'Modellen löses med en metod som använder data och problemets struktur för att hitta lösningar inom rimlig tid, och det är också målet med detta arbete, men inte det enda.',
+			da: 'Modellen løses med en metode, der bruger data og problemets struktur til at finde løsninger inden for rimelig tid, og det er også målet med dette arbejde, men ikke det eneste.',
+			ro: 'Modelul este rezolvat cu o metodă care folosește datele și structura problemei pentru a găsi soluții într-un timp rezonabil, iar acesta este și scopul acestei lucrări din anul trecut.',
+		};
+		for (const [language, text] of Object.entries(samples)) {
+			expect([language, guessLanguage(text)]).toEqual([language, language]);
+		}
+	});
+});
+
+describe('grammarLanguageOf', () => {
+	it("gives LanguageTool the country its rules need", () => {
+		expect(grammarLanguageOf('fr')).toBe('fr');
+		expect(grammarLanguageOf('de')).toBe('de-DE');
+		expect(grammarLanguageOf('pt-BR')).toBe('pt-BR');
+		expect(grammarLanguageOf('ca')).toBe('ca-ES');
+		expect(grammarLanguageOf('ro')).toBe('ro-RO');
+	});
 });
 
 describe('interfaceSpellingLanguage', () => {
@@ -173,7 +221,9 @@ describe('interfaceSpellingLanguage', () => {
 		expect(interfaceSpellingLanguage('fr')).toBe('fr');
 		expect(interfaceSpellingLanguage('fr-CA')).toBe('fr');
 		expect(interfaceSpellingLanguage('en-GB')).toBe('en-GB');
-		expect(interfaceSpellingLanguage('de')).toBe('en-US');
+		expect(interfaceSpellingLanguage('de')).toBe('de');
+		expect(interfaceSpellingLanguage('it')).toBe('it');
+		expect(interfaceSpellingLanguage('zh-CN')).toBe('en-US');
 	});
 });
 
@@ -231,7 +281,10 @@ describe('Typst', () => {
 		expect(declaredTypstLanguage('#set text(lang: "fr")\n= Titre')).toBe('fr');
 		expect(declaredTypstLanguage('#set text(font: "Libertinus", lang: "en", region: "GB")')).toBe('en-GB');
 		expect(declaredTypstLanguage('#set text(lang: "en")')).toBe('en-US');
-		expect(declaredTypstLanguage('#set text(lang: "de")')).toBeNull();
+		expect(declaredTypstLanguage('#set text(lang: "de")')).toBe('de');
+		expect(declaredTypstLanguage('#set text(lang: "pt", region: "PT")')).toBe('pt-PT');
+		expect(declaredTypstLanguage('#set text(lang: "pt")')).toBe('pt-BR');
+		expect(declaredTypstLanguage('#set text(lang: "el")')).toBeNull();
 		expect(declaredTypstLanguage('#set text(size: 11pt)\n#set page(paper: "a4")')).toBeUndefined();
 		expect(declaredTypstLanguage('// #set text(lang: "fr")\n#set text(lang: "en")')).toBe('en-US');
 		expect(declaredTypstLanguage('Voir https://typst.app\n#set text(lang: "fr")')).toBe('fr');
