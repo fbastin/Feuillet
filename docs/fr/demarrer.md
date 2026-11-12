@@ -157,6 +157,11 @@ clé qui a des valeurs, comme `labelfont=` de `\captionsetup`, ses valeurs
 sont proposées. Ces listes viennent de celles de
 [TeXstudio](https://github.com/texstudio-org/texstudio).
 
+Au-dessus de l'éditeur, après le chemin du fichier, les titres sous
+lesquels se trouve le curseur suivent : `/main.tex › Méthodes › Données`
+(parties, chapitres, sections… en LaTeX, titres en Typst). Un clic sur l'un
+d'eux y place le curseur.
+
 Le correcteur d'orthographe souligne les fautes dans le texte LaTeX et
 Typst; un clic droit propose des corrections. La langue suit celle du
 document : celle de babel ou de polyglossia en LaTeX, celle de

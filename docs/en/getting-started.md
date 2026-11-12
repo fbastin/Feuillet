@@ -152,6 +152,10 @@ with that field selected; after a key that has values, as `labelfont=` of
 `\captionsetup`, its values are offered. These lists come from
 [TeXstudio](https://github.com/texstudio-org/texstudio)'s.
 
+Above the editor, after the file's path, come the headings the cursor is
+under: `/main.tex › Methods › Data` (parts, chapters, sections… in LaTeX,
+headings in Typst). A click on one puts the cursor there.
+
 The spell checker underlines mistakes in LaTeX and Typst text; a right click
 offers corrections. Its language follows the document's: babel's or
 polyglossia's in LaTeX, `#set text(lang: "en")`'s in Typst. The words added
