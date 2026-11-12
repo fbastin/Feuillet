@@ -18,6 +18,18 @@
 	height: 100vh;
 }
 
+/* Until a theme applies (the splash screen), Feuillet's green rather than
+   Pico's blue. */
+:root:not([data-theme]) {
+	--pico-primary: #27774a;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) {
+		--pico-primary: #4caf72;
+	}
+}
+
 #root {
 	max-width: 65%;
 	height: 100%;

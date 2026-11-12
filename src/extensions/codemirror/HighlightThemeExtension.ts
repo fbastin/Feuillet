@@ -53,6 +53,8 @@ import {
 import type { HighlightTheme } from '../../types/editor';
 
 const APP_THEME_MAP: Record<string, HighlightTheme> = {
+	feuillet_light: 'githubLight',
+	feuillet_dark: 'tomorrowNightBlue',
 	dark: 'dark',
 	light: 'light',
 	monokai: 'monokai',

@@ -1,0 +1,34 @@
+/* Feuillet's palettes: the green of its logo (shared/colors.ts). */
+[data-theme="feuillet_light"][data-theme-plugin="texlyre"],
+[data-theme="feuillet_light"][data-theme-plugin="texlyre-mobile"],
+[data-theme="feuillet_light"][data-theme-plugin="texlyre-slim"] {
+	--accent-background: #f0f2ef;
+	--accent-border: #dfe3df;
+	--editor-background: #fafafa;
+	--editor-text: #383a42;
+	--sidebar-background: #f0f2ef;
+	--sidebar-border: #dfe3df;
+	--text-color: #383a42;
+
+	--pico-primary-rgb: 39, 119, 74;
+	--pico-secondary-rgb: 103, 109, 105;
+}
+
+[data-theme="feuillet_dark"][data-theme-plugin="texlyre"],
+[data-theme="feuillet_dark"][data-theme-plugin="texlyre-mobile"],
+[data-theme="feuillet_dark"][data-theme-plugin="texlyre-slim"] {
+	--accent-background: #1c2733;
+	--accent-border: #2c3640;
+	--editor-background: #0d1117;
+	--editor-text: #d1d5db;
+	--sidebar-background: #1a242f;
+	--sidebar-border: #30363d;
+	--text-color: #d1d5db;
+
+	--pico-primary-rgb: 76, 175, 114;
+	--pico-secondary-rgb: 144, 161, 176;
+}
+
+[data-theme="feuillet_dark"][data-theme-plugin="texlyre-mobile"] {
+	--text-color: #bbc0c7;
+}

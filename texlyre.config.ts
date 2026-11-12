@@ -81,10 +81,11 @@ const config: TexlyreConfig = {
 
     // Overwrite priority is default < local < mobile for corresponding configs
     userdata: {
-        version: '1.3.6',
+        version: '1.3.9',
         forceUpdate: {
-            settings: ['statusPageUrl', 'statusJsonUrl', 'themePlugin', 'fileSyncNotifications'],
-            properties: [],
+            settings: ['statusPageUrl', 'statusJsonUrl'],
+            // Feuillet's palettes as the light and dark ones.
+            properties: ['themeToggleLight:global', 'themeToggleDark:global'],
         },
         default: {
             settings: {
@@ -158,8 +159,8 @@ const config: TexlyreConfig = {
                     sidebarCollapsed: false,
                     sidebarWidth: 502,
                     sourcemapShowFloatingButtons: true,
-                    themeToggleLight: "atom_light",
-                    themeToggleDark: "tomorrow_night_blue",
+                    themeToggleLight: "feuillet_light",
+                    themeToggleDark: "feuillet_dark",
                     toolbarVisible: true,
                 },
             },

@@ -267,6 +267,8 @@ const createTeXlyreCompactTheme = (): ThemePlugin => {
 	};
 
 	const variants: ThemeVariant[] = [
+		{ id: 'feuillet_light', name: 'Feuillet Light', isDark: false },
+		{ id: 'feuillet_dark', name: 'Feuillet Dark', isDark: true },
 		{ id: 'light', name: 'Light', isDark: false },
 		{ id: 'dark', name: 'Dark', isDark: true },
 		{ id: 'system', name: 'System', isDark: false },

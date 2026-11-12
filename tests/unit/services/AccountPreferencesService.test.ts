@@ -127,4 +127,34 @@ describe('AccountPreferencesService', () => {
 		]);
 		expect(settingsOf('u1')['editor-keymap-mode']).toBeNull();
 	});
+
+	it('renames a former value in each account here, as a change made now that the account then keeps', async () => {
+		localStorage.setItem(
+			'texlyre-user-u1-settings',
+			JSON.stringify({ _version: '1.3.9', 'theme-variant': 'tomorrow_night_blue', 'editor-font-size': 14 }),
+		);
+		localStorage.setItem('texlyre-user-u2-settings', JSON.stringify({ 'theme-variant': 'monokai' }));
+		localStorage.setItem('texlyre-user-u3-settings', JSON.stringify({ 'theme-variant': 'atom_light' }));
+		// u3's device knew the old value from the account, at time 5.
+		localStorage.setItem(
+			'feuillet-account-preferences-u3',
+			JSON.stringify([{ key: 'setting:theme-variant', value: 'atom_light', updatedAt: 5 }]),
+		);
+		const before = Date.now();
+		accountPreferencesService.renameSettingValues('theme-variant', {
+			atom_light: 'feuillet_light',
+			tomorrow_night_blue: 'feuillet_dark',
+		});
+		expect(settingsOf('u1')).toEqual({ _version: '1.3.9', 'theme-variant': 'feuillet_dark', 'editor-font-size': 14 });
+		expect(settingsOf('u2')['theme-variant']).toBe('monokai');
+		expect(ledgerOf('u2')).toEqual([]);
+		expect(settingsOf('u3')['theme-variant']).toBe('feuillet_light');
+		const [entry] = ledgerOf('u3');
+		expect(entry).toMatchObject({ key: 'setting:theme-variant', value: 'feuillet_light' });
+		expect(entry.updatedAt).toBeGreaterThanOrEqual(before);
+		// Sent to the account as the latest, it wins over the former value.
+		const sent = await accountPreferencesService.entries('u1');
+		expect(sent.find((e) => e.key === 'setting:theme-variant')).toMatchObject({ value: 'feuillet_dark' });
+		expect(sent.find((e) => e.key === 'setting:theme-variant')?.updatedAt).toBeGreaterThanOrEqual(before);
+	});
 });

@@ -174,6 +174,40 @@ class AccountPreferencesService {
 		);
 	}
 
+	/**
+	 * Gives a setting still at one of `renames`' former values its new one,
+	 * in each account kept in this browser, as a change made here now: the
+	 * account server keeps it, then gives it to the other devices.
+	 */
+	renameSettingValues(id: string, renames: Record<string, string>): void {
+		const prefix = 'texlyre-user-';
+		const suffix = '-settings';
+		for (const storeKey of Object.keys(localStorage)) {
+			if (!storeKey.startsWith(prefix) || !storeKey.endsWith(suffix)) continue;
+			const userId = storeKey.slice(prefix.length, -suffix.length);
+			let stored: Record<string, unknown>;
+			try {
+				stored = JSON.parse(localStorage.getItem(storeKey) ?? '{}') ?? {};
+			} catch {
+				continue;
+			}
+			const former = stored[id];
+			if (typeof former !== 'string' || !Object.hasOwn(renames, former)) {
+				continue;
+			}
+			const value = renames[former];
+			localStorage.setItem(
+				storeKey,
+				JSON.stringify({ ...stored, [id]: value }),
+			);
+			if (!isSyncedSetting(id)) continue;
+			const ledger = this.read(userId);
+			const key = settingKey(id);
+			ledger.set(key, { key, value, updatedAt: Date.now() });
+			this.write(userId, ledger);
+		}
+	}
+
 	private readSettings(userId: string): Record<string, unknown> {
 		try {
 			const { _version, ...settings } = JSON.parse(

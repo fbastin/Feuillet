@@ -24,6 +24,7 @@ import { openDB } from 'idb';
 import { createNamedLogger } from '@/logging';
 import './i18n';
 import App from './App';
+import { accountPreferencesService } from './services/AccountPreferencesService';
 import { authService } from './services/AuthService';
 import { isMobileUserAgent } from './utils/browserUtils';
 import { FORCED_DEFAULTS_KEY } from './utils/userDataUtils';
@@ -264,6 +265,25 @@ function setupDirection() {
 	document.documentElement.setAttribute('dir', direction);
 }
 
+// Feuillet's palettes took the place of TeXlyre's Atom Light and Tomorrow
+// Night Blue as the light and dark ones (userdata 1.3.9). The accounts left
+// on those, as the light and dark button set them, take Feuillet's, once in
+// each browser: a palette chosen afterwards stays.
+const FEUILLET_PALETTES_KEY = 'feuillet-palettes';
+
+function moveToFeuilletPalettes(): void {
+	try {
+		if (localStorage.getItem(FEUILLET_PALETTES_KEY)) return;
+		accountPreferencesService.renameSettingValues('theme-variant', {
+			atom_light: 'feuillet_light',
+			tomorrow_night_blue: 'feuillet_dark',
+		});
+		localStorage.setItem(FEUILLET_PALETTES_KEY, '1');
+	} catch (error) {
+		moduleLog.warn("Could not move to Feuillet's palettes:", error);
+	}
+}
+
 async function startApp() {
 	try {
 		await Promise.all([
@@ -274,6 +294,7 @@ async function startApp() {
 	} catch (error) {
 		moduleLog.error('Error during initialization:', error);
 	}
+	moveToFeuilletPalettes();
 
 	ReactDOM.createRoot(document.getElementById('root')!).render(
 		<React.StrictMode>

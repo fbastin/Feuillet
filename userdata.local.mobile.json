@@ -70,8 +70,8 @@
     "sidebar-collapsed:global": false,
     "sidebar-width:global": 502,
     "sourcemap-show-floating-buttons:global": true,
-    "theme-toggle-light:global": "atom_light",
-    "theme-toggle-dark:global": "tomorrow_night_blue",
+    "theme-toggle-light:global": "feuillet_light",
+    "theme-toggle-dark:global": "feuillet_dark",
     "toolbar-visible:global": true,
     "project-list-view-mode:global": "list"
   },

@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { t } from '@/i18n';
 import { useProperties } from '../../hooks/useProperties';
 import { useSettings } from '../../hooks/useSettings';
+import { useTheme } from '../../hooks/useTheme';
 import { SunIcon, MoonIcon } from '../common/Icons';
 
 interface ThemeToggleButtonProps {
@@ -14,8 +15,9 @@ interface ThemeToggleButtonProps {
 const ThemeToggleButton: React.FC<ThemeToggleButtonProps> = ({
 	className = '',
 }) => {
-	const { getSetting, updateSetting } = useSettings();
+	const { updateSetting } = useSettings();
 	const { getProperty, registerProperty } = useProperties();
+	const { isCurrentVariantDark } = useTheme();
 	const propertiesRegistered = useRef(false);
 
 	useEffect(() => {
@@ -26,27 +28,24 @@ const ThemeToggleButton: React.FC<ThemeToggleButtonProps> = ({
 			id: 'theme-toggle-light',
 			category: 'Theme',
 			subcategory: 'Toggle',
-			defaultValue: 'light',
+			defaultValue: 'feuillet_light',
 		});
 		registerProperty({
 			id: 'theme-toggle-dark',
 			category: 'Theme',
 			subcategory: 'Toggle',
-			defaultValue: 'dark',
+			defaultValue: 'feuillet_dark',
 		});
 	}, [registerProperty]);
 
-	const lightVariant = (getProperty('theme-toggle-light') as string) || 'light';
-	const darkVariant = (getProperty('theme-toggle-dark') as string) || 'dark';
+	const lightVariant =
+		(getProperty('theme-toggle-light') as string) || 'feuillet_light';
+	const darkVariant =
+		(getProperty('theme-toggle-dark') as string) || 'feuillet_dark';
 
-	const themeVariantSetting = getSetting('theme-variant');
-	const currentVariant =
-		themeVariantSetting?.value || themeVariantSetting?.defaultValue || 'system';
-
-	const isDark =
-		currentVariant === darkVariant ||
-		(currentVariant === 'system' &&
-			window.matchMedia('(prefers-color-scheme: dark)').matches);
+	// Whether the palette shown is dark, whichever it is: from another dark
+	// one (Monokai, Nord...), the button goes to the light one.
+	const isDark = isCurrentVariantDark;
 
 	const toggleTheme = () => {
 		updateSetting('theme-variant', isDark ? lightVariant : darkVariant);

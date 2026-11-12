@@ -1,5 +1,31 @@
 // extras/themes/shared/colors.ts
 export const themes = {
+	// Feuillet's own, the green of its logo, on the neutrals of Atom Light
+	// and Tomorrow Night Blue, which were the default light and dark ones.
+	// The primary color is darker than the logo's in light (white text on
+	// buttons, links on the page: 5.3:1) and lighter in dark (6.4:1).
+	feuillet_light: {
+		background: '#fafafa',
+		color: '#383a42',
+		'text-color': '#383a42',
+		primary: '#27774a',
+		'primary-hover': '#1e5e3a',
+		'primary-focus': 'rgba(47, 138, 82, 0.15)',
+		'primary-inverse': '#fff',
+		'secondary-background': '#f0f2ef',
+		secondary: '#676d69',
+	},
+	feuillet_dark: {
+		background: '#11191f',
+		color: '#d1d5db',
+		'text-color': '#d1d5db',
+		primary: '#4caf72',
+		'primary-hover': '#6cc28c',
+		'primary-focus': 'rgba(76, 175, 114, 0.25)',
+		'primary-inverse': '#11191f',
+		'secondary-background': '#1a242f',
+		secondary: '#90a1b0',
+	},
 	light: {
 		background: '#ffffff',
 		color: '#11191f',
