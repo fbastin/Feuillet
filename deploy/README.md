@@ -274,7 +274,9 @@ which address.
 
 The collaboration server lets Claude work on an account's projects through
 the Model Context Protocol: `https://feuillet.example.org/collab/mcp`
-(server/collab/mcp.js). Nothing needs registering:
+(server/collab/mcp.js), in its version 2026-07-28, without handshake, as in
+the versions from 2024-11-05 to 2025-11-25, which begin with `initialize`.
+Nothing needs registering:
 
 - in Claude (web or desktop app): Settings → Connectors → Add custom
   connector, with that address;

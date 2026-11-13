@@ -6,8 +6,18 @@
 // and both then work under the account that signed in (oauth.js), with its
 // role in each project.
 //
-//   POST /mcp   JSON-RPC (Streamable HTTP, answered with JSON): initialize,
-//               ping, tools/list, tools/call
+//   POST /mcp   JSON-RPC (Streamable HTTP, answered with JSON), in either
+//               era of the protocol:
+//               - 2026-07-28, without handshake nor session: every request
+//                 carries its version (MCP-Protocol-Version, and in
+//                 params._meta), its method (Mcp-Method) and, for
+//                 tools/call, its tool (Mcp-Name); server/discover,
+//                 tools/list, tools/call;
+//               - 2024-11-05 to 2025-11-25, after the initialize handshake,
+//                 which selects them: initialize, ping, tools/list,
+//                 tools/call.
+//               Any other version is answered 400 with the versions here,
+//               which a client then picks from rather than give up.
 //
 // What the assistant changes goes to the documents collaborators have open,
 // so that they see it at once, as tracked changes by default: they accept or
@@ -20,7 +30,19 @@ const { strip, cleanView, annotationsOf, commentTags, newId, reviewTags, scanAll
 	require('./annotations');
 const { summarizeLog, ENGINES } = require('./compile');
 
-const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
+// The versions of the protocol that begin with initialize, newest first.
+const LEGACY_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
+// Those without it.
+const MODERN_VERSIONS = ['2026-07-28'];
+const SUPPORTED_VERSIONS = [...MODERN_VERSIONS, ...LEGACY_VERSIONS];
+// The keys of params._meta and result._meta.
+const META_VERSION = 'io.modelcontextprotocol/protocolVersion';
+const META_CAPABILITIES = 'io.modelcontextprotocol/clientCapabilities';
+const META_SERVER = 'io.modelcontextprotocol/serverInfo';
+// How long a client may keep what server/discover and tools/list answer:
+// the same for every account, until the server is updated.
+const DISCOVER_TTL_MS = 60 * 60 * 1000;
+const TOOLS_TTL_MS = 5 * 60 * 1000;
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_READ_CHARS = 80_000;
 const MAX_SEARCH_RESULTS = 200;
@@ -858,51 +880,145 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 
 	// ---- JSON-RPC
 
+	const serverInfo = { name: 'feuillet', title: 'Feuillet', version };
 	const result = (id, value) => ({ jsonrpc: '2.0', id, result: value });
-	const failure = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, message } });
+	const failure = (id, code, message, data) => ({
+		jsonrpc: '2.0',
+		id,
+		error: data === undefined ? { code, message } : { code, message, data },
+	});
+	// Which a client recognizes, and picks a version from.
+	const unsupported = (id, requested) =>
+		failure(id, -32022, 'Unsupported protocol version', {
+			supported: SUPPORTED_VERSIONS,
+			requested,
+		});
 
+	const toolList = () => tools.map(({ run, ...tool }) => tool);
+	const callTool = async (tool, params, context) => {
+		const args = params.arguments && typeof params.arguments === 'object' ? params.arguments : {};
+		try {
+			const text = await tool.run(context, args);
+			return { content: [{ type: 'text', text }], isError: false };
+		} catch (error) {
+			if (!(error instanceof ToolError)) {
+				log('assistant tool failed', tool.name, error);
+			}
+			return {
+				content: [
+					{
+						type: 'text',
+						text: error instanceof ToolError ? error.message : 'The server could not do this.',
+					},
+				],
+				isError: true,
+			};
+		}
+	};
+
+	// The versions that begin with initialize.
 	const dispatch = async (message, context) => {
 		const { id, method, params = {} } = message;
 		switch (method) {
 			case 'initialize':
 				return result(id, {
-					protocolVersion: PROTOCOL_VERSIONS.includes(params.protocolVersion)
+					protocolVersion: LEGACY_VERSIONS.includes(params.protocolVersion)
 						? params.protocolVersion
-						: PROTOCOL_VERSIONS[0],
+						: LEGACY_VERSIONS[0],
 					capabilities: { tools: { listChanged: false } },
-					serverInfo: { name: 'feuillet', title: 'Feuillet', version },
+					serverInfo,
 					instructions: INSTRUCTIONS,
 				});
 			case 'ping':
 				return result(id, {});
 			case 'tools/list':
-				return result(id, {
-					tools: tools.map(({ run, ...tool }) => tool),
-				});
+				return result(id, { tools: toolList() });
 			case 'tools/call': {
 				const tool = tools.find((entry) => entry.name === params.name);
 				if (!tool) return failure(id, -32602, `Unknown tool: ${params.name}`);
-				const args = params.arguments && typeof params.arguments === 'object' ? params.arguments : {};
-				try {
-					const text = await tool.run(context, args);
-					return result(id, { content: [{ type: 'text', text }], isError: false });
-				} catch (error) {
-					if (!(error instanceof ToolError)) {
-						log('assistant tool failed', tool.name, error);
-					}
-					return result(id, {
-						content: [
-							{
-								type: 'text',
-								text: error instanceof ToolError ? error.message : 'The server could not do this.',
-							},
-						],
-						isError: true,
-					});
-				}
+				return result(id, await callTool(tool, params, context));
 			}
 			default:
 				return failure(id, -32601, `Method not found: ${method}`);
+		}
+	};
+
+	// Mcp-Name, which a client writes =?base64?…?= when the name would not
+	// do as a header: the UTF-8 of it, in Base64.
+	const headerName = (value) => {
+		const encoded = /^=\?base64\?([A-Za-z0-9+/]*={0,2})\?=$/.exec(value ?? '');
+		return encoded ? Buffer.from(encoded[1], 'base64').toString('utf8') : value;
+	};
+
+	// 2026-07-28: each request on its own, its headers agreeing with its
+	// body, which carries the version again and what the client can do.
+	// [HTTP status, reply], no reply for a notification.
+	const answerModern = async (req, message, versionAsked, context) => {
+		if (
+			!message ||
+			typeof message !== 'object' ||
+			Array.isArray(message) ||
+			message.jsonrpc !== '2.0' ||
+			typeof message.method !== 'string'
+		) {
+			return [
+				400,
+				failure(message?.id ?? null, -32600, 'Invalid request: one JSON-RPC request or notification per POST'),
+			];
+		}
+		if (message.id === undefined) return [202];
+		const { id, method } = message;
+		const params = message.params && typeof message.params === 'object' ? message.params : {};
+		const mismatch = (header, sent, inBody) => [
+			400,
+			failure(
+				id,
+				-32020,
+				sent === undefined
+					? `Header mismatch: the ${header} header is missing`
+					: `Header mismatch: ${header} header value '${sent}' does not match body value '${inBody}'`,
+			),
+		];
+		const sentMethod = req.headers['mcp-method'];
+		if (sentMethod !== method) return mismatch('Mcp-Method', sentMethod, method);
+		if (method === 'tools/call') {
+			const sentName = req.headers['mcp-name'];
+			if (sentName === undefined || headerName(sentName) !== params.name) {
+				return mismatch('Mcp-Name', sentName, params.name);
+			}
+		}
+		const meta = params._meta && typeof params._meta === 'object' ? params._meta : {};
+		if (typeof meta[META_VERSION] !== 'string') {
+			return [400, failure(id, -32602, `Invalid params: _meta must give ${META_VERSION}`)];
+		}
+		if (meta[META_VERSION] !== versionAsked) {
+			return mismatch('MCP-Protocol-Version', versionAsked, meta[META_VERSION]);
+		}
+		if (!meta[META_CAPABILITIES] || typeof meta[META_CAPABILITIES] !== 'object') {
+			return [400, failure(id, -32602, `Invalid params: _meta must give ${META_CAPABILITIES}`)];
+		}
+		const complete = (value) => [
+			200,
+			result(id, { resultType: 'complete', ...value, _meta: { [META_SERVER]: serverInfo } }),
+		];
+		switch (method) {
+			case 'server/discover':
+				return complete({
+					supportedVersions: SUPPORTED_VERSIONS,
+					capabilities: { tools: {} },
+					instructions: INSTRUCTIONS,
+					ttlMs: DISCOVER_TTL_MS,
+					cacheScope: 'public',
+				});
+			case 'tools/list':
+				return complete({ tools: toolList(), ttlMs: TOOLS_TTL_MS, cacheScope: 'public' });
+			case 'tools/call': {
+				const tool = tools.find((entry) => entry.name === params.name);
+				if (!tool) return [400, failure(id, -32602, `Unknown tool: ${params.name}`)];
+				return complete(await callTool(tool, params, context));
+			}
+			default:
+				return [404, failure(id, -32601, `Method not found: ${method}`)];
 		}
 	};
 
@@ -952,7 +1068,7 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 				...CORS,
 				'Access-Control-Allow-Methods': 'POST, GET, DELETE',
 				'Access-Control-Allow-Headers':
-					'Authorization, Content-Type, Accept, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID',
+					'Authorization, Content-Type, Accept, Mcp-Session-Id, MCP-Protocol-Version, Mcp-Method, Mcp-Name, Last-Event-ID',
 				'Access-Control-Max-Age': '86400',
 			});
 			res.end();
@@ -974,12 +1090,6 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 			send(res, 405, { error: 'method_not_allowed' }, { Allow: 'POST' });
 			return;
 		}
-		const requested = req.headers['mcp-protocol-version'];
-		if (requested && !PROTOCOL_VERSIONS.includes(requested)) {
-			req.resume();
-			send(res, 400, failure(null, -32600, `Unsupported MCP-Protocol-Version: ${requested}`));
-			return;
-		}
 		let body;
 		try {
 			body = await readJson(req);
@@ -991,11 +1101,29 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 			);
 			return;
 		}
+		const requested = req.headers['mcp-protocol-version'];
+		const single = body && typeof body === 'object' && !Array.isArray(body) ? body : null;
+		// initialize agrees on a version in its body, whatever the header says.
+		const handshake = single?.method === 'initialize';
+		if (requested && !handshake && !SUPPORTED_VERSIONS.includes(requested)) {
+			send(res, 400, unsupported(single?.id ?? null, requested));
+			return;
+		}
 		const context = {
 			account: auth.account,
 			username: auth.account.username,
 			clientName: auth.grant.clientName,
 		};
+		if (requested && !handshake && MODERN_VERSIONS.includes(requested)) {
+			const [status, reply] = await answerModern(req, body, requested, context);
+			if (reply === undefined) {
+				res.writeHead(status, CORS);
+				res.end();
+			} else {
+				send(res, status, reply);
+			}
+			return;
+		}
 		const messages = Array.isArray(body) ? body : [body];
 		const replies = [];
 		for (const message of messages) {
