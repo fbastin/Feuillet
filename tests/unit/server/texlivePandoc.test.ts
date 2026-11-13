@@ -4,14 +4,17 @@
 // Markdown with Pandoc on the TeX Live server (server/texlive/server.js), as
 // Overleaf's export and import: a project's LaTeX, its included files and
 // its citations, to GitHub Markdown; a Markdown file to a LaTeX document.
-// The real server, run here, with this machine's Pandoc; skipped without.
+// The real server, run here, with this machine's Pandoc; skipped without,
+// or without the server's own packages (npm install in server/texlive),
+// as in the continuous integration, which installs only the application's.
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 
-const WebSocket = require('../../../server/texlive/node_modules/ws');
+const SERVER = path.join(__dirname, '../../../server/texlive');
+const SERVER_WS = path.join(SERVER, 'node_modules/ws');
 
 const hasPandoc = (() => {
 	try {
@@ -21,7 +24,9 @@ const hasPandoc = (() => {
 		return false;
 	}
 })();
-const maybe = hasPandoc ? describe : describe.skip;
+const hasServer = fs.existsSync(path.join(SERVER_WS, 'package.json'));
+const maybe = hasPandoc && hasServer ? describe : describe.skip;
+const WebSocket = hasServer ? require(SERVER_WS) : null;
 
 const freePort = () =>
 	new Promise<number>((resolve) => {
@@ -81,7 +86,7 @@ maybe('Pandoc on the TeX Live server', () => {
 		work = fs.mkdtempSync(path.join(os.tmpdir(), 'feuillet-pandoc-'));
 		const port = await freePort();
 		server = spawn(process.execPath, ['server.js'], {
-			cwd: path.join(__dirname, '../../../server/texlive'),
+			cwd: SERVER,
 			env: {
 				...process.env,
 				HOST: '127.0.0.1',
