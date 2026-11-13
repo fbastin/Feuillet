@@ -7,9 +7,47 @@ import {
 	markdownBody,
 	markdownDeclaresLanguage,
 	markdownTitle,
+	tidyPandocMarkdown,
 } from '@src/utils/markdownConversion';
 
 describe('Markdown conversion', () => {
+	it('writes math between dollars, whatever Pandoc wrote, code aside', () => {
+		const pandoc = [
+			'La méthode s’appuie sur le modèle',
+			'``` math',
+			String.raw`\begin{equation}`,
+			'  x = 1',
+			String.raw`\end{equation}`,
+			'```',
+			'dont la solution est $`x(t) = e^{-t}`$.',
+			'',
+			String.raw`Valeurs estimées du paramètre $` + '`' + String.raw`\lambda` + '`' + '$. {#tab:resultats}',
+			'',
+			'```latex',
+			'$`kept`$ {#kept}',
+			'```',
+		].join('\n');
+		expect(tidyPandocMarkdown(pandoc)).toBe(
+			[
+				'La méthode s’appuie sur le modèle',
+				'$$',
+				String.raw`\begin{equation}`,
+				'  x = 1',
+				String.raw`\end{equation}`,
+				'$$',
+				'dont la solution est $x(t) = e^{-t}$.',
+				'',
+				String.raw`Valeurs estimées du paramètre $\lambda$.`,
+				'',
+				'```latex',
+				'$`kept`$ {#kept}',
+				'```',
+			].join('\n'),
+		);
+		// Older Pandoc's dollars stay.
+		expect(tidyPandocMarkdown('$x$ and $$y$$')).toBe('$x$ and $$y$$');
+	});
+
 	const project = ['/main.tex', '/images/plot.png', '/images/logo.pdf', '/figures/diagram.svg', '/refs.bib'];
 
 	it('finds the images the Markdown shows, adding the extensions LaTeX left out', () => {

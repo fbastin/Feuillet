@@ -185,3 +185,38 @@ export function latexPathFor(
 	while (taken.has(at(`${stem}-${index}.tex`).toLowerCase())) index++;
 	return `/${at(`${stem}-${index}.tex`)}`;
 }
+
+/**
+ * Pandoc's GitHub Markdown as most Markdown readers take it, whatever
+ * Pandoc wrote: math between dollars (newer versions write GitHub's own
+ * $`…`$ and ```math blocks, which GitHub reads, but few others), without
+ * the {#id} left after a caption. Code blocks stay as they are.
+ */
+export function tidyPandocMarkdown(markdown: string): string {
+	const out: string[] = [];
+	let fence: string | null = null;
+	let math = false;
+	for (const line of markdown.split('\n')) {
+		if (fence) {
+			if (line.trim() === fence) {
+				out.push(math ? '$$' : line);
+				fence = null;
+				math = false;
+			} else out.push(line);
+			continue;
+		}
+		const opening = /^(`{3,}|~{3,})\s*(\S*)\s*$/.exec(line);
+		if (opening) {
+			fence = opening[1];
+			math = opening[2] === 'math';
+			out.push(math ? '$$' : line);
+			continue;
+		}
+		out.push(
+			line
+				.replace(/\$`([^`\n]+)`\$/g, (_whole, tex: string) => `$${tex}$`)
+				.replace(/[ \t]\{#[^\s{}]+\}[ \t]*$/, ''),
+		);
+	}
+	return out.join('\n');
+}

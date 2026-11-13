@@ -47,7 +47,10 @@ import {
 	outputFilesOf,
 } from '../utils/compilerUtils';
 import { getProjectName } from '../utils/urlUtils';
-import { collectMarkdownMedia } from '../utils/markdownConversion';
+import {
+	collectMarkdownMedia,
+	tidyPandocMarkdown,
+} from '../utils/markdownConversion';
 import { declaredLanguage } from '../utils/spellingUtils';
 import { toBytes } from '../utils/fileUtils';
 import { cleanBytes } from '../utils/fileCommentUtils';
@@ -508,7 +511,7 @@ export const ExternalTypesetterProvider: React.FC<
 					};
 				}
 				const { markdown, media } = collectMarkdownMedia(
-					new TextDecoder().decode(result.output),
+					tidyPandocMarkdown(new TextDecoder().decode(result.output)),
 					mainFileName,
 					files.map((file) => file.path),
 				);
