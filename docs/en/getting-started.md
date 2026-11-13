@@ -229,6 +229,18 @@ and the bottom of the page. The project's name, compiling and the button
 stay; the same keys, or the button, turn it off, and so does opening the
 search panel (**Ctrl+Shift+F**).
 
+**Ctrl+P** (**Cmd+P**) opens the command palette, as on Overleaf, in focus
+mode too: type a few letters of a command or of a file's name, in any order
+(`meth chap` finds `chapitres/methode.tex`), then **Enter**. It offers
+compiling, going to a line, finding, changing case, formatting, what the
+editor's toolbar inserts (bold, figure, table, citation…), commenting the
+selection, the review panel and track changes, focus mode, the code or
+visual editor, going to the PDF, the side panels (files, search, versions,
+Git history, collaborators), sharing, the settings and the keyboard
+shortcuts, and every file of the project to open. Each command shows its
+keys. **Escape** closes it. With Vim or Emacs keybindings, whose Ctrl+P
+moves up a line, **Ctrl+Shift+P** opens it from the editor.
+
 As in Overleaf's settings, **Settings** sets the editor's **Line height**
 (compact, normal or wide, under **Appearance**), its font, among which
 **OpenDyslexic Mono**, a font made for dyslexic readers, a **Blinking

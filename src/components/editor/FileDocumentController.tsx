@@ -15,6 +15,10 @@ import { usePeerFileSync } from '../../hooks/usePeerFileSync';
 import type { Document } from '../../types/documents';
 import type { Project } from '../../types/projects';
 import type { YjsDocUrl } from '../../types/yjs';
+import {
+	OPEN_SIDEBAR_VIEW,
+	type OpenSidebarViewDetail,
+} from '../../utils/workspaceEvents';
 import GitDiffViewer, { type GitDiffView } from '../history/GitDiffViewer';
 import ProjectExportModal from '../project/ProjectExportModal';
 import Editor from './Editor';
@@ -131,6 +135,26 @@ const FileDocumentControllerContent: React.FC<FileDocumentControllerProps> = ({
 	}, [navigation.setActiveView]);
 
 	const clearDiff = useCallback(() => setGitDiffView(null), []);
+
+	// A side panel asked for (the command palette): shown, the sidebar open.
+	useEffect(() => {
+		const open = (event: Event) => {
+			const view = (event as CustomEvent<OpenSidebarViewDetail>).detail?.view;
+			if (!view) return;
+			if (view === 'history') handleSwitchToHistory();
+			else if (view === 'versions') handleSwitchToVersions();
+			else navigation.setActiveView(view);
+			if (layout.sidebarCollapsed) layout.handleSidebarCollapse(false);
+		};
+		document.addEventListener(OPEN_SIDEBAR_VIEW, open);
+		return () => document.removeEventListener(OPEN_SIDEBAR_VIEW, open);
+	}, [
+		handleSwitchToHistory,
+		handleSwitchToVersions,
+		navigation.setActiveView,
+		layout.sidebarCollapsed,
+		layout.handleSidebarCollapse,
+	]);
 	// Both history views show differences where the editor is.
 	const showingHistory =
 		navigation.activeView === 'history' || navigation.activeView === 'versions';

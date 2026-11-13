@@ -144,6 +144,7 @@ import {
 } from '../../utils/autoCompile';
 import { detectFileType, isBibFile } from '../../utils/fileUtils';
 import { collabService } from '../../services/CollabService';
+import { activeEditorService } from '../../services/ActiveEditorService';
 import { collaboratorJumpService } from '../../services/CollaboratorJumpService';
 import { fileStoreService } from '../../services/FileStoreService';
 import { filePathCacheService } from '../../services/FilePathCacheService';
@@ -260,6 +261,9 @@ export const useEditorView = (
 	const hasEmittedReadyRef = useRef<boolean>(false);
 	const undoManagerRef = useRef<UndoManager | null>(null);
 	const toolbarControllerRef = useRef<ToolbarController | null>(null);
+	// What Ctrl+Enter and Ctrl+Shift+I do, for the command palette.
+	const saveAndCompileRef = useRef<((view: EditorView) => void) | null>(null);
+	const formatRef = useRef<((view: EditorView) => boolean) | null>(null);
 	const [toolbarController, setToolbarController] =
 		useState<ToolbarController | null>(null);
 
@@ -675,26 +679,22 @@ export const useEditorView = (
 	};
 
 	const buildKeymapExtensions = (info: FileTypeInfo): Extension[] => {
-		const formatBinding = keymap.of([
-			{
-				key: 'Ctrl-Shift-i',
-				run: (view) => {
-					if (isViewOnly || !info.hasFormatter) return false;
-					document.dispatchEvent(
-						new CustomEvent('trigger-format', {
-							detail: {
-								content: view.state.doc.toString(),
-								contentType: info.fileType,
-								fileId: currentFileId,
-								documentId,
-								view,
-							},
-						}),
-					);
-					return true;
-				},
-			},
-		]);
+		const format = (view: EditorView): boolean => {
+			if (isViewOnly || !info.hasFormatter) return false;
+			document.dispatchEvent(
+				new CustomEvent('trigger-format', {
+					detail: {
+						content: view.state.doc.toString(),
+						contentType: info.fileType,
+						fileId: currentFileId,
+						documentId,
+						view,
+					},
+				}),
+			);
+			return true;
+		};
+		const formatBinding = keymap.of([{ key: 'Ctrl-Shift-i', run: format }]);
 
 		const saveContent = async (content: string) => {
 			if (isEditingFile && currentFileId) await saveFileToStorage(content);
@@ -725,22 +725,27 @@ export const useEditorView = (
 		// Overleaf-style recompile: save the open file first so the compiler
 		// sees the latest edits, then compile. Takes precedence over the
 		// default Mod-Enter (insert blank line).
+		const saveAndCompile = (view: EditorView) => {
+			const save = isViewOnly
+				? Promise.resolve()
+				: saveContent(view.state.doc.toString());
+			void save.finally(() =>
+				document.dispatchEvent(new CustomEvent('trigger-compile')),
+			);
+		};
 		const compileBinding = Prec.highest(
 			keymap.of([
 				{
 					key: 'Mod-Enter',
 					run: (view) => {
-						const save = isViewOnly
-							? Promise.resolve()
-							: saveContent(view.state.doc.toString());
-						void save.finally(() =>
-							document.dispatchEvent(new CustomEvent('trigger-compile')),
-						);
+						saveAndCompile(view);
 						return true;
 					},
 				},
 			]),
 		);
+		saveAndCompileRef.current = saveAndCompile;
+		formatRef.current = format;
 
 		// Ctrl+B and Ctrl+I as on Overleaf: bold and italic around the
 		// selection (\textbf{…}, \textit{…}; *…*, _…_ in Typst), before
@@ -920,6 +925,7 @@ export const useEditorView = (
 		}
 
 		let disposeClipboard: (() => void) | null = null;
+		let disposeActive: (() => void) | null = null;
 
 		const contentToUse = isEditingFile
 			? textContent
@@ -1049,6 +1055,23 @@ export const useEditorView = (
 			viewRef.current = view;
 			applyEditorAppearance(view, editorSettings);
 
+			// The editor last opened or focused is the command palette's.
+			const active = {
+				view,
+				fileType: info.fileType,
+				toolbar: () => toolbarControllerRef.current,
+				saveAndCompile: () => saveAndCompileRef.current?.(view),
+				format: () => formatRef.current?.(view) ?? false,
+				comments: enableComments && !isViewOnly,
+			};
+			activeEditorService.set(active);
+			const takeFocus = () => activeEditorService.set(active);
+			view.contentDOM.addEventListener('focus', takeFocus);
+			disposeActive = () => {
+				view.contentDOM.removeEventListener('focus', takeFocus);
+				activeEditorService.clear(view);
+			};
+
 			if (enableComments) {
 				updateComments(view.state.doc.toString());
 			}
@@ -1081,6 +1104,8 @@ export const useEditorView = (
 		return () => {
 			disposeClipboard?.();
 			disposeClipboard = null;
+			disposeActive?.();
+			disposeActive = null;
 
 			if (viewRef.current) {
 				if (isEditingFile && currentFileId) {

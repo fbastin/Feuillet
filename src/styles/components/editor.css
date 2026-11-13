@@ -327,3 +327,132 @@ mark.search-highlight {
 .app-container[data-focus-mode="true"] [data-action="focus-mode"] {
 	color: var(--pico-primary);
 }
+
+/* The command palette (components/editor/CommandPalette.tsx), as Overleaf's:
+   floating near the top, above the page and its dialogs. */
+.command-palette-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: var(--z-tooltip);
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	padding: 12vh var(--space-md) var(--space-md);
+	background-color: rgb(0 0 0 / 0.12);
+}
+
+.command-palette {
+	display: flex;
+	flex-direction: column;
+	width: min(40rem, 100%);
+	max-height: min(32rem, 76vh);
+	overflow: hidden;
+	background-color: var(--pico-background);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-md, var(--radius-sm));
+	box-shadow: var(--shadow-lg, var(--shadow-md));
+	color: var(--text-color);
+	font-size: var(--font-size-small);
+}
+
+.command-palette > .command-palette-input {
+	flex: none;
+	width: 100%;
+	height: auto;
+	margin: 0;
+	padding: var(--space-sm) var(--space-md);
+	border: 0;
+	border-bottom: 1px solid var(--accent-border);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	font-size: var(--font-size-base, 1rem);
+}
+
+.command-palette > .command-palette-input:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+.command-palette-list {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	margin: 0;
+	padding: var(--space-xs) 0;
+}
+
+.command-palette-list > .command-palette-item {
+	display: flex;
+	align-items: center;
+	gap: var(--space-sm);
+	margin: 0;
+	padding: 5px var(--space-md);
+	cursor: pointer;
+}
+
+.command-palette-list > .command-palette-item:focus {
+	outline: none;
+}
+
+.command-palette-list > .command-palette-item[aria-selected="true"] {
+	background-color: var(--pico-primary-focus);
+}
+
+.command-palette-text {
+	display: flex;
+	flex: 1;
+	align-items: baseline;
+	gap: var(--space-sm);
+	min-width: 0;
+}
+
+.command-palette-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.command-palette-label mark {
+	padding: 0;
+	background: none;
+	color: var(--pico-primary);
+	font-weight: 600;
+}
+
+.command-palette-detail {
+	overflow: hidden;
+	color: var(--pico-muted-color, var(--text-color));
+	font-size: 0.9em;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	direction: rtl;
+	text-align: left;
+}
+
+.command-palette-item > .command-palette-keys {
+	flex: none;
+	padding: 0 var(--space-xs);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-sm);
+	background: none;
+	box-shadow: none;
+	color: var(--pico-muted-color, var(--text-color));
+	font: inherit;
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+
+.command-palette-group {
+	flex: none;
+	min-width: 5.5rem;
+	color: var(--pico-muted-color, var(--text-color));
+	font-size: 0.85em;
+	text-align: right;
+}
+
+.command-palette-list > .command-palette-empty {
+	padding: var(--space-sm) var(--space-md);
+	color: var(--pico-muted-color, var(--text-color));
+}

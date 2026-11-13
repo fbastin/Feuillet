@@ -1,9 +1,10 @@
 // src/components/settings/SettingsButton.tsx
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { t } from '@/i18n';
 import { SettingsIcon } from '../common/Icons';
+import { OPEN_SETTINGS } from '../../utils/workspaceEvents';
 import SettingsModal from './SettingsModal';
 
 interface SettingsButtonProps {
@@ -12,6 +13,13 @@ interface SettingsButtonProps {
 
 const SettingsButton: React.FC<SettingsButtonProps> = ({ className = '' }) => {
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+	// Asked from elsewhere (the command palette).
+	useEffect(() => {
+		const open = () => setIsSettingsOpen(true);
+		document.addEventListener(OPEN_SETTINGS, open);
+		return () => document.removeEventListener(OPEN_SETTINGS, open);
+	}, []);
 
 	return (
 		<>

@@ -54,6 +54,8 @@ import Modal from '../common/Modal';
 import OfflineBanner from '../common/OfflineBanner';
 import TypesetterInfo from '../common/TypesetterInfo';
 import WorkspaceStatusIndicator from '../workspace/WorkspaceStatusIndicator';
+import CommandPalette from '../editor/CommandPalette';
+import { editorCommands, fileCommands } from '../editor/editorCommands';
 import FileDocumentController from '../editor/FileDocumentController';
 import LaTeXCompileButton from '../output/LaTeXCompileButton';
 import LaTeXExportButton from '../output/LaTeXExportButton';
@@ -236,6 +238,47 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 
 	useGlobalKeyboard();
 	const [focusMode, setFocusMode] = useFocusMode();
+	const [showCommandPalette, setShowCommandPalette] = useState(false);
+	const keymapMode = getSetting('editor-keymap-mode')?.value;
+
+	// Ctrl/Cmd+P opens the command palette, as on Overleaf, Ctrl/Cmd+Shift+P
+	// too. In the editor, Vim's and Emacs's Ctrl+P (the line above) stays
+	// theirs: Ctrl+Shift+P there.
+	useEffect(() => {
+		const open = (event: KeyboardEvent) => {
+			if (event.code !== 'KeyP' || event.altKey) return;
+			if (!event.ctrlKey && !event.metaKey) return;
+			const inEditor = !!(
+				document.activeElement as HTMLElement | null
+			)?.closest('.cm-editor');
+			if (
+				!event.shiftKey &&
+				event.ctrlKey &&
+				!event.metaKey &&
+				inEditor &&
+				(keymapMode === 'vim' || keymapMode === 'emacs')
+			) {
+				return;
+			}
+			event.preventDefault();
+			event.stopPropagation();
+			setShowCommandPalette((open) => !open);
+		};
+		window.addEventListener('keydown', open, true);
+		return () => window.removeEventListener('keydown', open, true);
+	}, [keymapMode]);
+
+	const paletteCommands = () =>
+		editorCommands({
+			focusMode,
+			setFocusMode,
+			openShare: () => setShowShareModal(true),
+			openShortcuts: () => setShowKeyboardShortcuts(true),
+			backToProjects: onBackToProjects,
+			readOnly: readOnly || reviewOnly,
+			online: !isOfflineMode && docUrl.startsWith('yjs:'),
+			isGuest: isGuestUser(user),
+		});
 	// Projects from before TeX Live move to it, as on Overleaf.
 	useBrowserCompilerMigration();
 
@@ -1008,6 +1051,13 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 
 				<ChatPanel className='footer-chat' />
 			</footer>
+
+			<CommandPalette
+				isOpen={showCommandPalette}
+				onClose={() => setShowCommandPalette(false)}
+				commands={paletteCommands}
+				files={fileCommands}
+			/>
 
 			<KeyboardShortcutsModal
 				isOpen={showKeyboardShortcuts}

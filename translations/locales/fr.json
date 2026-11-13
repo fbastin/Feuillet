@@ -4437,5 +4437,19 @@
   "Blue": "Bleu",
   "Purple": "Violet",
   "Pink": "Rose",
-  "Gray": "Gris"
+  "Gray": "Gris",
+  "Command palette": "Palette de commandes",
+  "Command palette: find a command or a file": "Palette de commandes : trouver une commande ou un fichier",
+  "Commands and files": "Commandes et fichiers",
+  "Focus mode": "Mode concentration",
+  "Leave focus mode": "Quitter le mode concentration",
+  "Insertion": "Insertion",
+  "Reviewing": "Relecture",
+  "View": "Affichage",
+  "Show the collaborators": "Afficher les collaborateurs",
+  "Show the files": "Afficher les fichiers",
+  "Show the Git history": "Afficher l'historique Git",
+  "Show the review overview": "Afficher la vue d'ensemble de la relecture",
+  "Show the versions": "Afficher les versions",
+  "Type a command or the name of a file": "Tapez une commande ou le nom d'un fichier"
 }

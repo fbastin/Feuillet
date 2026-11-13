@@ -245,6 +245,20 @@ barre d'outils de l'éditeur ni le bas de la page. Le nom du projet, la
 compilation et le bouton restent; les mêmes touches, ou le bouton, le
 désactivent, de même qu'ouvrir le panneau de recherche (**Ctrl+Maj+F**).
 
+**Ctrl+P** (**Cmd+P**) ouvre la palette de commandes, comme sur Overleaf, en
+mode concentration aussi : tapez quelques lettres d'une commande ou du nom
+d'un fichier, dans n'importe quel ordre (`meth chap` trouve
+`chapitres/methode.tex`), puis **Entrée**. Elle offre la compilation, aller
+à une ligne, rechercher, changer la casse, mettre en forme, ce qu'insère la
+barre d'outils de l'éditeur (gras, figure, tableau, citation…), commenter la
+sélection, le panneau de relecture et le suivi des modifications, le mode
+concentration, l'éditeur de code ou visuel, aller au PDF, les panneaux
+latéraux (fichiers, recherche, versions, historique Git, collaborateurs), le
+partage, les paramètres et les raccourcis clavier, et chaque fichier du
+projet, pour l'ouvrir. Chaque commande montre ses touches. **Échap** la
+ferme. Avec les raccourcis Vim ou Emacs, dont le Ctrl+P monte d'une ligne,
+**Ctrl+Maj+P** l'ouvre depuis l'éditeur.
+
 Comme dans les réglages d'Overleaf, **Paramètres** règle l'**Interligne** de
 l'éditeur (serré, normal ou large, dans **Apparence**), sa **Police**, dont
 **OpenDyslexic Mono**, conçue pour les lecteurs dyslexiques, un **Curseur

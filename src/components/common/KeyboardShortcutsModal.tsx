@@ -137,6 +137,21 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 									{t('Focus mode: the editor and the PDF alone')}
 								</div>
 							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> + <kbd>P</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Command palette: find a command or a file')}
+								</div>
+							</div>
 						</div>
 					</section>
 

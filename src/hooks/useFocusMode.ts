@@ -4,6 +4,8 @@
 // footer; compiling stays at hand. Kept for the tab, through a reload.
 import { useCallback, useEffect, useState } from 'react';
 
+import { OPEN_SIDEBAR_VIEW } from '../utils/workspaceEvents';
+
 /** Turns focus mode on or off (useGlobalKeyboard: Ctrl/Cmd+Shift+M). */
 export const TOGGLE_FOCUS_MODE = 'toggle-focus-mode';
 
@@ -39,13 +41,16 @@ export function useFocusMode(): [boolean, (on: boolean) => void] {
 
 	useEffect(() => {
 		const toggle = () => setFocusMode(!stored());
-		// A side panel asked for (Ctrl+Shift+F, Ctrl+Shift+H) shows again.
+		// A side panel asked for (Ctrl+Shift+F, Ctrl+Shift+H, the command
+		// palette) shows again.
 		const leave = () => setFocusMode(false);
 		document.addEventListener(TOGGLE_FOCUS_MODE, toggle);
 		document.addEventListener('open-search-panel', leave);
+		document.addEventListener(OPEN_SIDEBAR_VIEW, leave);
 		return () => {
 			document.removeEventListener(TOGGLE_FOCUS_MODE, toggle);
 			document.removeEventListener('open-search-panel', leave);
+			document.removeEventListener(OPEN_SIDEBAR_VIEW, leave);
 		};
 	}, [setFocusMode]);
 

@@ -52,8 +52,8 @@ and compiling with TeX Live.
   checking with LanguageTool on the server
   ([`server/languagetool`](server/languagetool)), a symbol palette, searching
   the bibliography from `\cite{…}`, the commands a project defines in the
-  completion, a presentation mode, a focus mode, and going to a
-  collaborator's cursor from their avatar.
+  completion, a command palette, a presentation mode, a focus mode, and
+  going to a collaborator's cursor from their avatar.
 - **Administration.** For the accounts named administrators: the server's
   disk, emails, backups and compiles, every account with its projects, the
   links to sign up.
