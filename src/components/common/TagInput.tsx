@@ -3,6 +3,7 @@ import type React from 'react';
 import { useState } from 'react';
 
 import { t } from '@/i18n';
+import { tagStyle } from '../../hooks/useTagColors';
 
 const COMMA_CHARS = /[,،、。，]/;
 
@@ -12,6 +13,8 @@ interface TagInputProps {
 	placeholder?: string;
 	allowedValues?: string[];
 	disabled?: boolean;
+	/** The colors of tags (utils/tagColors), shown on their badges. */
+	colors?: Record<string, string>;
 }
 
 export const TagInput: React.FC<TagInputProps> = ({
@@ -20,6 +23,7 @@ export const TagInput: React.FC<TagInputProps> = ({
 	placeholder,
 	allowedValues,
 	disabled = false,
+	colors,
 }) => {
 	const [inputValue, setInputValue] = useState('');
 
@@ -66,6 +70,8 @@ export const TagInput: React.FC<TagInputProps> = ({
 					key={tag}
 					className='ui-badge'
 					data-variant='tag'
+					data-colored={colors?.[tag] ? 'true' : undefined}
+					style={tagStyle(colors?.[tag])}
 					onClick={(e) => e.stopPropagation()}
 				>
 					{tag}

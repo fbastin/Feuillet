@@ -43,6 +43,12 @@ aussi :
 - pour un projet partagé avec vous, **Quitter le projet**
   (voir [Collaborer](collaborer.md)).
 
+Les étiquettes données aux projets (dans **Modifier le projet**) filtrent la
+liste. Comme sur Overleaf, chaque étiquette peut avoir une couleur : le
+bouton palette à côté de **Toutes les étiquettes** en propose neuf, une
+autre au choix, ou aucune. Les couleurs suivent votre compte sur vos autres
+appareils.
+
 ### Nouveau projet
 
 **Nouveau projet** propose des modèles : vide, exemple, article, livre,
@@ -232,9 +238,17 @@ suivi des modifications. Un clic droit hors de la sélection y place d'abord
 le curseur; sur un mot mal orthographié, il donne les suggestions
 d'orthographe, et Maj+clic droit le menu du navigateur.
 
+**Ctrl+Maj+M** (**Cmd+Maj+M**), ou le bouton aux quatre coins à côté du
+bouton de compilation, active le mode concentration, comme sur Overleaf :
+l'éditeur et le PDF seuls, sans la barre de menus, le panneau latéral, la
+barre d'outils de l'éditeur ni le bas de la page. Le nom du projet, la
+compilation et le bouton restent; les mêmes touches, ou le bouton, le
+désactivent, de même qu'ouvrir le panneau de recherche (**Ctrl+Maj+F**).
+
 Comme dans les réglages d'Overleaf, **Paramètres** règle l'**Interligne** de
-l'éditeur (serré, normal ou large, dans **Apparence**) et la **Fermeture
-automatique des parenthèses** : quand elle est coupée, taper `{`, `[` ou
+l'éditeur (serré, normal ou large, dans **Apparence**), sa **Police**, dont
+**OpenDyslexic Mono**, conçue pour les lecteurs dyslexiques, un **Curseur
+clignotant** ou fixe, et la **Fermeture automatique des parenthèses** : quand elle est coupée, taper `{`, `[` ou
 `$` n'écrit pas le caractère fermant. En LaTeX, comme sur Overleaf, `$`
 s'écrit par paire (`$|$`), une `(` seule et les guillemets ne se ferment
 pas, et rien ne se ferme après une barre oblique inverse (`\$`, `\{`).

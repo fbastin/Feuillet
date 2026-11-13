@@ -12,7 +12,13 @@ import {
 	type ProjectView,
 	inProjectView,
 } from '../../utils/projectViewUtils';
-import { ImportIcon, NewProjectIcon, StarIcon } from '../common/Icons';
+import {
+	ImportIcon,
+	NewProjectIcon,
+	StarIcon,
+	ToolbarColorIcon,
+} from '../common/Icons';
+import TagColorsModal from './TagColorsModal';
 
 interface ProjectPanelProps {
 	onCreateProject: () => void;
@@ -49,6 +55,7 @@ const ProjectPanel: React.FC<ProjectPanelProps> = ({
 	const [searchQuery, setSearchQuery] = useState('');
 	const [selectedTag, setSelectedTag] = useState('');
 	const [selectedType, setSelectedType] = useState('');
+	const [showTagColors, setShowTagColors] = useState(false);
 	// const [selectedGroup, setSelectedGroup] = useState('');
 	const inUse = projects.filter((project) => inProjectView(project, 'all'));
 	const favoriteProjects = inUse
@@ -161,21 +168,42 @@ const ProjectPanel: React.FC<ProjectPanelProps> = ({
 						</button>
 					)}
 				</div>
-				<select
-					value={selectedTag}
-					onChange={(event) => {
-						setSelectedTag(event.target.value);
-						onFilterByTag(event.target.value);
-					}}
-					className='tag-filter ui-field-control'
-				>
-					<option value=''>{t('All tags')}</option>
-					{availableTags.map((tag) => (
-						<option key={tag} value={tag}>
-							{tag}
-						</option>
-					))}
-				</select>
+				<div className='tag-filter-row'>
+					<select
+						value={selectedTag}
+						onChange={(event) => {
+							setSelectedTag(event.target.value);
+							onFilterByTag(event.target.value);
+						}}
+						className='tag-filter ui-field-control'
+						aria-label={t('Filter by tag')}
+					>
+						<option value=''>{t('All tags')}</option>
+						{availableTags.map((tag) => (
+							<option key={tag} value={tag}>
+								{tag}
+							</option>
+						))}
+					</select>
+					{availableTags.length > 0 && (
+						<button
+							type='button'
+							className='ui-icon-button'
+							data-variant='subtle'
+							data-action='tag-colors'
+							title={t('Tag colors')}
+							aria-label={t('Tag colors')}
+							onClick={() => setShowTagColors(true)}
+						>
+							<ToolbarColorIcon />
+						</button>
+					)}
+				</div>
+				<TagColorsModal
+					isOpen={showTagColors}
+					onClose={() => setShowTagColors(false)}
+					tags={availableTags}
+				/>
 				<select
 					value={selectedType}
 					onChange={(event) => {

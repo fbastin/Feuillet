@@ -121,6 +121,22 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 									{t('Open search and replace panel')}
 								</div>
 							</div>
+
+							<div
+								className='ui-list-item'
+								data-align='center'
+								data-gap='md'
+								data-padding='sm'
+								data-surface='secondary'
+							>
+								<div className='ui-actions' data-wrap='true'>
+									<kbd>{t('Ctrl')}</kbd> / <kbd>⌘</kbd> +{' '}
+									<kbd>{t('Shift')}</kbd> + <kbd>M</kbd>
+								</div>
+								<div className='ui-list-content'>
+									{t('Focus mode: the editor and the PDF alone')}
+								</div>
+							</div>
 						</div>
 					</section>
 

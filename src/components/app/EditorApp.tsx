@@ -20,6 +20,7 @@ import { useLaTeX } from '../../hooks/useLaTeX';
 import { useTypst } from '../../hooks/useTypst';
 import { useCollab } from '../../hooks/useCollab';
 import { useGlobalKeyboard } from '../../hooks/useGlobalKeyboard';
+import { FOCUS_MODE_KEYS, useFocusMode } from '../../hooks/useFocusMode';
 import { useDiskBackup } from '../../hooks/useDiskBackup';
 import { useOffline } from '../../hooks/useOffline';
 import { useSettings } from '../../hooks/useSettings';
@@ -43,7 +44,12 @@ import CollabStatusIndicator from '../collab/CollabStatusIndicator';
 import CollaboratorAvatars from '../common/CollaboratorAvatars';
 import GitCloneButton from '../history/GitCloneButton';
 import GitHubSyncButton from '../history/GitHubSyncButton';
-import { EditIcon, ProjectsIcon } from '../common/Icons';
+import {
+	EditIcon,
+	ExpandIcon,
+	MinimizeIcon,
+	ProjectsIcon,
+} from '../common/Icons';
 import Modal from '../common/Modal';
 import OfflineBanner from '../common/OfflineBanner';
 import TypesetterInfo from '../common/TypesetterInfo';
@@ -229,6 +235,7 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 	const { filesReceived } = usePeerFileSync();
 
 	useGlobalKeyboard();
+	const [focusMode, setFocusMode] = useFocusMode();
 	// Projects from before TeX Live move to it, as on Overleaf.
 	useBrowserCompilerMigration();
 
@@ -749,7 +756,10 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 	}
 
 	return (
-		<div className='app-container'>
+		<div
+			className='app-container'
+			data-focus-mode={focusMode ? 'true' : undefined}
+		>
 			{isOfflineMode && !hideOfflineBanner && <OfflineBanner />}
 			<ServiceStatusBanner />
 			<QuotaBanner />
@@ -891,6 +901,21 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 				</div>
 				<div className='header-right scroll-x ui-actions' ref={headerRightRef}>
 					{renderCompileButtons()}
+
+					<button
+						type='button'
+						className='button'
+						data-action='focus-mode'
+						aria-pressed={focusMode}
+						title={
+							focusMode
+								? t('Leave focus mode ({keys})', { keys: FOCUS_MODE_KEYS })
+								: t('Focus mode ({keys})', { keys: FOCUS_MODE_KEYS })
+						}
+						onClick={() => setFocusMode(!focusMode)}
+					>
+						{focusMode ? <MinimizeIcon /> : <ExpandIcon />}
+					</button>
 
 					<ShareProjectButton
 						className='header-share-button'

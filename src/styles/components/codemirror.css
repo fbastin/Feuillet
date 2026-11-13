@@ -1553,3 +1553,9 @@ math-field {
 	padding: 2px var(--space-sm);
 	font-size: var(--font-size-small);
 }
+
+/* « Blinking cursor » off (registerEditorSettings): the cursor stays still,
+   in Vim and Emacs modes too, whose cursor layers are also cursor layers. */
+:root[data-cursor-blink="false"] .cm-editor .cm-cursorLayer {
+	animation: none !important;
+}

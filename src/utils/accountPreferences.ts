@@ -13,10 +13,13 @@ export const SYNCED_SETTINGS: readonly string[] = [
 	'review-email-notifications',
 	'text-direction',
 	'theme-variant',
+	// The colors of the project tags.
+	'project-tag-colors',
 	// The editor.
 	'editor-font-family',
 	'editor-font-size',
 	'editor-show-line-numbers',
+	'editor-cursor-blink',
 	'editor-line-height',
 	'editor-text-direction',
 	'editor-keymap-mode',

@@ -40,6 +40,11 @@ yourself), from its last version. It also offers:
 - for a project shared with you, **Leave project**
   (see [Collaborating](collaborating.md)).
 
+The tags given to projects (in **Edit Project**) filter the list. As on
+Overleaf, each tag can have a color: the palette button next to **All tags**
+offers nine, any other, or none. The colors follow your account to your
+other devices.
+
 ### New project
 
 **New Project** offers templates: blank, example, article, book, letter,
@@ -217,8 +222,17 @@ turning track changes on or off. A right-click outside the selection first
 puts the cursor there; on a misspelt word it gives the spelling suggestions,
 and Shift+right-click the browser's own menu.
 
+**Ctrl+Shift+M** (**Cmd+Shift+M**), or the button with four corners next
+to the compile button, turns on focus mode, as on Overleaf: the editor and
+the PDF alone, without the menu bar, the side panel, the editor's toolbar
+and the bottom of the page. The project's name, compiling and the button
+stay; the same keys, or the button, turn it off, and so does opening the
+search panel (**Ctrl+Shift+F**).
+
 As in Overleaf's settings, **Settings** sets the editor's **Line height**
-(compact, normal or wide, under **Appearance**) and **Auto-close brackets**:
+(compact, normal or wide, under **Appearance**), its font, among which
+**OpenDyslexic Mono**, a font made for dyslexic readers, a **Blinking
+cursor** or a still one, and **Auto-close brackets**:
 when it is off, typing `{`, `[` or `$` does not write the closing one. In
 LaTeX, as on Overleaf, `$` comes in pairs (`$|$`), a lone `(` and quotes are
 not closed, and nothing is closed after a backslash (`\$`, `\{`).

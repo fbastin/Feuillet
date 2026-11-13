@@ -46,6 +46,20 @@
 	font-display: swap;
 }
 
+/* OpenDyslexic Mono, as Overleaf offers it to dyslexic readers: SIL OFL 1.1,
+   src/assets/fonts/opendyslexic-mono/OFL.txt. Bundled by Vite, unlike the
+   fonts of public/assets/fonts, which are downloaded. Its tall ascent would
+   space the lines out. */
+@font-face {
+	font-family: "OpenDyslexic Mono";
+	src: url("../../assets/fonts/opendyslexic-mono/OpenDyslexicMono-Regular.woff2")
+		format("woff2");
+	font-weight: normal;
+	font-style: normal;
+	font-display: swap;
+	ascent-override: 100%;
+}
+
 @font-face {
 	font-family: "New Computer Modern";
 	src: url("/assets/fonts/NewCM10-Regular.otf") format("opentype");

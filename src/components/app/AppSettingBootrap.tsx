@@ -18,6 +18,7 @@ import { useRegisterSharedToolSettings } from '../../settings/registerSharedTool
 import { useRegisterTypesetterConfigSettings } from '../../settings/registerTypesetterConfigSettings';
 import { useRegisterOfflineSettings } from '../../settings/registerOfflineSettings';
 import { useRegisterStorageSettings } from '../../settings/registerStorageSettings';
+import { useRegisterProjectListSettings } from '../../settings/registerProjectListSettings';
 
 const AppBootstrap: React.FC = () => {
 	useRegisterEditorSettings();
@@ -37,6 +38,7 @@ const AppBootstrap: React.FC = () => {
 	useRegisterThemeSettings();
 	useRegisterOfflineSettings();
 	useRegisterStorageSettings();
+	useRegisterProjectListSettings();
 	return null;
 };
 

@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from 'react';
 import { t } from '@/i18n';
 import { formatDate, formatLastModified } from '@/utils/dateUtils.ts';
 import { useAuth } from '../../hooks/useAuth';
+import { tagStyle, useTagColors } from '../../hooks/useTagColors';
 import { pluginRegistry } from '../../plugins/PluginRegistry';
 import type { Project } from '../../types/projects.ts';
 import ProjectBackupControls from '../backup/ProjectBackupControls';
@@ -67,6 +68,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 	const [makingPdf, setMakingPdf] = useState(false);
 	const openDropdownRef = useRef<HTMLDivElement>(null);
 	const { user } = useAuth();
+	const { colors: tagColors } = useTagColors();
 
 	// As on Overleaf: when the project last changed, and by whom ("you" for
 	// oneself), from its last version on the collaboration server.
@@ -511,7 +513,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
 			<div className='ui-tags' data-role='project-tags'>
 				{project.tags?.map((tag, index) => (
-					<span key={index} className='ui-badge' data-variant='tag'>
+					<span
+						key={index}
+						className='ui-badge'
+						data-variant='tag'
+						data-colored={tagColors[tag] ? 'true' : undefined}
+						style={tagStyle(tagColors[tag])}
+					>
 						{tag}
 					</span>
 				))}

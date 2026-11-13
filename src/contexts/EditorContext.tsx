@@ -37,6 +37,7 @@ export const fontFamilyMap: Record<FontFamily, string> = {
 	'fira-code': "'Fira Code', ui-monospace, monospace",
 	'dejavu-mono': "'DejaVu Sans Mono', ui-monospace, monospace",
 	'libertinus-mono': "'Libertinus Mono', ui-monospace, monospace",
+	'opendyslexic-mono': "'OpenDyslexic Mono', ui-monospace, monospace",
 	'new-computer-modern': "'New Computer Modern', ui-serif, serif",
 	'ibm-plex-serif': "'IBM Plex Serif', ui-serif, serif",
 	'ibm-plex-sans': "'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif",

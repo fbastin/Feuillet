@@ -25,7 +25,7 @@ and compiling with TeX Live.
   invitation or for chosen email domains. A guest session still works
   without an account.
 - **A project list.** Your projects, those shared with you, archived ones
-  and the trash; copying a project; leaving a shared one; deleting one for
+  and the trash; tags with colors; copying a project; leaving a shared one; deleting one for
   good erases it from the server.
 - **Sharing.** Invitations by account name or by email, with the roles of
   editor, reviewer and reader; links that open the project for editing,
@@ -52,8 +52,8 @@ and compiling with TeX Live.
   checking with LanguageTool on the server
   ([`server/languagetool`](server/languagetool)), a symbol palette, searching
   the bibliography from `\cite{…}`, the commands a project defines in the
-  completion, a presentation mode, and going to a collaborator's cursor from
-  their avatar.
+  completion, a presentation mode, a focus mode, and going to a
+  collaborator's cursor from their avatar.
 - **Administration.** For the accounts named administrators: the server's
   disk, emails, backups and compiles, every account with its projects, the
   links to sign up.
@@ -122,6 +122,7 @@ Feuillet is built on [TeXlyre](https://github.com/TeXlyre/texlyre) and, through 
 - **[codemirror-lang-typst](https://github.com/kxxt/codemirror-lang-typst)** - Typst language support for CodeMirror
 - **[uiw/codemirror-themes-all](https://github.com/uiwjs/react-codemirror/tree/master/themes/all)** - Collection of themes for CodeMirror
 - **[Milkdown](https://github.com/Milkdown/milkdown)** - A markdown editor built on top of [ProseMirror](https://prosemirror.net/) and [remark](https://github.com/remarkjs/remark)
+- **[OpenDyslexic](https://github.com/antijingoist/opendyslexic)** (SIL OFL 1.1) - OpenDyslexic Mono, an editor font for dyslexic readers, by Abbie Gonzalez (`src/assets/fonts/opendyslexic-mono/`, with its license)
 
 ### LaTeX Tools
 - **[TeXstudio](https://github.com/texstudio-org/texstudio)** (GPL 3.0) - Completion word lists of LaTeX packages and classes, from which the editor completes the commands and environments of the packages a project loads (derived data in `src/extensions/codemirror/autocomplete/__generated__/texstudio/`, with TeXstudio's license)

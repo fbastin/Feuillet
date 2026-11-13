@@ -446,3 +446,125 @@
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
+
+/* Tag colors (utils/tagColors.ts): the badge tinted, with a dot. */
+.ui-badge[data-variant="tag"][data-colored="true"] {
+	background-color: color-mix(in srgb, var(--tag-color) 20%, transparent);
+	box-shadow: inset 0 0 0 1px
+		color-mix(in srgb, var(--tag-color) 55%, transparent);
+}
+
+.ui-badge[data-variant="tag"][data-colored="true"]::before {
+	content: "";
+	flex: none;
+	width: 0.6em;
+	height: 0.6em;
+	border-radius: 50%;
+	background-color: var(--tag-color);
+}
+
+.tag-filter-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+}
+
+.tag-filter-row > .tag-filter {
+	flex: 1;
+	min-width: 0;
+	margin-bottom: 0;
+}
+
+.tag-colors-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.tag-colors-list > li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-sm);
+	margin: 0;
+	list-style: none;
+}
+
+.tag-swatches {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.tag-swatches > .tag-swatch {
+	position: relative;
+	width: 22px;
+	height: 22px;
+	min-width: 22px;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	border: 0;
+	border-radius: 50%;
+	background: var(--tag-color, transparent);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 18%);
+	cursor: pointer;
+}
+
+/* Pico's buttons take another background when hovered, focused or
+   pressed, by selectors of (0,3,0): a swatch keeps its color. */
+.tag-colors-list .tag-swatches > .tag-swatch[data-color] {
+	border: 0;
+	background: var(--tag-color);
+	box-shadow: inset 0 0 0 1px rgb(0 0 0 / 18%);
+}
+
+.tag-swatches > .tag-swatch[data-custom="true"]:not([data-selected="true"]) {
+	background: conic-gradient(
+		#d93f3f,
+		#d1a50f,
+		#3c9d4e,
+		#1f9c94,
+		#3a7bd5,
+		#7356d6,
+		#c4479b,
+		#d93f3f
+	);
+}
+
+.tag-swatches > .tag-swatch[aria-pressed="true"],
+.tag-swatches > .tag-swatch[data-selected="true"] {
+	outline: 2px solid var(--text-color);
+	outline-offset: 2px;
+}
+
+.tag-swatches > .tag-swatch:focus-visible,
+.tag-swatches > .tag-swatch:focus-within {
+	outline: 2px solid var(--pico-primary);
+	outline-offset: 2px;
+}
+
+.tag-swatches > .tag-swatch > input[type="color"] {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.tag-swatches > .button[data-action="clear-tag-color"] {
+	margin: 0 0 0 var(--space-xs);
+}

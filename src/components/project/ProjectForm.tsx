@@ -14,6 +14,7 @@ import {
 	templateLanguageFor,
 } from '../../utils/projectStarterUtils';
 import { TagInput } from '../common/TagInput';
+import { useTagColors } from '../../hooks/useTagColors';
 import ProjectTemplatePicker from './ProjectTemplatePicker';
 
 interface ProjectFormProps {
@@ -56,6 +57,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 		typesetterRegistryService.getVersion(),
 	);
 	const [tags, setTags] = useState<string[]>(project?.tags || []);
+	const { colors: tagColors } = useTagColors();
 	const [docUrl, setDocUrl] = useState(project?.docUrl || '');
 	const [isFavorite, setIsFavorite] = useState(project?.isFavorite ?? false);
 	const shownProject = useRef(project?.id);
@@ -361,6 +363,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 						<TagInput
 							values={tags}
 							onChange={setTags}
+							colors={tagColors}
 							placeholder={t('Add tags (press Enter or comma to add)')}
 							disabled={isSubmitting}
 						/>

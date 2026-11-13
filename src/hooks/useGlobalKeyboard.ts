@@ -1,6 +1,8 @@
 // src/hooks/useGlobalKeyboard.ts
 import { useEffect } from 'react';
 
+import { TOGGLE_FOCUS_MODE } from './useFocusMode';
+
 const getSelectedText = (): string => {
 	const selection = window.getSelection();
 	return selection?.toString().trim() || '';
@@ -41,6 +43,18 @@ export const useGlobalKeyboard = () => {
 			if (event.key === 'F8' && !event.shiftKey && !event.ctrlKey) {
 				event.preventDefault();
 				document.dispatchEvent(new CustomEvent('trigger-stop-compilation'));
+				return;
+			}
+
+			// Ctrl/Cmd+Shift+M - Focus mode (Overleaf)
+			if (
+				event.code === 'KeyM' &&
+				event.shiftKey &&
+				(event.ctrlKey || event.metaKey) &&
+				!event.altKey
+			) {
+				event.preventDefault();
+				document.dispatchEvent(new CustomEvent(TOGGLE_FOCUS_MODE));
 				return;
 			}
 

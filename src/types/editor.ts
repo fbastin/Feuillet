@@ -8,6 +8,7 @@ export type FontFamily =
 	| 'fira-code'
 	| 'dejavu-mono'
 	| 'libertinus-mono'
+	| 'opendyslexic-mono'
 	| 'new-computer-modern'
 	| 'ibm-plex-serif'
 	| 'ibm-plex-sans'

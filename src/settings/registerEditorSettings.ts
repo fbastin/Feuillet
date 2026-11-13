@@ -19,6 +19,12 @@ import GrammarRulesEditor from '../components/settings/GrammarRulesEditor';
 import PersonalDictionaryEditor from '../components/settings/PersonalDictionaryEditor';
 import type { SpellingSetting } from '../types/spelling';
 
+// codemirror.css stops the cursor's blinking on this mark.
+const applyCursorBlink = (blink: boolean) => {
+	if (blink) delete document.documentElement.dataset.cursorBlink;
+	else document.documentElement.dataset.cursorBlink = 'false';
+};
+
 export function useRegisterEditorSettings() {
 	const { batchGetSettings, registerSetting } = useSettings();
 	const settingsRegisteredOnce = useRef(false);
@@ -31,6 +37,7 @@ export function useRegisterEditorSettings() {
 			'editor-font-family',
 			'editor-font-size',
 			'editor-show-line-numbers',
+			'editor-cursor-blink',
 			'editor-line-height',
 			'editor-auto-indent',
 			'editor-close-brackets',
@@ -54,6 +61,8 @@ export function useRegisterEditorSettings() {
 		const initialShowLineNumbers =
 			(batchedSettings['editor-show-line-numbers'] as boolean) ??
 			defaultEditorSettings.showLineNumbers;
+		const initialCursorBlink =
+			(batchedSettings['editor-cursor-blink'] as boolean) ?? true;
 		const initialAutoIndent =
 			(batchedSettings['editor-auto-indent'] as boolean) ??
 			defaultEditorSettings.autoIndent;
@@ -101,6 +110,8 @@ export function useRegisterEditorSettings() {
 			`${initialFontSize}px`,
 		);
 
+		applyCursorBlink(initialCursorBlink);
+
 		registerSetting({
 			id: 'editor-font-family',
 			category: t('Appearance'),
@@ -114,6 +125,7 @@ export function useRegisterEditorSettings() {
 				{ label: t('Fira Code'), value: 'fira-code' },
 				{ label: t('DejaVu Sans Mono'), value: 'dejavu-mono' },
 				{ label: t('Libertinus Mono'), value: 'libertinus-mono' },
+				{ label: t('OpenDyslexic Mono'), value: 'opendyslexic-mono' },
 				{ label: t('New Computer Modern'), value: 'new-computer-modern' },
 				{ label: t('IBM Plex Serif'), value: 'ibm-plex-serif' },
 				{ label: t('IBM Plex Sans'), value: 'ibm-plex-sans' },
@@ -175,6 +187,20 @@ export function useRegisterEditorSettings() {
 			label: t('Show line numbers'),
 			description: t('Show line numbers in the editor'),
 			defaultValue: initialShowLineNumbers,
+		});
+
+		// As Overleaf's « Non-blinking cursor », for those whom it distracts.
+		registerSetting({
+			id: 'editor-cursor-blink',
+			category: t('Appearance'),
+			subcategory: t('Text Editor'),
+			type: 'checkbox',
+			label: t('Blinking cursor'),
+			description: t(
+				'Make the cursor blink in the editor; off, it stays still',
+			),
+			defaultValue: initialCursorBlink,
+			onChange: (value) => applyCursorBlink(value !== false),
 		});
 
 		registerSetting({

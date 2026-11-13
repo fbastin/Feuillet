@@ -294,3 +294,36 @@ mark.search-highlight {
 	border: 1px solid var(--accent-border);
 	border-radius: var(--radius-sm);
 }
+
+/* Focus mode (hooks/useFocusMode.ts), as Overleaf's: the project's menu
+   bar, side panels, editor tools and footer hidden; the title, compiling
+   and the way out kept. */
+.app-container[data-focus-mode="true"] header[data-role="editor"] {
+	margin-bottom: var(--space-xs);
+	padding-block: var(--space-xs);
+}
+
+.app-container[data-focus-mode="true"] header[data-role="editor"] .header-left,
+.app-container[data-focus-mode="true"]
+	header[data-role="editor"]
+	.project-description,
+.app-container[data-focus-mode="true"]
+	header[data-role="editor"]
+	.project-awareness,
+.app-container[data-focus-mode="true"]
+	header[data-role="editor"]
+	.header-right
+	> :not(.header-compile-button):not(.header-typst-compile-button):not(
+		[data-action="focus-mode"]
+	),
+.app-container[data-focus-mode="true"] > footer,
+.app-container[data-focus-mode="true"] .main-content > .sidebar-container,
+.app-container[data-focus-mode="true"]
+	.editor-wrapper
+	> .ui-toolbar[data-role="plugin"] {
+	display: none;
+}
+
+.app-container[data-focus-mode="true"] [data-action="focus-mode"] {
+	color: var(--pico-primary);
+}
