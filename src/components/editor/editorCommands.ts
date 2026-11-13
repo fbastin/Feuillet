@@ -22,6 +22,7 @@ import { activeEditorService } from '../../services/ActiveEditorService';
 import { fileStoreService } from '../../services/FileStoreService';
 import type { EditorSidebarView } from '../../types/editor';
 import {
+	EXPORT_MARKDOWN,
 	OPEN_SETTINGS,
 	OPEN_SIDEBAR_VIEW,
 	type OpenSidebarViewDetail,
@@ -54,6 +55,8 @@ export interface EditorCommandContext {
 	/** A project on the server: versions, collaborators, Git. */
 	online: boolean;
 	isGuest: boolean;
+	/** The project compiles with TeX Live, whose server converts. */
+	markdownExport: boolean;
 }
 
 const announce = (name: string, detail?: unknown) =>
@@ -337,6 +340,15 @@ export function editorCommands(
 			label: t('Show the Git history'),
 			keywords: 'commits github',
 			run: () => showView('history'),
+		},
+	);
+	add(
+		context.markdownExport && {
+			id: 'export-markdown',
+			group: groups.project,
+			label: t('Export to Markdown'),
+			keywords: 'pandoc md download github',
+			run: () => announce(EXPORT_MARKDOWN),
 		},
 	);
 	add({

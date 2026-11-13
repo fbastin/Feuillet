@@ -24,6 +24,8 @@ import type { ArxivPackage, ArxivWarning } from '../../utils/arxivPackage';
 import { getFilenameFromPath } from '../../utils/fileUtils';
 import { optionsWith } from '../../utils/projectCompileSettings';
 import { TEXLIVE_TYPESETTER_ID } from '../../utils/texliveTypesetter';
+import { EXPORT_MARKDOWN } from '../../utils/workspaceEvents';
+import type { MarkdownExportResult } from '../../contexts/ExternalTypesetterContext';
 import {
 	chooseLatexMainFile,
 	collectValues,
@@ -75,12 +77,21 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 	className = '',
 	linkedFileInfo,
 }) => {
-	const { isCompiling, isExporting, exportDocument, exportArxivPackage } =
-		useExternalTypesetter();
+	const {
+		isCompiling,
+		isExporting,
+		exportDocument,
+		exportArxivPackage,
+		exportMarkdown,
+	} = useExternalTypesetter();
 	const [arxivMade, setArxivMade] = useState<
 		(ArxivPackage & { fileName: string }) | null
 	>(null);
 	const [arxivBusy, setArxivBusy] = useState(false);
+	const [markdownMade, setMarkdownMade] = useState<MarkdownExportResult | null>(
+		null,
+	);
+	const [markdownBusy, setMarkdownBusy] = useState(false);
 	// arXiv needs the files TeX Live writes, which this server gives.
 	const offersArxiv = provider.id === TEXLIVE_TYPESETTER_ID;
 	const { selectedFileId, getFile, fileTree } = useFileTree();
@@ -221,9 +232,33 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 		}
 	}, [effectiveMainFile, fields, readValue, provider.id, exportArxivPackage]);
 
+	const handleMarkdown = useCallback(async () => {
+		if (!effectiveMainFile) return;
+		setArxivMade(null);
+		setMarkdownMade(null);
+		setMarkdownBusy(true);
+		try {
+			setMarkdownMade(await exportMarkdown(provider.id, effectiveMainFile));
+		} finally {
+			setMarkdownBusy(false);
+		}
+	}, [effectiveMainFile, provider.id, exportMarkdown]);
+
+	// Asked from elsewhere (the command palette): the menu shows how it went.
+	useEffect(() => {
+		if (!offersArxiv) return;
+		const run = () => {
+			setIsDropdownOpen(true);
+			void handleMarkdown();
+		};
+		document.addEventListener(EXPORT_MARKDOWN, run);
+		return () => document.removeEventListener(EXPORT_MARKDOWN, run);
+	}, [offersArxiv, handleMarkdown]);
+
 	const toggleDropdown = (e: React.MouseEvent) => {
 		e.stopPropagation();
 		setArxivMade(null);
+		setMarkdownMade(null);
 		setIsDropdownOpen(!isDropdownOpen);
 	};
 
@@ -448,7 +483,56 @@ const ExternalExportButton: React.FC<ExternalExportButtonProps> = ({
 							{arxivBusy ? t('Exporting...') : t('Package for arXiv (.zip)')}
 						</button>
 					)}
+					{offersArxiv && (
+						<button
+							type='button'
+							className='button secondary'
+							data-action='export-markdown'
+							onClick={() => void handleMarkdown()}
+							disabled={isDisabled}
+							title={t(
+								'The project in GitHub Markdown, converted by Pandoc: its text, math, tables, citations, and the images it shows',
+							)}
+						>
+							<ExportIcon />
+							{markdownBusy ? t('Exporting...') : t('Markdown (.md)')}
+						</button>
+					)}
 				</div>
+
+				{markdownMade && (
+					<div
+						className='ui-menu-section arxiv-made'
+						data-variant='control'
+						data-role={
+							'error' in markdownMade ? 'markdown-error' : 'markdown-made'
+						}
+						role='status'
+					>
+						{'error' in markdownMade ? (
+							<div>
+								{t('The project could not be converted to Markdown: {reason}', {
+									reason: markdownMade.error,
+								})}
+							</div>
+						) : (
+							<div>
+								{markdownMade.images > 0
+									? t('{name} downloaded: the Markdown and {count} images.', {
+											name: markdownMade.fileName,
+											count: markdownMade.images,
+										})
+									: t('{name} downloaded.', {
+											name: markdownMade.fileName,
+										})}{' '}
+								{markdownMade.warnings > 0 &&
+									t(
+										'Pandoc left out what Markdown cannot say: check the page layout, labels and LaTeX commands of your own.',
+									)}
+							</div>
+						)}
+					</div>
+				)}
 
 				{arxivMade && (
 					<div

@@ -39,7 +39,8 @@ and compiling with TeX Live.
 - **Compiling with TeX Live** on the server ([`server/texlive`](server/texlive)):
   pdfLaTeX, XeLaTeX or LuaLaTeX, with the main document, engine and TeX Live
   year set for the whole project, auto compile, draft mode, stopping at the
-  first error, SyncTeX, and explanations of common errors in French.
+  first error, SyncTeX, and explanations of common errors in French;
+  Markdown export and import with Pandoc.
 - **GitHub and Git.** Sign in with GitHub, create or link a repository, push
   and pull with merging, Git history; GitLab, Gitea and Forgejo too. Each
   project can also be cloned with Git, and what is pushed appears at once.
@@ -130,6 +131,7 @@ Feuillet is built on [TeXlyre](https://github.com/TeXlyre/texlyre) and, through 
 - **[tex-fmt](https://github.com/WGUNDERWOOD/tex-fmt)** - LaTeX code formatter
 - **[TeXcount](https://app.uio.no/ifi/texcount/)** - Word counter for LaTeX documents
 - **[BibTeX-Tidy](https://github.com/FlamingTempura/bibtex-tidy)** - BibTeX file cleaner and formatter
+- **[Pandoc](https://pandoc.org)** (GPL 2.0 or later) - Markdown export and import, run on the TeX Live server (`server/texlive`)
 - **[LanguageTool](https://languagetool.org)** (LGPL 2.1 or later) - Grammar and style checking, its official release run on the server (`server/languagetool`)
 - **[Hunspell](https://github.com/hunspell/hunspell)** through **[hunspell-wasm](https://github.com/rotemdan/hunspell-wasm)** (MPL 1.1, GPL 2.0 or LGPL 2.0) - Spell checking, with the dictionaries packaged by [wooorm/dictionaries](https://github.com/wooorm/dictionaries): French of [Grammalecte](https://grammalecte.net/) (MPL 2.0); English of [SCOWL](http://wordlist.aspell.net/) (MIT and BSD); German of [igerman98](https://www.j3e.de/ispell/igerman98/index_en.html) (GPL 2.0 or 3.0); Spanish of [RLA-ES](https://github.com/sbosio/rla-es) (GPL 3.0, LGPL 3.0 or MPL 1.1); Italian of [plio.it](http://www.plio.it) (GPL 3.0); Brazilian Portuguese of [LibreOffice](https://github.com/LibreOffice/dictionaries) (LGPL 3.0 or MPL 2.0); European Portuguese of [Natura](https://natura.di.uminho.pt) (GPL 2.0, LGPL 2.1 or MPL 1.1); Dutch of [OpenTaal](https://github.com/OpenTaal/opentaal-hunspell) (BSD or CC BY 3.0); Catalan of [Softcatalà](https://github.com/Softcatala/catalan-dict-tools) (GPL 2.0 or LGPL 2.1); Polish of [SJP.PL](http://extensions.openoffice.org/en/project/polish-dictionary-pack) (GPL 3.0, LGPL 3.0 or MPL 2.0); Russian of [LibreOffice](https://github.com/LibreOffice/dictionaries) (BSD); Swedish of [Den stora svenska ordlistan](https://extensions.libreoffice.org/extensions/swedish-spelling-dictionary-den-stora-svenska-ordlistan) (LGPL 3.0); Danish of [Stavekontrolden](https://stavekontrolden.dk) (GPL 2.0, LGPL 2.1 or MPL 1.1); Romanian of [RoSpell](https://rospell.wordpress.com) (GPL 2.0, LGPL 2.1 or MPL 1.1)
 

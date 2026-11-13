@@ -278,6 +278,9 @@ const EditorAppView: React.FC<EditorAppProps> = ({
 			readOnly: readOnly || reviewOnly,
 			online: !isOfflineMode && docUrl.startsWith('yjs:'),
 			isGuest: isGuestUser(user),
+			markdownExport:
+				activeTypesetterProvider?.id === TEXLIVE_TYPESETTER_ID &&
+				!isGuestUser(user),
 		});
 	// Projects from before TeX Live move to it, as on Overleaf.
 	useBrowserCompilerMigration();

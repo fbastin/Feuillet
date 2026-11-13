@@ -672,6 +672,10 @@ so the container is bounded (`docker-compose.yml`; yours in
   makeindex, epstopdf, minted's latexminted…).
 - Each connection runs at most 64 processes (`SESSION_MAX_PROCESSES`), and
   whatever a compile started is stopped when it ends.
+- Pandoc, which converts projects to Markdown and Markdown files to LaTeX
+  (the export menu, the import dialog), runs as a compile does: under the
+  connection's uid, without network, within the same time limit, always on
+  the latest TeX Live's server.
 - latexmk never reads `latexmkrc` files from projects (they are Perl); its
   own rules make glossaries and nomenclatures. LuaLaTeX runs without its
   socket library.

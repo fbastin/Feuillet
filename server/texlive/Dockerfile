@@ -9,10 +9,12 @@ FROM ${TEXLIVE_IMAGE}
 # Ghostscript converts EPS figures (epstopdf); Python runs minted's
 # latexminted and PythonTeX (with Pygments); as on Overleaf, documents may run
 # Inkscape (the svg package) and gnuplot (gnuplottex), the server having no
-# network (server.js, docker-compose.yml).
+# network (server.js, docker-compose.yml). Pandoc converts projects to
+# Markdown and Markdown files to LaTeX, as Overleaf's export and import.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ghostscript python3 \
-        python3-pygments inkscape gnuplot-nox \
+        python3-pygments inkscape gnuplot-nox pandoc \
+    && pandoc --version | head -n 1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=node /usr/local/bin/node /usr/local/bin/node

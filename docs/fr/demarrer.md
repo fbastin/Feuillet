@@ -62,7 +62,13 @@ avec TeX Live dès sa création.
 - d'une archive `.zip`, par exemple un projet téléchargé d'Overleaf;
 - d'un dépôt GitHub, GitLab, Gitea ou Forgejo (voir aussi [GitHub](github.md));
 - d'une adresse web (dépôt ou archive);
-- de la galerie de modèles de TeXlyre.
+- de la galerie de modèles de TeXlyre;
+- d'un fichier Markdown (`.md`), ou d'une archive `.zip` qui en contient un
+  et ses images, comme « Import Markdown » d'Overleaf : Pandoc, sur le
+  serveur de Feuillet, en fait un document LaTeX (`main.tex`, à côté du
+  Markdown), dans sa langue, avec son titre, ses sections, l'emphase, les
+  listes, les liens, les tableaux, les mathématiques et les images. Pour les
+  comptes.
 
 ### Ouvrir dans Feuillet
 
@@ -358,6 +364,19 @@ racine, car arXiv compile depuis la racine; une bibliographie sans `.bbl`;
 un `.bbl` de biblatex d'un autre format que celui d'arXiv; des erreurs de
 compilation. Pour que le `.bbl` soit celui qu'attend arXiv, choisissez
 **TeX Live 2025 (arXiv)** comme version de TeX Live avant l'exportation.
+
+### Markdown
+
+Dans le même menu, **Markdown (.md)** convertit le projet en Markdown
+GitHub avec Pandoc, comme l'exportation d'Overleaf, puis le télécharge : les
+sections, l'emphase, les listes, les liens, les tableaux, les notes et les
+mathématiques (`$…$`), les fichiers qu'inclut le document principal, et les
+citations écrites d'après la bibliographie du projet, suivies des
+références, dans la langue du document. Quand le document montre des
+images, une archive `.zip` contient le Markdown et ces images. Ce que le
+Markdown ne peut pas dire (mise en page, étiquettes de renvoi, commandes
+de votre cru) est laissé de côté : le menu le signale. La palette de
+commandes (**Ctrl+P**) offre aussi **Exporter en Markdown**.
 
 ### Du texte au PDF, et retour
 

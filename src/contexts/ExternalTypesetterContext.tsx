@@ -9,6 +9,7 @@ import {
 	useState,
 } from 'react';
 
+import { t } from '@/i18n';
 import { typesetterRegistryService } from '../services/TypesetterRegistryService';
 import { fileStoreService } from '../services/FileStoreService';
 import { compileDiagnosticsService } from '../services/CompileDiagnosticsService';
@@ -46,6 +47,8 @@ import {
 	outputFilesOf,
 } from '../utils/compilerUtils';
 import { getProjectName } from '../utils/urlUtils';
+import { collectMarkdownMedia } from '../utils/markdownConversion';
+import { declaredLanguage } from '../utils/spellingUtils';
 import { toBytes } from '../utils/fileUtils';
 import { cleanBytes } from '../utils/fileCommentUtils';
 
@@ -96,7 +99,19 @@ interface ExternalTypesetterContextType {
 		mainFileName: string,
 		options?: Record<string, string | number | boolean>,
 	) => Promise<(ArxivPackage & { fileName: string }) | null>;
+	/**
+	 * Converts the project to GitHub Markdown with Pandoc, as Overleaf's
+	 * export, then downloads it: the .md, or a .zip with the images it shows.
+	 */
+	exportMarkdown: (
+		providerId: string,
+		mainFileName: string,
+	) => Promise<MarkdownExportResult>;
 }
+
+export type MarkdownExportResult =
+	| { fileName: string; images: number; warnings: number }
+	| { error: string };
 
 export const ExternalTypesetterContext =
 	createContext<ExternalTypesetterContextType | null>(null);
@@ -458,6 +473,89 @@ export const ExternalTypesetterProvider: React.FC<
 		[loadFiles, projectKey],
 	);
 
+	const exportMarkdown = useCallback(
+		async (
+			providerId: string,
+			mainFileName: string,
+		): Promise<MarkdownExportResult> => {
+			setIsExporting(true);
+			try {
+				const files = await loadFiles();
+				const main = files.find(
+					(file) =>
+						file.path.replace(/^\/+/, '') === mainFileName.replace(/^\/+/, ''),
+				);
+				// The document's language, for the citations and their title.
+				const language = main
+					? declaredLanguage(new TextDecoder().decode(main.content))
+					: undefined;
+				const result = await genericTypesetterService.compile(providerId, {
+					mainFile: mainFileName,
+					format: 'markdown',
+					files,
+					cacheScope: projectKey || undefined,
+					options: {
+						action: 'pandoc',
+						to: 'markdown',
+						...(language ? { lang: language } : {}),
+					},
+				});
+				if (result.status !== 0 || !result.output) {
+					return {
+						error:
+							result.log.trim() ||
+							t('Pandoc could not convert the project to Markdown.'),
+					};
+				}
+				const { markdown, media } = collectMarkdownMedia(
+					new TextDecoder().decode(result.output),
+					mainFileName,
+					files.map((file) => file.path),
+				);
+				const { job } = mainFileParts(mainFileName);
+				const content = new TextEncoder().encode(markdown);
+				const warnings = result.log
+					.split('\n')
+					.filter((line) => /^\[WARNING\]/.test(line)).length;
+				if (media.length === 0) {
+					downloadFile(content, `${job}.md`, 'text/markdown');
+					return { fileName: `${job}.md`, images: 0, warnings };
+				}
+				// The Markdown where the main file is, the images where they are.
+				const byPath = new Map(
+					files.map((file) => [file.path.replace(/^\/+/, ''), file.content]),
+				);
+				const directory = mainFileName
+					.replace(/^\/+/, '')
+					.split('/')
+					.slice(0, -1)
+					.join('/');
+				const archive = await createArchiveFromFiles([
+					{
+						name: directory ? `${directory}/${job}.md` : `${job}.md`,
+						content,
+						mimeType: 'text/markdown',
+					},
+					...media.map((path) => ({
+						name: path,
+						content: byPath.get(path) ?? new Uint8Array(),
+						mimeType: 'application/octet-stream',
+					})),
+				]);
+				const fileName = `${job}-markdown.zip`;
+				downloadArchiveFile(archive, fileName);
+				return { fileName, images: media.length, warnings };
+			} catch (error) {
+				return {
+					error: error instanceof Error ? error.message : String(error),
+				};
+			} finally {
+				setIsExporting(false);
+			}
+		},
+		[loadFiles, projectKey],
+	);
+
 	const downloadOutputFile = useCallback(
 		async (providerId: string, path: string): Promise<boolean> => {
 			const content = await genericTypesetterService.fetchOutputFile(
@@ -514,6 +612,7 @@ export const ExternalTypesetterProvider: React.FC<
 				outputFiles,
 				downloadOutputFile,
 				exportArxivPackage,
+				exportMarkdown,
 			}}
 		>
 			{children}

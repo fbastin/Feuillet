@@ -59,7 +59,12 @@ with TeX Live from the start.
 - a GitHub, GitLab, Gitea or Forgejo repository (see also
   [GitHub](github.md));
 - a web address (a repository or an archive);
-- TeXlyre's template gallery.
+- TeXlyre's template gallery;
+- a Markdown file (`.md`), or a `.zip` archive with one and its images, as
+  Overleaf's "Import Markdown": Pandoc, on Feuillet's server, makes a LaTeX
+  document of it (`main.tex`, beside the Markdown), in its language, with its
+  title, sections, emphasis, lists, links, tables, math and images. For
+  accounts.
 
 ### Open in Feuillet
 
@@ -332,6 +337,18 @@ since arXiv compiles from the root; a bibliography without a `.bbl`; a
 biblatex `.bbl` in another format than arXiv's; compile errors. For the
 `.bbl` to be the one arXiv expects, choose **TeX Live 2025 (arXiv)** as the
 TeX Live version before exporting.
+
+### Markdown
+
+In the same menu, **Markdown (.md)** converts the project to GitHub
+Markdown with Pandoc, as Overleaf's export, then downloads it: the
+sections, emphasis, lists, links, tables, footnotes and math (`$…$`), the
+files the main document includes, and the citations written out from the
+project's bibliography, followed by the references, in the document's
+language. When the document shows images, a `.zip` holds the Markdown and
+those images. What Markdown cannot say (page layout, cross-reference
+labels, commands of your own) is left out: the menu says so. The command
+palette (**Ctrl+P**) has **Export to Markdown** too.
 
 ### From text to PDF, and back
 

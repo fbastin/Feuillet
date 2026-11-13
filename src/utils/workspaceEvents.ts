@@ -8,3 +8,6 @@ export type OpenSidebarViewDetail = { view: EditorSidebarView };
 
 /** Opens the settings (SettingsButton listens). */
 export const OPEN_SETTINGS = 'open-settings';
+
+/** Exports the project to Markdown (ExternalExportButton listens). */
+export const EXPORT_MARKDOWN = 'export-markdown';

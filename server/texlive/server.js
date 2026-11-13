@@ -24,6 +24,14 @@
 // at the first error, and a message {"action": "stop"} stops the compiles a
 // connection asked for before it.
 //
+// As Overleaf's Markdown export and import, a request {"options": {"action":
+// "pandoc", "to": "markdown" | "latex", "lang": "fr"}} converts its main file
+// with Pandoc instead of compiling it: the project's LaTeX (its \input and
+// \include files, its bibliography for the citations) to GitHub Markdown,
+// or a Markdown file to a LaTeX document. Under the connection's uid, as a
+// compile, and always on this server, whatever year the project compiles
+// with.
+//
 // As on Overleaf, a project may choose its year of TeX Live: this server is
 // the latest, and other years are servers of their own, on sockets of the
 // same directory (OTHER_YEARS, deploy/docker-compose.yml). A compile that
@@ -201,6 +209,25 @@ const MAX_LOG_CHARS = 1024 * 1024;
 const MAX_OUTPUT_FILES = 200;
 const MAX_OUTPUT_DEPTH = 8;
 const MAX_OUTPUT_FILE_BYTES = 64 * 1024 * 1024;
+// A language as Pandoc takes it (BCP 47): fr, en-US, pt-BR.
+const PANDOC_LANG = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+// The title of the references Pandoc writes out, in the document's language.
+const REFERENCES_TITLES = {
+	fr: 'Références',
+	de: 'Literatur',
+	es: 'Referencias',
+	it: 'Riferimenti',
+	pt: 'Referências',
+	nl: 'Referenties',
+	ca: 'Referències',
+	pl: 'Bibliografia',
+	ru: 'Список литературы',
+	sv: 'Referenser',
+	da: 'Referencer',
+	ro: 'Referințe',
+};
+const referencesTitle = (lang) =>
+	REFERENCES_TITLES[String(lang ?? '').split('-')[0]] ?? 'References';
 
 // latexmk reads latexmkrc files (Perl) from the project directory, so rc
 // files are never read (-norc) and every option is given here. %P is the
@@ -717,7 +744,7 @@ class Session {
 		return missing;
 	}
 
-	run(args, cwd) {
+	run(args, cwd, program = 'latexmk') {
 		// Unwrapped transcripts, which the log viewer reads more reliably.
 		const env = {
 			PATH: process.env.PATH,
@@ -743,13 +770,13 @@ class Session {
 			// processes, which a document running programs cannot exceed.
 			const [command, commandArgs] =
 				this.uid === null || !hasPrlimit
-					? ['latexmk', args]
+					? [program, args]
 					: [
 							'prlimit',
 							[
 								`--nproc=${sessionMaxProcesses}:${sessionMaxProcesses}`,
 								'--',
-								'latexmk',
+								program,
 								...args,
 							],
 						];
@@ -863,6 +890,102 @@ class Session {
 			return gone;
 		} finally {
 			await handle?.close();
+		}
+	}
+
+	// Markdown, as Overleaf's export and import: Pandoc converts the main
+	// file, LaTeX to GitHub Markdown (the citations written out from the
+	// project's bibliography, in the document's language) or Markdown to a
+	// LaTeX document. The result comes back as the reply's output; it is not
+	// left in the working tree.
+	async convert(mainFile, options) {
+		const toLatex = options.to === 'latex';
+		const format = toLatex ? 'latex' : 'markdown';
+		const { absolute: source } = this.resolve(mainFile);
+		if (!(await exists(source))) {
+			return { status: 1, log: `Main file not found: ${mainFile}`, format };
+		}
+		const lang =
+			typeof options.lang === 'string' && PANDOC_LANG.test(options.lang)
+				? options.lang
+				: null;
+		await this.makeDir(this.tmp);
+		const target = path.join(
+			this.tmp,
+			`pandoc-${crypto.randomUUID()}.${toLatex ? 'tex' : 'md'}`,
+		);
+		const common = [
+			`--output=${target}`,
+			...(lang ? [`--metadata=lang:${lang}`] : []),
+			path.basename(source),
+		];
+		const argsFor = (citations) =>
+			toLatex
+				? ['--from=markdown+autolink_bare_uris', '--to=latex', '--standalone', ...common]
+				: [
+						'--from=latex',
+						// Markdown that reads as such: no HTML kept for what it
+						// cannot say (title pages, labels, figure layouts).
+						'--to=gfm-raw_html',
+						'--wrap=none',
+						...(citations
+							? [
+									'--citeproc',
+									`--metadata=reference-section-title:${referencesTitle(lang)}`,
+								]
+							: []),
+						...common,
+					];
+		const started = Date.now();
+		let result = await this.run(argsFor(true), path.dirname(source), 'pandoc');
+		// A bibliography it cannot read: the citations stay as keys.
+		if (
+			!toLatex &&
+			result.status !== 0 &&
+			!result.timedOut &&
+			!result.stopped &&
+			/bibliograph|citeproc|\.bib\b/i.test(result.output)
+		) {
+			result = await this.run(argsFor(false), path.dirname(source), 'pandoc');
+		}
+		if (this.uid !== null) await killUid(this.uid);
+		log(`converted to ${format}: status ${result.status} in ${Date.now() - started} ms`);
+		try {
+			if (result.status !== 0) {
+				const reason = result.timedOut
+					? `Conversion stopped after ${Math.round(compileTimeoutMs / 1000)} seconds.`
+					: result.stopped
+						? 'Conversion stopped.'
+						: result.output.trim() || 'Pandoc could not convert this file.';
+				return { status: result.status || 1, log: reason, format };
+			}
+			const stats = await fs.lstat(target).catch(() => null);
+			if (!stats?.isFile()) {
+				return { status: 1, log: 'Pandoc wrote nothing.', format };
+			}
+			if (stats.size > MAX_OUTPUT_FILE_BYTES) {
+				return { status: 1, log: 'The converted file is too large.', format };
+			}
+			let output = await fs.readFile(target);
+			// Pandoc's template leaves an empty list of class options.
+			if (toLatex) {
+				output = Buffer.from(
+					output
+						.toString('utf8')
+						.replace(/\\documentclass\[\s*\]\{/, '\\documentclass{'),
+					'utf8',
+				);
+			}
+			return {
+				status: 0,
+				// Pandoc's warnings: what it left out.
+				log: result.output.trim(),
+				format,
+				mimeType: toLatex ? 'application/x-tex' : 'text/markdown',
+				output: output.toString('base64'),
+			};
+		} finally {
+			await fs.rm(target, { force: true });
 		}
 	}
 
@@ -1050,6 +1173,9 @@ class Session {
 		try {
 			if (this.closed) return { status: 1, log: 'Connection closed.', format };
 			if (this.stopped) return stoppedReply();
+			if (options.action === 'pandoc') {
+				return await this.convert(request.mainFile, options);
+			}
 			return await this.compile(request.mainFile, format, options);
 		} finally {
 			releaseSlot(this.owner);
@@ -1325,7 +1451,13 @@ wss.on('connection', (conn, req) => {
 					? request.options
 					: {};
 			// Asking for a file, or to clear the cache: the last compile's server.
-			const to = options.action ? target : targetOf(options.version);
+			// Converting with Pandoc: this one, which has it.
+			const to =
+				options.action === 'pandoc'
+					? ''
+					: options.action
+						? target
+						: targetOf(options.version);
 			let response;
 			if (to !== target) {
 				target = to;

@@ -10,6 +10,10 @@ import {
 	projectImportService,
 } from '../../services/ProjectImportService';
 import { authService } from '../../services/AuthService';
+import {
+	MARKDOWN_IMPORT_ACCEPT,
+	markdownImportService,
+} from '../../services/MarkdownImportService';
 import { projectSeedService } from '../../services/ProjectSeedService';
 import { workspaceService } from '../../services/WorkspaceService';
 import type { Project, TemplateProject } from '../../types/projects';
@@ -19,6 +23,7 @@ import {
 	UrlIcon,
 	ShareIcon,
 	ImportIcon,
+	FileTextIcon,
 	FolderOpenIcon,
 	TemplatesIcon,
 	ZipFileIcon,
@@ -58,6 +63,9 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 		new Set(),
 	);
 	const [isScanning, setIsScanning] = useState(false);
+	const [isConverting, setIsConverting] = useState(false);
+	// Converting needs the TeX Live server, which compiles for accounts.
+	const canImportMarkdown = !isGuestUser(user);
 	const [isImporting, setIsImporting] = useState(false);
 	const [conflictResolution, setConflictResolution] = useState<
 		'skip' | 'overwrite' | 'create-new'
@@ -225,6 +233,40 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 			project,
 			projectSeedService.findMainFile(files, type) ?? undefined,
 		);
+	};
+
+	// A Markdown file, or an archive with one, as Overleaf's « Import
+	// Markdown »: a new project with the LaTeX Pandoc makes of it.
+	const handleMarkdownSelect = async (
+		event: React.ChangeEvent<HTMLInputElement>,
+	) => {
+		const file = event.target.files?.[0];
+		event.target.value = '';
+		if (!file) return;
+		setIsConverting(true);
+		setError(null);
+		try {
+			const made = await markdownImportService.projectFrom(file);
+			const project = await authService.createProject({
+				name: made.name,
+				description: '',
+				type: 'latex',
+				tags: [],
+				isFavorite: false,
+			});
+			await projectSeedService.storeFiles(project.id, made.files);
+			onProjectsImported();
+			handleClose();
+			onOpenProject?.(project, made.mainFile);
+		} catch (error) {
+			setError(
+				error instanceof Error
+					? error.message
+					: t('The Markdown file could not be converted.'),
+			);
+		} finally {
+			setIsConverting(false);
+		}
 	};
 
 	const handleGitHubImported = (project: Project) => {
@@ -465,12 +507,42 @@ const ProjectImportModal: React.FC<ProjectImportModalProps> = ({
 										disabled={isScanning || isImporting}
 									/>
 								</label>
+
+								{canImportMarkdown && (
+									<label className='ui-choice-card' data-role='import-markdown'>
+										<FileTextIcon />
+										<div>
+											<strong>{t('From a Markdown File')}</strong>
+											<p>
+												{t(
+													'A Markdown file (.md), or a .zip archive with one and its images, converted to LaTeX by Pandoc',
+												)}
+											</p>
+										</div>
+										<input
+											type='file'
+											accept={MARKDOWN_IMPORT_ACCEPT}
+											onChange={(event) => void handleMarkdownSelect(event)}
+											style={{ display: 'none' }}
+											disabled={isScanning || isImporting || isConverting}
+										/>
+									</label>
+								)}
 							</div>
 
 							{isScanning && (
 								<div className='ui-loading-state'>
 									<div className='loading-spinner' />
 									<p>{t('Scanning for projects...')}</p>
+								</div>
+							)}
+							{isConverting && (
+								<div
+									className='ui-loading-state'
+									data-role='markdown-converting'
+								>
+									<div className='loading-spinner' />
+									<p>{t('Converting the Markdown to LaTeX...')}</p>
 								</div>
 							)}
 						</div>
