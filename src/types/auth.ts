@@ -82,6 +82,11 @@ export interface User {
 	lastLogin?: number;
 	color?: string;
 	colorLight?: string;
+	/**
+	 * Whether the account asks for a code at sign-in, as last known on this
+	 * device: then signing in here waits for the server, never offline.
+	 */
+	twoFactor?: boolean;
 	isGuest?: boolean;
 	isChelysEnrolled?: boolean;
 	sessionId?: string;

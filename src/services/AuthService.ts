@@ -54,6 +54,29 @@ const wrongCodeMessage = () =>
 		'This code is not right, or was already used. Enter the one your app shows now.',
 	);
 
+/**
+ * Signed out: the server asked for the code of two-factor authentication
+ * after a slow sign-in had gone on offline (AuthContext listens).
+ */
+export const TWO_FACTOR_SIGNED_OUT = 'feuillet-two-factor-signed-out';
+// What the sign-in form tells next, once (Login reads it).
+const SIGN_IN_NOTICE = 'feuillet-sign-in-notice';
+
+/** What the sign-in form has to tell, once: why the account was signed out. */
+export const takeSignInNotice = (): string | null => {
+	try {
+		const notice = sessionStorage.getItem(SIGN_IN_NOTICE);
+		sessionStorage.removeItem(SIGN_IN_NOTICE);
+		return notice === 'two-factor'
+			? t(
+					'Two-factor authentication is on for this account: sign in again, with the code of your app.',
+				)
+			: null;
+	} catch {
+		return null;
+	}
+};
+
 const COMMIT_EMAILS_KEPT = 'feuillet-commit-emails-kept';
 /** The profile changed on another device of the account: detail, the user. */
 export const USER_PROFILE_SYNCED = 'feuillet-user-profile-synced';
@@ -112,7 +135,10 @@ class AuthService {
 							moduleLog.info(
 								`Restored user session: ${user.username} (${this.isGuestUser(user) ? 'guest' : 'full'})`,
 							);
-							if (!this.isGuestUser(user)) accountSyncService.start(user.id);
+							if (!this.isGuestUser(user)) {
+								accountSyncService.start(user.id);
+								void this.refreshTwoFactor(user.id);
+							}
 						}
 					} else {
 						moduleLog.info(`User not found: ${userId}`);
@@ -468,16 +494,44 @@ class AuthService {
 		if (user && user.passwordHash === passwordHash) {
 			// The server's session, when this device has none any more: with
 			// two-factor authentication, it takes the code. A server slow to
-			// answer does not hold up the sign-in, which goes on offline.
-			const linking = this.linkAccount(user, password, code);
-			const early = await Promise.race([
-				linking,
-				new Promise<'pending'>((resolve) =>
-					setTimeout(() => resolve('pending'), LINK_WAIT_MS),
-				),
-			]);
-			if (early === 'code_required') throw new TwoFactorRequiredError();
+			// answer does not hold up the sign-in, which goes on offline; but
+			// for an account known to ask for a code, the server decides.
+			const known = user;
+			const linking = this.linkAccount(known, password, code);
+			const early = known.twoFactor
+				? await linking
+				: await Promise.race([
+						linking,
+						new Promise<'pending'>((resolve) =>
+							setTimeout(() => resolve('pending'), LINK_WAIT_MS),
+						),
+					]);
+			if (early === 'code_required') {
+				await this.rememberTwoFactor(known.id, true);
+				throw new TwoFactorRequiredError();
+			}
 			if (early === 'wrong_code') throw new Error(wrongCodeMessage());
+			if (known.twoFactor && early === 'unreachable') {
+				throw new Error(
+					t(
+						'Two-factor authentication is on for this account: signing in needs the server, which could not be reached. Try again once connected.',
+					),
+				);
+			}
+			// The password changed on another device: this one is no longer it.
+			if (known.twoFactor && early === 'taken') {
+				throw new Error(t('Invalid password'));
+			}
+			if (early === 'pending') {
+				// Signed in offline; should the server then ask for a code, the
+				// sign-in ends, and the next one waits for it.
+				void linking.then((late) => {
+					if (late === 'code_required' || late === 'wrong_code') {
+						void this.endOfflineSignIn(known.id);
+					}
+				});
+			}
+			if (code && early === 'linked') user = { ...known, twoFactor: true };
 		} else {
 			// Unknown here, or another password: the account may have been
 			// created, or its password changed, on another device.
@@ -505,6 +559,7 @@ class AuthService {
 						passwordHash,
 						createdAt: Date.now(),
 					};
+			if (code) user.twoFactor = true;
 			accountSyncService.saveSession(user.id, session);
 		}
 
@@ -514,8 +569,55 @@ class AuthService {
 		this.currentUser = user;
 		localStorage.setItem('texlyre-current-user', user.id);
 		accountSyncService.start(user.id);
+		void this.refreshTwoFactor(user.id);
 
 		return user;
+	}
+
+	/**
+	 * Keeps on this device whether the account asks for a code at sign-in
+	 * (User.twoFactor), as the server or the profile says.
+	 */
+	async rememberTwoFactor(userId: string, enabled: boolean): Promise<void> {
+		if (!this.db) await this.initialize();
+		const stored: User | undefined = await this.db?.get(
+			this.USER_STORE,
+			userId,
+		);
+		if (!stored || stored.twoFactor === enabled) return;
+		const updated = { ...stored, twoFactor: enabled };
+		await this.db?.put(this.USER_STORE, updated);
+		if (this.currentUser?.id === userId) {
+			this.currentUser = { ...this.currentUser, twoFactor: enabled };
+		}
+	}
+
+	// Asks the server, with the session of this device, whether the account
+	// asks for a code: turned on or off on another device too.
+	private async refreshTwoFactor(userId: string): Promise<void> {
+		if (accountSyncService.getStatus().state === 'unlinked') return;
+		try {
+			const status = await accountSyncService.twoFactorStatus();
+			if (status && this.currentUser?.id === userId) {
+				await this.rememberTwoFactor(userId, status.enabled);
+			}
+		} catch {
+			// Offline, or a server without it: as known.
+		}
+	}
+
+	// A sign-in gone on offline, the server slow, which then asked for the
+	// code of two-factor authentication: it ends, and says why.
+	private async endOfflineSignIn(userId: string): Promise<void> {
+		await this.rememberTwoFactor(userId, true);
+		if (this.currentUser?.id !== userId) return;
+		await this.logout();
+		try {
+			sessionStorage.setItem(SIGN_IN_NOTICE, 'two-factor');
+		} catch {
+			// Said without the notice.
+		}
+		window.dispatchEvent(new CustomEvent(TWO_FACTOR_SIGNED_OUT));
 	}
 
 	// Creates the account on the server too, so that it can be opened on other
@@ -664,6 +766,7 @@ class AuthService {
 		this.currentUser = user;
 		localStorage.setItem('texlyre-current-user', user.id);
 		accountSyncService.start(user.id);
+		void this.refreshTwoFactor(user.id);
 		return user;
 	}
 
@@ -787,6 +890,11 @@ class AuthService {
 			this.USER_STORE,
 			user.id,
 		);
+		// What this device knows of two-factor authentication stays, from
+		// a user object older than it.
+		if (user.twoFactor === undefined && before?.twoFactor !== undefined) {
+			user = { ...user, twoFactor: before.twoFactor };
+		}
 		await this.db?.put(this.USER_STORE, user);
 
 		if (this.currentUser && this.currentUser.id === user.id) {

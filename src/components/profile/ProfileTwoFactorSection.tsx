@@ -7,10 +7,11 @@
 // code. The devices signed in already stay.
 import QRCode from 'qrcode';
 import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
 import { useAuth } from '../../hooks/useAuth';
+import { authService } from '../../services/AuthService';
 import {
 	AccountServerError,
 	type AccountSyncStatus,
@@ -62,13 +63,41 @@ const ProfileTwoFactorSection: React.FC = () => {
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [done, setDone] = useState<string | null>(null);
+	// A setup left before a code turned it on: told, so as not to be taken
+	// for on.
+	const [left, setLeft] = useState<string | null>(null);
+	const settingUp = useRef(false);
+	settingUp.current = !!setup;
+	useEffect(
+		() => () => {
+			if (!settingUp.current) return;
+			document.dispatchEvent(
+				new CustomEvent('toast-notification', {
+					detail: {
+						type: 'error',
+						message: t(
+							'Two-factor authentication is not on: its setup was left before a code of your app turned it on. Set it up again from your profile, and replace the Feuillet entry of your app with the new one.',
+						),
+						duration: 20000,
+					},
+				}),
+			);
+		},
+		[],
+	);
 
 	useEffect(() => accountSyncService.addListener(setStatus), []);
 	const linked = status.state !== 'signed-out' && accountSyncService.isLinked();
 
 	const load = useCallback(async () => {
 		try {
-			setTwoFactor(await accountSyncService.twoFactorStatus());
+			const status = await accountSyncService.twoFactorStatus();
+			setTwoFactor(status);
+			// This device then knows whether signing in asks for a code.
+			const current = authService.getCurrentUser();
+			if (status && current) {
+				void authService.rememberTwoFactor(current.id, status.enabled);
+			}
 		} catch {
 			setTwoFactor(null);
 		}
@@ -84,6 +113,7 @@ const ProfileTwoFactorSection: React.FC = () => {
 		setBusy(true);
 		setError(null);
 		setDone(null);
+		setLeft(null);
 		try {
 			await action();
 		} catch (caught) {
@@ -119,6 +149,7 @@ const ProfileTwoFactorSection: React.FC = () => {
 			setSetup(null);
 			setCode('');
 			setDone(t('Two-factor authentication is on.'));
+			void authService.rememberTwoFactor(user.id, true);
 		});
 	};
 
@@ -135,6 +166,7 @@ const ProfileTwoFactorSection: React.FC = () => {
 			setCode('');
 			setCodes(null);
 			setDone(t('Two-factor authentication is off.'));
+			void authService.rememberTwoFactor(user.id, false);
 		});
 	};
 
@@ -168,7 +200,7 @@ const ProfileTwoFactorSection: React.FC = () => {
 			<h3>{t('Two-factor authentication')}</h3>
 			<p>
 				{t(
-					'Signing in on a new device then also takes the code that an app on your phone shows, such as Google Authenticator, Aegis, FreeOTP or a password manager: your password alone is no longer enough.',
+					'Signing in on a new device, or after logging out, then also takes the code that an app on your phone shows, such as Ente Auth, Google Authenticator, Aegis, FreeOTP or a password manager: your password alone is no longer enough.',
 				)}
 			</p>
 
@@ -180,6 +212,15 @@ const ProfileTwoFactorSection: React.FC = () => {
 			{error && (
 				<div className='ui-message' data-tone='error'>
 					{error}
+				</div>
+			)}
+			{left && (
+				<div
+					className='ui-message'
+					data-tone='warning'
+					data-role='two-factor-left'
+				>
+					{left}
 				</div>
 			)}
 
@@ -218,7 +259,7 @@ const ProfileTwoFactorSection: React.FC = () => {
 
 			{twoFactor.enabled ? (
 				<>
-					<p className='ui-meta' data-role='two-factor-status'>
+					<p className='ui-meta' data-role='two-factor-status' data-state='on'>
 						{twoFactor.enabledAt
 							? t('On since {date}. Recovery codes left: {codes}.', {
 									date: dateOf(twoFactor.enabledAt),
@@ -266,11 +307,27 @@ const ProfileTwoFactorSection: React.FC = () => {
 				</>
 			) : setup ? (
 				<form className='ui-stack' data-gap='xs' onSubmit={confirm}>
-					<p>
+					<div
+						className='ui-message'
+						data-tone='warning'
+						data-role='two-factor-pending'
+						role='status'
+					>
 						{t(
-							'In your authenticator app, add an account by scanning this QR code, or by typing the key under it. Then enter the code the app shows for Feuillet.',
+							'Not on yet: it is once a code of your app, entered below, turns it on.',
 						)}
-					</p>
+					</div>
+					<ol className='two-factor-steps'>
+						<li>
+							{t(
+								'In your authenticator app, add an account by scanning this QR code, or by typing the key under it.',
+							)}
+						</li>
+						<li>
+							{t('Enter the 6-digit code that the app shows for Feuillet.')}
+						</li>
+						<li>{t('Click "Turn on".')}</li>
+					</ol>
 					<img
 						src={setup.qr}
 						alt={t('QR code of the key for your authenticator app')}
@@ -305,7 +362,14 @@ const ProfileTwoFactorSection: React.FC = () => {
 						type='button'
 						className='button'
 						data-variant='text'
-						onClick={() => setSetup(null)}
+						onClick={() => {
+							setSetup(null);
+							setLeft(
+								t(
+									'Two-factor authentication was not turned on. Remove from your app the Feuillet entry you may have added.',
+								),
+							);
+						}}
 						disabled={busy}
 					>
 						{t('Cancel')}
@@ -313,6 +377,9 @@ const ProfileTwoFactorSection: React.FC = () => {
 				</form>
 			) : (
 				<form className='ui-stack' data-gap='xs' onSubmit={begin}>
+					<p className='ui-meta' data-role='two-factor-status' data-state='off'>
+						{t('Off: signing in takes your password alone.')}
+					</p>
 					<div className='ui-field'>
 						<label htmlFor='two-factor-password'>
 							{t('Your password, to set it up')}

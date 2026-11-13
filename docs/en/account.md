@@ -75,10 +75,13 @@ Your account menu, at the top right, opens the profile:
 ## Two-factor authentication
 
 As on Overleaf, signing in may take, besides the password, the code that an
-app on your phone shows: Google Authenticator, Aegis, FreeOTP, or a
-password manager. In the profile, **Account** tab, **Set up two-factor
+app on your phone shows: Ente Auth, Google Authenticator, Aegis, FreeOTP,
+or a password manager. In the profile, **Account** tab, **Set up two-factor
 authentication** asks for your password, then shows a QR code to scan with
-the app (or its key, to type); the code it then shows turns it on. If your
+the app (or its key, to type); the code it then shows, entered below the QR
+code, turns it on: until then the profile says "Not on yet", and leaving
+the setup before says it was not turned on. The profile then says "On
+since…". If your
 account had no recovery codes, Feuillet makes some then: keep them, they
 replace a code when the phone is lost, once each.
 
@@ -88,6 +91,11 @@ ORCID, asks for the code; so does letting Claude in (see
 so: the **Devices** tab signs them out. A forgotten password changes as
 below, and two-factor authentication stays on. It is turned off in the
 profile, with the password and a code.
+
+Signing in after logging out asks for the code too, on the same browser.
+A browser that knows the account has two-factor authentication waits for
+Feuillet's server to sign in, however slow, and does not sign in offline:
+without the server, it says so.
 
 ## Being told of changes
 

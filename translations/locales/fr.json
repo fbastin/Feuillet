@@ -4469,5 +4469,15 @@
   "The project could not be converted to Markdown: {reason}": "Le projet n'a pas pu être converti en Markdown : {{reason}}",
   "The project in GitHub Markdown, converted by Pandoc: its text, math, tables, citations, and the images it shows": "Le projet en Markdown GitHub, converti par Pandoc : son texte, ses mathématiques, ses tableaux, ses citations et les images qu'il montre",
   "{name} downloaded: the Markdown and {count} images._one": "{{name}} téléchargé : le Markdown et {{count}} image.",
-  "{name} downloaded: the Markdown and {count} images._other": "{{name}} téléchargé : le Markdown et {{count}} images."
+  "{name} downloaded: the Markdown and {count} images._other": "{{name}} téléchargé : le Markdown et {{count}} images.",
+  "Click \"Turn on\".": "Cliquez sur « Activer ».",
+  "Enter the 6-digit code that the app shows for Feuillet.": "Entrez le code à 6 chiffres que l'application affiche pour Feuillet.",
+  "In your authenticator app, add an account by scanning this QR code, or by typing the key under it.": "Dans votre application d'authentification, ajoutez un compte en scannant ce QR code, ou en tapant la clé en dessous.",
+  "Not on yet: it is once a code of your app, entered below, turns it on.": "Pas encore activée : elle l'est une fois qu'un code de votre application, entré ci-dessous, l'active.",
+  "Off: signing in takes your password alone.": "Désactivée : la connexion ne demande que votre mot de passe.",
+  "Signing in on a new device, or after logging out, then also takes the code that an app on your phone shows, such as Ente Auth, Google Authenticator, Aegis, FreeOTP or a password manager: your password alone is no longer enough.": "Se connecter sur un nouvel appareil, ou après s'être déconnecté, demande alors aussi le code que montre une application de votre téléphone, comme Ente Auth, Google Authenticator, Aegis, FreeOTP ou un gestionnaire de mots de passe : votre mot de passe seul ne suffit plus.",
+  "Two-factor authentication is not on: its setup was left before a code of your app turned it on. Set it up again from your profile, and replace the Feuillet entry of your app with the new one.": "La double authentification n'est pas activée : sa configuration a été quittée avant qu'un code de votre application ne l'active. Configurez-la de nouveau depuis votre profil, et remplacez l'entrée Feuillet de votre application par la nouvelle.",
+  "Two-factor authentication is on for this account: sign in again, with the code of your app.": "La double authentification est activée pour ce compte : connectez-vous de nouveau, avec le code de votre application.",
+  "Two-factor authentication is on for this account: signing in needs the server, which could not be reached. Try again once connected.": "La double authentification est activée pour ce compte : la connexion a besoin du serveur, qui n'a pas pu être joint. Réessayez une fois connecté.",
+  "Two-factor authentication was not turned on. Remove from your app the Feuillet entry you may have added.": "La double authentification n'a pas été activée. Retirez de votre application l'entrée Feuillet que vous y avez peut-être ajoutée."
 }

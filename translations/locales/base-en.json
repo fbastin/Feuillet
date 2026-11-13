@@ -4742,5 +4742,15 @@
   "The project could not be converted to Markdown: {reason}": "The project could not be converted to Markdown: {{reason}}",
   "The project in GitHub Markdown, converted by Pandoc: its text, math, tables, citations, and the images it shows": "The project in GitHub Markdown, converted by Pandoc: its text, math, tables, citations, and the images it shows",
   "{name} downloaded: the Markdown and {count} images._one": "{{name}} downloaded: the Markdown and {{count}} image.",
-  "{name} downloaded: the Markdown and {count} images._other": "{{name}} downloaded: the Markdown and {{count}} images."
+  "{name} downloaded: the Markdown and {count} images._other": "{{name}} downloaded: the Markdown and {{count}} images.",
+  "Click \"Turn on\".": "Click \"Turn on\".",
+  "Enter the 6-digit code that the app shows for Feuillet.": "Enter the 6-digit code that the app shows for Feuillet.",
+  "In your authenticator app, add an account by scanning this QR code, or by typing the key under it.": "In your authenticator app, add an account by scanning this QR code, or by typing the key under it.",
+  "Not on yet: it is once a code of your app, entered below, turns it on.": "Not on yet: it is once a code of your app, entered below, turns it on.",
+  "Off: signing in takes your password alone.": "Off: signing in takes your password alone.",
+  "Signing in on a new device, or after logging out, then also takes the code that an app on your phone shows, such as Ente Auth, Google Authenticator, Aegis, FreeOTP or a password manager: your password alone is no longer enough.": "Signing in on a new device, or after logging out, then also takes the code that an app on your phone shows, such as Ente Auth, Google Authenticator, Aegis, FreeOTP or a password manager: your password alone is no longer enough.",
+  "Two-factor authentication is not on: its setup was left before a code of your app turned it on. Set it up again from your profile, and replace the Feuillet entry of your app with the new one.": "Two-factor authentication is not on: its setup was left before a code of your app turned it on. Set it up again from your profile, and replace the Feuillet entry of your app with the new one.",
+  "Two-factor authentication is on for this account: sign in again, with the code of your app.": "Two-factor authentication is on for this account: sign in again, with the code of your app.",
+  "Two-factor authentication is on for this account: signing in needs the server, which could not be reached. Try again once connected.": "Two-factor authentication is on for this account: signing in needs the server, which could not be reached. Try again once connected.",
+  "Two-factor authentication was not turned on. Remove from your app the Feuillet entry you may have added.": "Two-factor authentication was not turned on. Remove from your app the Feuillet entry you may have added."
 }

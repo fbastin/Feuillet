@@ -2,7 +2,11 @@
 import type React from 'react';
 import { type ReactNode, createContext, useEffect, useState } from 'react';
 
-import { USER_PROFILE_SYNCED, authService } from '../services/AuthService';
+import {
+	TWO_FACTOR_SIGNED_OUT,
+	USER_PROFILE_SYNCED,
+	authService,
+} from '../services/AuthService';
 import type {
 	ProviderTicket,
 	SignInProvider,
@@ -111,6 +115,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 		};
 		window.addEventListener(USER_PROFILE_SYNCED, handleSynced);
 		return () => window.removeEventListener(USER_PROFILE_SYNCED, handleSynced);
+	}, []);
+
+	// Signed in offline, then the server asked for the code of two-factor
+	// authentication: back to the sign-in form, which says why.
+	useEffect(() => {
+		const signedOut = () => setUser(null);
+		window.addEventListener(TWO_FACTOR_SIGNED_OUT, signedOut);
+		return () => window.removeEventListener(TWO_FACTOR_SIGNED_OUT, signedOut);
 	}, []);
 
 	const login = async (

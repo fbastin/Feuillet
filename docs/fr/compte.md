@@ -81,11 +81,14 @@ Le menu de votre compte, en haut à droite, ouvre le profil :
 ## Double authentification
 
 Comme sur Overleaf, se connecter peut demander, en plus du mot de passe, le
-code que montre une application de votre téléphone : Google Authenticator,
-Aegis, FreeOTP, ou un gestionnaire de mots de passe. Dans le profil, onglet
+code que montre une application de votre téléphone : Ente Auth, Google
+Authenticator, Aegis, FreeOTP, ou un gestionnaire de mots de passe. Dans le profil, onglet
 **Compte**, **Mettre en place la double authentification** demande votre
 mot de passe, puis montre un code QR à lire avec l'application (ou sa clé,
-à taper); le code qu'elle affiche ensuite l'active. Si votre compte n'avait
+à taper); le code qu'elle affiche ensuite, entré sous le code QR, l'active :
+jusque-là le profil dit « Pas encore activée », et quitter la mise en place
+avant prévient qu'elle n'a pas été activée. Le profil dit ensuite « Activée
+depuis le… ». Si votre compte n'avait
 pas de codes de récupération, Feuillet en fait alors : gardez-les, ils
 remplacent un code quand le téléphone est perdu, une fois chacun.
 
@@ -96,6 +99,11 @@ connectés le restent : l'onglet **Appareils** les déconnecte. Un mot de
 passe oublié se change comme ci-dessous, et la double authentification
 reste active. Elle se désactive dans le profil, avec le mot de passe et un
 code.
+
+Se reconnecter après s'être déconnecté demande aussi le code, dans le même
+navigateur. Un navigateur qui sait que le compte a la double
+authentification attend le serveur de Feuillet pour se connecter, même
+lent, et ne se connecte pas hors ligne : sans le serveur, il le dit.
 
 ## Être prévenu des changements
 

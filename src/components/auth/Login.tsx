@@ -18,7 +18,10 @@ import {
 	SIGN_IN_PROVIDERS,
 	type SignInProvider,
 } from '../../services/ExternalSignInService';
-import { TwoFactorRequiredError } from '../../services/AuthService';
+import {
+	TwoFactorRequiredError,
+	takeSignInNotice,
+} from '../../services/AuthService';
 import ExternalSignInButton from './ExternalSignInButton';
 import GuestConsentModal from './GuestConsentModal';
 import RecoverAccount from './RecoverAccount';
@@ -50,7 +53,8 @@ const Login: React.FC<LoginProps> = ({
 
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
-	const [error, setError] = useState<string | null>(null);
+	// Why the account was signed out, if it was (AuthService).
+	const [error, setError] = useState<string | null>(takeSignInNotice);
 	const [isLoading, setIsLoading] = useState(false);
 	const [showGuestModal, setShowGuestModal] = useState(false);
 	const [showPrivacy, setShowPrivacy] = useState(false);
