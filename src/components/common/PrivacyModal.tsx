@@ -272,6 +272,50 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 							}}
 						/>
 					</li>
+					<li>
+						<Trans
+							i18nKey='<strong>Crossref, doi.org and DataCite:</strong> the DOI or arXiv number you type to add an entry to a .bib file, from your browser (privacy policies: <crossref>Crossref</crossref>, <doi>doi.org</doi>, <datacite>DataCite</datacite>)'
+							components={{
+								strong: <strong />,
+								crossref: (
+									<TransLink
+										href='https://www.crossref.org/privacy/'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+								doi: (
+									<TransLink
+										href='https://www.doi.org/privacy-policy'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+								datacite: (
+									<TransLink
+										href='https://datacite.org/privacy-policy/'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					</li>
+					<li>
+						<Trans
+							i18nKey='<strong>Open Library and Crossref:</strong> the ISBN you type to add a book to a .bib file, from your browser (<privacy>Privacy Policy</privacy> of the Internet Archive, which runs Open Library)'
+							components={{
+								strong: <strong />,
+								privacy: (
+									<TransLink
+										href='https://archive.org/about/terms'
+										target='_blank'
+										rel='noreferrer'
+									/>
+								),
+							}}
+						/>
+					</li>
 
 					{mail && (
 						<li data-role='privacy-mail'>

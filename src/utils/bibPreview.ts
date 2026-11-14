@@ -171,14 +171,38 @@ export function previewEntry(
 	sentence(publisherParts.join(', '));
 	sentence(text('note'));
 
+	// An arXiv preprint: « arXiv:1706.03762 [cs.CL] », its DOI and address
+	// at arXiv said by it.
+	const eprint = raw('eprint').trim();
+	const archive = raw('eprinttype', 'archiveprefix').toLowerCase();
+	const arxiv =
+		eprint &&
+		(archive === 'arxiv' ||
+			(!archive &&
+				/^(\d{4}\.\d{4,5}|[a-z-]+(\.[A-Z]{2})?\/\d{7})(v\d+)?$/.test(eprint)))
+			? eprint
+			: '';
+	if (arxiv) {
+		const category = raw('eprintclass', 'primaryclass');
+		pieces.push({
+			text: `arXiv:${arxiv}${category ? ` [${category}]` : ''}`,
+			style: 'link',
+			href: `https://arxiv.org/abs/${arxiv}`,
+		});
+		add(' ');
+	}
 	const doi = raw('doi').replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
 	const url = raw('url');
-	if (doi) {
+	if (doi && !(arxiv && /^10\.48550\/arxiv\./i.test(doi))) {
 		add('DOI ');
 		pieces.push({ text: doi, style: 'link', href: `https://doi.org/${doi}` });
 		add(' ');
 	}
-	if (url && /^https?:\/\//i.test(url)) {
+	if (
+		url &&
+		/^https?:\/\//i.test(url) &&
+		!(arxiv && /arxiv\.org\/abs\//i.test(url))
+	) {
 		pieces.push({ text: url, style: 'link', href: url });
 	}
 

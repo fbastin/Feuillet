@@ -180,6 +180,19 @@ celle où était le curseur. Une entrée à laquelle manque un champ obligatoire
 dont la clé est celle d'une autre, ou qui ne se lit pas jusqu'au bout est
 marquée dans la liste; lecteurs et relecteurs ne font que lire.
 
+**Nouvelle entrée** prend aussi un DOI, un numéro arXiv ou un ISBN, tel quel
+ou en lien (`10.1103/PhysRev.47.777`, `https://arxiv.org/abs/1706.03762`,
+`978-0-262-03561-3`), comme le « New entry from ID » de JabRef : le
+navigateur en demande les données à Crossref, à doi.org (DataCite pour
+arXiv) ou à Open Library, en n'envoyant que l'identifiant, puis montre
+l'entrée qu'il en fait, avec son aperçu, aux champs du dialecte du fichier
+(`journal` ou `journaltitle`, `year` ou `date`, `eprint` et sa catégorie
+pour arXiv, le livre et sa collection pour un chapitre) et écrite comme ses
+autres entrées (retrait, `=` alignés). La clé proposée (`einstein1935`, ou
+`einstein1935a` si elle est prise) se change avant l'ajout, et une
+référence que le fichier a déjà est signalée. Un identifiant tapé dans la
+recherche, qu'aucune entrée ne contient, s'ajoute d'un clic.
+
 Dans `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` et les
 thèmes de Beamer (`\usetheme{…}`…), l'éditeur propose, comme Overleaf, tous
 les paquets, classes, styles BibTeX et thèmes de TeX Live, et d'abord ceux du

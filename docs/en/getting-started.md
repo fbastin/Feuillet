@@ -169,6 +169,18 @@ entries open on the one the cursor was in. An entry missing a required
 field, with a key another one has, or that cannot be read to its end is
 marked in the list; viewers and reviewers only read.
 
+**New entry** also takes a DOI, an arXiv number or an ISBN, bare or as a link
+(`10.1103/PhysRev.47.777`, `https://arxiv.org/abs/1706.03762`,
+`978-0-262-03561-3`), as JabRef's "New entry from ID": the browser asks
+Crossref, doi.org (DataCite for arXiv) or Open Library for its data, sending
+only the identifier, then shows the entry it makes, with its preview, in the
+file's dialect (`journal` or `journaltitle`, `year` or `date`, `eprint` and
+its category for arXiv, the book and its series for a chapter) and written
+as the file's other entries are (indentation, aligned `=`). The key offered
+(`einstein1935`, or `einstein1935a` when taken) can be changed before adding
+it, and a reference the file already has is said so. An identifier typed in
+the search box that no entry holds is added in one click.
+
 In `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` and
 Beamer's themes (`\usetheme{…}`…), the editor offers, as Overleaf does, every
 package, class, BibTeX style and theme of TeX Live, the project's own first

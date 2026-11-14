@@ -4547,5 +4547,20 @@
   "{count} problems in the text: the entries concerned are marked_other": "{{count}} problèmes dans le texte : les entrées concernées sont marquées",
   "Show the empty optional fields ({count})_one": "Afficher le champ facultatif vide ({{count}})",
   "Show the empty optional fields ({count})_other": "Afficher les champs facultatifs vides ({{count}})",
-  "YYYY": "AAAA"
+  "YYYY": "AAAA",
+  "Add to the file": "Ajouter au fichier",
+  "From its DOI, arXiv number or ISBN": "Depuis son DOI, son numéro arXiv ou son ISBN",
+  "Look up": "Chercher",
+  "Looking up {kind} {id}…": "Recherche en cours ({{kind}} {{id}})…",
+  "Neither a DOI, an arXiv number nor an ISBN, such as {examples}": "Ni un DOI, ni un numéro arXiv, ni un ISBN, comme {{examples}}",
+  "No reference found for {kind} {id}": "Aucune référence trouvée ({{kind}} {{id}})",
+  "Or an empty entry:": "Ou une entrée vide :",
+  "This ISBN is not valid: its last digit does not match the others": "Cet ISBN n'est pas valide : son dernier chiffre ne correspond pas aux autres",
+  "This reference is already in the file:": "Cette référence est déjà dans le fichier :",
+  "{service} could not be reached: check the connection": "{{service}} n'a pas pu être joint : vérifiez la connexion",
+  "{service} did not answer in time": "{{service}} n'a pas répondu à temps",
+  "{service} could not answer ({status})": "{{service}} n'a pas pu répondre ({{status}})",
+  "<strong>Crossref, doi.org and DataCite:</strong> the DOI or arXiv number you type to add an entry to a .bib file, from your browser (privacy policies: <crossref>Crossref</crossref>, <doi>doi.org</doi>, <datacite>DataCite</datacite>)": "<strong>Crossref, doi.org et DataCite :</strong> le DOI ou le numéro arXiv que vous tapez pour ajouter une entrée à un fichier .bib, depuis votre navigateur (politiques de confidentialité : <crossref>Crossref</crossref>, <doi>doi.org</doi>, <datacite>DataCite</datacite>)",
+  "<strong>Open Library and Crossref:</strong> the ISBN you type to add a book to a .bib file, from your browser (<privacy>Privacy Policy</privacy> of the Internet Archive, which runs Open Library)": "<strong>Open Library et Crossref :</strong> l'ISBN que vous tapez pour ajouter un livre à un fichier .bib, depuis votre navigateur (<privacy>Politique de confidentialité</privacy> de l'Internet Archive, qui gère Open Library)",
+  "Add the reference this identifier gives": "Ajouter la référence de cet identifiant"
 }

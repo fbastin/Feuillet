@@ -116,6 +116,16 @@ describe('the preview', () => {
 		expect(pieces.find((piece) => piece.style === 'italic')?.text).toBe('The TeXbook');
 	});
 
+	it('shows an arXiv preprint by its number and category, once', () => {
+		const pieces = preview(
+			'@misc{v, author={Vaswani, Ashish}, title={Attention Is All You Need}, year={2017}, eprint={1706.03762}, archiveprefix={arXiv}, primaryclass={cs.CL}, doi={10.48550/arXiv.1706.03762}, url={https://arxiv.org/abs/1706.03762}}',
+		);
+		expect(pieces.map((piece) => piece.text).join('')).toBe(
+			'Ashish Vaswani (2017). Attention Is All You Need. arXiv:1706.03762 [cs.CL]',
+		);
+		expect(pieces.filter((piece) => piece.style === 'link')).toHaveLength(1);
+	});
+
 	it('never links what is not a web address', () => {
 		const pieces = preview('@misc{a, title={T}, url={javascript:alert(1)}}');
 		expect(pieces.some((piece) => piece.style === 'link')).toBe(false);

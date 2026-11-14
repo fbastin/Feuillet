@@ -17,10 +17,8 @@ import {
 import { BIBTEX_FIELD_DOCS } from '@/extensions/codemirror/languageDocs/bibtexDocsData';
 import { t } from '@/i18n';
 import {
-	addEntryChanges,
 	type BibChange,
 	type BibDocument,
-	BibEditError,
 	type BibEntry,
 	type BibField,
 	changeTypeChanges,
@@ -42,8 +40,11 @@ import {
 	type RequiredSlot,
 	validFieldNames,
 } from '@/utils/bibEntryTypes';
-import { type PreviewPiece, previewEntry } from '@/utils/bibPreview';
+import { parseIdentifier } from '@/utils/bibIdentifiers';
+import { previewEntry } from '@/utils/bibPreview';
 import { authorsLabel, displayText, plainText } from '@/utils/referenceSearch';
+import { BibPreview, editErrorMessage } from './BibPreview';
+import { NewEntryPanel } from './NewEntryPanel';
 import './entries.css';
 
 /** Makes the changes from the text as it is when they are made. */
@@ -115,13 +116,6 @@ const readShowEmpty = (): boolean => {
 		return false;
 	}
 };
-
-const errorMessage = (error: unknown): string =>
-	error instanceof BibEditError
-		? t(error.message)
-		: error instanceof Error
-			? error.message
-			: String(error);
 
 /** The entry a selection points at, after the text changed. */
 function resolveEntry(
@@ -288,7 +282,7 @@ const FieldInput: React.FC<FieldInputProps> = ({
 			onCommit(draft);
 			setError(null);
 		} catch (caught) {
-			setError(errorMessage(caught));
+			setError(editErrorMessage(caught));
 		}
 	};
 
@@ -361,30 +355,6 @@ const FieldInput: React.FC<FieldInputProps> = ({
 
 // ---------------------------------------------------------------------------
 
-const Preview: React.FC<{ pieces: PreviewPiece[] }> = ({ pieces }) => (
-	<p className='bib-preview-text'>
-		{pieces.map((piece, index) =>
-			piece.style === 'link' ? (
-				<a
-					// biome-ignore lint/suspicious/noArrayIndexKey: pieces have no identity.
-					key={index}
-					href={piece.href}
-					target='_blank'
-					rel='noopener noreferrer'
-				>
-					{piece.text}
-				</a>
-			) : piece.style === 'italic' ? (
-				// biome-ignore lint/suspicious/noArrayIndexKey: pieces have no identity.
-				<em key={index}>{piece.text}</em>
-			) : (
-				// biome-ignore lint/suspicious/noArrayIndexKey: pieces have no identity.
-				<span key={index}>{piece.text}</span>
-			),
-		)}
-	</p>
-);
-
 // ---------------------------------------------------------------------------
 
 export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
@@ -427,11 +397,8 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	const [revealed, setRevealed] = useState<string[]>([]);
 	const [newField, setNewField] = useState('');
 	const [newFieldError, setNewFieldError] = useState<string | null>(null);
-	const [adding, setAdding] = useState<{
-		type: string;
-		key: string;
-		error?: string;
-	} | null>(null);
+	// The new entry panel, and the identifier to look up at once, if any.
+	const [adding, setAdding] = useState<{ query?: string } | null>(null);
 	const [entryError, setEntryError] = useState<string | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const listRef = useRef<HTMLElement>(null);
@@ -529,27 +496,6 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 			?.scrollIntoView({ block: 'nearest' });
 	}, [entryIdentity]);
 
-	const createEntry = () => {
-		if (!adding) return;
-		const key = adding.key.trim();
-		try {
-			checkKey(key);
-			if (
-				document.entries.some(
-					(other) => other.key.toLowerCase() === key.toLowerCase(),
-				)
-			) {
-				throw new BibEditError('Another entry has this key');
-			}
-			onEdit((current) => addEntryChanges(current, adding.type, key));
-			setAdding(null);
-			setQuery('');
-			setSelection({ key, index: document.entries.length });
-		} catch (caught) {
-			setAdding({ ...adding, error: errorMessage(caught) });
-		}
-	};
-
 	const sortHeader = (key: SortKey, label: string) => (
 		<th
 			scope='col'
@@ -636,7 +582,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 									deleteFieldChanges(current, target, field.name),
 								);
 							} catch (caught) {
-								setEntryError(errorMessage(caught));
+								setEntryError(editErrorMessage(caught));
 							}
 						}}
 					>
@@ -839,7 +785,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 										changeTypeChanges(target, event.target.value),
 									);
 								} catch (caught) {
-									setEntryError(errorMessage(caught));
+									setEntryError(editErrorMessage(caught));
 								}
 							}}
 						>
@@ -950,7 +896,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 				)}
 
 				<section className='bib-preview' aria-label={t('Preview')}>
-					<Preview pieces={previewEntry(document, entry)} />
+					<BibPreview pieces={previewEntry(document, entry)} />
 				</section>
 
 				<fieldset className='bib-form' disabled={locked}>
@@ -1025,11 +971,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 					<button
 						type='button'
 						className='button primary'
-						onClick={() =>
-							setAdding((current) =>
-								current ? null : { type: 'article', key: '' },
-							)
-						}
+						onClick={() => setAdding((current) => (current ? null : {}))}
 					>
 						<PlusIcon />
 						{t('New entry')}
@@ -1037,67 +979,27 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 				)}
 			</div>
 
-			{adding && (
-				<form
-					className='bib-new-entry'
-					onSubmit={(event) => {
-						event.preventDefault();
-						createEntry();
+			{adding && !readOnly && (
+				<NewEntryPanel
+					// A new identifier from the search box: a new lookup.
+					key={adding.query ?? ''}
+					text={text}
+					document={document}
+					dialect={dialect}
+					types={types}
+					initialQuery={adding.query}
+					onEdit={onEdit}
+					onAdded={(key) => {
+						setAdding(null);
+						setQuery('');
+						setSelection({ key, index: document.entries.length });
 					}}
-				>
-					<label>
-						<span>{t('Type')}</span>
-						<select
-							className='ui-field-control'
-							value={adding.type}
-							onChange={(event) =>
-								setAdding({ ...adding, type: event.target.value })
-							}
-						>
-							{types.map((type) => (
-								<option key={type} value={type}>
-									{type}
-								</option>
-							))}
-						</select>
-					</label>
-					<label>
-						<span>{t('Key')}</span>
-						<input
-							type='text'
-							className='ui-field-control'
-							value={adding.key}
-							// biome-ignore lint/a11y/noAutofocus: the key is what one types next.
-							autoFocus
-							placeholder={t('e.g. einstein1905')}
-							onChange={(event) =>
-								setAdding({
-									...adding,
-									key: event.target.value,
-									error: undefined,
-								})
-							}
-							onKeyDown={(event) => {
-								if (event.key === 'Escape') setAdding(null);
-							}}
-						/>
-					</label>
-					<button type='submit' className='button primary'>
-						{t('Create')}
-					</button>
-					<button
-						type='button'
-						className='button'
-						onClick={() => setAdding(null)}
-					>
-						{t('Cancel')}
-					</button>
-					{adding.error && (
-						<span className='bib-field-error' role='alert'>
-							{adding.error}
-						</span>
-					)}
-				</form>
+					onShowEntry={(index) => {
+						setQuery('');
+						select(index);
+					}}
+					onClose={() => setAdding(null)}
+				/>
 			)}
 
 			{document.errors.length > 0 && (
@@ -1157,11 +1059,28 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 						</tbody>
 					</table>
 					{visible.length === 0 && (
-						<p className='bib-list-empty ui-meta'>
-							{rows.length
-								? t('No entry has these words')
-								: t('This file has no entry yet.')}
-						</p>
+						<div className='bib-list-empty ui-meta'>
+							<p>
+								{rows.length
+									? t('No entry has these words')
+									: t('This file has no entry yet.')}
+							</p>
+							{/* An identifier searched for and not there: added from it. */}
+							{!readOnly &&
+								(() => {
+									const identifier = parseIdentifier(query);
+									return identifier && identifier.kind !== 'invalid-isbn' ? (
+										<button
+											type='button'
+											className='button'
+											onClick={() => setAdding({ query })}
+										>
+											<PlusIcon />
+											{t('Add the reference this identifier gives')}
+										</button>
+									) : null;
+								})()}
+						</div>
 					)}
 				</section>
 
@@ -1208,7 +1127,7 @@ const KeyInput: React.FC<KeyInputProps> = ({
 			onCommit(key);
 			setError(null);
 		} catch (caught) {
-			setError(errorMessage(caught));
+			setError(editErrorMessage(caught));
 		}
 	};
 

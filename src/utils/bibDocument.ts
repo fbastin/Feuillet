@@ -711,3 +711,60 @@ export function applyBibChanges(text: string, changes: BibChange[]): string {
 	}
 	return result;
 }
+
+/** How a file's entries are written, from its last one with fields on
+ * lines of their own; two spaces, « = » between spaces, otherwise. */
+export interface EntryLayout {
+	indent: string;
+	before: string;
+	after: string;
+	/** « = » aligned, as bibtex-tidy and JabRef write them. */
+	aligned: boolean;
+	trailingComma: boolean;
+}
+
+export function documentLayout(text: string): EntryLayout {
+	const entries = parseBibDocument(text).entries;
+	for (let i = entries.length - 1; i >= 0; i--) {
+		const entry = entries[i];
+		if (entry.error || entry.fields.length < 2) continue;
+		const layout = fieldLayout(text, entry);
+		if (layout.inline) continue;
+		return {
+			indent: layout.indent,
+			before: layout.before,
+			after: layout.after,
+			aligned: layout.aligned !== null,
+			trailingComma: layout.trailingComma,
+		};
+	}
+	return {
+		indent: '  ',
+		before: ' ',
+		after: ' ',
+		aligned: false,
+		trailingComma: false,
+	};
+}
+
+/** A new entry written out: values braced, but macros (a month in BibTeX)
+ * and @string names given as `bare`. */
+export function writeEntry(
+	type: string,
+	key: string,
+	fields: [string, string][],
+	layout: EntryLayout,
+	bare: (name: string, value: string) => boolean = () => false,
+): string {
+	checkKey(key);
+	const width = Math.max(0, ...fields.map(([name]) => name.length));
+	const lines = fields.map(([name, value], index) => {
+		const before = layout.aligned
+			? ' '.repeat(width - name.length + 1)
+			: layout.before;
+		const written = bare(name, value) ? value : formatBibValue(value, 'braced');
+		const comma = index < fields.length - 1 || layout.trailingComma ? ',' : '';
+		return `${layout.indent}${name}${before}=${layout.after}${written}${comma}`;
+	});
+	return `@${type}{${key},\n${lines.join('\n')}\n}`;
+}

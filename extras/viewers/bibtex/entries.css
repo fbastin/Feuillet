@@ -73,6 +73,7 @@
 
 .bib-entries-toolbar > .button,
 .bib-new-entry .button,
+.bib-list-empty .button,
 .bib-add-field .button,
 .bib-detail-actions .button {
 	display: inline-flex;
@@ -90,25 +91,108 @@
 
 .bib-new-entry {
 	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+	margin: 0;
+	padding: var(--space-sm) var(--space-md);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-md);
+	background-color: var(--accent-background);
+	max-height: 60%;
+	overflow: auto;
+}
+
+.bib-new-entry-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.bib-new-entry-header > h4 {
+	margin: 0;
+	font-size: var(--font-size-small);
+	font-weight: 700;
+}
+
+.bib-new-entry-row {
+	display: flex;
 	flex-wrap: wrap;
 	align-items: flex-end;
 	gap: var(--space-sm);
 	margin: 0;
-	padding: var(--space-sm);
-	border: 1px solid var(--accent-border);
-	border-radius: var(--radius-md);
-	background-color: var(--accent-background);
 }
 
-.bib-new-entry label {
+.bib-new-entry-row label,
+.bib-new-entry-type {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-xs);
 	margin: 0;
 }
 
-.bib-new-entry :is(input, select) {
+.bib-new-entry-identifier {
+	flex: 1 1 18em;
+}
+
+.bib-new-entry-row :is(input, select) {
 	margin: 0;
+}
+
+.bib-new-entry-type > code {
+	display: flex;
+	align-items: center;
+	min-height: var(--ui-field-control-height, 2.2em);
+	padding: 0;
+	background: none;
+}
+
+/* Pico widens a form's submit button to the whole row. */
+.bib-new-entry-row > :is(button, .button) {
+	width: auto;
+	min-height: var(--ui-field-control-height, 2.2em);
+}
+
+.bib-new-entry-found {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+}
+
+.bib-new-entry-duplicate {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	margin: 0;
+	color: var(--color-warning);
+}
+
+.bib-new-entry-duplicate > svg {
+	width: 1.1em;
+	height: 1.1em;
+	flex-shrink: 0;
+}
+
+.bib-new-entry > p {
+	margin: 0;
+}
+
+.bib-new-entry-empty {
+	padding-top: var(--space-sm);
+	border-top: 1px dashed var(--accent-border);
+}
+
+.bib-entries .bib-link-button {
+	display: inline;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--pico-primary);
+	font: inherit;
+	font-family: var(--pico-font-family-monospace, monospace);
+	text-decoration: underline;
+	cursor: pointer;
 }
 
 /* --- List and entry, side by side, or one above the other --- */
@@ -251,8 +335,16 @@
 }
 
 .bib-list-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--space-sm);
 	padding: var(--space-md);
 	text-align: center;
+}
+
+.bib-list-empty > p {
+	margin: 0;
 }
 
 /* --- The entry --- */

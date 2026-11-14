@@ -4820,5 +4820,20 @@
   "{count} problems in the text: the entries concerned are marked_other": "{{count}} problems in the text: the entries concerned are marked",
   "Show the empty optional fields ({count})_one": "Show the empty optional field ({{count}})",
   "Show the empty optional fields ({count})_other": "Show the empty optional fields ({{count}})",
-  "YYYY": "YYYY"
+  "YYYY": "YYYY",
+  "Add to the file": "Add to the file",
+  "From its DOI, arXiv number or ISBN": "From its DOI, arXiv number or ISBN",
+  "Look up": "Look up",
+  "Looking up {kind} {id}…": "Looking up {{kind}} {{id}}…",
+  "Neither a DOI, an arXiv number nor an ISBN, such as {examples}": "Neither a DOI, an arXiv number nor an ISBN, such as {{examples}}",
+  "No reference found for {kind} {id}": "No reference found for {{kind}} {{id}}",
+  "Or an empty entry:": "Or an empty entry:",
+  "This ISBN is not valid: its last digit does not match the others": "This ISBN is not valid: its last digit does not match the others",
+  "This reference is already in the file:": "This reference is already in the file:",
+  "{service} could not be reached: check the connection": "{{service}} could not be reached: check the connection",
+  "{service} did not answer in time": "{{service}} did not answer in time",
+  "{service} could not answer ({status})": "{{service}} could not answer ({{status}})",
+  "<strong>Crossref, doi.org and DataCite:</strong> the DOI or arXiv number you type to add an entry to a .bib file, from your browser (privacy policies: <crossref>Crossref</crossref>, <doi>doi.org</doi>, <datacite>DataCite</datacite>)": "<strong>Crossref, doi.org and DataCite:</strong> the DOI or arXiv number you type to add an entry to a .bib file, from your browser (privacy policies: <crossref>Crossref</crossref>, <doi>doi.org</doi>, <datacite>DataCite</datacite>)",
+  "<strong>Open Library and Crossref:</strong> the ISBN you type to add a book to a .bib file, from your browser (<privacy>Privacy Policy</privacy> of the Internet Archive, which runs Open Library)": "<strong>Open Library and Crossref:</strong> the ISBN you type to add a book to a .bib file, from your browser (<privacy>Privacy Policy</privacy> of the Internet Archive, which runs Open Library)",
+  "Add the reference this identifier gives": "Add the reference this identifier gives"
 }
