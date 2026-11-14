@@ -54,7 +54,9 @@ and compiling with TeX Live.
   ([`server/languagetool`](server/languagetool)), a symbol palette, searching
   the bibliography from `\cite{…}`, `.bib` files as JabRef shows them (a
   list to search and sort, each entry as a form with the fields its type
-  takes in BibTeX or biblatex, and its preview), the commands a project
+  takes in BibTeX or biblatex, and its preview; which entries the LaTeX
+  files cite, the keys they cite without an entry, a key renamed in its
+  citations too), the commands a project
   defines in the completion, a command palette, a presentation mode, a focus
   mode, and going to a collaborator's cursor from their avatar.
 - **Administration.** For the accounts named administrators: the server's

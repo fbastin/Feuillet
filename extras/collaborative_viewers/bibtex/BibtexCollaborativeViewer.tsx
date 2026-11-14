@@ -48,6 +48,7 @@ import {
 	type BibEdit,
 } from '../../viewers/bibtex/BibEntriesView';
 import { TidyOptionsPanel } from '../../viewers/bibtex/TidyOptionsPanel';
+import { useProjectCitations } from '../../viewers/bibtex/useProjectCitations';
 import {
 	type TidyOptions,
 	getPresetOptions,
@@ -470,6 +471,14 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 	// The text and the entries are the shared document; « processed » is a
 	// copy bibtex-tidy made, saved only when asked.
 	const isOriginalView = currentView !== 'processed';
+
+	// What the LaTeX files cite: read while the entries show.
+	const projectId = docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl;
+	const { citations, renameCitations } = useProjectCitations(
+		projectId,
+		fileId,
+		currentView === 'entries',
+	);
 
 	const { viewRef, showSaveIndicator } = useEditorView(
 		editorRef,
@@ -1049,6 +1058,8 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 											onEdit={handleEntriesEdit}
 											onShowInText={showInText}
 											cursor={handover}
+											citations={citations}
+											onRenameCitations={readOnly ? undefined : renameCitations}
 										/>
 									</div>
 								)}

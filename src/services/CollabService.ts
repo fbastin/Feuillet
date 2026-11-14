@@ -644,11 +644,17 @@ class CollabService {
 	 * the collaboration server, so that their text is the latest, even for
 	 * documents a collaborator changed while they were closed here. Gives a
 	 * function that closes the documents it opened.
+	 *
+	 * With `offlineAfterMs`, a document whose server has not answered by
+	 * then (offline, or no server for this session) is taken as its copy
+	 * here, as the editor does: a change made to it reaches the others once
+	 * it connects again.
 	 */
 	public async openDocumentsUpToDate(
 		projectId: string,
 		documentIds: string[],
 		timeoutMs = 20000,
+		options: { offlineAfterMs?: number } = {},
 	): Promise<() => void> {
 		const collections = documentIds.map((id) => `yjs_${id}`);
 		const providers = collections.map(
@@ -668,15 +674,21 @@ class CollabService {
 					resolve(true);
 					return;
 				}
-				const timer = setTimeout(() => {
-					websocket.off('sync', onSync);
-					resolve(false);
-				}, timeoutMs);
-				const onSync = (synced: boolean) => {
-					if (!synced) return;
+				const finish = (result: boolean) => {
 					clearTimeout(timer);
+					if (offline) clearTimeout(offline);
 					websocket.off('sync', onSync);
-					resolve(true);
+					resolve(result);
+				};
+				const timer = setTimeout(() => finish(false), timeoutMs);
+				const offline =
+					options.offlineAfterMs === undefined
+						? null
+						: setTimeout(() => {
+								if (!websocket.wsconnected) finish(true);
+							}, options.offlineAfterMs);
+				const onSync = (synced: boolean) => {
+					if (synced) finish(true);
 				};
 				websocket.on('sync', onSync);
 			});

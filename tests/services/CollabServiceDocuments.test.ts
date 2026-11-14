@@ -98,4 +98,29 @@ describe('CollabService.openDocumentsUpToDate', () => {
 		).rejects.toThrow();
 		expect(collabService.getDocContainer('p3', 'yjs_d')).toBeUndefined();
 	});
+
+	it('takes the copy here when asked, once no server answers', async () => {
+		mockWebsocket.getProvider.mockImplementationOnce(() => {
+			const provider = fakeProvider();
+			provider.wsconnected = false;
+			return provider;
+		});
+		const release = await collabService.openDocumentsUpToDate(
+			'p4',
+			['e'],
+			5000,
+			{ offlineAfterMs: 20 },
+		);
+		expect(collabService.getDocContainer('p4', 'yjs_e')).toBeDefined();
+		release();
+	});
+
+	it('still waits for a server that is connected, then fails', async () => {
+		await expect(
+			collabService.openDocumentsUpToDate('p5', ['f'], 60, {
+				offlineAfterMs: 10,
+			}),
+		).rejects.toThrow();
+		expect(collabService.getDocContainer('p5', 'yjs_f')).toBeUndefined();
+	});
 });

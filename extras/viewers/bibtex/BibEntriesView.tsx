@@ -9,6 +9,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import {
 	AlertCircleIcon,
+	CheckIcon,
 	FileTextIcon,
 	PlusIcon,
 	SearchIcon,
@@ -42,9 +43,11 @@ import {
 } from '@/utils/bibEntryTypes';
 import { parseIdentifier } from '@/utils/bibIdentifiers';
 import { previewEntry } from '@/utils/bibPreview';
+import type { CitedKey, ProjectCitations } from '@/utils/latexCitations';
 import { authorsLabel, displayText, plainText } from '@/utils/referenceSearch';
 import { BibPreview, editErrorMessage } from './BibPreview';
 import { NewEntryPanel } from './NewEntryPanel';
+import type { CitationRename } from './useProjectCitations';
 import './entries.css';
 
 /** Makes the changes from the text as it is when they are made. */
@@ -65,6 +68,10 @@ interface BibEntriesViewProps {
 	onShowInText: (from: number, to: number) => void;
 	/** Where the text editor's cursor was, to open on the entry there. */
 	cursor?: { at: number } | null;
+	/** What the project's LaTeX files cite, once read. */
+	citations?: ProjectCitations | null;
+	/** Writes `to` where `from` is cited in the LaTeX files. */
+	onRenameCitations?: (from: string, to: string) => Promise<CitationRename>;
 }
 
 interface Selection {
@@ -72,7 +79,25 @@ interface Selection {
 	index: number;
 }
 
-type SortKey = 'type' | 'key' | 'authors' | 'title' | 'year' | 'container';
+type SortKey =
+	| 'type'
+	| 'key'
+	| 'authors'
+	| 'title'
+	| 'year'
+	| 'container'
+	| 'cited';
+
+type CitedFilter = 'all' | 'cited' | 'uncited';
+
+/** A rename of a key's citations, told under the entry renamed. */
+interface CitationRenameState {
+	from: string;
+	to: string;
+	status: 'busy' | 'done' | 'error';
+	result?: CitationRename;
+	message?: string;
+}
 
 interface Row {
 	index: number;
@@ -84,6 +109,8 @@ interface Row {
 	container: string;
 	search: string;
 	problems: string[];
+	/** Citations in the LaTeX files. */
+	cited: number;
 }
 
 const LONG_FIELDS = new Set([
@@ -222,9 +249,22 @@ function buildRows(document: BibDocument, dialect: BibDialect): Row[] {
 			),
 			search: plainText(all.join(' ')),
 			problems,
+			cited: 0,
 		};
 	});
 }
+
+const pathLabel = (path: string) => path.replace(/^\//, '');
+
+/** « main.tex (3), intro.tex »: where a key is cited. */
+const citedFilesLabel = (uses: CitedKey) =>
+	uses.files
+		.map((file) =>
+			file.count > 1
+				? `${pathLabel(file.path)} (${file.count})`
+				: pathLabel(file.path),
+		)
+		.join(', ');
 
 const compareRows =
 	(key: SortKey) =>
@@ -234,6 +274,7 @@ const compareRows =
 				(Number.parseInt(a.year, 10) || 0) - (Number.parseInt(b.year, 10) || 0)
 			);
 		}
+		if (key === 'cited') return a.cited - b.cited;
 		const text = (row: Row) =>
 			key === 'key' ? row.entry.key : plainText(row[key]);
 		return text(a).localeCompare(text(b), undefined, { numeric: true });
@@ -367,6 +408,8 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	onEdit: onEditText,
 	onShowInText,
 	cursor,
+	citations,
+	onRenameCitations,
 }) => {
 	const formId = useId();
 	// Viewers and reviewers read: nothing they do reaches the text.
@@ -385,7 +428,47 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		[document, latexDialect],
 	);
 	const dialect = chosenDialect ?? detectedDialect;
-	const rows = useMemo(() => buildRows(document, dialect), [document, dialect]);
+	const parsedRows = useMemo(
+		() => buildRows(document, dialect),
+		[document, dialect],
+	);
+	const [citationRename, setCitationRename] =
+		useState<CitationRenameState | null>(null);
+	// What the LaTeX files cite, when the project has some.
+	const latexRead = Boolean(citations && citations.files.length > 0);
+	const rows = useMemo(
+		() =>
+			latexRead && citations
+				? parsedRows.map((row) => ({
+						...row,
+						cited: citations.cited.get(row.entry.key)?.count ?? 0,
+					}))
+				: parsedRows,
+		[parsedRows, citations, latexRead],
+	);
+	// Keys cited without an entry here or elsewhere, and the entry of this
+	// file that differs only in case, if any.
+	const missing = useMemo(() => {
+		if (!latexRead || !citations) return [];
+		const here = new Set(document.entries.map((entry) => entry.key));
+		const lower = new Map<string, number>();
+		document.entries.forEach((entry, index) => {
+			lower.set(entry.key.toLowerCase(), index);
+		});
+		const renaming =
+			citationRename?.status === 'busy' ? citationRename.from : null;
+		return [...citations.cited]
+			.filter(
+				([key]) =>
+					!here.has(key) && !citations.defined.has(key) && key !== renaming,
+			)
+			.map(([key, uses]) => ({
+				key,
+				uses,
+				near: lower.get(key.toLowerCase()),
+			}))
+			.sort((a, b) => a.key.localeCompare(b.key));
+	}, [citations, document, latexRead, citationRename]);
 
 	const [query, setQuery] = useState('');
 	const [sort, setSort] = useState<{
@@ -397,10 +480,16 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	const [revealed, setRevealed] = useState<string[]>([]);
 	const [newField, setNewField] = useState('');
 	const [newFieldError, setNewFieldError] = useState<string | null>(null);
-	// The new entry panel, and the identifier to look up at once, if any.
-	const [adding, setAdding] = useState<{ query?: string } | null>(null);
+	// The new entry panel: the identifier to look up at once, the key a
+	// citation wants, if any.
+	const [adding, setAdding] = useState<{ query?: string; key?: string } | null>(
+		null,
+	);
 	const [entryError, setEntryError] = useState<string | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [citedFilter, setCitedFilter] = useState<CitedFilter>('all');
+	// Renaming a key renames its citations, unless one says not to.
+	const [renameCited, setRenameCited] = useState(true);
 	const listRef = useRef<HTMLElement>(null);
 
 	// The entry the text editor's cursor was in, when the text view hands
@@ -415,15 +504,39 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		if (index >= 0) setSelection({ key: entries[index].key, index });
 	}, [cursor]);
 
+	const filter = latexRead ? citedFilter : 'all';
 	const visible = useMemo(() => {
 		const terms = plainText(query).split(' ').filter(Boolean);
-		const found = terms.length
-			? rows.filter((row) => terms.every((term) => row.search.includes(term)))
-			: rows;
+		const found = rows.filter(
+			(row) =>
+				(filter === 'all' || (filter === 'cited') === row.cited > 0) &&
+				terms.every((term) => row.search.includes(term)),
+		);
 		if (!sort) return found;
 		const sorted = [...found].sort(compareRows(sort.key));
 		return sort.descending ? sorted.reverse() : sorted;
-	}, [rows, query, sort]);
+	}, [rows, query, sort, filter]);
+	const citedCount = useMemo(
+		() => rows.filter((item) => item.cited > 0).length,
+		[rows],
+	);
+
+	/** Writes `to` where `from` is cited, and tells how it went. */
+	const renameCitations = async (from: string, to: string) => {
+		if (!onRenameCitations || readOnly) return;
+		setCitationRename({ from, to, status: 'busy' });
+		try {
+			const result = await onRenameCitations(from, to);
+			setCitationRename({ from, to, status: 'done', result });
+		} catch (caught) {
+			setCitationRename({
+				from,
+				to,
+				status: 'error',
+				message: caught instanceof Error ? caught.message : String(caught),
+			});
+		}
+	};
 
 	const selectedIndex = resolveEntry(document.entries, selection);
 	const entry = selectedIndex >= 0 ? document.entries[selectedIndex] : null;
@@ -770,6 +883,12 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		const annotated = text.slice(entry.from, entry.to).includes('<###');
 		const locked = readOnly || broken || annotated;
 		const knownType = types.includes(entry.type.toLowerCase());
+		const uses = citations?.cited.get(entry.key);
+		const renamesCitations = Boolean(
+			uses && renameCited && onRenameCitations && !locked,
+		);
+		const renaming =
+			citationRename && citationRename.to === entry.key ? citationRename : null;
 		return (
 			<div className='bib-detail' key={entryIdentity}>
 				<div className='bib-detail-header'>
@@ -817,12 +936,14 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 										other.key.toLowerCase() === key.toLowerCase(),
 								)
 							}
-							onCommit={(key) =>
+							onCommit={(key) => {
+								const before = entry.key;
 								editEntry(
 									(_current, target) => renameKeyChanges(target, key),
 									key,
-								)
-							}
+								);
+								if (renamesCitations) void renameCitations(before, key);
+							}}
 						/>
 					</label>
 					<div className='bib-detail-actions'>
@@ -868,6 +989,58 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 					</div>
 				</div>
 
+				{latexRead && citations && renaming?.status !== 'busy' && (
+					<div className='bib-cited-line ui-meta'>
+						<span>
+							{uses
+								? t('Cited {count} times in {files}', {
+										count: uses.count,
+										files: citedFilesLabel(uses),
+									})
+								: citations.everything.length
+									? t('Not cited, but in the bibliography by \\nocite{*}')
+									: t('Not cited in the LaTeX files')}
+						</span>
+						{uses && onRenameCitations && !locked && (
+							<label className='bib-rename-citations'>
+								<input
+									type='checkbox'
+									checked={renameCited}
+									onChange={(event) => setRenameCited(event.target.checked)}
+								/>
+								{t('Rename them with the key')}
+							</label>
+						)}
+					</div>
+				)}
+				{renaming && (
+					<p
+						className={
+							renaming.status === 'error'
+								? 'bib-rename-status bib-field-error'
+								: 'bib-rename-status ui-meta'
+						}
+						role={renaming.status === 'error' ? 'alert' : 'status'}
+					>
+						{renaming.status === 'done' && <CheckIcon />}
+						{renaming.status === 'busy'
+							? t('Renaming the citations of {key}…', { key: renaming.from })
+							: renaming.status === 'error'
+								? t('The citations of {key} could not be renamed: {error}', {
+										key: renaming.from,
+										error: renaming.message ?? '',
+									})
+								: renaming.result && renaming.result.count > 0
+									? t('{count} citations of {key} renamed in {files}', {
+											count: renaming.result.count,
+											key: renaming.from,
+											files: renaming.result.files.map(pathLabel).join(', '),
+										})
+									: t('No citation of {key} left to rename', {
+											key: renaming.from,
+										})}
+					</p>
+				)}
 				{(broken || annotated) && (
 					<div className='ui-message' data-tone='warning' data-spacing='inset'>
 						{broken
@@ -932,8 +1105,31 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 						}}
 					/>
 				</div>
+				{latexRead && (
+					<span className='bib-cited-filter'>
+						<select
+							className='ui-field-control'
+							value={citedFilter}
+							aria-label={t('Entries cited in the LaTeX files of the project')}
+							title={t('Entries cited in the LaTeX files of the project')}
+							onChange={(event) =>
+								setCitedFilter(event.target.value as CitedFilter)
+							}
+						>
+							<option value='all'>{t('All the entries')}</option>
+							<option value='cited'>
+								{t('Cited ({number})', { number: citedCount })}
+							</option>
+							<option value='uncited'>
+								{t('Not cited ({number})', {
+									number: rows.length - citedCount,
+								})}
+							</option>
+						</select>
+					</span>
+				)}
 				<span className='bib-count ui-meta' aria-live='polite'>
-					{query
+					{query || filter !== 'all'
 						? t('{shown} of {count} entries', {
 								shown: visible.length,
 								count: rows.length,
@@ -982,12 +1178,13 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 			{adding && !readOnly && (
 				<NewEntryPanel
 					// A new identifier from the search box: a new lookup.
-					key={adding.query ?? ''}
+					key={`${adding.query ?? ''} ${adding.key ?? ''}`}
 					text={text}
 					document={document}
 					dialect={dialect}
 					types={types}
 					initialQuery={adding.query}
+					citedKey={adding.key}
 					onEdit={onEdit}
 					onAdded={(key) => {
 						setAdding(null);
@@ -1010,6 +1207,73 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 				</div>
 			)}
 
+			{missing.length > 0 && (
+				<details className='bib-missing'>
+					<summary>
+						<AlertCircleIcon />
+						{t('{count} keys cited in the LaTeX files have no entry', {
+							count: missing.length,
+						})}
+					</summary>
+					<ul>
+						{missing.map((item) => {
+							const near =
+								item.near !== undefined ? document.entries[item.near] : null;
+							return (
+								<li key={item.key}>
+									<code>{item.key}</code>
+									<span className='ui-meta'>{citedFilesLabel(item.uses)}</span>
+									{near && (
+										<span className='bib-missing-near'>
+											{t('Differs in case only from')}{' '}
+											<button
+												type='button'
+												className='bib-link-button'
+												onClick={() => {
+													setQuery('');
+													select(item.near as number);
+												}}
+											>
+												{near.key}
+											</button>
+										</span>
+									)}
+									{!readOnly &&
+										(near ? (
+											onRenameCitations && (
+												<button
+													type='button'
+													className='button'
+													disabled={citationRename?.status === 'busy'}
+													title={t('Write {key} in the citations', {
+														key: near.key,
+													})}
+													onClick={() => {
+														setQuery('');
+														select(item.near as number);
+														void renameCitations(item.key, near.key);
+													}}
+												>
+													{t('Correct the citations')}
+												</button>
+											)
+										) : (
+											<button
+												type='button'
+												className='button'
+												onClick={() => setAdding({ key: item.key })}
+											>
+												<PlusIcon />
+												{t('Add its entry')}
+											</button>
+										))}
+								</li>
+							);
+						})}
+					</ul>
+				</details>
+			)}
+
 			<div className='bib-entries-main'>
 				<section
 					className='bib-entry-list'
@@ -1028,6 +1292,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 								{sortHeader('title', t('Title'))}
 								{sortHeader('year', t('Year'))}
 								{sortHeader('container', t('Published in'))}
+								{latexRead && sortHeader('cited', t('Citations'))}
 							</tr>
 						</thead>
 						<tbody>
@@ -1054,6 +1319,19 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 									<td className='bib-cell-title'>{item.title}</td>
 									<td className='bib-cell-year'>{item.year}</td>
 									<td>{item.container}</td>
+									{latexRead && (
+										<td
+											className='bib-cell-cited'
+											title={(() => {
+												const uses = citations?.cited.get(item.entry.key);
+												return uses
+													? citedFilesLabel(uses)
+													: t('Not cited in the LaTeX files');
+											})()}
+										>
+											{item.cited || <span className='ui-meta'>—</span>}
+										</td>
+									)}
 								</tr>
 							))}
 						</tbody>
@@ -1061,9 +1339,13 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 					{visible.length === 0 && (
 						<div className='bib-list-empty ui-meta'>
 							<p>
-								{rows.length
-									? t('No entry has these words')
-									: t('This file has no entry yet.')}
+								{!rows.length
+									? t('This file has no entry yet.')
+									: query
+										? t('No entry has these words')
+										: filter === 'cited'
+											? t('No entry is cited')
+											: t('Every entry is cited')}
 							</p>
 							{/* An identifier searched for and not there: added from it. */}
 							{!readOnly &&

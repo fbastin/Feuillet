@@ -193,6 +193,19 @@ autres entrées (retrait, `=` alignés). La clé proposée (`einstein1935`, ou
 référence que le fichier a déjà est signalée. Un identifiant tapé dans la
 recherche, qu'aucune entrée ne contient, s'ajoute d'un clic.
 
+Les fiches lisent aussi les fichiers LaTeX du projet, à jour de ce que les
+collaborateurs y tapent. La colonne **Citations** dit combien de fois chaque
+entrée est citée (`\cite`, `\citep`, `\parencite`, `\textcite`, `\nocite`
+et les autres commandes de natbib, biblatex ou apacite, hors commentaires et
+texte verbatim), et dans quels fichiers; le filtre à côté de la recherche
+montre les entrées citées ou les autres. Les clés citées qu'aucun `.bib` du
+projet ne donne sont listées au-dessus : **Ajouter son entrée** ouvre la
+nouvelle entrée avec cette clé, depuis un DOI ou vide, et une clé qui ne
+diffère d'une entrée que par la casse (`Knuth84` pour `knuth84`, que biber
+ne trouve pas) se corrige dans les citations. Renommer une clé renomme aussi
+ses citations dans tous les fichiers LaTeX, sauf si l'on décoche **Les
+renommer avec la clé**.
+
 Dans `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` et les
 thèmes de Beamer (`\usetheme{…}`…), l'éditeur propose, comme Overleaf, tous
 les paquets, classes, styles BibTeX et thèmes de TeX Live, et d'abord ceux du

@@ -66,7 +66,8 @@
 	white-space: nowrap;
 }
 
-.bib-dialect > select {
+.bib-dialect > select,
+.bib-cited-filter > select {
 	margin: 0;
 	width: auto;
 }
@@ -75,7 +76,8 @@
 .bib-new-entry .button,
 .bib-list-empty .button,
 .bib-add-field .button,
-.bib-detail-actions .button {
+.bib-detail-actions .button,
+.bib-missing .button {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-xs);
@@ -195,6 +197,99 @@
 	cursor: pointer;
 }
 
+/* --- Keys cited without an entry --- */
+
+.bib-missing {
+	margin: 0;
+	padding: var(--space-xs) var(--space-sm);
+	border: 1px solid color-mix(in srgb, var(--color-warning) 45%, transparent);
+	border-radius: var(--radius-sm);
+}
+
+.bib-missing > summary {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	color: var(--color-warning);
+	cursor: pointer;
+}
+
+.bib-missing[open] > summary {
+	margin-bottom: 0;
+}
+
+.bib-missing > summary::after {
+	margin-left: auto;
+}
+
+.bib-missing > summary > svg {
+	width: 1.1em;
+	height: 1.1em;
+	flex-shrink: 0;
+}
+
+.bib-missing > ul {
+	margin: var(--space-xs) 0 0;
+	padding: 0;
+	max-height: 14em;
+	overflow-y: auto;
+}
+
+.bib-missing li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-xs) var(--space-sm);
+	margin: 0;
+	padding: 0.2em 0;
+	list-style: none;
+}
+
+.bib-missing li > .button {
+	margin: 0 0 0 auto;
+	padding: 0.15em 0.6em;
+	font-size: 0.9em;
+}
+
+/* --- Where the entry shown is cited --- */
+
+.bib-cited-line {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-xs) var(--space-md);
+}
+
+.bib-rename-citations {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	margin: 0;
+	color: var(--pico-color);
+}
+
+.bib-rename-citations > input {
+	margin: 0;
+}
+
+.bib-rename-status {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	margin: 0;
+}
+
+.bib-rename-status.bib-field-error {
+	font-size: inherit;
+}
+
+.bib-rename-status > svg {
+	width: 1em;
+	height: 1em;
+	flex-shrink: 0;
+	color: var(--color-success, var(--pico-primary));
+}
+
 /* --- List and entry, side by side, or one above the other --- */
 
 .bib-entries-main {
@@ -303,6 +398,11 @@
 }
 
 .bib-entry-table td.bib-cell-year {
+	font-variant-numeric: tabular-nums;
+}
+
+.bib-entry-table td.bib-cell-cited {
+	text-align: right;
 	font-variant-numeric: tabular-nums;
 }
 

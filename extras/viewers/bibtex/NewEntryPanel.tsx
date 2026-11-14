@@ -49,6 +49,8 @@ interface NewEntryPanelProps {
 	types: string[];
 	/** An identifier to look up at once (typed in the search box). */
 	initialQuery?: string;
+	/** The key a citation of the LaTeX files wants: the entry's key. */
+	citedKey?: string;
 	onEdit: (edit: (text: string) => BibChange[]) => void;
 	/** The entry added, at the end of the file. */
 	onAdded: (key: string) => void;
@@ -111,6 +113,7 @@ export const NewEntryPanel: React.FC<NewEntryPanelProps> = ({
 	dialect,
 	types,
 	initialQuery,
+	citedKey,
 	onEdit,
 	onAdded,
 	onShowEntry,
@@ -126,7 +129,7 @@ export const NewEntryPanel: React.FC<NewEntryPanelProps> = ({
 		error?: string;
 	}>({
 		type: types[0] ?? 'article',
-		key: '',
+		key: citedKey ?? '',
 	});
 	// The last lookup asked: an earlier answer arriving later is ignored.
 	const request = useRef(0);
@@ -183,7 +186,7 @@ export const NewEntryPanel: React.FC<NewEntryPanelProps> = ({
 				});
 				return;
 			}
-			setKey(makeKey(meta, keys));
+			setKey(citedKey ?? makeKey(meta, keys));
 			setLookup({ status: 'found', identifier, meta });
 		} catch (error) {
 			if (asked !== request.current) return;
@@ -272,16 +275,28 @@ export const NewEntryPanel: React.FC<NewEntryPanelProps> = ({
 		}
 	};
 
+	const title = citedKey
+		? `${t('New entry for the citation')} ${citedKey}`
+		: t('New entry');
+
 	return (
 		<section
 			className='bib-new-entry'
-			aria-label={t('New entry')}
+			aria-label={title}
 			onKeyDown={(event) => {
 				if (event.key === 'Escape') onClose();
 			}}
 		>
 			<div className='bib-new-entry-header'>
-				<h4>{t('New entry')}</h4>
+				<h4>
+					{citedKey ? (
+						<>
+							{t('New entry for the citation')} <code>{citedKey}</code>
+						</>
+					) : (
+						title
+					)}
+				</h4>
 				<button
 					type='button'
 					className='ui-icon-button'
