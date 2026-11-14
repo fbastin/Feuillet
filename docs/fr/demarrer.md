@@ -160,6 +160,26 @@ titre, de leur année ou de leur revue, dans n'importe quel ordre et sans
 `Schr{\"o}dinger`. **Entrée** remplace les mots par la clé choisie; après
 une virgule, on cherche la référence suivante.
 
+Un fichier `.bib` s'ouvre sur ses **Fiches**, comme JabRef les montre : la
+liste des entrées, à chercher (n'importe quels mots de n'importe quel champ,
+sans égard aux accents) et à trier par type, clé, auteurs, titre, année ou
+lieu de publication, puis les champs de l'entrée choisie en formulaire, avec
+son aperçu tel qu'une bibliographie l'imprime. Le formulaire montre les
+champs que le type de l'entrée demande (`author` ou `editor` pour un
+`@book`…), puis ses champs facultatifs, au sens de BibTeX ou de biblatex :
+**Champs de** suit les fichiers LaTeX (`biblatex` chargé ou
+`\addbibresource`), sinon la façon dont les entrées sont écrites, et se
+choisit pour le fichier. En biblatex, `journal` vaut `journaltitle`,
+`address` vaut `location` et `school` vaut `institution`, comme biber les
+lit. Chaque changement (une valeur, un champ ajouté ou retiré, la clé, le
+type, une entrée nouvelle ou supprimée) se fait dans le texte à sa place,
+comme s'il était tapé : le reste du fichier reste tel qu'il était écrit, les
+collaborateurs le voient aussitôt, et **Texte** le montre; **Dans le texte**
+mène à l'entrée dans le texte et, en sens inverse, les fiches s'ouvrent sur
+celle où était le curseur. Une entrée à laquelle manque un champ obligatoire,
+dont la clé est celle d'une autre, ou qui ne se lit pas jusqu'au bout est
+marquée dans la liste; lecteurs et relecteurs ne font que lire.
+
 Dans `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` et les
 thèmes de Beamer (`\usetheme{…}`…), l'éditeur propose, comme Overleaf, tous
 les paquets, classes, styles BibTeX et thèmes de TeX Live, et d'abord ceux du

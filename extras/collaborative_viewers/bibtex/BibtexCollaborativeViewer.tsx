@@ -2,6 +2,7 @@
 import { t } from '@/i18n';
 import { Trans } from 'react-i18next';
 import { tidy } from 'bib-editor';
+import { EditorView } from '@codemirror/view';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
@@ -32,6 +33,20 @@ import { formatFileSize } from '@/utils/fileUtils';
 import { detectFileType } from '@/utils/fileUtils';
 import { computeReplacementChange } from '@/utils/textDiffUtils';
 import { BibtexParser, type BibtexEntry } from '@/utils/bibtexParser';
+import {
+	appendEntryChanges,
+	type BibChange,
+	deleteEntryChanges,
+	parseBibDocument,
+} from '@/utils/bibDocument';
+import {
+	type BibDialect,
+	latexBibliographyDialect,
+} from '@/utils/bibEntryTypes';
+import {
+	BibEntriesView,
+	type BibEdit,
+} from '../../viewers/bibtex/BibEntriesView';
 import { TidyOptionsPanel } from '../../viewers/bibtex/TidyOptionsPanel';
 import {
 	type TidyOptions,
@@ -61,6 +76,37 @@ function getPluginToggleButtons(fileTypes: string[] | undefined) {
 
 const noopUpdateComments = () => {};
 
+type BibView = 'entries' | 'original' | 'processed';
+
+// The view one last chose, entries or text: a convenience of this browser.
+const VIEW_KEY = 'feuillet-bib-view';
+const readLastView = (): BibView => {
+	try {
+		return localStorage.getItem(VIEW_KEY) === 'original'
+			? 'original'
+			: 'entries';
+	} catch {
+		return 'entries';
+	}
+};
+
+/** What the project's LaTeX files say of the bibliography. */
+async function projectLatexDialect(): Promise<BibDialect | null> {
+	const files = await fileStoreService.getAllFiles(false);
+	const sources = files
+		.filter(
+			(file) => file.type === 'file' && /\.(tex|ltx|sty|cls)$/i.test(file.name),
+		)
+		.map((file) =>
+			typeof file.content === 'string'
+				? file.content
+				: file.content instanceof ArrayBuffer
+					? new TextDecoder('utf-8').decode(file.content)
+					: '',
+		);
+	return latexBibliographyDialect(sources);
+}
+
 function parseContent(content: string): BibtexEntry[] {
 	try {
 		return BibtexParser.parse(content);
@@ -80,7 +126,10 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 	onUpdateContent,
 	updateComments,
 }) => {
-	const { getAwareness } = useCollab();
+	const { getAwareness, readOnly: readOnlyProject, reviewOnly } = useCollab();
+	// Reviewers suggest changes to documents through tracked changes, which
+	// this editor does not make: for them, as for viewers, it only shows.
+	const readOnly = Boolean(readOnlyProject || reviewOnly);
 
 	const { getSetting } = useSettings();
 	const { getProperty, setProperty, registerProperty } = useProperties();
@@ -102,9 +151,12 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const [warnings, setWarnings] = useState<unknown[]>([]);
 	const [showSidebar, setShowSidebar] = useState(true);
-	const [currentView, setCurrentView] = useState<'original' | 'processed'>(
-		'original',
-	);
+	const [currentView, setCurrentView] = useState<BibView>(readLastView);
+	const [handover, setHandover] = useState<{ at: number } | null>(null);
+	const [latexDialect, setLatexDialect] = useState<BibDialect | null>(null);
+	const [chosenDialects, setChosenDialects] = useState<
+		Record<string, BibDialect>
+	>({});
 	const [viewMode, setViewMode] = useState<'editor' | 'table'>('editor');
 
 	const [processedParsedEntries, setProcessedParsedEntries] = useState<
@@ -156,6 +208,34 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 		if (typeof savedSidebar === 'boolean') {
 			setShowSidebar(savedSidebar);
 		}
+
+		registerProperty({
+			id: 'bibtex-entries-dialect',
+			category: 'Viewers',
+			subcategory: 'BibTeX Editor',
+			defaultValue: {},
+		});
+		const savedDialects = getProperty('bibtex-entries-dialect', {
+			scope: 'project',
+			projectId: currentProjectId ?? undefined,
+		});
+		if (savedDialects && typeof savedDialects === 'object') {
+			setChosenDialects(savedDialects as Record<string, BibDialect>);
+		}
+	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+		projectLatexDialect()
+			.then((dialect) => {
+				if (!cancelled) setLatexDialect(dialect);
+			})
+			.catch((error) =>
+				moduleLog.warn('Could not read the LaTeX files:', error),
+			);
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
 	const handleOptionsChange = (newOptions: TidyOptions) => {
@@ -220,7 +300,7 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 	}, [fileId, fileInfo.filePath]);
 
 	const handleContentUpdate = (newContent: string) => {
-		if (currentView === 'original') {
+		if (currentView !== 'processed') {
 			setBibtexContent(newContent);
 			setHasChanges(true);
 			onUpdateContent(newContent);
@@ -387,7 +467,9 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 		}
 	}, [fileId, currentView, processedContent, bibtexContent, onUpdateContent]);
 
-	const isOriginalView = currentView === 'original';
+	// The text and the entries are the shared document; « processed » is a
+	// copy bibtex-tidy made, saved only when asked.
+	const isOriginalView = currentView !== 'processed';
 
 	const { viewRef, showSaveIndicator } = useEditorView(
 		editorRef,
@@ -398,11 +480,69 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 		handleContentUpdate,
 		isOriginalView ? updateComments || noopUpdateComments : noopUpdateComments,
 		!isOriginalView,
-		false,
+		isOriginalView && readOnly,
 		fileName,
 		undefined,
 		false,
 	);
+
+	/** An edit of the entries view, made through the editor as if typed. */
+	const handleEntriesEdit = (edit: BibEdit) => {
+		const view = viewRef.current;
+		if (!view || readOnly) return;
+		const changes: BibChange[] = edit(view.state.doc.toString());
+		if (!changes.length) return;
+		view.dispatch({ changes, userEvent: 'input.bibentry' });
+		setBibtexContent(view.state.doc.toString());
+	};
+
+	const switchView = (next: BibView) => {
+		if (next === currentView) return;
+		if (next === 'entries' && currentView === 'original' && viewRef.current) {
+			setHandover({ at: viewRef.current.state.selection.main.head });
+		}
+		if (next !== 'processed') {
+			try {
+				localStorage.setItem(VIEW_KEY, next);
+			} catch {
+				// Not kept: private browsing.
+			}
+		}
+		setCurrentView(next);
+	};
+
+	/** The text view, the entry selected in it. */
+	const showInText = (from: number, to: number) => {
+		switchView('original');
+		// Once the editor shows again and has measured itself.
+		setTimeout(() => {
+			const view = viewRef.current;
+			if (!view) return;
+			const length = view.state.doc.length;
+			const head = Math.min(to, length);
+			view.dispatch({
+				selection: { anchor: Math.min(from, head), head },
+				effects: EditorView.scrollIntoView(Math.min(from, head), {
+					y: 'start',
+					yMargin: 48,
+				}),
+			});
+			view.focus();
+		}, 50);
+	};
+
+	const filePathKey = fileInfo.filePath || fileName;
+	const handleDialectChange = (dialect: BibDialect | null) => {
+		const next = { ...chosenDialects };
+		if (dialect) next[filePathKey] = dialect;
+		else delete next[filePathKey];
+		setChosenDialects(next);
+		const currentProjectId = sessionStorage.getItem('currentProjectId');
+		setProperty('bibtex-entries-dialect', next, {
+			scope: 'project',
+			projectId: currentProjectId ?? undefined,
+		});
+	};
 
 	useEffect(() => {
 		let text = '';
@@ -475,6 +615,34 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 			const { entry, filePath } = customEvent.detail;
 
 			if (filePath !== fileInfo.filePath) return;
+
+			// The text or the entries: into the shared document, at once.
+			if (currentView !== 'processed' && viewRef.current) {
+				if (readOnly) return;
+				handleEntriesEdit((current) => {
+					const entries = parseBibDocument(current).entries;
+					const find = (key: string) =>
+						entries.find((candidate) => candidate.key === key);
+					if (entry.action === 'delete') {
+						const target = find(entry.key);
+						return target ? deleteEntryChanges(current, target) : [];
+					}
+					if (entry.action === 'update') {
+						const target = find(entry.oldKey || entry.key) ?? find(entry.key);
+						return target
+							? [
+									{
+										from: target.from,
+										to: target.to,
+										insert: entry.rawEntry.trim(),
+									},
+								]
+							: [];
+					}
+					return appendEntryChanges(current, entry.rawEntry);
+				});
+				return;
+			}
 
 			const sourceContent =
 				currentView === 'processed' && processedContent.trim()
@@ -558,6 +726,7 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 			document.removeEventListener('bib-entry-imported', handleBibEntryImport);
 		};
 	}, [
+		readOnly,
 		currentView,
 		bibtexContent,
 		processedContent,
@@ -617,22 +786,25 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 	const headerControls = (
 		<>
 			<PluginControlGroup>
-				<button
-					type='button'
-					className={`${showSidebar ? 'active' : ''}`}
-					onClick={() => {
-						const next = !showSidebar;
-						setShowSidebar(next);
-						const currentProjectId = sessionStorage.getItem('currentProjectId');
-						setProperty('bibtex-tidy-sidebar-open', next, {
-							scope: 'project',
-							projectId: currentProjectId ?? undefined,
-						});
-					}}
-					title={t('Toggle Options Panel')}
-				>
-					<CleanIcon />
-				</button>
+				{currentView !== 'entries' && (
+					<button
+						type='button'
+						className={`${showSidebar ? 'active' : ''}`}
+						onClick={() => {
+							const next = !showSidebar;
+							setShowSidebar(next);
+							const currentProjectId =
+								sessionStorage.getItem('currentProjectId');
+							setProperty('bibtex-tidy-sidebar-open', next, {
+								scope: 'project',
+								projectId: currentProjectId ?? undefined,
+							});
+						}}
+						title={t('Toggle Options Panel')}
+					>
+						<CleanIcon />
+					</button>
+				)}
 				{currentView === 'processed' && (
 					<button
 						type='button'
@@ -651,7 +823,7 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 			</PluginControlGroup>
 
 			<PluginControlGroup>
-				{currentView === 'original' && (
+				{currentView !== 'processed' && (
 					<button
 						type='button'
 						onClick={() => {
@@ -743,7 +915,7 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 				/>
 
 				<div className='bibtex-viewer-main'>
-					{showSidebar && (
+					{showSidebar && currentView !== 'entries' && (
 						<TidyOptionsPanel
 							options={options}
 							onOptionsChange={handleOptionsChange}
@@ -794,16 +966,28 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 									>
 										<button
 											type='button'
-											className={`ui-tab ${currentView === 'original' ? 'active' : ''}`}
-											onClick={() => setCurrentView('original')}
+											className={`ui-tab ${currentView === 'entries' ? 'active' : ''}`}
+											onClick={() => switchView('entries')}
+											title={t('The entries as a list, each as a form')}
 										>
-											{t('Original')}
+											{t('Entries')}
+										</button>
+										<button
+											type='button'
+											className={`ui-tab ${currentView === 'original' ? 'active' : ''}`}
+											onClick={() => switchView('original')}
+											title={t('The file as text')}
+										>
+											{t('Text')}
 										</button>
 										<button
 											type='button'
 											className={`ui-tab ${currentView === 'processed' ? 'active' : ''}`}
-											onClick={() => setCurrentView('processed')}
+											onClick={() => switchView('processed')}
 											disabled={!processedContent.trim()}
+											title={t(
+												'The file as bibtex-tidy writes it, saved only when asked',
+											)}
 										>
 											{t('Processed')}
 										</button>
@@ -841,11 +1025,33 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 									className='codemirror-editor-container'
 									style={{
 										display:
-											currentView === 'processed' && viewMode === 'table'
+											currentView === 'entries' ||
+											(currentView === 'processed' && viewMode === 'table')
 												? 'none'
 												: 'block',
 									}}
 								/>
+
+								{isOriginalView && (
+									<div
+										className='bib-entries-container'
+										style={{
+											display: currentView === 'entries' ? 'flex' : 'none',
+										}}
+									>
+										<BibEntriesView
+											text={bibtexContent}
+											active={currentView === 'entries'}
+											readOnly={readOnly}
+											chosenDialect={chosenDialects[filePathKey] ?? null}
+											latexDialect={latexDialect}
+											onDialectChange={handleDialectChange}
+											onEdit={handleEntriesEdit}
+											onShowInText={showInText}
+											cursor={handover}
+										/>
+									</div>
+								)}
 
 								{currentView === 'processed' && viewMode === 'table' && (
 									<BibtexTableView
@@ -856,7 +1062,7 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 									/>
 								)}
 
-								{showSaveIndicator && currentView === 'original' && (
+								{showSaveIndicator && currentView !== 'processed' && (
 									<div
 										className='ui-message'
 										data-role='save-indicator'

@@ -151,6 +151,24 @@ and whatever the accents: `\cite{einstein 1905`, or `\cite{schrodinger` for
 `Schr{\"o}dinger`. **Enter** replaces the words with the chosen key; after a
 comma, you search for the next reference.
 
+A `.bib` file opens on its **Entries**, as JabRef shows them: the list of
+entries, to search (any words of any field, whatever the accents) and to sort
+by type, key, authors, title, year or where published, then the chosen
+entry's fields as a form, with its preview as a reference list prints it.
+The form shows the fields the entry's type requires (one of `author` or
+`editor` will do for `@book`…), then its optional ones, in BibTeX's or
+biblatex's sense: **Fields of** follows the LaTeX files (`biblatex` loaded
+or `\addbibresource`), else the way the entries are written, and can be set
+for the file. In biblatex, `journal` stands for `journaltitle`, `address` for
+`location`, `school` for `institution`, as biber reads them. Each change
+(a value, a field added or removed, the key, the type, a new or deleted
+entry) is made in the text where it belongs, as if typed: the rest of the
+file stays as it was written, collaborators see it at once, and **Text**
+shows it; **In the text** goes to the entry there, and the other way, the
+entries open on the one the cursor was in. An entry missing a required
+field, with a key another one has, or that cannot be read to its end is
+marked in the list; viewers and reviewers only read.
+
 In `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` and
 Beamer's themes (`\usetheme{…}`…), the editor offers, as Overleaf does, every
 package, class, BibTeX style and theme of TeX Live, the project's own first

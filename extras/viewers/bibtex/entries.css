@@ -1,0 +1,516 @@
+/* extras/viewers/bibtex/entries.css — the entries of a .bib file, as forms */
+
+.bib-entries-container {
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	container-type: inline-size;
+	container-name: bib-entries;
+}
+
+.bib-entries {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	min-width: 0;
+	gap: var(--space-sm);
+	padding: var(--space-sm);
+	font-size: var(--font-size-small);
+	color: var(--text-color);
+	background-color: var(--pico-background);
+}
+
+/* --- Toolbar --- */
+
+.bib-entries-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-sm);
+}
+
+.bib-search {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	flex: 1 1 14em;
+	min-width: 10em;
+	position: relative;
+}
+
+.bib-search > svg {
+	position: absolute;
+	left: var(--space-sm);
+	width: 0.9em;
+	height: 0.9em;
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+.bib-search > input {
+	width: 100%;
+	margin: 0;
+	padding-left: calc(var(--space-sm) * 2 + 0.9em);
+}
+
+.bib-count {
+	white-space: nowrap;
+}
+
+.bib-dialect {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	margin: 0;
+	white-space: nowrap;
+}
+
+.bib-dialect > select {
+	margin: 0;
+	width: auto;
+}
+
+.bib-entries-toolbar > .button,
+.bib-new-entry .button,
+.bib-add-field .button,
+.bib-detail-actions .button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	margin: 0;
+	white-space: nowrap;
+}
+
+.bib-entries :is(.button, button) > svg {
+	width: 0.9em;
+	height: 0.9em;
+	flex-shrink: 0;
+}
+
+.bib-new-entry {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--space-sm);
+	margin: 0;
+	padding: var(--space-sm);
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-md);
+	background-color: var(--accent-background);
+}
+
+.bib-new-entry label {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	margin: 0;
+}
+
+.bib-new-entry :is(input, select) {
+	margin: 0;
+}
+
+/* --- List and entry, side by side, or one above the other --- */
+
+.bib-entries-main {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+	flex: 1;
+	min-height: 0;
+	border: 1px solid var(--accent-border);
+	border-radius: var(--radius-md);
+	overflow: hidden;
+}
+
+@container bib-entries (max-width: 1100px) {
+	.bib-entries-main {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: minmax(8em, 38%) minmax(0, 1fr);
+	}
+
+	.bib-entries-main > .bib-entry-list {
+		border-right: 0;
+		border-bottom: 1px solid var(--accent-border);
+	}
+
+	.bib-entry-table :is(th, td):is(:nth-child(1), :nth-child(6)) {
+		display: none;
+	}
+}
+
+.bib-entry-list {
+	overflow: auto;
+	min-height: 0;
+	border-right: 1px solid var(--accent-border);
+	outline: none;
+}
+
+.bib-entry-list:focus-visible {
+	box-shadow: inset 0 0 0 2px var(--pico-primary);
+}
+
+.bib-entry-table {
+	width: 100%;
+	margin: 0;
+	border-collapse: collapse;
+	table-layout: auto;
+}
+
+.bib-entry-table th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding: 0;
+	text-align: left;
+	background-color: var(--accent-background);
+	border-bottom: 1px solid var(--accent-border);
+}
+
+.bib-sort-button {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	width: 100%;
+	min-height: 0;
+	margin: 0;
+	padding: var(--space-xs) var(--space-sm);
+	border: 0;
+	border-radius: 0;
+	font-size: inherit;
+	font-weight: 600;
+	color: inherit;
+	background: none;
+	white-space: nowrap;
+	justify-content: flex-start;
+}
+
+.bib-sort-button:hover {
+	background-color: var(--pico-primary-focus);
+}
+
+.bib-sort-mark {
+	font-size: 0.7em;
+	opacity: 0.8;
+}
+
+.bib-entry-table td {
+	background-color: transparent;
+	padding: var(--space-xs) var(--space-sm);
+	max-width: 14em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	border-bottom: 1px solid
+		color-mix(in srgb, var(--accent-border) 60%, transparent);
+	vertical-align: top;
+}
+
+.bib-entry-table td.bib-cell-title {
+	max-width: 22em;
+}
+
+.bib-entry-table td.bib-cell-type {
+	opacity: 0.75;
+}
+
+.bib-entry-table td.bib-cell-key {
+	font-family: var(--pico-font-family-monospace, monospace);
+}
+
+.bib-entry-table td.bib-cell-year {
+	font-variant-numeric: tabular-nums;
+}
+
+.bib-entry-table tbody tr {
+	cursor: pointer;
+}
+
+.bib-entry-table tbody tr:hover {
+	background-color: var(--pico-secondary-background);
+}
+
+.bib-entry-table tbody tr[aria-selected="true"] {
+	background-color: color-mix(in srgb, var(--pico-primary) 18%, transparent);
+}
+
+.bib-entry-table tbody tr[aria-selected="true"] > td:first-child {
+	box-shadow: inset 3px 0 0 var(--pico-primary);
+}
+
+.bib-problem-mark {
+	display: inline-flex;
+	vertical-align: -0.15em;
+	margin-right: var(--space-xs);
+	color: var(--color-warning);
+}
+
+.bib-problem-mark > svg {
+	width: 1.1em;
+	height: 1.1em;
+}
+
+.bib-list-empty {
+	padding: var(--space-md);
+	text-align: center;
+}
+
+/* --- The entry --- */
+
+.bib-entry-detail {
+	overflow: auto;
+	min-height: 0;
+	padding: var(--space-sm) var(--space-md);
+	container-type: inline-size;
+	container-name: bib-detail;
+}
+
+.bib-detail-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	text-align: center;
+}
+
+.bib-detail {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-sm);
+}
+
+.bib-detail-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--space-sm);
+}
+
+.bib-detail-header label {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	margin: 0;
+	font-weight: 600;
+}
+
+.bib-detail-header label > span {
+	font-size: var(--font-size-tiny, 0.75em);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	opacity: 0.75;
+}
+
+.bib-detail-header :is(input, select) {
+	margin: 0;
+	font-weight: normal;
+}
+
+.bib-detail-type select {
+	width: auto;
+	min-width: 9em;
+}
+
+.bib-detail-key {
+	flex: 1 1 10em;
+}
+
+.bib-detail-key input {
+	font-family: var(--pico-font-family-monospace, monospace);
+}
+
+.bib-detail-actions {
+	display: flex;
+	gap: var(--space-xs);
+	margin-left: auto;
+}
+
+.bib-problems {
+	margin: 0;
+	padding-left: 1.2em;
+	color: var(--color-warning);
+}
+
+.bib-problems li {
+	margin: 0;
+	list-style: disc;
+}
+
+.bib-preview {
+	padding: var(--space-sm) var(--space-md);
+	border-left: 3px solid var(--pico-primary);
+	border-radius: var(--radius-sm);
+	background-color: var(--accent-background);
+}
+
+.bib-preview-text {
+	margin: 0;
+	font-size: var(--font-size-body, 0.95em);
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+.bib-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-md);
+	margin: 0;
+	padding: 0;
+	border: 0;
+	min-width: 0;
+}
+
+.bib-form-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.bib-form-section > h4 {
+	margin: 0 0 var(--space-xs);
+	padding-bottom: var(--space-xs);
+	font-size: var(--font-size-small);
+	font-weight: 700;
+	border-bottom: 1px solid var(--accent-border);
+}
+
+.bib-field {
+	display: grid;
+	grid-template-columns: minmax(6em, 10em) minmax(0, 1fr) 2em;
+	align-items: start;
+	gap: var(--space-xs) var(--space-sm);
+}
+
+/* A narrow pane: the name above its value. */
+@container bib-detail (max-width: 460px) {
+	.bib-field {
+		grid-template-columns: minmax(0, 1fr) 2em;
+	}
+
+	.bib-field > .bib-field-label {
+		grid-column: 1 / -1;
+		padding-top: 0;
+	}
+}
+
+.bib-field-label {
+	margin: 0;
+	padding-top: 0.35em;
+	font-family: var(--pico-font-family-monospace, monospace);
+	overflow-wrap: anywhere;
+}
+
+.bib-field[data-required] > .bib-field-label::after {
+	content: " *";
+	color: var(--color-error);
+}
+
+.bib-field-alias {
+	font-family: var(--pico-font-family, sans-serif);
+	opacity: 0.7;
+}
+
+.bib-field-value {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+	min-width: 0;
+}
+
+.bib-field-value > .bib-field-input {
+	width: 100%;
+	margin: 0;
+	font-size: var(--font-size-small);
+}
+
+textarea.bib-field-input {
+	resize: vertical;
+	min-height: 3.5em;
+	line-height: 1.4;
+}
+
+.bib-field-input[aria-invalid="true"] {
+	border-color: var(--color-error);
+}
+
+.bib-field-badge {
+	align-self: flex-start;
+	padding: 0 var(--space-xs);
+	border-radius: var(--radius-sm);
+	font-size: var(--font-size-tiny, 0.75em);
+	background-color: var(--pico-secondary-background);
+	border: 1px solid var(--accent-border);
+	cursor: help;
+}
+
+.bib-field-error {
+	color: var(--color-error);
+	font-size: var(--font-size-tiny, 0.75em);
+}
+
+.bib-field-remove {
+	margin: 0.15em 0 0;
+}
+
+.bib-field-group {
+	margin: 0;
+	padding: var(--space-xs) var(--space-sm) var(--space-sm);
+	border: 1px dashed var(--accent-border);
+	border-radius: var(--radius-sm);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.bib-field-group > legend {
+	padding: 0 var(--space-xs);
+	font-size: var(--font-size-tiny, 0.75em);
+	opacity: 0.8;
+}
+
+.bib-field-group:not([data-satisfied]) > legend {
+	color: var(--color-warning);
+	opacity: 1;
+}
+
+.bib-show-empty {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-xs);
+	margin: var(--space-xs) 0 0;
+	font-size: var(--font-size-small);
+	cursor: pointer;
+}
+
+.bib-show-empty > input {
+	margin: 0;
+}
+
+.bib-add-field {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-sm);
+}
+
+.bib-add-field > input {
+	flex: 0 1 14em;
+	margin: 0;
+}
+
+.bib-source > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.bib-source > pre {
+	margin: var(--space-xs) 0 0;
+	padding: var(--space-sm);
+	max-height: 16em;
+	overflow: auto;
+	font-size: var(--font-size-tiny, 0.75em);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	border-radius: var(--radius-sm);
+	background-color: var(--pico-secondary-background);
+}

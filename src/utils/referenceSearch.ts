@@ -47,6 +47,23 @@ const LETTERS: Record<string, string> = {
 	j: 'ȷ',
 };
 
+// Logos written as commands: « The {\TeX}book » is « The TeXbook ».
+const LOGOS: Record<string, string> = {
+	TeX: 'TeX',
+	LaTeX: 'LaTeX',
+	LaTeXe: 'LaTeX2ε',
+	BibTeX: 'BibTeX',
+	XeTeX: 'XeTeX',
+	XeLaTeX: 'XeLaTeX',
+	LuaTeX: 'LuaTeX',
+	LuaLaTeX: 'LuaLaTeX',
+	ConTeXt: 'ConTeXt',
+	AmS: 'AMS',
+	AmSTeX: 'AMS-TeX',
+	MF: 'Metafont',
+	MP: 'MetaPost',
+};
+
 /** BibTeX text as it reads: « K{\"o}rper » is « Körper ». */
 export const displayText = (text: string): string =>
 	text
@@ -62,7 +79,7 @@ export const displayText = (text: string): string =>
 		)
 		.replace(
 			/\\([a-zA-Z]+)\*?(?:\{\}|\s+)?/g,
-			(_, name: string) => LETTERS[name] ?? '',
+			(_, name: string) => LETTERS[name] ?? LOGOS[name] ?? '',
 		)
 		.replace(/\\([&%$#_{}])/g, '$1')
 		.replace(/\\./g, '')

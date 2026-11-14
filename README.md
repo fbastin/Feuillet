@@ -52,9 +52,11 @@ and compiling with TeX Live.
   check, spell checking with Hunspell (in 15 languages), grammar and style
   checking with LanguageTool on the server
   ([`server/languagetool`](server/languagetool)), a symbol palette, searching
-  the bibliography from `\cite{…}`, the commands a project defines in the
-  completion, a command palette, a presentation mode, a focus mode, and
-  going to a collaborator's cursor from their avatar.
+  the bibliography from `\cite{…}`, `.bib` files as JabRef shows them (a
+  list to search and sort, each entry as a form with the fields its type
+  takes in BibTeX or biblatex, and its preview), the commands a project
+  defines in the completion, a command palette, a presentation mode, a focus
+  mode, and going to a collaborator's cursor from their avatar.
 - **Administration.** For the accounts named administrators: the server's
   disk, emails, backups and compiles, every account with its projects, the
   links to sign up.
