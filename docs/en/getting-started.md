@@ -193,6 +193,18 @@ a DOI or empty, and a key that differs from an entry's only in case
 citations. Renaming a key renames its citations in every LaTeX file too,
 unless **Rename them with the key** is unchecked.
 
+Probable duplicates are told, as JabRef's "Find duplicates" does: two
+entries with the same key, DOI or arXiv number (in `eprint`, an arxiv.org
+link or Google Scholar's "arXiv preprint arXiv:…"), two books with the same
+ISBN, or the same title (a typo apart), first author and year. The
+**Probable duplicates** filter shows them one after the other. **Compare and
+merge** puts them side by side, field by field, as JabRef's "Merge entries":
+you choose the key kept (the cited entry's first), the type and, for each
+field that differs, the value; fields only one has are kept, written as the
+kept entry writes its own, and the other entry is deleted. The citations of
+the key that goes can take the one that stays. **Not the same** dismisses a
+pair told wrongly.
+
 In `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` and
 Beamer's themes (`\usetheme{…}`…), the editor offers, as Overleaf does, every
 package, class, BibTeX style and theme of TeX Live, the project's own first

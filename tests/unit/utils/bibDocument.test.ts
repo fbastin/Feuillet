@@ -218,7 +218,7 @@ describe('entry changes', () => {
 		expect(changeTypeChanges(upper, 'book')[0].insert).toBe('BOOK');
 	});
 
-	it('removes an entry and the blank line after it', () => {
+	it('removes an entry and the blank line after it, or before the last', () => {
 		const text = '@misc{a,\n}\n\n@misc{b,\n}\n\n@misc{c,\n}\n';
 		expect(edit(text, (entry) => deleteEntryChanges(text, entry), 1)).toBe(
 			'@misc{a,\n}\n\n@misc{c,\n}\n',
@@ -227,8 +227,13 @@ describe('entry changes', () => {
 			'@misc{b,\n}\n\n@misc{c,\n}\n',
 		);
 		expect(edit(text, (entry) => deleteEntryChanges(text, entry), 2)).toBe(
-			'@misc{a,\n}\n\n@misc{b,\n}\n\n',
+			'@misc{a,\n}\n\n@misc{b,\n}\n',
 		);
+		const windows = '@misc{a,\r\n}\r\n\r\n@misc{b,\r\n}\r\n';
+		expect(
+			edit(windows, (entry) => deleteEntryChanges(windows, entry), 1),
+		).toBe('@misc{a,\r\n}\r\n');
+		expect(edit('@misc{a,\n}', (entry) => deleteEntryChanges('@misc{a,\n}', entry), 0)).toBe('');
 	});
 
 	it('adds an entry at the end, after a blank line', () => {

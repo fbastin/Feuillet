@@ -206,6 +206,19 @@ ne trouve pas) se corrige dans les citations. Renommer une clé renomme aussi
 ses citations dans tous les fichiers LaTeX, sauf si l'on décoche **Les
 renommer avec la clé**.
 
+Les doublons probables sont signalés, comme le « Find duplicates » de
+JabRef : deux entrées de même clé, de même DOI, de même numéro arXiv (dans
+`eprint`, un lien arxiv.org ou le « arXiv preprint arXiv:… » de Google
+Scholar), deux livres de même ISBN, ou le même titre (à une faute de frappe
+près), le même premier auteur et la même année. Le filtre **Doublons
+probables** les montre l'un après l'autre. **Comparer et fusionner** les met
+côte à côte, champ par champ, comme le « Merge entries » de JabRef : on
+choisit la clé gardée (l'entrée citée d'abord), le type et, pour chaque
+champ qui diffère, la valeur; les champs qu'une seule des deux a sont gardés,
+écrits comme l'entrée gardée écrit les siens, et l'autre entrée est
+supprimée. Les citations de la clé qui disparaît peuvent prendre celle qui
+reste. **Ce n'est pas la même** écarte une paire signalée à tort.
+
 Dans `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` et les
 thèmes de Beamer (`\usetheme{…}`…), l'éditeur propose, comme Overleaf, tous
 les paquets, classes, styles BibTeX et thèmes de TeX Live, et d'abord ceux du

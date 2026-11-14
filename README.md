@@ -56,7 +56,8 @@ and compiling with TeX Live.
   list to search and sort, each entry as a form with the fields its type
   takes in BibTeX or biblatex, and its preview; which entries the LaTeX
   files cite, the keys they cite without an entry, a key renamed in its
-  citations too), the commands a project
+  citations too; probable duplicates, merged field by field), the commands
+  a project
   defines in the completion, a command palette, a presentation mode, a focus
   mode, and going to a collaborator's cursor from their avatar.
 - **Administration.** For the accounts named administrators: the server's

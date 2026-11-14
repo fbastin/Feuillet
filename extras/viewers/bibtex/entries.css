@@ -67,7 +67,7 @@
 }
 
 .bib-dialect > select,
-.bib-cited-filter > select {
+.bib-list-filter > select {
 	margin: 0;
 	width: auto;
 }
@@ -77,7 +77,9 @@
 .bib-list-empty .button,
 .bib-add-field .button,
 .bib-detail-actions .button,
-.bib-missing .button {
+.bib-missing .button,
+.bib-duplicates .button,
+.bib-merge .button {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--space-xs);
@@ -251,6 +253,104 @@
 	font-size: 0.9em;
 }
 
+/* --- Probable duplicates, and their merge --- */
+
+.bib-duplicates {
+	margin: 0;
+	padding: 0;
+}
+
+.bib-duplicates li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-xs) var(--space-sm);
+	margin: 0;
+	list-style: none;
+	color: var(--color-warning);
+}
+
+.bib-duplicates li > svg {
+	width: 1.1em;
+	height: 1.1em;
+	flex-shrink: 0;
+}
+
+.bib-duplicates li > .button {
+	padding: 0.15em 0.6em;
+	font-size: 0.9em;
+}
+
+.bib-duplicates li > .button:first-of-type {
+	margin-left: auto;
+}
+
+.bib-merge-table {
+	width: 100%;
+	margin: 0;
+	table-layout: fixed;
+	border-collapse: collapse;
+	font-size: 0.9em;
+}
+
+.bib-merge-table :is(th, td) {
+	padding: 0.25em var(--space-sm);
+	background-color: transparent;
+	vertical-align: top;
+	text-align: left;
+	border-bottom: 1px solid
+		color-mix(in srgb, var(--accent-border) 60%, transparent);
+}
+
+.bib-merge-table th[scope="row"],
+.bib-merge-table thead th:first-child {
+	width: 9em;
+	font-family: var(--pico-font-family-monospace, monospace);
+	font-weight: normal;
+	overflow-wrap: anywhere;
+}
+
+.bib-merge-table tr[data-differ] {
+	background-color: color-mix(in srgb, var(--color-warning) 10%, transparent);
+}
+
+.bib-merge-table tr:not([data-differ]) td {
+	opacity: 0.75;
+}
+
+.bib-merge-actions {
+	position: sticky;
+	bottom: calc(-1 * var(--space-sm));
+	margin: 0 calc(-1 * var(--space-md)) calc(-1 * var(--space-sm));
+	padding: var(--space-sm) var(--space-md);
+	border-top: 1px solid var(--accent-border);
+	background-color: var(--accent-background);
+}
+
+.bib-merge-choice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-xs);
+	margin: 0;
+	cursor: pointer;
+}
+
+.bib-merge-choice > input {
+	flex-shrink: 0;
+	margin: 0.2em 0 0;
+}
+
+.bib-merge-value {
+	display: block;
+	max-height: 6em;
+	overflow: auto;
+	padding: 0;
+	background: none;
+	font-size: inherit;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
 /* --- Where the entry shown is cited --- */
 
 .bib-cited-line {
@@ -270,6 +370,11 @@
 
 .bib-rename-citations > input {
 	margin: 0;
+}
+
+.bib-new-entry-row label.bib-rename-citations {
+	flex-direction: row;
+	align-items: center;
 }
 
 .bib-rename-status {

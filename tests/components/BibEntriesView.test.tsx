@@ -138,9 +138,7 @@ describe('BibEntriesView', () => {
 
 		it('shows the entries cited, or the others', () => {
 			cited(false);
-			const filter = screen.getByLabelText(
-				'Entries cited in the LaTeX files of the project',
-			);
+			const filter = screen.getByLabelText('Entries to show');
 			fireEvent.change(filter, { target: { value: 'uncited' } });
 			const keys = [
 				...document.querySelectorAll('tbody .bib-cell-key'),
@@ -272,6 +270,137 @@ describe('BibEntriesView', () => {
 			expect(screen.queryByText('Citations')).not.toBeInTheDocument();
 			expect(document.querySelector('.bib-cited-line')).not.toBeInTheDocument();
 			expect(document.querySelector('.bib-missing')).not.toBeInTheDocument();
+		});
+	});
+
+	describe('probable duplicates', () => {
+		const BIB = `@article{CarlSode98,
+  title  = {An experimental comparison of gradient methods in econometric duration analysis},
+  author = {Kenneth Carling and Hans S\\"oderberg},
+  year   = {1998},
+}
+
+@book{knuth1984,
+  title = {The {\\TeX}book},
+}
+
+@article{KennHans98,
+  author  = {Carling, Kenneth and S{\\"o}derberg, Hans},
+  title   = {An Experimental Comparison of Gradient Methods in Econometric Duration Analysis},
+  year    = {1998},
+  pages   = {83--97},
+}
+`;
+		const duplicates = (
+			readOnly: boolean,
+			props: Partial<React.ComponentProps<typeof BibEntriesView>> = {},
+		) =>
+			render(
+				<BibEntriesView
+					text={BIB}
+					active
+					readOnly={readOnly}
+					chosenDialect={null}
+					latexDialect={null}
+					onDialectChange={jest.fn()}
+					onEdit={jest.fn()}
+					onShowInText={jest.fn()}
+					{...props}
+				/>,
+			);
+
+		it('marks them, and shows them together', () => {
+			duplicates(false);
+			const mark = document.querySelector('tbody tr .bib-problem-mark');
+			expect(mark?.getAttribute('title')).toContain(
+				'Probably the same reference as KennHans98',
+			);
+			fireEvent.change(screen.getByLabelText('Entries to show'), {
+				target: { value: 'duplicates' },
+			});
+			const keys = [...document.querySelectorAll('tbody .bib-cell-key')].map(
+				(cell) => cell.textContent,
+			);
+			expect(keys).toEqual(['CarlSode98', 'KennHans98']);
+		});
+
+		it('merges one into the other, field by field', () => {
+			let made = '';
+			const onEdit = jest.fn((edit: BibEdit) => {
+				made = applyBibChanges(BIB, edit(BIB));
+			});
+			duplicates(false, { onEdit });
+			fireEvent.click(screen.getByText('Compare and merge'));
+			const panel = document.querySelector('.bib-merge') as HTMLElement;
+			// The title of the other: its capitals.
+			const titleRow = within(panel).getByText('title').closest('tr') as HTMLElement;
+			fireEvent.click(within(titleRow).getAllByRole('radio')[1]);
+			fireEvent.click(within(panel).getByText(/^Merge into/));
+			expect(onEdit).toHaveBeenCalledTimes(1);
+			expect(made).toBe(`@article{CarlSode98,
+  title  = {An Experimental Comparison of Gradient Methods in Econometric Duration Analysis},
+  author = {Kenneth Carling and Hans S\\"oderberg},
+  year   = {1998},
+  pages  = {83--97},
+}
+
+@book{knuth1984,
+  title = {The {\\TeX}book},
+}
+`);
+			expect(document.querySelector('.bib-merge')).not.toBeInTheDocument();
+		});
+
+		it('keeps the other key when asked', () => {
+			let made = '';
+			const onEdit = jest.fn((edit: BibEdit) => {
+				made = applyBibChanges(BIB, edit(BIB));
+			});
+			duplicates(false, { onEdit });
+			fireEvent.click(screen.getByText('Compare and merge'));
+			const panel = document.querySelector('.bib-merge') as HTMLElement;
+			const header = panel.querySelector('thead tr') as HTMLElement;
+			fireEvent.click(within(header).getAllByRole('radio')[1]);
+			fireEvent.click(within(panel).getByText(/^Merge into/));
+			expect(made.includes('@article{CarlSode98')).toBe(false);
+			expect(made.endsWith(`@article{KennHans98,
+  author  = {Carling, Kenneth and S{\\"o}derberg, Hans},
+  title   = {An Experimental Comparison of Gradient Methods in Econometric Duration Analysis},
+  year    = {1998},
+  pages   = {83--97},
+}
+`)).toBe(true);
+		});
+
+		it('forgets a pair said not to be the same', () => {
+			const onMarkDistinct = jest.fn();
+			const { rerender } = duplicates(false, { onMarkDistinct });
+			fireEvent.click(screen.getByText('Not the same'));
+			expect(onMarkDistinct).toHaveBeenCalledWith('CarlSode98', 'KennHans98');
+			rerender(
+				<BibEntriesView
+					text={BIB}
+					active
+					readOnly={false}
+					chosenDialect={null}
+					latexDialect={null}
+					onDialectChange={jest.fn()}
+					onEdit={jest.fn()}
+					onShowInText={jest.fn()}
+					distinctPairs={[['KennHans98', 'CarlSode98']]}
+					onMarkDistinct={onMarkDistinct}
+				/>,
+			);
+			expect(document.querySelector('.bib-duplicates')).not.toBeInTheDocument();
+			for (const mark of document.querySelectorAll('tbody .bib-problem-mark')) {
+				expect(mark.getAttribute('title')).not.toContain('Probably');
+			}
+		});
+
+		it('lets viewers see them, not merge them', () => {
+			duplicates(true);
+			expect(document.querySelector('.bib-duplicates')).toBeInTheDocument();
+			expect(screen.queryByText('Compare and merge')).not.toBeInTheDocument();
 		});
 	});
 });

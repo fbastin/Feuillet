@@ -664,6 +664,7 @@ export function deleteEntryChanges(text: string, entry: BibEntry): BibChange[] {
 		? lineStartOf(text, entry.from)
 		: entry.from;
 	let to = pastLineEnd(text, entry.to);
+	let start = from;
 	if (
 		from === 0 ||
 		/\n[ \t]*\r?\n$/.test(text.slice(Math.max(0, from - 200), from))
@@ -674,7 +675,19 @@ export function deleteEntryChanges(text: string, entry: BibEntry): BibChange[] {
 			to = next;
 		}
 	}
-	return [{ from, to, insert: '' }];
+	// The last entry: the blank lines before it go too.
+	if (text.slice(to).trim() === '' && start > 0) {
+		const before = text.slice(0, start);
+		const kept = before.replace(/(\r?\n[ \t]*)+$/, '');
+		if (kept.length < before.length) {
+			// The line before keeps its own line end.
+			start = kept.length
+				? kept.length + (before.startsWith('\r\n', kept.length) ? 2 : 1)
+				: 0;
+			to = text.length;
+		}
+	}
+	return [{ from: start, to, insert: '' }];
 }
 
 /** Adds an entry at the end of the file, a blank line before it. */

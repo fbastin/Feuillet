@@ -158,6 +158,10 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 	const [chosenDialects, setChosenDialects] = useState<
 		Record<string, BibDialect>
 	>({});
+	// Per file, the pairs of keys said not to be the same reference.
+	const [distinctEntries, setDistinctEntries] = useState<
+		Record<string, string[][]>
+	>({});
 	const [viewMode, setViewMode] = useState<'editor' | 'table'>('editor');
 
 	const [processedParsedEntries, setProcessedParsedEntries] = useState<
@@ -222,6 +226,20 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 		});
 		if (savedDialects && typeof savedDialects === 'object') {
 			setChosenDialects(savedDialects as Record<string, BibDialect>);
+		}
+
+		registerProperty({
+			id: 'bibtex-distinct-entries',
+			category: 'Viewers',
+			subcategory: 'BibTeX Editor',
+			defaultValue: {},
+		});
+		const savedDistinct = getProperty('bibtex-distinct-entries', {
+			scope: 'project',
+			projectId: currentProjectId ?? undefined,
+		});
+		if (savedDistinct && typeof savedDistinct === 'object') {
+			setDistinctEntries(savedDistinct as Record<string, string[][]>);
 		}
 	}, []);
 
@@ -548,6 +566,17 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 		setChosenDialects(next);
 		const currentProjectId = sessionStorage.getItem('currentProjectId');
 		setProperty('bibtex-entries-dialect', next, {
+			scope: 'project',
+			projectId: currentProjectId ?? undefined,
+		});
+	};
+
+	const handleMarkDistinct = (a: string, b: string) => {
+		const pairs = distinctEntries[filePathKey] ?? [];
+		const next = { ...distinctEntries, [filePathKey]: [...pairs, [a, b]] };
+		setDistinctEntries(next);
+		const currentProjectId = sessionStorage.getItem('currentProjectId');
+		setProperty('bibtex-distinct-entries', next, {
 			scope: 'project',
 			projectId: currentProjectId ?? undefined,
 		});
@@ -1060,6 +1089,8 @@ const BibtexCollaborativeViewer: React.FC<CollaborativeViewerProps> = ({
 											cursor={handover}
 											citations={citations}
 											onRenameCitations={readOnly ? undefined : renameCitations}
+											distinctPairs={distinctEntries[filePathKey]}
+											onMarkDistinct={handleMarkDistinct}
 										/>
 									</div>
 								)}

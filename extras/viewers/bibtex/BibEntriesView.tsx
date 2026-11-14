@@ -41,11 +41,13 @@ import {
 	type RequiredSlot,
 	validFieldNames,
 } from '@/utils/bibEntryTypes';
+import { type DuplicateReason, findDuplicates } from '@/utils/bibDuplicates';
 import { parseIdentifier } from '@/utils/bibIdentifiers';
 import { previewEntry } from '@/utils/bibPreview';
 import type { CitedKey, ProjectCitations } from '@/utils/latexCitations';
 import { authorsLabel, displayText, plainText } from '@/utils/referenceSearch';
 import { BibPreview, editErrorMessage } from './BibPreview';
+import { MergePanel, type MergeSide } from './MergePanel';
 import { NewEntryPanel } from './NewEntryPanel';
 import type { CitationRename } from './useProjectCitations';
 import './entries.css';
@@ -72,6 +74,9 @@ interface BibEntriesViewProps {
 	citations?: ProjectCitations | null;
 	/** Writes `to` where `from` is cited in the LaTeX files. */
 	onRenameCitations?: (from: string, to: string) => Promise<CitationRename>;
+	/** Pairs of keys said not to be the same reference. */
+	distinctPairs?: string[][];
+	onMarkDistinct?: (a: string, b: string) => void;
 }
 
 interface Selection {
@@ -88,7 +93,18 @@ type SortKey =
 	| 'container'
 	| 'cited';
 
-type CitedFilter = 'all' | 'cited' | 'uncited';
+type ListFilter = 'all' | 'problems' | 'duplicates' | 'cited' | 'uncited';
+
+const REASONS: Record<DuplicateReason, () => string> = {
+	key: () => t('the same key'),
+	doi: () => t('the same DOI'),
+	arxiv: () => t('the same arXiv number'),
+	isbn: () => t('the same ISBN'),
+	title: () => t('the same title, first author and year'),
+};
+
+/** Two keys, whatever their order. */
+const pairId = (a: string, b: string) => [a, b].sort().join('\n');
 
 /** A rename of a key's citations, told under the entry renamed. */
 interface CitationRenameState {
@@ -111,6 +127,10 @@ interface Row {
 	problems: string[];
 	/** Citations in the LaTeX files. */
 	cited: number;
+	/** The entries that are probably the same work, and why. */
+	duplicates: Array<{ index: number; reason: DuplicateReason }>;
+	/** Its duplicates' and its smallest index: they show together. */
+	group: number;
 }
 
 const LONG_FIELDS = new Set([
@@ -250,6 +270,8 @@ function buildRows(document: BibDocument, dialect: BibDialect): Row[] {
 			search: plainText(all.join(' ')),
 			problems,
 			cited: 0,
+			duplicates: [],
+			group: index,
 		};
 	});
 }
@@ -410,6 +432,8 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	cursor,
 	citations,
 	onRenameCitations,
+	distinctPairs,
+	onMarkDistinct,
 }) => {
 	const formId = useId();
 	// Viewers and reviewers read: nothing they do reaches the text.
@@ -436,16 +460,46 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		useState<CitationRenameState | null>(null);
 	// What the LaTeX files cite, when the project has some.
 	const latexRead = Boolean(citations && citations.files.length > 0);
-	const rows = useMemo(
-		() =>
-			latexRead && citations
-				? parsedRows.map((row) => ({
-						...row,
-						cited: citations.cited.get(row.entry.key)?.count ?? 0,
-					}))
-				: parsedRows,
-		[parsedRows, citations, latexRead],
-	);
+	// Entries that are probably the same work, unless said not to be (a
+	// key two entries have is always told).
+	const duplicatePairs = useMemo(() => {
+		const distinct = new Set(
+			(distinctPairs ?? []).map(([a, b]) => pairId(a, b)),
+		);
+		return findDuplicates(document).filter(
+			(pair) =>
+				pair.reason === 'key' ||
+				!distinct.has(
+					pairId(document.entries[pair.a].key, document.entries[pair.b].key),
+				),
+		);
+	}, [document, distinctPairs]);
+	const rows = useMemo(() => {
+		const cites = latexRead && citations ? citations : null;
+		if (!cites && duplicatePairs.length === 0) return parsedRows;
+		const partners = new Map<number, Row['duplicates']>();
+		// Groups: each entry's smallest index among its duplicates.
+		const parent = new Map<number, number>();
+		const root = (index: number): number => {
+			const up = parent.get(index);
+			if (up === undefined || up === index) return index;
+			const top = root(up);
+			parent.set(index, top);
+			return top;
+		};
+		for (const { a, b, reason } of duplicatePairs) {
+			partners.set(a, [...(partners.get(a) ?? []), { index: b, reason }]);
+			partners.set(b, [...(partners.get(b) ?? []), { index: a, reason }]);
+			const [ra, rb] = [root(a), root(b)];
+			parent.set(Math.max(ra, rb), Math.min(ra, rb));
+		}
+		return parsedRows.map((row) => ({
+			...row,
+			cited: cites?.cited.get(row.entry.key)?.count ?? 0,
+			duplicates: partners.get(row.index) ?? [],
+			group: root(row.index),
+		}));
+	}, [parsedRows, citations, latexRead, duplicatePairs]);
 	// Keys cited without an entry here or elsewhere, and the entry of this
 	// file that differs only in case, if any.
 	const missing = useMemo(() => {
@@ -487,7 +541,9 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	);
 	const [entryError, setEntryError] = useState<string | null>(null);
 	const [confirmDelete, setConfirmDelete] = useState(false);
-	const [citedFilter, setCitedFilter] = useState<CitedFilter>('all');
+	const [listFilter, setListFilter] = useState<ListFilter>('all');
+	// Two entries being merged: the one shown, then its duplicate.
+	const [merging, setMerging] = useState<[MergeSide, MergeSide] | null>(null);
 	// Renaming a key renames its citations, unless one says not to.
 	const [renameCited, setRenameCited] = useState(true);
 	const listRef = useRef<HTMLElement>(null);
@@ -504,22 +560,56 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		if (index >= 0) setSelection({ key: entries[index].key, index });
 	}, [cursor]);
 
-	const filter = latexRead ? citedFilter : 'all';
+	const filter: ListFilter =
+		!latexRead && (listFilter === 'cited' || listFilter === 'uncited')
+			? 'all'
+			: listFilter;
 	const visible = useMemo(() => {
 		const terms = plainText(query).split(' ').filter(Boolean);
+		const kept = (row: Row) => {
+			if (filter === 'cited') return row.cited > 0;
+			if (filter === 'uncited') return row.cited === 0;
+			if (filter === 'duplicates') return row.duplicates.length > 0;
+			if (filter === 'problems') {
+				return row.problems.length > 0 || row.duplicates.length > 0;
+			}
+			return true;
+		};
 		const found = rows.filter(
-			(row) =>
-				(filter === 'all' || (filter === 'cited') === row.cited > 0) &&
-				terms.every((term) => row.search.includes(term)),
+			(row) => kept(row) && terms.every((term) => row.search.includes(term)),
 		);
-		if (!sort) return found;
+		if (!sort) {
+			// Duplicates one after the other.
+			return filter === 'duplicates'
+				? [...found].sort((a, b) => a.group - b.group || a.index - b.index)
+				: found;
+		}
 		const sorted = [...found].sort(compareRows(sort.key));
 		return sort.descending ? sorted.reverse() : sorted;
 	}, [rows, query, sort, filter]);
-	const citedCount = useMemo(
-		() => rows.filter((item) => item.cited > 0).length,
+	const counts = useMemo(
+		() => ({
+			cited: rows.filter((item) => item.cited > 0).length,
+			problems: rows.filter(
+				(item) => item.problems.length > 0 || item.duplicates.length > 0,
+			).length,
+			duplicates: rows.filter((item) => item.duplicates.length > 0).length,
+		}),
 		[rows],
 	);
+	/** What the list's mark says of an entry. */
+	const marksOf = (row: Row) => [
+		...row.problems,
+		// A key two entries have is a problem said already.
+		...row.duplicates
+			.filter((duplicate) => duplicate.reason !== 'key')
+			.map((duplicate) =>
+				t('Probably the same reference as {key} ({reason})', {
+					key: document.entries[duplicate.index]?.key ?? '',
+					reason: REASONS[duplicate.reason](),
+				}),
+			),
+	];
 
 	/** Writes `to` where `from` is cited, and tells how it went. */
 	const renameCitations = async (from: string, to: string) => {
@@ -1067,6 +1157,57 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 						))}
 					</ul>
 				)}
+				{row.duplicates.length > 0 && (
+					<ul className='bib-duplicates'>
+						{row.duplicates.map(({ index, reason }) => {
+							const other = document.entries[index];
+							if (!other) return null;
+							return (
+								<li key={index}>
+									<AlertCircleIcon />
+									<span>
+										{t('Probably the same reference as')}{' '}
+										<button
+											type='button'
+											className='bib-link-button'
+											onClick={() => select(index)}
+										>
+											{other.key}
+										</button>{' '}
+										({REASONS[reason]()})
+									</span>
+									{!readOnly && (
+										<button
+											type='button'
+											className='button'
+											onClick={() => {
+												setAdding(null);
+												setMerging([
+													{ key: entry.key, index: selectedIndex },
+													{ key: other.key, index },
+												]);
+											}}
+										>
+											{t('Compare and merge')}
+										</button>
+									)}
+									{reason !== 'key' && onMarkDistinct && (
+										<button
+											type='button'
+											className='button'
+											title={t(
+												'Do not tell these two entries as duplicates again',
+											)}
+											onClick={() => onMarkDistinct(entry.key, other.key)}
+										>
+											{t('Not the same')}
+										</button>
+									)}
+								</li>
+							);
+						})}
+					</ul>
+				)}
 
 				<section className='bib-preview' aria-label={t('Preview')}>
 					<BibPreview pieces={previewEntry(document, entry)} />
@@ -1105,29 +1246,39 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 						}}
 					/>
 				</div>
-				{latexRead && (
-					<span className='bib-cited-filter'>
-						<select
-							className='ui-field-control'
-							value={citedFilter}
-							aria-label={t('Entries cited in the LaTeX files of the project')}
-							title={t('Entries cited in the LaTeX files of the project')}
-							onChange={(event) =>
-								setCitedFilter(event.target.value as CitedFilter)
-							}
-						>
-							<option value='all'>{t('All the entries')}</option>
-							<option value='cited'>
-								{t('Cited ({number})', { number: citedCount })}
-							</option>
-							<option value='uncited'>
-								{t('Not cited ({number})', {
-									number: rows.length - citedCount,
-								})}
-							</option>
-						</select>
-					</span>
-				)}
+				<span className='bib-list-filter'>
+					<select
+						className='ui-field-control'
+						value={filter}
+						aria-label={t('Entries to show')}
+						title={t('Entries to show')}
+						onChange={(event) =>
+							setListFilter(event.target.value as ListFilter)
+						}
+					>
+						<option value='all'>{t('All the entries')}</option>
+						<option value='problems'>
+							{t('With a problem ({number})', { number: counts.problems })}
+						</option>
+						<option value='duplicates'>
+							{t('Probable duplicates ({number})', {
+								number: counts.duplicates,
+							})}
+						</option>
+						{latexRead && (
+							<>
+								<option value='cited'>
+									{t('Cited ({number})', { number: counts.cited })}
+								</option>
+								<option value='uncited'>
+									{t('Not cited ({number})', {
+										number: rows.length - counts.cited,
+									})}
+								</option>
+							</>
+						)}
+					</select>
+				</span>
 				<span className='bib-count ui-meta' aria-live='polite'>
 					{query || filter !== 'all'
 						? t('{shown} of {count} entries', {
@@ -1167,13 +1318,36 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 					<button
 						type='button'
 						className='button primary'
-						onClick={() => setAdding((current) => (current ? null : {}))}
+						onClick={() => {
+							setMerging(null);
+							setAdding((current) => (current ? null : {}));
+						}}
 					>
 						<PlusIcon />
 						{t('New entry')}
 					</button>
 				)}
 			</div>
+
+			{merging && !readOnly && (
+				<MergePanel
+					key={`${merging[0].key} ${merging[1].key}`}
+					text={text}
+					document={document}
+					sides={merging}
+					citations={latexRead ? citations : null}
+					canRenameCitations={Boolean(onRenameCitations)}
+					onEdit={onEdit}
+					onMerged={(result) => {
+						setMerging(null);
+						setSelection({ key: result.key, index: result.index });
+						if (result.renameFrom) {
+							void renameCitations(result.renameFrom, result.key);
+						}
+					}}
+					onClose={() => setMerging(null)}
+				/>
+			)}
 
 			{adding && !readOnly && (
 				<NewEntryPanel
@@ -1301,14 +1475,14 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 									key={`${item.index}:${item.entry.key}`}
 									aria-selected={item.index === selectedIndex}
 									onClick={() => select(item.index)}
-									data-problem={item.problems.length > 0 || undefined}
+									data-problem={marksOf(item).length > 0 || undefined}
 								>
 									<td className='bib-cell-type'>{item.type}</td>
 									<td className='bib-cell-key'>
-										{item.problems.length > 0 && (
+										{marksOf(item).length > 0 && (
 											<span
 												className='bib-problem-mark'
-												title={item.problems.join('\n')}
+												title={marksOf(item).join('\n')}
 											>
 												<AlertCircleIcon />
 											</span>
