@@ -388,6 +388,11 @@
 	max-height: 80%;
 }
 
+.bib-cleanup-terms {
+	display: block;
+	font-size: 0.9em;
+}
+
 .bib-cleanup-changes {
 	flex-shrink: 0;
 	max-height: 18em;

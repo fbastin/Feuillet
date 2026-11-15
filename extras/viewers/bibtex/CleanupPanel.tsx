@@ -13,6 +13,7 @@ import {
 	type CleanupChange,
 	type CleanupKind,
 	cleanupChanges,
+	protectedTerms,
 } from '@/utils/bibCleanup';
 import { type BibDocument, parseBibDocument } from '@/utils/bibDocument';
 import { findEntryIndex } from '@/utils/bibDuplicates';
@@ -154,6 +155,8 @@ export const CleanupPanel: React.FC<CleanupPanelProps> = ({
 		}
 		return found;
 	}, [document, indices]);
+	// The proper nouns the file protects: protected in its other titles.
+	const terms = useMemo(() => protectedTerms(document), [document]);
 	const changes = useMemo(
 		() => cleanupChanges(document, kinds, indices),
 		[document, kinds, indices],
@@ -284,6 +287,27 @@ export const CleanupPanel: React.FC<CleanupPanelProps> = ({
 								({counts[kind] ?? 0})
 								{NOTES[kind] ? ` · ${NOTES[kind]?.()}` : ''}
 							</span>
+							{kind === 'capitals' && (
+								<span
+									className='bib-cleanup-terms ui-meta'
+									title={terms.join(', ')}
+								>
+									{terms.length > 0
+										? t(
+												'And everywhere, the proper nouns the file protects in a title in sentence case ({number}): {terms}',
+												{
+													number: terms.length,
+													terms:
+														terms.slice(0, 12).join(', ') +
+														(terms.length > 12 ? '…' : ''),
+												},
+											)
+										: ''}{' '}
+									{t(
+										'Protecting a word by hand once, {Markov}, protects it in every title.',
+									)}
+								</span>
+							)}
 						</span>
 					</label>
 				))}

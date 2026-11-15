@@ -4631,5 +4631,7 @@
   "Page ranges, accents, capitals of titles…": "Intervalles de pages, accents, majuscules des titres…",
   "Clean up": "Nettoyer",
   "Which entries": "Quelles entrées",
-  "Field": "Champ"
+  "Field": "Champ",
+  "And everywhere, the proper nouns the file protects in a title in sentence case ({number}): {terms}": "Et partout, les noms propres que le fichier protège dans un titre en minuscules ({{number}}) : {{terms}}",
+  "Protecting a word by hand once, {Markov}, protects it in every title.": "Protéger un mot à la main une fois, {Markov}, le protège dans tous les titres."
 }

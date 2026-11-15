@@ -4631,5 +4631,7 @@
   "Page ranges, accents, capitals of titles…": "Page ranges, accents, capitals of titles…",
   "Clean up": "Clean up",
   "Which entries": "Which entries",
-  "Field": "Field"
+  "Field": "Field",
+  "And everywhere, the proper nouns the file protects in a title in sentence case ({number}): {terms}": "And everywhere, the proper nouns the file protects in a title in sentence case ({{number}}): {{terms}}",
+  "Protecting a word by hand once, {Markov}, protects it in every title.": "Protecting a word by hand once, {Markov}, protects it in every title."
 }

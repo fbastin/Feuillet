@@ -212,7 +212,11 @@ UTF-8 read as Latin-1, back to "Trépanier"), page ranges (`12-34` as
 (LaTeX stops at them), accents and typography in LaTeX (`é` as `{\'e}`,
 which BibTeX needs; biber reads Unicode) and the capitals a style must not
 lower, protected in titles (acronyms, and the proper nouns of a title in
-sentence case, written `{Monte}` or `{M}onte` as the file does). Each change
+sentence case, written `{Monte}` or `{M}onte` as the file does). The proper
+nouns the file already protects in a title in sentence case, and never
+writes in lower case, are protected in its other titles too, Title Case ones
+included: protecting a word by hand once (`{Markov}`) protects it
+everywhere. Each change
 is shown before it is made and can be unchecked; they are made at once, and
 one undo in **Text** takes them back.
 

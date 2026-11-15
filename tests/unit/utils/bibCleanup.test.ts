@@ -8,6 +8,7 @@ import {
 	cleanupChanges,
 	escapeSpecials,
 	protectCapitals,
+	protectedTerms,
 	repairEncoding,
 	unicodeToLatex,
 } from '@/utils/bibCleanup';
@@ -155,3 +156,37 @@ describe('cleanupChanges', () => {
 		).toBe('letter');
 	});
 });
+
+describe('the proper nouns the file protects', () => {
+	const document = parseBibDocument(`
+@article{a, title = {Smart {M}onte {C}arlo methods using the {Malliavin} calculus}}
+@article{b, title = {A study of {Stochastic} programming}}
+@article{c, title = {On stochastic optimization}}
+@article{d, title = {{Trust-Region Methods}}}
+@article{e, title = {Something of {Release} {(Version A)}}}
+@article{f, title = {Quasi-Monte Carlo Methods Using Malliavin Weights}}
+@article{g, title = {Proceedings of the {Machine} {Learning} Conference}}
+`);
+
+	it('are those a title in sentence case protects, never in lower case elsewhere', () => {
+		// Not stochastic (in lower case in c), not a title protected whole,
+		// not from a title whose case cannot be told (e) or in Title Case (g).
+		expect(protectedTerms(document)).toEqual(['Carlo', 'Malliavin', 'Monte']);
+	});
+
+	it('are protected in the other titles, Title Case ones too', () => {
+		expect(
+			protectCapitals(
+				'Quasi-Monte Carlo Methods Using Malliavin Weights',
+				'letter',
+				new Set(protectedTerms(document)),
+			),
+		).toBe('Quasi-{M}onte {C}arlo Methods Using {M}alliavin Weights');
+		const changes = cleanupChanges(document, new Set(['capitals']));
+		expect(changes.map((change) => [change.key, change.after])).toContainEqual([
+			'f',
+			'Quasi-{Monte} {Carlo} Methods Using {Malliavin} Weights',
+		]);
+	});
+});
+

@@ -427,6 +427,8 @@ function sentenceCase(words: Word[]): boolean {
 export function protectCapitals(
 	value: string,
 	style: CapitalStyle = 'word',
+	/** Words to protect wherever they stand: those the file protects. */
+	terms: ReadonlySet<string> = new Set(),
 ): string {
 	const plain = displayText(value);
 	// ALL CAPS, or nothing to protect.
@@ -450,7 +452,9 @@ export function protectCapitals(
 			/^\p{Lu}/u.test(letters) &&
 			!(letters === 'A' || letters === 'I');
 		const lone = letters.length === 1 && !word.starts && letters !== 'A';
-		if (!inner && !proper && !lone) continue;
+		// A word the file protects elsewhere, in a title in Title Case too.
+		const known = !word.starts && terms.has(displayText(text));
+		if (!inner && !proper && !lone && !known) continue;
 		const wrapped =
 			style === 'letter' && !inner && /^[A-Z][a-z]/.test(text)
 				? `{${text[0]}}${text.slice(1)}`
@@ -459,6 +463,47 @@ export function protectCapitals(
 		at = word.to;
 	}
 	return result + value.slice(at);
+}
+
+/**
+ * The proper nouns the file protects in its titles ({M}onte, {Monte Carlo},
+ * quasi-{N}ewton): protected in its other titles too, Title Case ones
+ * included. Only a title in sentence case tells it: there, braces say
+ * « proper noun », where in Title Case they may be an export's. And a
+ * proper noun keeps its capital everywhere: a word the titles also write in
+ * lower case (« stochastic ») is no term; nor is a whole title protected,
+ * nor a group with punctuation
+ * ({(Release A)}) or a command ({\\sf LANCELOT}). Acronyms and mixed case
+ * are protected anyway.
+ */
+export function protectedTerms(document: BibDocument): string[] {
+	const found = new Set<string>();
+	const lower = new Set<string>();
+	for (const entry of document.entries) {
+		for (const field of entry.fields) {
+			if (!TITLES.has(nameOf(field))) continue;
+			for (const word of displayText(field.value).split(/[^\p{L}]+/u)) {
+				if (/^\p{Ll}/u.test(word)) lower.add(word);
+			}
+			if (!field.value.includes('{')) continue;
+			const words = wordsOf(field.value);
+			if (!sentenceCase(words)) continue;
+			for (const word of words) {
+				const bare = word.text.replace(SPECIAL_GROUP, '');
+				if (!/\{(?!\\)/.test(bare) || /\\[a-zA-Z]{2,}/.test(bare)) continue;
+				const shown = displayText(word.text);
+				if (/[^\p{L}\p{N}\s'’-]/u.test(shown)) continue;
+				const parts = shown.split(/[\s-]+/).filter(Boolean);
+				if (parts.length > 2) continue;
+				for (const part of parts) {
+					if (/^\p{Lu}\p{Ll}+$/u.test(part)) found.add(part);
+				}
+			}
+		}
+	}
+	return [...found]
+		.filter((term) => !lower.has(term.toLowerCase()))
+		.sort((a, b) => a.localeCompare(b));
 }
 
 /** How the file protects capitals: {Monte} or {M}onte, by most titles. */
@@ -482,6 +527,7 @@ export function cleanField(
 	field: BibField,
 	kinds: Set<CleanupKind>,
 	style: CapitalStyle = 'word',
+	terms: ReadonlySet<string> = new Set(),
 ): { value: string; kinds: CleanupKind[] } {
 	const name = nameOf(field);
 	const applied: CleanupKind[] = [];
@@ -503,7 +549,7 @@ export function cleanField(
 	step('doi', name === 'doi', cleanDoi);
 	step('escape', !verbatim(name), escapeSpecials);
 	step('latex', !verbatim(name), unicodeToLatex);
-	step('capitals', TITLES.has(name), (v) => protectCapitals(v, style));
+	step('capitals', TITLES.has(name), (v) => protectCapitals(v, style, terms));
 	return { value, kinds: applied };
 }
 
@@ -517,6 +563,7 @@ export function cleanupChanges(
 	entries?: number[],
 ): CleanupChange[] {
 	const style = capitalStyleOf(document);
+	const terms = new Set(kinds.has('capitals') ? protectedTerms(document) : []);
 	const changes: CleanupChange[] = [];
 	const indices = entries ?? document.entries.map((_, index) => index);
 	for (const index of indices) {
@@ -526,7 +573,7 @@ export function cleanupChanges(
 			if (field.form !== 'braced' && field.form !== 'quoted') continue;
 			// Comments or tracked changes of the review: changed in the text.
 			if (field.value.includes('<###')) continue;
-			const cleaned = cleanField(field, kinds, style);
+			const cleaned = cleanField(field, kinds, style, terms);
 			if (cleaned.kinds.length === 0 || !bracesBalance(cleaned.value)) continue;
 			let insert: string;
 			try {

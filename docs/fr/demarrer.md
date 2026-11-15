@@ -227,7 +227,11 @@ les intervalles de pages (`12-34` en `12--34`), le DOI sans son lien, les
 accents et la typographie en LaTeX (`é` en `{\'e}`, utile à BibTeX; biber
 lit l'Unicode) et les majuscules qu'un style ne doit pas abaisser, protégées
 dans les titres (les sigles, et les noms propres d'un titre en minuscules,
-écrits `{Monte}` ou `{M}onte` comme le fait le fichier). Chaque changement
+écrits `{Monte}` ou `{M}onte` comme le fait le fichier). Les noms propres
+que le fichier protège déjà dans un titre en minuscules, et n'écrit jamais
+en minuscules, le sont aussi dans ses autres titres, ceux en « Title Case »
+compris : protéger un mot une fois à la main (`{Markov}`) suffit pour qu'il
+le soit partout. Chaque changement
 est montré avant d'être fait et peut être décoché; ils se font d'un coup,
 et un seul « annuler » dans **Texte** les défait.
 
