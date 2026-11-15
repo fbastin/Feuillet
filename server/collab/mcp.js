@@ -759,7 +759,10 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 				type: 'object',
 				properties: {
 					project: { type: 'string', description: 'The project id from list_projects' },
-					main_file: { type: 'string', description: "The file to compile (default: the project's main file)" },
+					main_file: {
+						type: 'string',
+						description: "The file to compile (default: the project's main file); a Markdown file compiles with Pandoc",
+					},
 				},
 				required: ['project'],
 				additionalProperties: false,
@@ -812,7 +815,8 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 						mainFile,
 						engine,
 						version,
-						account: context.account,
+						// Its id: tickets name an account by it (compileTickets.js).
+						account: context.account.id,
 					});
 				} catch (error) {
 					throw new ToolError(error.message);

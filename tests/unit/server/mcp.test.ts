@@ -261,3 +261,79 @@ describe('the assistant connector, in both eras of the protocol', () => {
 		});
 	});
 });
+
+// Compiling, the TeX Live server takes a ticket that names the account by
+// its id, a string (server/texlive/server.js): one naming it otherwise is
+// turned away with a 401.
+describe('the compile tool', () => {
+	const crypto = require('node:crypto');
+	const { createCompileTickets } = require('../../../server/collab/compileTickets.js');
+
+	it('compiles for the account, by its id, a Markdown file too', async () => {
+		const { privateKey } = crypto.generateKeyPairSync('ed25519');
+		const tickets = createCompileTickets({ key: privateKey, accounts: {}, shares: {} });
+		const subjects: unknown[] = [];
+		const mainFiles: string[] = [];
+		const mcp = createMcp({
+			oauth: {
+				authenticate: () => ({
+					grant: { clientName: 'Claude' },
+					account: {
+						id: 'a1',
+						username: 'ada',
+						projects: [{ id: 'p1', name: 'Notes', type: 'latex' }],
+					},
+				}),
+				challenge: () => 'Bearer',
+			},
+			shares: { accessOf: (_account: string, id: string) => (id === 'p1' ? { project: 'p1', role: 'owner' } : null) },
+			files: {
+				manifest: async () =>
+					new Map([
+						['/main.tex', { id: 'f1' }],
+						['/todo.md', { id: 'f2' }],
+					]),
+				settings: async () => ({ metadata: {} }),
+				read: async () => ({ text: '- [ ] A task.' }),
+			},
+			history: {},
+			compiler: {
+				compile: async ({ account, mainFile }: { account: unknown; mainFile: string }) => {
+					const [payload] = tickets.forAccount(account).split('.');
+					subjects.push(JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')).s);
+					mainFiles.push(mainFile);
+					return { status: 0, log: '', pdf: 'JVBERi0=' };
+				},
+			},
+			log: () => {},
+			version: '9.9.9',
+		});
+		const server = http.createServer((req, res) => void mcp.handle(req, res));
+		await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+		try {
+			const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Accept: 'application/json, text/event-stream',
+					'MCP-Protocol-Version': MODERN,
+					'Mcp-Method': 'tools/call',
+					'Mcp-Name': 'compile',
+				},
+				body: JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					method: 'tools/call',
+					params: { _meta: meta(), name: 'compile', arguments: { project: 'p1', main_file: '/todo.md' } },
+				}),
+			});
+			const json = await response.json();
+			expect(json.result.isError).toBe(false);
+			expect(json.result.content[0].text).toMatch(/^Compiled \/todo\.md with pdflatex: PDF made without errors/);
+			expect(subjects).toEqual(['a1']);
+			expect(mainFiles).toEqual(['/todo.md']);
+		} finally {
+			await new Promise((resolve) => server.close(resolve));
+		}
+	});
+});
