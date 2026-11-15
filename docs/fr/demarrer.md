@@ -219,6 +219,18 @@ champ qui diffère, la valeur; les champs qu'une seule des deux a sont gardés,
 supprimée. Les citations de la clé qui disparaît peuvent prendre celle qui
 reste. **Ce n'est pas la même** écarte une paire signalée à tort.
 
+**Nettoyer**, comme le « Cleanup entries » de JabRef, propose pour toutes les
+entrées, celles affichées ou celle choisie : les caractères mal encodés
+(« TrÃ©panier », de l'UTF-8 lu comme du Latin-1, redevient « Trépanier »),
+les intervalles de pages (`12-34` en `12--34`), le DOI sans son lien, les
+`& % # _` échappés hors des formules et des URL (LaTeX s'y arrête), les
+accents et la typographie en LaTeX (`é` en `{\'e}`, utile à BibTeX; biber
+lit l'Unicode) et les majuscules qu'un style ne doit pas abaisser, protégées
+dans les titres (les sigles, et les noms propres d'un titre en minuscules,
+écrits `{Monte}` ou `{M}onte` comme le fait le fichier). Chaque changement
+est montré avant d'être fait et peut être décoché; ils se font d'un coup,
+et un seul « annuler » dans **Texte** les défait.
+
 Dans `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` et les
 thèmes de Beamer (`\usetheme{…}`…), l'éditeur propose, comme Overleaf, tous
 les paquets, classes, styles BibTeX et thèmes de TeX Live, et d'abord ceux du

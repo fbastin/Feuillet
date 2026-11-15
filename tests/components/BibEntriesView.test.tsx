@@ -403,4 +403,74 @@ describe('BibEntriesView', () => {
 			expect(screen.queryByText('Compare and merge')).not.toBeInTheDocument();
 		});
 	});
+
+	describe('cleanups', () => {
+		const BIB = `@article{a,
+  title  = {The Mixed Logit model: the state of practice},
+  author = {Tr\u00c3\u00a9panier, Martin},
+  pages  = {12-34},
+}
+
+@article{b,
+  title = {Statistics & data},
+  pages = {1-2},
+}
+`;
+		it('shows each change, makes those left checked in one edit', () => {
+			let made = '';
+			const onEdit = jest.fn((edit: BibEdit) => {
+				made = applyBibChanges(BIB, edit(BIB));
+			});
+			render(
+				<BibEntriesView
+					text={BIB}
+					active
+					readOnly={false}
+					chosenDialect='bibtex'
+					latexDialect={null}
+					onDialectChange={jest.fn()}
+					onEdit={onEdit}
+					onShowInText={jest.fn()}
+				/>,
+			);
+			fireEvent.click(screen.getByText('Clean up'));
+			const panel = document.querySelector('.bib-cleanup') as HTMLElement;
+			const rows = [...panel.querySelectorAll('tbody tr')].map((row) =>
+				[...row.querySelectorAll('td')].slice(1, 3).map((cell) => cell.textContent),
+			);
+			expect(rows).toEqual([
+				['a', 'title'],
+				['a', 'author'],
+				['a', 'pages'],
+				['b', 'title'],
+				['b', 'pages'],
+			]);
+			// Not the capitals of a's title.
+			fireEvent.click(within(panel).getAllByRole('checkbox', { name: 'Make this change' })[0]);
+			fireEvent.click(within(panel).getByText(/^Make 4 changes$/));
+			expect(onEdit).toHaveBeenCalledTimes(1);
+			expect(made).toBe(
+				BIB.replace('Tr\u00c3\u00a9panier', "Tr{\\'e}panier")
+					.replace('{12-34}', '{12--34}')
+					.replace('Statistics &', 'Statistics \\&')
+					.replace('{1-2}', '{1--2}'),
+			);
+		});
+
+		it('is not offered to viewers', () => {
+			render(
+				<BibEntriesView
+					text={BIB}
+					active
+					readOnly
+					chosenDialect={null}
+					latexDialect={null}
+					onDialectChange={jest.fn()}
+					onEdit={jest.fn()}
+					onShowInText={jest.fn()}
+				/>,
+			);
+			expect(screen.queryByText('Clean up')).not.toBeInTheDocument();
+		});
+	});
 });

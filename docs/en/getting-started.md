@@ -205,6 +205,17 @@ kept entry writes its own, and the other entry is deleted. The citations of
 the key that goes can take the one that stays. **Not the same** dismisses a
 pair told wrongly.
 
+**Clean up**, as JabRef's "Cleanup entries", offers for all the entries,
+those shown or the one chosen: characters encoded twice ("TrÃ©panier",
+UTF-8 read as Latin-1, back to "Trépanier"), page ranges (`12-34` as
+`12--34`), a DOI without its link, `& % # _` escaped outside math and URLs
+(LaTeX stops at them), accents and typography in LaTeX (`é` as `{\'e}`,
+which BibTeX needs; biber reads Unicode) and the capitals a style must not
+lower, protected in titles (acronyms, and the proper nouns of a title in
+sentence case, written `{Monte}` or `{M}onte` as the file does). Each change
+is shown before it is made and can be unchecked; they are made at once, and
+one undo in **Text** takes them back.
+
 In `\usepackage{…}`, `\documentclass{…}`, `\bibliographystyle{…}` and
 Beamer's themes (`\usetheme{…}`…), the editor offers, as Overleaf does, every
 package, class, BibTeX style and theme of TeX Live, the project's own first

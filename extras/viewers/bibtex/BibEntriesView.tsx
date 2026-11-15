@@ -10,6 +10,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
 	AlertCircleIcon,
 	CheckIcon,
+	CleanIcon,
 	FileTextIcon,
 	PlusIcon,
 	SearchIcon,
@@ -47,6 +48,7 @@ import { previewEntry } from '@/utils/bibPreview';
 import type { CitedKey, ProjectCitations } from '@/utils/latexCitations';
 import { authorsLabel, displayText, plainText } from '@/utils/referenceSearch';
 import { BibPreview, editErrorMessage } from './BibPreview';
+import { CleanupPanel } from './CleanupPanel';
 import { MergePanel, type MergeSide } from './MergePanel';
 import { NewEntryPanel } from './NewEntryPanel';
 import type { CitationRename } from './useProjectCitations';
@@ -544,6 +546,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	const [listFilter, setListFilter] = useState<ListFilter>('all');
 	// Two entries being merged: the one shown, then its duplicate.
 	const [merging, setMerging] = useState<[MergeSide, MergeSide] | null>(null);
+	const [cleaning, setCleaning] = useState(false);
 	// Renaming a key renames its citations, unless one says not to.
 	const [renameCited, setRenameCited] = useState(true);
 	const listRef = useRef<HTMLElement>(null);
@@ -587,6 +590,14 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		const sorted = [...found].sort(compareRows(sort.key));
 		return sort.descending ? sorted.reverse() : sorted;
 	}, [rows, query, sort, filter]);
+	// The entries the list shows, when a search or a filter narrows it.
+	const shownIndices = useMemo(
+		() =>
+			query.trim() || filter !== 'all'
+				? visible.map((item) => item.index)
+				: null,
+		[visible, query, filter],
+	);
 	const counts = useMemo(
 		() => ({
 			cited: rows.filter((item) => item.cited > 0).length,
@@ -1182,6 +1193,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 											className='button'
 											onClick={() => {
 												setAdding(null);
+												setCleaning(false);
 												setMerging([
 													{ key: entry.key, index: selectedIndex },
 													{ key: other.key, index },
@@ -1320,6 +1332,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 						className='button primary'
 						onClick={() => {
 							setMerging(null);
+							setCleaning(false);
 							setAdding((current) => (current ? null : {}));
 						}}
 					>
@@ -1327,7 +1340,33 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 						{t('New entry')}
 					</button>
 				)}
+				{!readOnly && (
+					<button
+						type='button'
+						className='button'
+						title={t('Page ranges, accents, capitals of titles…')}
+						onClick={() => {
+							setAdding(null);
+							setMerging(null);
+							setCleaning((current) => !current);
+						}}
+					>
+						<CleanIcon />
+						{t('Clean up')}
+					</button>
+				)}
 			</div>
+
+			{cleaning && !readOnly && (
+				<CleanupPanel
+					document={document}
+					dialect={dialect}
+					shown={shownIndices}
+					selected={selectedIndex}
+					onEdit={onEdit}
+					onClose={() => setCleaning(false)}
+				/>
+			)}
 
 			{merging && !readOnly && (
 				<MergePanel
