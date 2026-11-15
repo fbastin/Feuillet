@@ -22,6 +22,7 @@ import {
 import { ProjectDataService } from './ProjectDataService';
 import { projectImportService } from './ProjectImportService';
 import { DirectoryTarget, WriteTargetService } from './WriteTargetService';
+import { toLineFeeds } from '../utils/lineEndings';
 
 const moduleLog = createNamedLogger('DiskBackupService');
 
@@ -701,7 +702,7 @@ class DiskBackupService {
 
 	private yjsStateFromText(text: string): Uint8Array {
 		const doc = new Y.Doc();
-		doc.getText('codemirror').insert(0, text);
+		doc.getText('codemirror').insert(0, toLineFeeds(text));
 		const state = Y.encodeStateAsUpdate(doc);
 		doc.destroy();
 		return state;

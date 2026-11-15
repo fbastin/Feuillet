@@ -12,6 +12,7 @@ import {
 
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
+import { toLineFeeds } from '@/utils/lineEndings';
 import { useCollab } from '../hooks/useCollab';
 import { useSettings } from '../hooks/useSettings';
 import { autoSaveService } from '../services/AutoSaveService';
@@ -509,7 +510,7 @@ export const FileTreeProvider: React.FC<FileTreeProviderProps> = ({
 						newYDoc.transact(() => {
 							const ytext = newYDoc.getText('codemirror');
 							if (ytext.length === 0) {
-								ytext.insert(0, textContent);
+								ytext.insert(0, toLineFeeds(textContent));
 							}
 						});
 

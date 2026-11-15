@@ -55,6 +55,9 @@ import {
 } from 'yjs';
 
 import { createNamedLogger } from '@/logging';
+import { keepLineFeeds } from '@/utils/lineEndings';
+import { projectLinkKind } from '@/utils/urlUtils';
+import { sharedTextLineFeeds } from '../../extensions/codemirror/lineFeeds';
 import { editorPhrases } from '../../extensions/codemirror/editorPhrases';
 import { environmentNameSync } from '../../extensions/codemirror/environmentNameSync';
 import {
@@ -276,6 +279,8 @@ export const useEditorView = (
 	});
 
 	const projectId = docUrl.startsWith('yjs:') ? docUrl.slice(4) : docUrl;
+	const viewOnlyRef = useRef(isViewOnly);
+	viewOnlyRef.current = isViewOnly;
 
 	useEffect(() => {
 		if (!projectId) return;
@@ -831,8 +836,15 @@ export const useEditorView = (
 		const ytext = doc.getText('codemirror');
 		ytextRef.current = ytext;
 		undoManagerRef.current = new UndoManager(ytext);
+		// Lines with \n alone (utils/lineEndings.ts), kept so by those who
+		// may change the text: the server would refuse it from the others.
+		const stopLineFeeds =
+			projectLinkKind(projectId) === 'edit' && !viewOnlyRef.current
+				? keepLineFeeds(ytext)
+				: null;
 
 		return () => {
+			stopLineFeeds?.();
 			undoManagerRef.current = null;
 			collabService.disconnect(projectId, collectionName);
 			setYDoc(null);
@@ -1013,6 +1025,7 @@ export const useEditorView = (
 				undoManagerRef.current,
 			);
 			extensions.push(...yjsEditorBindingRef.current.extensions);
+			extensions.push(sharedTextLineFeeds());
 		} else if (isEditingFile) {
 			extensions.push(history());
 			extensions.push(keymap.of(historyKeymap));

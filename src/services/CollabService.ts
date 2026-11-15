@@ -19,6 +19,7 @@ import type { YjsDocUrl } from '../types/yjs';
 import { parseUrlFragments, projectLinkKind } from '../utils/urlUtils';
 import { offlineService } from './OfflineService';
 import { projectLinkService } from './ProjectLinkService';
+import { toLineFeeds } from '../utils/lineEndings';
 
 const moduleLog = createNamedLogger('CollabService');
 
@@ -834,7 +835,8 @@ class CollabService {
 
 		const ytext = container.doc.getText('codemirror');
 		const currentContent = ytext.toString();
-		const newContent = updater(currentContent);
+		// Lines with \n alone (utils/lineEndings.ts).
+		const newContent = toLineFeeds(updater(currentContent));
 
 		// Only the part that differs is replaced, so that the others' cursors
 		// stay where they are.
