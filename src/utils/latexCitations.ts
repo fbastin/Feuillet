@@ -6,6 +6,12 @@
 // with the rest, not counted as cited); verbatim text and the review's
 // annotation tags hold no citation.
 import { type BibChange, parseBibDocument } from './bibDocument';
+import {
+	type CitationFormat,
+	scanMarkdownCitations,
+	scanTypstCitations,
+	type TypstScan,
+} from './citationFormats';
 
 export interface Citation {
 	key: string;
@@ -306,15 +312,42 @@ export function scanCitations(source: string): CitationScan {
 	return { citations, everything, defined };
 }
 
-/** The changes that write `to` where `from` is cited, comments included. */
+/** A document's citations, read in its format; null for a Markdown
+ * file that is no Pandoc document. */
+export function scanDocumentCitations(
+	text: string,
+	format: CitationFormat = 'latex',
+): CitationScan | TypstScan | null {
+	if (format === 'typst') return scanTypstCitations(text);
+	if (format === 'markdown') return scanMarkdownCitations(text);
+	return scanCitations(text);
+}
+
+/**
+ * The changes that write `to` where `from` is cited, comments included.
+ * In Typst, @from is a reference to a label when the document has <from>:
+ * it is left then.
+ */
 export function renameCitationChanges(
 	text: string,
 	from: string,
 	to: string,
+	format: CitationFormat = 'latex',
 ): BibChange[] {
 	if (from === to) return [];
-	return scanCitations(text)
-		.citations.filter((citation) => citation.key === from)
+	const scan = scanDocumentCitations(text, format);
+	if (!scan) return [];
+	const labels = 'labels' in scan ? new Set(scan.labels) : null;
+	return scan.citations
+		.filter(
+			(citation) =>
+				citation.key === from &&
+				!(
+					labels?.has(from) &&
+					'references' in scan &&
+					scan.references.has(citation)
+				),
+		)
 		.map((citation) => ({
 			from: citation.from,
 			to: citation.to,
@@ -330,24 +363,25 @@ export interface CitedKey {
 	files: Array<{ path: string; count: number }>;
 }
 
-/** What a project's LaTeX files cite and define. */
+/** What a project's documents cite and define. */
 export interface ProjectCitations {
-	/** The LaTeX files read. */
+	/** The documents read: LaTeX, Typst, Pandoc's Markdown. */
 	files: string[];
 	/** Each key cited outside comments. */
 	cited: Map<string, CitedKey>;
-	/** The files with \nocite{*}. */
+	/** The files citing every entry: \nocite{*}, full: true, nocite: @*. */
 	everything: string[];
 	/** Keys given an entry elsewhere than in the .bib shown. */
 	defined: Set<string>;
 }
 
 /**
- * The citations of LaTeX files, and the keys other .bib files (than the
- * one shown) give an entry.
+ * The citations of documents, and the keys other .bib files (than the one
+ * shown) give an entry. A Typst @name is a citation unless a Typst document
+ * of the project has the label <name>.
  */
 export function collectCitations(
-	latex: Array<{ path: string; text: string }>,
+	documents: Array<{ path: string; text: string; format?: CitationFormat }>,
 	otherKeys: Iterable<string> = [],
 ): ProjectCitations {
 	const cited = new Map<string, CitedKey>();
@@ -364,16 +398,31 @@ export function collectCitations(
 		if (file) file.count++;
 		else uses.files.push({ path, count: 1 });
 	};
-	for (const { path, text } of latex) {
-		const scan = scanCitations(text);
+	const scans = documents.flatMap((document) => {
+		const scan = scanDocumentCitations(document.text, document.format);
+		return scan ? [{ path: document.path, scan }] : [];
+	});
+	// Typst's labels, all files: a reference may go to another's.
+	const labels = new Set(
+		scans.flatMap(({ scan }) => ('labels' in scan ? scan.labels : [])),
+	);
+	for (const { path, scan } of scans) {
 		if (scan.everything) everything.push(path);
 		for (const key of scan.defined) defined.add(key);
 		for (const citation of scan.citations) {
-			if (!citation.commented) count(citation.key, path);
+			if (citation.commented) continue;
+			if (
+				'references' in scan &&
+				scan.references.has(citation) &&
+				labels.has(citation.key)
+			) {
+				continue;
+			}
+			count(citation.key, path);
 		}
 	}
 	return {
-		files: latex.map((file) => file.path),
+		files: scans.map(({ path }) => path),
 		cited,
 		everything,
 		defined,

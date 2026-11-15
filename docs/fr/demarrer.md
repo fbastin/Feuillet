@@ -193,17 +193,21 @@ autres entrées (retrait, `=` alignés). La clé proposée (`einstein1935`, ou
 référence que le fichier a déjà est signalée. Un identifiant tapé dans la
 recherche, qu'aucune entrée ne contient, s'ajoute d'un clic.
 
-Les fiches lisent aussi les fichiers LaTeX du projet, à jour de ce que les
+Les fiches lisent aussi les documents du projet, à jour de ce que les
 collaborateurs y tapent. La colonne **Citations** dit combien de fois chaque
-entrée est citée (`\cite`, `\citep`, `\parencite`, `\textcite`, `\nocite`
-et les autres commandes de natbib, biblatex ou apacite, hors commentaires et
-texte verbatim), et dans quels fichiers; le filtre à côté de la recherche
+entrée est citée, et dans quels fichiers : en LaTeX, `\cite`, `\citep`,
+`\parencite`, `\textcite`, `\nocite` et les autres commandes de natbib,
+biblatex ou apacite, hors commentaires et texte verbatim; en Typst, `@clé`
+et `#cite(<clé>)` (une référence `@nom` à une étiquette `<nom>` n'en est pas
+une); en Markdown, les citations de Pandoc (`[@clé, p. 3]`, `@clé`,
+`nocite` de l'en-tête), dans un fichier qui déclare une bibliographie ou
+cite entre crochets, les renvois `@fig-…` de Quarto exceptés; le filtre à côté de la recherche
 montre les entrées citées ou les autres. Les clés citées qu'aucun `.bib` du
 projet ne donne sont listées au-dessus : **Ajouter son entrée** ouvre la
 nouvelle entrée avec cette clé, depuis un DOI ou vide, et une clé qui ne
 diffère d'une entrée que par la casse (`Knuth84` pour `knuth84`, que biber
 ne trouve pas) se corrige dans les citations. Renommer une clé renomme aussi
-ses citations dans tous les fichiers LaTeX, sauf si l'on décoche **Les
+ses citations dans tous les documents, sauf si l'on décoche **Les
 renommer avec la clé**.
 
 Les doublons probables sont signalés, comme le « Find duplicates » de

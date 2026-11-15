@@ -181,16 +181,20 @@ as the file's other entries are (indentation, aligned `=`). The key offered
 it, and a reference the file already has is said so. An identifier typed in
 the search box that no entry holds is added in one click.
 
-The entries also read the project's LaTeX files, up to date with what
+The entries also read the project's documents, up to date with what
 collaborators type there. The **Citations** column tells how many times each
-entry is cited (`\cite`, `\citep`, `\parencite`, `\textcite`, `\nocite` and
-the other commands of natbib, biblatex or apacite, outside comments and
-verbatim text), and in which files; the filter next to the search shows the
+entry is cited, and in which files: in LaTeX, `\cite`, `\citep`,
+`\parencite`, `\textcite`, `\nocite` and the other commands of natbib,
+biblatex or apacite, outside comments and verbatim text; in Typst, `@key`
+and `#cite(<key>)` (a reference `@name` to a label `<name>` is none); in
+Markdown, Pandoc's citations (`[@key, p. 3]`, `@key`, the front matter's
+`nocite`), in a file that names a bibliography or cites in brackets,
+Quarto's `@fig-…` cross-references aside; the filter next to the search shows the
 entries cited, or the others. Keys cited that no `.bib` of the project gives
 are listed above: **Add its entry** opens the new entry with that key, from
 a DOI or empty, and a key that differs from an entry's only in case
 (`Knuth84` for `knuth84`, which biber does not find) is corrected in the
-citations. Renaming a key renames its citations in every LaTeX file too,
+citations. Renaming a key renames its citations in every document too,
 unless **Rename them with the key** is unchecked.
 
 Probable duplicates are told, as JabRef's "Find duplicates" does: two

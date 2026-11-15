@@ -1,5 +1,6 @@
 // extras/viewers/bibtex/useProjectCitations.ts
-// What the project's LaTeX files cite, for the entries of a .bib: kept up
+// What the project's documents cite (LaTeX, Typst, Pandoc's Markdown:
+// src/utils/citationFormats.ts), for the entries of a .bib: kept up
 // to date while shown, as the review overview is (src/hooks/
 // useReviewOverview.ts), documents followed on the collaboration server and
 // other files read from their copies; and a key renamed where it is cited.
@@ -10,6 +11,7 @@ import { t } from '@/i18n';
 import { collabService } from '@/services/CollabService';
 import { fileStoreService } from '@/services/FileStoreService';
 import { applyBibChanges, parseBibDocument } from '@/utils/bibDocument';
+import { type CitationFormat, citationFormatOf } from '@/utils/citationFormats';
 import { isTemporaryFile } from '@/utils/fileUtils';
 import {
 	collectCitations,
@@ -21,7 +23,6 @@ import { projectLinkKind } from '@/utils/urlUtils';
 const REFRESH_DELAY_MS = 800;
 // A server not reached by then: offline.
 const OFFLINE_AFTER_MS = 4000;
-const LATEX = /\.(tex|ltx)$/i;
 const BIB = /\.bib$/i;
 
 export interface CitationRename {
@@ -43,14 +44,14 @@ const textOf = (content: string | ArrayBuffer | undefined): string =>
 			? new TextDecoder().decode(content)
 			: '';
 
-/** The project's LaTeX and other .bib files: the one shown is not read. */
+/** The project's documents and other .bib files: the one shown is not read. */
 async function projectFiles(bibFileId: string | undefined) {
 	return (await fileStoreService.getAllFiles(false, false, false)).filter(
 		(node) =>
 			node.type === 'file' &&
 			node.id !== bibFileId &&
 			!isTemporaryFile(node.path) &&
-			(LATEX.test(node.path) || BIB.test(node.path)),
+			(citationFormatOf(node.path) !== null || BIB.test(node.path)),
 	);
 }
 
@@ -110,7 +111,11 @@ export function useProjectCitations(
 			),
 		);
 
-		const latex: Array<{ path: string; text: string }> = [];
+		const documents: Array<{
+			path: string;
+			text: string;
+			format: CitationFormat;
+		}> = [];
 		const otherKeys: string[] = [];
 		for (const node of nodes) {
 			// Until a document has loaded, its copy stands in for it.
@@ -119,8 +124,9 @@ export function useProjectCitations(
 				: undefined;
 			if (!text)
 				text = textOf((await fileStoreService.getFile(node.id))?.content);
-			if (LATEX.test(node.path)) {
-				latex.push({ path: node.path, text });
+			const format = citationFormatOf(node.path);
+			if (format) {
+				documents.push({ path: node.path, text, format });
 				continue;
 			}
 			let known = bibKeys.current.get(node.id);
@@ -134,8 +140,8 @@ export function useProjectCitations(
 			otherKeys.push(...known.keys);
 		}
 		if (current !== generation.current) return;
-		latex.sort((a, b) => a.path.localeCompare(b.path));
-		setCitations(collectCitations(latex, otherKeys));
+		documents.sort((a, b) => a.path.localeCompare(b.path));
+		setCitations(collectCitations(documents, otherKeys));
 	}, [bibFileId, follow]);
 
 	const schedule = useCallback(() => {
@@ -165,7 +171,7 @@ export function useProjectCitations(
 	}, [enabled, load, schedule]);
 
 	/**
-	 * Writes `to` where `from` is cited in the LaTeX files, comments
+	 * Writes `to` where `from` is cited in the documents, comments
 	 * included: documents once caught up with the collaboration server, so
 	 * that the change is on their latest text, then their copies here.
 	 */
@@ -175,7 +181,7 @@ export function useProjectCitations(
 				throw new Error(t('This project can only be read here'));
 			}
 			const nodes = (await projectFiles(bibFileId))
-				.filter((node) => LATEX.test(node.path))
+				.filter((node) => citationFormatOf(node.path) !== null)
 				.sort((a, b) => a.path.localeCompare(b.path));
 			const documentIds = nodes.flatMap((node) =>
 				node.documentId ? [node.documentId] : [],
@@ -207,7 +213,12 @@ export function useProjectCitations(
 						);
 						if (!container) continue;
 						const text = container.doc.getText('codemirror');
-						const changes = renameCitationChanges(text.toString(), from, to);
+						const changes = renameCitationChanges(
+							text.toString(),
+							from,
+							to,
+							citationFormatOf(node.path) ?? 'latex',
+						);
 						if (changes.length === 0) continue;
 						// Each key alone, the last first: the others' cursors
 						// and changes elsewhere stay as they are.
@@ -222,7 +233,12 @@ export function useProjectCitations(
 						renamed.count += changes.length;
 						next = text.toString();
 					} else {
-						const changes = renameCitationChanges(stored, from, to);
+						const changes = renameCitationChanges(
+							stored,
+							from,
+							to,
+							citationFormatOf(node.path) ?? 'latex',
+						);
 						if (changes.length === 0) continue;
 						renamed.count += changes.length;
 						next = applyBibChanges(stored, changes);

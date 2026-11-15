@@ -80,9 +80,9 @@ interface BibEntriesViewProps {
 	onShowInText: (from: number, to: number) => void;
 	/** Where the text editor's cursor was, to open on the entry there. */
 	cursor?: { at: number } | null;
-	/** What the project's LaTeX files cite, once read. */
+	/** What the project's documents cite, once read. */
 	citations?: ProjectCitations | null;
-	/** Writes `to` where `from` is cited in the LaTeX files. */
+	/** Writes `to` where `from` is cited in the documents. */
 	onRenameCitations?: (from: string, to: string) => Promise<CitationRename>;
 	/** Pairs of keys said not to be the same reference. */
 	distinctPairs?: string[][];
@@ -135,7 +135,7 @@ interface Row {
 	container: string;
 	search: string;
 	problems: string[];
-	/** Citations in the LaTeX files. */
+	/** Citations in the project's documents. */
 	cited: number;
 	/** The entries that are probably the same work, and why. */
 	duplicates: Array<{ index: number; reason: DuplicateReason }>;
@@ -528,7 +528,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	}, [document, dialect, text]);
 	const [citationRename, setCitationRename] =
 		useState<CitationRenameState | null>(null);
-	// What the LaTeX files cite, when the project has some.
+	// What the documents cite, when the project has some.
 	const latexRead = Boolean(citations && citations.files.length > 0);
 	// Entries that are probably the same work, unless said not to be (a
 	// key two entries have is always told).
@@ -1237,8 +1237,8 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 										files: citedFilesLabel(uses),
 									})
 								: citations.everything.length
-									? t('Not cited, but in the bibliography by \\nocite{*}')
-									: t('Not cited in the LaTeX files')}
+									? t('Not cited, but every entry is in the bibliography')
+									: t('Not cited in the documents of the project')}
 						</span>
 						{uses && onRenameCitations && !locked && (
 							<label className='bib-rename-citations'>
@@ -1562,7 +1562,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 				<details className='bib-missing'>
 					<summary>
 						<AlertCircleIcon />
-						{t('{count} keys cited in the LaTeX files have no entry', {
+						{t('{count} keys cited in the documents have no entry', {
 							count: missing.length,
 						})}
 					</summary>
@@ -1688,7 +1688,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 												const uses = citations?.cited.get(item.entry.key);
 												return uses
 													? citedFilesLabel(uses)
-													: t('Not cited in the LaTeX files');
+													: t('Not cited in the documents of the project');
 											})()}
 										>
 											{item.cited || <span className='ui-meta'>—</span>}

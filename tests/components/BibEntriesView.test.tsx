@@ -216,7 +216,7 @@ describe('BibEntriesView', () => {
 			cited(false, onRenameCitations);
 			fireEvent.click(rowOf('lamport94'));
 			expect(document.querySelector('.bib-cited-line')).toHaveTextContent(
-				'Not cited in the LaTeX files',
+				'Not cited in the documents of the project',
 			);
 			expect(screen.queryByRole('checkbox', { name: 'Rename them with the key' }))
 				.not.toBeInTheDocument();

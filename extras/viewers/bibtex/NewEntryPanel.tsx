@@ -49,7 +49,7 @@ interface NewEntryPanelProps {
 	types: string[];
 	/** An identifier to look up at once (typed in the search box). */
 	initialQuery?: string;
-	/** The key a citation of the LaTeX files wants: the entry's key. */
+	/** The key a citation of the documents wants: the entry's key. */
 	citedKey?: string;
 	onEdit: (edit: (text: string) => BibChange[]) => void;
 	/** The entry added, at the end of the file. */
