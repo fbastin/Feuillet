@@ -49,6 +49,7 @@ import {
 	type PdfRenderContext,
 } from './pdfRenderer';
 import { createNamedLogger } from '@/logging';
+import { steppedPage, usePageNumberArrows } from '../shared/pageNumberInput';
 const moduleLog = createNamedLogger('CanvasRenderer');
 
 export interface CanvasRendererHandle {
@@ -1324,10 +1325,30 @@ const CanvasRenderer: React.FC<RendererProps> = ({
 		};
 	}, [cancelTimers]);
 
+	const pageArrows = usePageNumberArrows();
+
 	const handlePageInputKeyDown = (
 		event: React.KeyboardEvent<HTMLInputElement>,
 	) => {
-		if (event.key !== 'Enter') return;
+		const stepped = steppedPage(event.key, pageInput, currentPage, numPages);
+		if (stepped !== null) {
+			event.preventDefault();
+			// Stepping is no typing: the number follows the scroll again.
+			setIsEditingPageInput(false);
+			setPageInput(String(stepped));
+			goToPage(stepped);
+			return;
+		}
+		if (event.key !== 'Enter') {
+			if (
+				event.key.length === 1 ||
+				event.key === 'Backspace' ||
+				event.key === 'Delete'
+			) {
+				setIsEditingPageInput(true);
+			}
+			return;
+		}
 
 		const page = Number.parseInt(pageInput, 10);
 
@@ -1617,12 +1638,21 @@ const CanvasRenderer: React.FC<RendererProps> = ({
 								<input
 									type='number'
 									value={pageInput}
-									onChange={(event) => setPageInput(event.target.value)}
+									onChange={(event) => {
+										setPageInput(event.target.value);
+										const page = pageArrows.pageOfChange(event.target.value);
+										if (page !== null) {
+											setIsEditingPageInput(false);
+											goToPage(page);
+										}
+									}}
+									onPointerDown={pageArrows.onPointerDown}
 									onKeyDown={handlePageInputKeyDown}
 									onFocus={() => setIsEditingPageInput(true)}
 									onBlur={() => {
 										setIsEditingPageInput(false);
-										setPageInput(String(currentPage));
+										// The page now, which Enter may have just changed.
+										setPageInput(String(lastStablePageRef.current));
 									}}
 									className='ui-field-control'
 									data-width='numeric'

@@ -37,6 +37,7 @@ import { useProperties } from '@/hooks/useProperties';
 import { useTheme } from '@/hooks/useTheme';
 import type { RendererProps } from '@/plugins/PluginInterface';
 import { PdfJsFullViewer, type PdfJsFullViewerHandle } from './PdfJsFullViewer';
+import { steppedPage, usePageNumberArrows } from '../shared/pageNumberInput';
 import './styles.css';
 import { createNamedLogger } from '@/logging';
 const moduleLog = createNamedLogger('PdfRenderer');
@@ -507,9 +508,29 @@ const PdfRenderer: React.FC<RendererProps> = ({
 	turnPageRef.current = (step: number) =>
 		goToPage(lastStablePageRef.current + step);
 
+	const pageArrows = usePageNumberArrows();
+
 	const handlePageInputKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLInputElement>) => {
-			if (event.key !== 'Enter') return;
+			const stepped = steppedPage(event.key, pageInput, currentPage, numPages);
+			if (stepped !== null) {
+				event.preventDefault();
+				// Stepping is no typing: the number follows the scroll again.
+				setIsEditingPageInput(false);
+				setPageInput(String(stepped));
+				goToPage(stepped);
+				return;
+			}
+			if (event.key !== 'Enter') {
+				if (
+					event.key.length === 1 ||
+					event.key === 'Backspace' ||
+					event.key === 'Delete'
+				) {
+					setIsEditingPageInput(true);
+				}
+				return;
+			}
 			const page = Number.parseInt(pageInput, 10);
 
 			if (Number.isFinite(page)) goToPage(page);
@@ -518,7 +539,7 @@ const PdfRenderer: React.FC<RendererProps> = ({
 			setIsEditingPageInput(false);
 			event.currentTarget.blur();
 		},
-		[pageInput, currentPage, goToPage],
+		[pageInput, currentPage, numPages, goToPage],
 	);
 
 	const handleFitToggle = useCallback(() => {
@@ -886,12 +907,21 @@ const PdfRenderer: React.FC<RendererProps> = ({
 								<input
 									type='number'
 									value={pageInput}
-									onChange={(event) => setPageInput(event.target.value)}
+									onChange={(event) => {
+										setPageInput(event.target.value);
+										const page = pageArrows.pageOfChange(event.target.value);
+										if (page !== null) {
+											setIsEditingPageInput(false);
+											goToPage(page);
+										}
+									}}
+									onPointerDown={pageArrows.onPointerDown}
 									onKeyDown={handlePageInputKeyDown}
 									onFocus={() => setIsEditingPageInput(true)}
 									onBlur={() => {
 										setIsEditingPageInput(false);
-										setPageInput(String(currentPage));
+										// The page now, which Enter may have just changed.
+										setPageInput(String(lastStablePageRef.current));
 									}}
 									className='ui-field-control'
 									data-width='numeric'
