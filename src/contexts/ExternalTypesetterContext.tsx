@@ -16,6 +16,7 @@ import { compileDiagnosticsService } from '../services/CompileDiagnosticsService
 import {
 	compileOutputStore,
 	projectKeyOf,
+	type StoredCompileOutput,
 } from '../services/CompileOutputStore';
 import { filePathCacheService } from '../services/FilePathCacheService';
 import { latexSourceMapService } from '../services/LaTeXSourceMapService';
@@ -70,6 +71,17 @@ interface ExternalTypesetterContextType {
 	outputFormat: string | null;
 	currentView: 'log' | 'output';
 	logIndicator: 'idle' | 'success' | 'error';
+	/**
+	 * The main document whose output is shown, or which has none yet; null
+	 * before any is known.
+	 */
+	outputMainFile: string | null;
+	/**
+	 * Shows the output of the document a compile now makes, the open one's
+	 * (ExternalCompileButton): its last kept, or none yet, rather than
+	 * another document's.
+	 */
+	showOutputOf: (providerId: string, mainFile: string) => Promise<void>;
 	toggleOutputView: () => void;
 	compileDocument: (
 		providerId: string,
@@ -130,6 +142,18 @@ const getBaseName = (filePath: string): string => {
 	return name.replace(/\.[^.]+$/, '');
 };
 
+// How the pop-out viewer shows an output of this compiler.
+const popoutKindOf = (
+	provider: { outputFormats: Array<{ id: string; outputType?: string }> },
+	format: string,
+	mimeType: string,
+): PopoutContentKind =>
+	provider.outputFormats.find((f) => f.id === format)?.outputType === 'canvas'
+		? mimeType === 'image/svg+xml'
+			? 'canvas-svg'
+			: 'canvas-pdf'
+		: 'pdf';
+
 export const ExternalTypesetterProvider: React.FC<
 	ExternalTypesetterProviderProps
 > = ({ children, docUrl }) => {
@@ -154,11 +178,82 @@ export const ExternalTypesetterProvider: React.FC<
 
 	// Compiles since the project opened, which a kept output must not cover.
 	const compilesRef = useRef(0);
+	// The main document whose output, or lack of one, is shown, and the one
+	// the open document compiles (showOutputOf).
+	const [outputMainFile, setOutputMainFile] = useState<string | null>(null);
+	const shownRef = useRef<string | null>(null);
+	const targetRef = useRef<string | undefined>(undefined);
+	// The newest reading of the kept outputs, which alone may show its own.
+	const readingRef = useRef(0);
+
+	const showKept = useCallback(
+		(kept: StoredCompileOutput, toPopout: boolean) => {
+			const provider = typesetterRegistryService.get(kept.providerId);
+			shownRef.current = kept.mainFile;
+			setOutputMainFile(kept.mainFile);
+			setCompileError(null);
+			setCompileLog(kept.log);
+			setCompiledOutput(kept.output);
+			setOutputMimeType(kept.mimeType);
+			setOutputFormat(kept.format);
+			// Those of the last compile, which may be another document's.
+			setOutputFiles([]);
+			setCurrentView('output');
+			setLogIndicator(kept.status === 0 ? 'success' : 'error');
+			void compileDiagnosticsService.publish(
+				provider?.projectType ?? 'latex',
+				kept.log,
+				kept.mainFile,
+			);
+			if (kept.synctex) {
+				document.dispatchEvent(
+					new CustomEvent('compiler-active', { detail: { type: 'latex' } }),
+				);
+				filePathCacheService.setMainFilePath(kept.mainFile);
+				latexSourceMapService.loadFromBytes(kept.synctex);
+			} else {
+				latexSourceMapService.clear();
+			}
+			if (toPopout && provider) {
+				popoutViewerService.sendContent({
+					kind: popoutKindOf(provider, kept.format, kept.mimeType),
+					content: kept.output,
+					mimeType: kept.mimeType,
+					fileName: `${getBaseName(kept.mainFile)}.${kept.mimeType === 'image/svg+xml' ? 'svg' : 'pdf'}`,
+					projectName: getProjectName(),
+				});
+			}
+		},
+		[],
+	);
+
+	// A document not compiled yet in this browser shows no output, rather
+	// than the PDF of another.
+	const showNone = useCallback((providerId: string, mainFile: string) => {
+		shownRef.current = mainFile;
+		setOutputMainFile(mainFile);
+		setCompileError(null);
+		setCompileLog('');
+		setCompiledOutput(null);
+		setOutputMimeType(null);
+		setOutputFormat(null);
+		setOutputFiles([]);
+		setCurrentView('log');
+		setLogIndicator('idle');
+		latexSourceMapService.clear();
+		void compileDiagnosticsService.publish(
+			typesetterRegistryService.get(providerId)?.projectType ?? 'latex',
+			'',
+			mainFile,
+		);
+	}, []);
 
 	// The project's last output, kept in this browser, shows again when it
 	// opens, as on Overleaf, with its log, its errors in the editor and its
-	// SyncTeX.
+	// SyncTeX: that of the document the open one compiles, once known.
 	useEffect(() => {
+		shownRef.current = null;
+		setOutputMainFile(null);
 		setCompiledOutput(null);
 		setOutputMimeType(null);
 		setOutputFormat(null);
@@ -168,40 +263,62 @@ export const ExternalTypesetterProvider: React.FC<
 		setLogIndicator('idle');
 		if (!projectKey) return;
 		const compiles = compilesRef.current;
+		const reading = ++readingRef.current;
+		const target = targetRef.current;
 		const external = typesetterRegistryService
 			.list()
 			.filter((provider) => provider.source !== 'builtin')
 			.map((provider) => provider.id);
 		let current = true;
 		void compileOutputStore
-			.latest(projectKey, external.length > 0 ? external : undefined)
+			.latest(projectKey, external.length > 0 ? external : undefined, target)
 			.then((kept) => {
-				if (!current || !kept || compilesRef.current !== compiles) return;
+				if (
+					!current ||
+					readingRef.current !== reading ||
+					compilesRef.current !== compiles
+				) {
+					return;
+				}
+				if (!kept) {
+					if (target) {
+						shownRef.current = target;
+						setOutputMainFile(target);
+					}
+					return;
+				}
 				const provider = typesetterRegistryService.get(kept.providerId);
 				if (provider?.source === 'builtin') return;
-				setCompileLog(kept.log);
-				setCompiledOutput(kept.output);
-				setOutputMimeType(kept.mimeType);
-				setOutputFormat(kept.format);
-				setCurrentView('output');
-				setLogIndicator(kept.status === 0 ? 'success' : 'error');
-				void compileDiagnosticsService.publish(
-					provider?.projectType ?? 'latex',
-					kept.log,
-					kept.mainFile,
-				);
-				if (kept.synctex) {
-					document.dispatchEvent(
-						new CustomEvent('compiler-active', { detail: { type: 'latex' } }),
-					);
-					filePathCacheService.setMainFilePath(kept.mainFile);
-					latexSourceMapService.loadFromBytes(kept.synctex);
-				}
+				showKept(kept, false);
 			});
 		return () => {
 			current = false;
 		};
-	}, [projectKey]);
+	}, [projectKey, showKept]);
+
+	const showOutputOf = useCallback(
+		async (providerId: string, mainFile: string) => {
+			targetRef.current = mainFile;
+			if (!projectKey || shownRef.current === mainFile) return;
+			const reading = ++readingRef.current;
+			const compiles = compilesRef.current;
+			const kept = await compileOutputStore.latest(
+				projectKey,
+				[providerId],
+				mainFile,
+			);
+			if (
+				readingRef.current !== reading ||
+				compilesRef.current !== compiles ||
+				targetRef.current !== mainFile
+			) {
+				return;
+			}
+			if (kept) showKept(kept, true);
+			else showNone(providerId, mainFile);
+		},
+		[projectKey, showKept, showNone],
+	);
 
 	const loadFiles = useCallback(async (): Promise<TypesetterFile[]> => {
 		const nodes = await fileStoreService.getAllFiles(false, false, true);
@@ -250,6 +367,37 @@ export const ExternalTypesetterProvider: React.FC<
 					options,
 				});
 
+				// The person may have opened another document meanwhile: this
+				// output is kept for when they come back, and theirs stays.
+				const shows =
+					targetRef.current === undefined || targetRef.current === mainFileName;
+				if (!shows) {
+					if (result.output) {
+						const synctex = findCompileArtifact(result.artifacts, 'synctex', [
+							'.synctex',
+							'.synctex.gz',
+						]);
+						const resolvedFormat = result.format || format;
+						void compileOutputStore.save(projectKey, {
+							providerId,
+							output: result.output.slice(),
+							mimeType:
+								result.mimeType ??
+								provider.outputFormats.find((f) => f.id === resolvedFormat)
+									?.mimeType ??
+								'application/pdf',
+							format: resolvedFormat,
+							log: result.log,
+							status: result.status,
+							mainFile: mainFileName,
+							...(synctex ? { synctex: synctex.data.slice() } : {}),
+							compiledAt: Date.now(),
+						});
+					}
+					return;
+				}
+				shownRef.current = mainFileName;
+				setOutputMainFile(mainFileName);
 				setCompileLog(result.log);
 				setOutputFiles(outputFilesOf(result.artifacts));
 				void compileDiagnosticsService.publish(
@@ -304,12 +452,7 @@ export const ExternalTypesetterProvider: React.FC<
 						compiledAt: Date.now(),
 					});
 
-					const kind: PopoutContentKind =
-						outputFormat?.outputType === 'canvas'
-							? mimeType === 'image/svg+xml'
-								? 'canvas-svg'
-								: 'canvas-pdf'
-							: 'pdf';
+					const kind = popoutKindOf(provider, resolvedFormat, mimeType);
 
 					const extension = mimeType === 'image/svg+xml' ? 'svg' : 'pdf';
 
@@ -607,6 +750,8 @@ export const ExternalTypesetterProvider: React.FC<
 				outputFormat,
 				currentView,
 				logIndicator,
+				outputMainFile,
+				showOutputOf,
 				toggleOutputView,
 				compileDocument,
 				exportDocument,

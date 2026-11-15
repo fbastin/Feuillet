@@ -426,7 +426,9 @@ palette (**Ctrl+P**) has **Export to Markdown** too.
 A Markdown document compiles to PDF too, on the TeX Live server: Pandoc
 makes a LaTeX document of it, which then compiles with the project's
 engine. A `.md` file open compiles itself, whatever the main document; to
-compile that one, open a LaTeX file. A `.md` can also be chosen as the main
+compile that one, open a LaTeX file. Each keeps its PDF: going from one to
+the other, the output shows the open document's, or none if it has not been
+compiled in this browser yet. A `.md` can also be chosen as the main
 file in the compile options, and one that begins with a YAML front matter
 (`title:`, `author:`...) is by itself in a project without a LaTeX
 document. Pandoc's citations (`[@key, p. 3]`, `@key`)

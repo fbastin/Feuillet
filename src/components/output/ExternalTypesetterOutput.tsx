@@ -73,6 +73,7 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 		outputFormat,
 		currentView,
 		logIndicator,
+		outputMainFile,
 		toggleOutputView,
 		compileDocument,
 		outputFiles,
@@ -458,14 +459,19 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 			)}
 
 			{!compileLog && !hasOutput ? (
-				<div className='empty-state ui-empty-state'>
+				<div className='empty-state ui-empty-state' data-role='no-output'>
 					<p>
-						{t(
-							'No output available. Compile a {typesetter} document to see results.',
-							{
-								typesetter: provider.label,
-							},
-						)}
+						{outputMainFile
+							? t(
+									'{file} has not been compiled in this browser yet: compile it to see its output here.',
+									{ file: outputMainFile.split('/').pop() ?? outputMainFile },
+								)
+							: t(
+									'No output available. Compile a {typesetter} document to see results.',
+									{
+										typesetter: provider.label,
+									},
+								)}
 					</p>
 				</div>
 			) : (

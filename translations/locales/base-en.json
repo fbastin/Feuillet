@@ -4906,5 +4906,6 @@
   "Not cited in the documents of the project": "Not cited in the documents of the project",
   "Not cited, but every entry is in the bibliography": "Not cited, but every entry is in the bibliography",
   "{count} keys cited in the documents have no entry_one": "{{count}} key cited in the documents has no entry",
-  "{count} keys cited in the documents have no entry_other": "{{count}} keys cited in the documents have no entry"
+  "{count} keys cited in the documents have no entry_other": "{{count}} keys cited in the documents have no entry",
+  "{file} has not been compiled in this browser yet: compile it to see its output here.": "{{file}} has not been compiled in this browser yet: compile it to see its output here."
 }

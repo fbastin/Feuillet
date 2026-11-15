@@ -4633,5 +4633,6 @@
   "Not cited in the documents of the project": "Non citée dans les documents du projet",
   "Not cited, but every entry is in the bibliography": "Non citée, mais toutes les entrées sont dans la bibliographie",
   "{count} keys cited in the documents have no entry_one": "{{count}} clé citée dans les documents n'a pas d'entrée",
-  "{count} keys cited in the documents have no entry_other": "{{count}} clés citées dans les documents n'ont pas d'entrée"
+  "{count} keys cited in the documents have no entry_other": "{{count}} clés citées dans les documents n'ont pas d'entrée",
+  "{file} has not been compiled in this browser yet: compile it to see its output here.": "{{file}} n'a pas encore été compilé dans ce navigateur : compilez-le pour en voir le résultat ici."
 }

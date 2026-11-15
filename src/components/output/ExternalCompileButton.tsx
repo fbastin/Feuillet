@@ -90,6 +90,7 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		compileDocument,
 		clearCache,
 		stopCompilation,
+		showOutputOf,
 	} = useExternalTypesetter();
 	const { selectedFileId, fileTree } = useFileTree();
 	const { getSetting } = useSettings();
@@ -221,6 +222,13 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 			? settings.mainFile
 			: undefined;
 	const effectiveMainFile = openMarkdown || projectMainFile || autoMainFile;
+
+	// The output shown is that of the document Compile makes: going from
+	// main.tex to a Markdown note and back shows each one's own PDF.
+	useEffect(() => {
+		if (!useSharedSettings || !effectiveMainFile) return;
+		void showOutputOf(provider.id, effectiveMainFile);
+	}, [useSharedSettings, effectiveMainFile, provider.id, showOutputOf]);
 
 	const effectiveAutoCompileOnSave =
 		getProperty(autoCompilePropertyId, { scope: 'project', projectId }) ===
