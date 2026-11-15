@@ -5,7 +5,11 @@ import { nanoid } from 'nanoid';
 import { t } from '@/i18n';
 import { createNamedLogger } from '@/logging';
 import type { FileNode } from '../types/files';
-import { isRootLatexDocument } from '../utils/compilerUtils';
+import {
+	isMarkdownPath,
+	isRootLatexDocument,
+	isRootMarkdownDocument,
+} from '../utils/compilerUtils';
 import { isBinaryFile, toArrayBuffer } from '../utils/fileUtils';
 import {
 	FILE_MOVED_EVENT,
@@ -1126,12 +1130,16 @@ class FileStoreService {
 	}
 
 	/** Whether a LaTeX file is a document of its own; true when unknown. */
+	/** A document of its own: a LaTeX file with \documentclass, or a
+	 * Markdown file with a front matter. */
 	async isRootLatexFile(path: string): Promise<boolean> {
 		const content = (await this.getFileByPath(path))?.content;
 		if (content === undefined) return true;
-		return isRootLatexDocument(
-			typeof content === 'string' ? content : new TextDecoder().decode(content),
-		);
+		const text =
+			typeof content === 'string' ? content : new TextDecoder().decode(content);
+		return isMarkdownPath(path)
+			? isRootMarkdownDocument(text)
+			: isRootLatexDocument(text);
 	}
 
 	async getFilesByPath(

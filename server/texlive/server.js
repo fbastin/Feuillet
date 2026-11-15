@@ -32,6 +32,14 @@
 // compile, and always on this server, whatever year the project compiles
 // with.
 //
+// A Markdown main file (.md, .markdown) compiles too: Pandoc makes a LaTeX
+// document of it (<name>.pandoc.tex, beside it so that its images and
+// bibliography are found), its citations formatted by citeproc from the
+// bibliography its front matter names, which then compiles as any other.
+// Pandoc's warnings (a citation not found) are the log's; no SyncTeX comes
+// back, as it would point into the LaTeX Pandoc made. On this server, as a
+// conversion.
+//
 // As on Overleaf, a project may choose its year of TeX Live: this server is
 // the latest, and other years are servers of their own, on sockets of the
 // same directory (OTHER_YEARS, deploy/docker-compose.yml). A compile that
@@ -292,6 +300,9 @@ const log = (...parts) =>
 
 const lastChars = (text) =>
 	text.length > MAX_LOG_CHARS ? text.slice(-MAX_LOG_CHARS) : text;
+
+// A main file in Markdown, which Pandoc makes LaTeX of before compiling.
+const MARKDOWN_MAIN = /\.(md|markdown)$/i;
 
 const formatLog = ({ engine, source, status, transcript, output, errors }) =>
 	[
@@ -989,7 +1000,84 @@ class Session {
 		}
 	}
 
-	async compile(mainFile, format, options) {
+	/**
+	 * A Markdown main file: Pandoc makes the LaTeX document, which compiles.
+	 */
+	async compileMarkdown(mainFile, format, options) {
+		const { absolute: source } = this.resolve(mainFile);
+		if (!(await exists(source))) {
+			return { status: 1, log: `Main file not found: ${mainFile}`, format };
+		}
+		const directory = path.dirname(source);
+		const name = path.basename(source);
+		const latexName = `${name.replace(MARKDOWN_MAIN, '')}.pandoc.tex`;
+		const latexPath = path.join(directory, latexName);
+		const started = Date.now();
+		const result = await this.run(
+			[
+				'--from=markdown',
+				'--to=latex',
+				'--standalone',
+				'--citeproc',
+				`--output=${latexName}`,
+				name,
+			],
+			directory,
+			'pandoc',
+		);
+		if (this.uid !== null) await killUid(this.uid);
+		log(`made LaTeX of Markdown: status ${result.status} in ${Date.now() - started} ms`);
+		// [WARNING] lines, as LaTeX's package warnings for the log viewer.
+		const warnings = [...result.output.matchAll(/^\[WARNING\]\s*(.+)$/gm)].map(
+			(match) => `Package Pandoc Warning: ${match[1]}`,
+		);
+		if (result.status !== 0 || result.timedOut || result.stopped) {
+			const reason = result.timedOut
+				? `Compilation stopped after ${Math.round(compileTimeoutMs / 1000)} seconds.`
+				: result.stopped
+					? 'Compilation stopped.'
+					: `Pandoc could not make LaTeX of ${name}: ${
+							result.output
+								.split('\n')
+								.filter((line) => line.trim() && !line.startsWith('[WARNING]'))
+								.join(' ')
+								.trim() || 'it gave no reason.'
+						}`;
+			return {
+				status: result.status || 1,
+				log: formatLog({
+					engine: 'pandoc',
+					source: name,
+					status: result.status || 1,
+					transcript: warnings.join('\n'),
+					output: result.output,
+					errors: [reason],
+				}),
+				format,
+			};
+		}
+		// Pandoc's template leaves an empty list of class options.
+		const latex = await fs.readFile(latexPath, 'utf8').catch(() => null);
+		if (latex === null) {
+			return { status: 1, log: 'Pandoc wrote nothing.', format };
+		}
+		const fixed = latex.replace(/\\documentclass\[\s*\]\{/, '\\documentclass{');
+		if (fixed !== latex) await fs.writeFile(latexPath, fixed);
+		const latexRelative = path
+			.relative(this.dir, latexPath)
+			.split(path.sep)
+			.join('/');
+		return this.compile(latexRelative, format, options, {
+			source: name,
+			warnings,
+		});
+	}
+
+	/**
+	 * `made` is said of a LaTeX document Pandoc made from Markdown: the
+	 * Markdown file the log names, and Pandoc's warnings, at its start.
+	 */
+	async compile(mainFile, format, options, made = null) {
 		const { absolute: source } = this.resolve(mainFile);
 		if (!(await exists(source))) {
 			return { status: 1, log: `Main file not found: ${mainFile}`, format };
@@ -1082,9 +1170,11 @@ class Session {
 				: await fs.readFile(transcriptPath, 'utf8').catch(() => '');
 		const report = formatLog({
 			engine,
-			source: path.basename(source),
+			source: made ? `${made.source} (pandoc)` : path.basename(source),
 			status,
-			transcript: lastChars(transcript),
+			transcript: made
+				? [...made.warnings, lastChars(transcript)].join('\n')
+				: lastChars(transcript),
 			output,
 			errors,
 		});
@@ -1104,7 +1194,7 @@ class Session {
 		}
 
 		const artifacts = [];
-		if (await exists(synctexPath)) {
+		if (!made && (await exists(synctexPath))) {
 			artifacts.push({
 				id: 'synctex',
 				name: `${jobName}.synctex.gz`,
@@ -1175,6 +1265,9 @@ class Session {
 			if (this.stopped) return stoppedReply();
 			if (options.action === 'pandoc') {
 				return await this.convert(request.mainFile, options);
+			}
+			if (MARKDOWN_MAIN.test(request.mainFile)) {
+				return await this.compileMarkdown(request.mainFile, format, options);
 			}
 			return await this.compile(request.mainFile, format, options);
 		} finally {
@@ -1451,9 +1544,13 @@ wss.on('connection', (conn, req) => {
 					? request.options
 					: {};
 			// Asking for a file, or to clear the cache: the last compile's server.
-			// Converting with Pandoc: this one, which has it.
+			// Converting with Pandoc, or compiling Markdown: this one, which
+			// has it.
 			const to =
-				options.action === 'pandoc'
+				options.action === 'pandoc' ||
+				(!options.action &&
+					typeof request.mainFile === 'string' &&
+					MARKDOWN_MAIN.test(request.mainFile))
 					? ''
 					: options.action
 						? target

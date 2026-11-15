@@ -423,6 +423,19 @@ those images. What Markdown cannot say (page layout, cross-reference
 labels, commands of your own) is left out: the menu says so. The command
 palette (**Ctrl+P**) has **Export to Markdown** too.
 
+A Markdown document compiles to PDF too, on the TeX Live server: Pandoc
+makes a LaTeX document of it, which then compiles with the project's
+engine. A `.md` file is a document to compile when it begins with a YAML
+front matter (`title:`, `author:`...); it compiles when it is open, or
+when it is chosen as the main file in the compile options, and when the
+project has no LaTeX document. Pandoc's citations (`[@key, p. 3]`, `@key`)
+are written out from the bibliography the front matter names
+(`bibliography: refs.bib`), in the style it may name (`csl: apa.csl`),
+followed by the references at the end of the document. A citation not
+found is told in the log. The LaTeX Pandoc makes (`<name>.pandoc.tex`) is
+among the compile's other files; the double click from the PDF to the text
+does not work for Markdown.
+
 ### From text to PDF, and back
 
 A double click in the PDF goes to the matching line of the text. The sync

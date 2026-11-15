@@ -150,7 +150,9 @@ export function createTexliveTypesetterConfig(
 		projectGroup: 'tex',
 		incrementalSync: true,
 		compileTimeoutMs: 240_000,
-		inputExtensions: ['tex'],
+		// A Markdown document compiles too: the server makes LaTeX of it with
+		// Pandoc (server/texlive/server.js).
+		inputExtensions: ['tex', 'md', 'markdown'],
 		inputFiles: [
 			{
 				extension: 'tex',

@@ -142,6 +142,14 @@ export function outputExtension(
 export const isRootLatexDocument = (text: string): boolean =>
 	/^[^%\n]*\\documentclass\b/m.test(text);
 
+export const isMarkdownPath = (path: string): boolean =>
+	/\.(md|markdown)$/i.test(path);
+
+/** A Markdown document of its own, to compile: one with a front matter, as
+ * Pandoc's (title, author, bibliography). Notes and READMEs have none. */
+export const isRootMarkdownDocument = (text: string): boolean =>
+	/^---[ \t]*\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/.test(text);
+
 /**
  * The LaTeX file to compile, as Overleaf compiles the main document from any
  * of its files: the open file when it is a document of its own, otherwise
@@ -163,11 +171,14 @@ export async function chooseLatexMainFile(
 	) {
 		return previous;
 	}
+	// LaTeX before Markdown: a Markdown document is compiled when the
+	// project has no LaTeX one, or when it is open.
 	const others = available
 		.filter((path) => path !== candidate && path !== previous)
 		.sort(
 			(a, b) =>
 				Number(b === '/main.tex') - Number(a === '/main.tex') ||
+				Number(isMarkdownPath(a)) - Number(isMarkdownPath(b)) ||
 				a.split('/').length - b.split('/').length ||
 				a.localeCompare(b),
 		);

@@ -1,8 +1,51 @@
 import {
 	chooseLatexMainFile,
+	isMarkdownPath,
 	isRootLatexDocument,
+	isRootMarkdownDocument,
 	outputFilesOf,
 } from '@src/utils/compilerUtils';
+
+describe('Markdown documents', () => {
+	it('are those with a front matter', () => {
+		expect(isRootMarkdownDocument('---\ntitle: A paper\n---\n\nText')).toBe(true);
+		expect(isRootMarkdownDocument('---\r\nbibliography: refs.bib\r\n...\r\n')).toBe(
+			true,
+		);
+		expect(isRootMarkdownDocument('# Notes\n\n---\n\nMore')).toBe(false);
+		expect(isMarkdownPath('/paper.md')).toBe(true);
+		expect(isMarkdownPath('/main.tex')).toBe(false);
+	});
+
+	const files: Record<string, string> = {
+		'/main.tex': '\\documentclass{article}',
+		'/paper.md': '---\ntitle: A paper\n---\n',
+		'/notes.md': '# Notes\n',
+	};
+	const isRoot = async (path: string) =>
+		isMarkdownPath(path)
+			? isRootMarkdownDocument(files[path] ?? '')
+			: isRootLatexDocument(files[path] ?? '');
+
+	it('compile when open, not when they are notes', async () => {
+		const available = Object.keys(files);
+		expect(
+			await chooseLatexMainFile('/paper.md', '/main.tex', available, isRoot),
+		).toBe('/paper.md');
+		expect(
+			await chooseLatexMainFile('/notes.md', '/main.tex', available, isRoot),
+		).toBe('/main.tex');
+	});
+
+	it('come after LaTeX documents, and alone compile', async () => {
+		expect(
+			await chooseLatexMainFile('/notes.md', undefined, ['/paper.md', '/main.tex', '/notes.md'], isRoot),
+		).toBe('/main.tex');
+		expect(
+			await chooseLatexMainFile('/notes.md', undefined, ['/paper.md', '/notes.md'], isRoot),
+		).toBe('/paper.md');
+	});
+});
 
 describe('main document', () => {
 	it('tells documents from the parts they include', () => {

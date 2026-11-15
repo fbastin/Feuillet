@@ -127,6 +127,30 @@ maybe('Pandoc on the TeX Live server', () => {
 			});
 			socket.on('error', reject);
 		});
+	// Requests one after the other on one connection, and their replies.
+	const askInTurn = (requests: Array<Record<string, unknown>>) =>
+		new Promise<Array<Record<string, any>>>((resolve, reject) => {
+			const socket = new WebSocket(url, ['feuillet']);
+			const replies: Array<Record<string, any>> = [];
+			const send = () =>
+				socket.send(
+					JSON.stringify({
+						requestId: `r${replies.length + 1}`,
+						...requests[replies.length],
+					}),
+				);
+			socket.on('open', send);
+			socket.on('message', (data: Buffer) => {
+				replies.push(JSON.parse(data.toString('utf8')));
+				if (replies.length === requests.length) {
+					resolve(replies);
+					socket.close();
+				} else {
+					send();
+				}
+			});
+			socket.on('error', reject);
+		});
 	const text = (reply: Record<string, any>) =>
 		Buffer.from(reply.output ?? '', 'base64').toString('utf8');
 
@@ -189,6 +213,76 @@ maybe('Pandoc on the TeX Live server', () => {
 		expect(latex).toMatch(/french/);
 		expect(latex).toContain('\\end{document}');
 	}, 60_000);
+
+	const PAPER = [
+		file(
+			'paper.md',
+			'---\ntitle: A paper\nauthor: Ann Smith\nbibliography: refs.bib\n---\n\n# Introduction\n\nAs @knuth shows [see @knuth, p. 3], $e^{i\\pi} + 1 = 0$.\n\n# References\n',
+		),
+		file(
+			'refs.bib',
+			'@book{knuth, author = {Donald E. Knuth}, title = {The TeXbook}, publisher = {Addison-Wesley}, year = {1984}}\n',
+		),
+	];
+
+	it('compiles a Markdown paper to PDF, its citations formatted', async () => {
+		const reply = await ask({ mainFile: 'paper.md', format: 'pdf', files: PAPER });
+		expect(reply.status).toBe(0);
+		expect(reply.mimeType).toBe('application/pdf');
+		expect(Buffer.from(reply.output, 'base64').subarray(0, 5).toString()).toBe(
+			'%PDF-',
+		);
+		expect(reply.log).toContain('paper.md (pandoc)');
+		// SyncTeX would point into the LaTeX Pandoc made.
+		const ids = (reply.artifacts ?? []).map((artifact: { id: string }) => artifact.id);
+		expect(ids).not.toContain('synctex');
+		// That LaTeX is among the files the compile wrote, with the citation.
+		const listed = JSON.parse(
+			Buffer.from(
+				reply.artifacts.find((artifact: { id: string }) => artifact.id === 'output-files')
+					.data,
+				'base64',
+			).toString('utf8'),
+		);
+		expect(JSON.stringify(listed)).toContain('paper.pandoc.tex');
+		// Asked on the same connection, which keeps its working tree.
+		const [, latex] = await askInTurn([
+			{ mainFile: 'paper.md', format: 'pdf', files: PAPER },
+			{ options: { action: 'output-file', path: 'paper.pandoc.tex' } },
+		]);
+		const written = Buffer.from(latex.output ?? '', 'base64').toString('utf8');
+		expect(written).toContain('Knuth');
+		expect(written).toContain('1984');
+	}, 120_000);
+
+	it('tells a citation not found as a warning, and still makes the PDF', async () => {
+		const reply = await ask({
+			mainFile: 'paper.md',
+			format: 'pdf',
+			files: [
+				file(
+					'paper.md',
+					'---\ntitle: A paper\nbibliography: refs.bib\n---\n\nAs @nobody2020 says.\n',
+				),
+				PAPER[1],
+			],
+		});
+		expect(reply.mimeType).toBe('application/pdf');
+		expect(reply.log).toMatch(/Package Pandoc Warning: .*nobody2020/);
+	}, 120_000);
+
+	it('says why Pandoc cannot make LaTeX of a Markdown file', async () => {
+		const reply = await ask({
+			mainFile: 'paper.md',
+			format: 'pdf',
+			files: [
+				file('paper.md', '---\ntitle: [unclosed\nbibliography: refs.bib\n---\n\nText.\n'),
+			],
+		});
+		expect(reply.status).not.toBe(0);
+		expect(reply.output).toBeUndefined();
+		expect(reply.log).toContain('Pandoc could not make LaTeX of paper.md');
+	}, 120_000);
 
 	it('says why it cannot convert', async () => {
 		const missing = await ask({

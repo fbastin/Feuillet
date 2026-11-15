@@ -40,7 +40,8 @@ and compiling with TeX Live.
   pdfLaTeX, XeLaTeX or LuaLaTeX, with the main document, engine and TeX Live
   year set for the whole project, auto compile, draft mode, stopping at the
   first error, SyncTeX, and explanations of common errors in French;
-  Markdown export and import with Pandoc.
+  Markdown documents compiled too, and Markdown export and import, with
+  Pandoc.
 - **GitHub and Git.** Sign in with GitHub, create or link a repository, push
   and pull with merging, Git history; GitLab, Gitea and Forgejo too. Each
   project can also be cloned with Git, and what is pushed appears at once.

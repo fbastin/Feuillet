@@ -457,6 +457,20 @@ Markdown ne peut pas dire (mise en page, étiquettes de renvoi, commandes
 de votre cru) est laissé de côté : le menu le signale. La palette de
 commandes (**Ctrl+P**) offre aussi **Exporter en Markdown**.
 
+Un document Markdown se compile aussi en PDF, sur le serveur TeX Live :
+Pandoc en fait un document LaTeX, qui se compile ensuite avec le moteur du
+projet. Un fichier `.md` est un document à compiler quand il commence par
+un en-tête YAML (`title:`, `author:`…); il se compile quand il est ouvert,
+ou quand il est choisi comme fichier principal dans les options de
+compilation, et à défaut de document LaTeX dans le projet. Les citations
+de Pandoc (`[@clé, p. 3]`, `@clé`) sont mises en forme d'après la
+bibliographie que nomme l'en-tête (`bibliography: refs.bib`), dans le style
+qu'il nomme éventuellement (`csl: apa.csl`), et suivies des références à la
+fin du document. Une citation introuvable est signalée dans le journal. Le
+LaTeX que fait Pandoc (`<nom>.pandoc.tex`) se trouve parmi les autres
+fichiers de la compilation; le double-clic du PDF vers le texte ne vaut
+pas pour le Markdown.
+
 ### Du texte au PDF, et retour
 
 Un double-clic dans le PDF mène à la ligne correspondante du texte. Le
