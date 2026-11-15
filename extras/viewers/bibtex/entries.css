@@ -617,6 +617,19 @@
 	cursor: pointer;
 }
 
+/* The height of the rows not drawn (BibEntriesView). */
+.bib-entry-table tbody tr.bib-row-spacer {
+	cursor: default;
+	background-color: transparent;
+}
+
+.bib-entry-table tbody tr.bib-row-spacer > td {
+	/* Shown in a narrow list too, where the first column is not. */
+	display: table-cell;
+	padding: 0;
+	border: 0;
+}
+
 .bib-entry-table tbody tr:hover {
 	background-color: var(--pico-secondary-background);
 }

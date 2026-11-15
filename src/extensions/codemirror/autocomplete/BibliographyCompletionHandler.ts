@@ -31,6 +31,14 @@ interface BibliographyEntry {
 	entryType?: string;
 }
 
+// The project's .bib files as read for completion, by file id: each editor
+// open asks for them at each change of a file, a .bib of a thousand entries
+// taking a tenth of a second to read.
+const parsedFiles = new Map<
+	string,
+	{ content: string; path: string; entries: BibliographyEntry[] }
+>();
+
 export class BibliographyCompletionHandler {
 	private bibliographyCache: BibliographyEntry[] = [];
 
@@ -70,20 +78,32 @@ export class BibliographyCompletionHandler {
 						? storedFile.content
 						: new TextDecoder().decode(storedFile.content);
 
-				const parsedEntries = BibtexParser.parse(content);
-				const entries: BibliographyEntry[] = parsedEntries.map((entry) => ({
-					key: entry.id,
-					title: entry.fields.title || '',
-					authors: entry.fields.author ? [entry.fields.author] : [],
-					year: entry.fields.year || '',
-					source: 'local' as const,
-					journal: entry.fields.journal || entry.fields.booktitle || '',
-					rawEntry: BibtexParser.serializeEntry(entry),
-					filePath: bibFile.path,
-					entryType: entry.type,
-				}));
+				// Read again only when its text changed, once for every editor.
+				let parsed = parsedFiles.get(bibFile.id);
+				if (
+					!parsed ||
+					parsed.content !== content ||
+					parsed.path !== bibFile.path
+				) {
+					parsed = {
+						content,
+						path: bibFile.path,
+						entries: BibtexParser.parse(content).map((entry) => ({
+							key: entry.id,
+							title: entry.fields.title || '',
+							authors: entry.fields.author ? [entry.fields.author] : [],
+							year: entry.fields.year || '',
+							source: 'local' as const,
+							journal: entry.fields.journal || entry.fields.booktitle || '',
+							rawEntry: BibtexParser.serializeEntry(entry),
+							filePath: bibFile.path,
+							entryType: entry.type,
+						})),
+					};
+					parsedFiles.set(bibFile.id, parsed);
+				}
 
-				allEntries.push(...entries);
+				allEntries.push(...parsed.entries);
 			}
 
 			return allEntries;

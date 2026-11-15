@@ -5,7 +5,15 @@
 // change is the smallest edit of the text, made through the collaborative
 // editor as if typed.
 import type React from 'react';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+	useCallback,
+	useEffect,
+	useId,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 
 import {
 	AlertCircleIcon,
@@ -158,6 +166,11 @@ const PLACEHOLDERS: Record<string, () => string> = {
 
 const SHOW_EMPTY_KEY = 'feuillet-bib-show-empty-fields';
 
+// The list's rows: their height until one is measured, and how many are
+// drawn beyond those in sight, above and below.
+const ROW_HEIGHT = 31;
+const OVERSCAN = 12;
+
 const readShowEmpty = (): boolean => {
 	try {
 		return localStorage.getItem(SHOW_EMPTY_KEY) === 'true';
@@ -220,62 +233,105 @@ function missingRequired(
 		.map((slot) => (typeof slot === 'string' ? slot : slot.join('/')));
 }
 
-function buildRows(document: BibDocument, dialect: BibDialect): Row[] {
+/** What a row shows of an entry, from the entry alone (and the file's
+ * @string): kept from one reading of the file to the next. */
+type EntryCells = Pick<
+	Row,
+	'type' | 'authors' | 'title' | 'year' | 'container' | 'search'
+> & { missing: string[] };
+
+/**
+ * The list's rows. `cache` holds the cells of the entries of the last
+ * reading, by their text: an edit reads again the entry it changed only.
+ * The cells of this reading are put in `next`.
+ */
+function buildRows(
+	document: BibDocument,
+	dialect: BibDialect,
+	text: string,
+	cache: Map<string, EntryCells>,
+	next: Map<string, EntryCells>,
+): Row[] {
 	const keyCounts = new Map<string, number>();
 	for (const entry of document.entries) {
 		const key = entry.key.toLowerCase();
 		keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
 	}
+	// Macros change what entries read: part of the cache's key.
+	const strings = [...document.strings]
+		.map(([name, value]) => `${name}=${String(value)}`)
+		.join('\u0001');
 	return document.entries.map((entry, index) => {
-		const value = (...names: string[]) => {
-			for (const name of names) {
-				const text = fieldText(document, findField(entry, name)).trim();
-				if (text) return text;
-			}
-			return '';
-		};
-		const people = value('author', 'editor');
+		const id = `${dialect}\u0000${strings}\u0000${text.slice(entry.from, entry.to)}`;
+		const cells =
+			cache.get(id) ?? next.get(id) ?? entryCells(document, entry, dialect);
+		next.set(id, cells);
 		const problems: string[] = [];
 		if (entry.error) problems.push(t(entry.error));
 		if (!entry.key) problems.push(t('The entry has no key'));
 		else if ((keyCounts.get(entry.key.toLowerCase()) ?? 0) > 1) {
 			problems.push(t('Another entry has the key {key}', { key: entry.key }));
 		}
-		const missing = missingRequired(document, entry, dialect);
-		if (missing.length) {
+		if (cells.missing.length) {
 			problems.push(
-				t('Missing required fields: {fields}', { fields: missing.join(', ') }),
+				t('Missing required fields: {fields}', {
+					fields: cells.missing.join(', '),
+				}),
 			);
 		}
-		const all = [
-			entry.key,
-			entry.type,
-			...entry.fields.map((field) => fieldText(document, field)),
-		];
 		return {
 			index,
 			entry,
-			type: entry.type.toLowerCase(),
-			authors: people ? authorsLabel([people]) : '',
-			title: displayText(value('title')),
-			year: value('year') || (/^\d{4}/.exec(value('date'))?.[0] ?? ''),
-			container: displayText(
-				value(
-					'journaltitle',
-					'journal',
-					'booktitle',
-					'publisher',
-					'school',
-					'institution',
-				),
-			),
-			search: plainText(all.join(' ')),
+			type: cells.type,
+			authors: cells.authors,
+			title: cells.title,
+			year: cells.year,
+			container: cells.container,
+			search: cells.search,
 			problems,
 			cited: 0,
 			duplicates: [],
 			group: index,
 		};
 	});
+}
+
+function entryCells(
+	document: BibDocument,
+	entry: BibEntry,
+	dialect: BibDialect,
+): EntryCells {
+	const value = (...names: string[]) => {
+		for (const name of names) {
+			const text = fieldText(document, findField(entry, name)).trim();
+			if (text) return text;
+		}
+		return '';
+	};
+	const people = value('author', 'editor');
+	const all = [
+		entry.key,
+		entry.type,
+		...entry.fields.map((field) => fieldText(document, field)),
+	];
+	return {
+		type: entry.type.toLowerCase(),
+		authors: people ? authorsLabel([people]) : '',
+		title: displayText(value('title')),
+		year: value('year') || (/^\d{4}/.exec(value('date'))?.[0] ?? ''),
+		container: displayText(
+			value(
+				'journaltitle',
+				'journal',
+				'booktitle',
+				'publisher',
+				'school',
+				'institution',
+			),
+		),
+		search: plainText(all.join(' ')),
+		missing: missingRequired(document, entry, dialect),
+	};
 }
 
 const pathLabel = (path: string) => path.replace(/^\//, '');
@@ -290,19 +346,27 @@ const citedFilesLabel = (uses: CitedKey) =>
 		)
 		.join(', ');
 
-const compareRows =
-	(key: SortKey) =>
-	(a: Row, b: Row): number => {
-		if (key === 'year') {
-			return (
-				(Number.parseInt(a.year, 10) || 0) - (Number.parseInt(b.year, 10) || 0)
-			);
-		}
-		if (key === 'cited') return a.cited - b.cited;
-		const text = (row: Row) =>
-			key === 'key' ? row.entry.key : plainText(row[key]);
-		return text(a).localeCompare(text(b), undefined, { numeric: true });
-	};
+const collator = new Intl.Collator(undefined, { numeric: true });
+
+/** Rows sorted by a column: each row's key worked out once, not at each
+ * comparison (a thousand rows make some twenty thousand). */
+function sortRows(rows: Row[], key: SortKey): Row[] {
+	if (key === 'year' || key === 'cited') {
+		const number = (row: Row) =>
+			key === 'cited' ? row.cited : Number.parseInt(row.year, 10) || 0;
+		return rows
+			.map((row) => ({ row, by: number(row) }))
+			.sort((a, b) => a.by - b.by)
+			.map(({ row }) => row);
+	}
+	return rows
+		.map((row) => ({
+			row,
+			by: key === 'key' ? row.entry.key : plainText(row[key]),
+		}))
+		.sort((a, b) => collator.compare(a.by, b.by))
+		.map(({ row }) => row);
+}
 
 // ---------------------------------------------------------------------------
 
@@ -454,10 +518,14 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		[document, latexDialect],
 	);
 	const dialect = chosenDialect ?? detectedDialect;
-	const parsedRows = useMemo(
-		() => buildRows(document, dialect),
-		[document, dialect],
-	);
+	// Each entry's cells, by its text, from the last reading of the file.
+	const rowCells = useRef(new Map<string, EntryCells>());
+	const parsedRows = useMemo(() => {
+		const next = new Map<string, EntryCells>();
+		const built = buildRows(document, dialect, text, rowCells.current, next);
+		rowCells.current = next;
+		return built;
+	}, [document, dialect, text]);
 	const [citationRename, setCitationRename] =
 		useState<CitationRenameState | null>(null);
 	// What the LaTeX files cite, when the project has some.
@@ -587,7 +655,7 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 				? [...found].sort((a, b) => a.group - b.group || a.index - b.index)
 				: found;
 		}
-		const sorted = [...found].sort(compareRows(sort.key));
+		const sorted = sortRows(found, sort.key);
 		return sort.descending ? sorted.reverse() : sorted;
 	}, [rows, query, sort, filter]);
 	// The entries the list shows, when a search or a filter narrows it.
@@ -673,7 +741,8 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 	) => {
 		const target = selection;
 		onEdit((current) => {
-			const fresh = parseBibDocument(current);
+			// The text as shown, most often: already read.
+			const fresh = current === text ? document : parseBibDocument(current);
 			const index = resolveEntry(fresh.entries, target);
 			if (index < 0) return [];
 			return make(current, fresh.entries[index]);
@@ -702,12 +771,81 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 		if (visible[next]) select(visible[next].index);
 	};
 
-	// The selected row stays in sight.
+	// The rows in sight only, and some around: a file of a thousand entries
+	// draws some forty, the others' height kept by two empty rows.
+	const headRef = useRef<HTMLTableSectionElement>(null);
+	const bodyRef = useRef<HTMLTableSectionElement>(null);
+	const [rowHeight, setRowHeight] = useState(ROW_HEIGHT);
+	const [scroll, setScroll] = useState({ top: 0, height: 0 });
+	const scrollFrame = useRef<number | null>(null);
+	const readScroll = useCallback(() => {
+		if (scrollFrame.current !== null) return;
+		scrollFrame.current = requestAnimationFrame(() => {
+			scrollFrame.current = null;
+			const list = listRef.current;
+			if (list) setScroll({ top: list.scrollTop, height: list.clientHeight });
+		});
+	}, []);
+	// A row's height, once the first are drawn and when the list is resized
+	// (it follows the font size): measuring at each drawing would lay the
+	// page out each time.
+	const measureRow = useCallback(() => {
+		const row = bodyRef.current?.querySelector<HTMLElement>('tr[data-row]');
+		const height = row?.getBoundingClientRect().height ?? 0;
+		if (height > 0) {
+			setRowHeight((current) =>
+				Math.abs(height - current) > 0.5 ? height : current,
+			);
+		}
+	}, []);
+	useEffect(() => {
+		const list = listRef.current;
+		if (!list) return;
+		setScroll({ top: list.scrollTop, height: list.clientHeight });
+		if (typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver(() => {
+			readScroll();
+			measureRow();
+		});
+		observer.observe(list);
+		return () => {
+			observer.disconnect();
+			if (scrollFrame.current !== null) {
+				cancelAnimationFrame(scrollFrame.current);
+				scrollFrame.current = null;
+			}
+		};
+	}, [readScroll, measureRow]);
+	const hasRows = visible.length > 0;
+	useLayoutEffect(() => {
+		if (hasRows) measureRow();
+	}, [hasRows, measureRow]);
+	const headHeight = headRef.current?.offsetHeight ?? 0;
+	// Without a height yet (or no layout, in tests): a screenful.
+	const viewHeight = scroll.height || 800;
+	const firstRow = Math.max(
+		0,
+		Math.floor((scroll.top - headHeight) / rowHeight) - OVERSCAN,
+	);
+	const lastRow = Math.min(
+		visible.length,
+		Math.ceil((scroll.top + viewHeight) / rowHeight) + OVERSCAN,
+	);
+
+	// The selected row stays in sight, below the column headers.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on selection only.
 	useEffect(() => {
-		listRef.current
-			?.querySelector('[aria-selected="true"]')
-			?.scrollIntoView({ block: 'nearest' });
+		const list = listRef.current;
+		if (!list) return;
+		const position = visible.findIndex((item) => item.index === selectedIndex);
+		if (position < 0) return;
+		const head = headRef.current?.offsetHeight ?? 0;
+		const top = head + position * rowHeight;
+		const bottom = top + rowHeight;
+		if (top < list.scrollTop + head) list.scrollTop = top - head;
+		else if (bottom > list.scrollTop + list.clientHeight) {
+			list.scrollTop = bottom - list.clientHeight;
+		}
 	}, [entryIdentity]);
 
 	const sortHeader = (key: SortKey, label: string) => (
@@ -1494,10 +1632,11 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 					// biome-ignore lint/a11y/noNoninteractiveTabindex: the arrows move in the list.
 					tabIndex={0}
 					onKeyDown={moveSelection}
+					onScroll={readScroll}
 					aria-label={t('Entries')}
 				>
-					<table className='bib-entry-table'>
-						<thead>
+					<table className='bib-entry-table' aria-rowcount={visible.length + 1}>
+						<thead ref={headRef}>
 							<tr>
 								{sortHeader('type', t('Type'))}
 								{sortHeader('key', t('Key'))}
@@ -1508,10 +1647,20 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 								{latexRead && sortHeader('cited', t('Citations'))}
 							</tr>
 						</thead>
-						<tbody>
-							{visible.map((item) => (
+						<tbody ref={bodyRef}>
+							{firstRow > 0 && (
+								<tr className='bib-row-spacer'>
+									<td
+										colSpan={latexRead ? 7 : 6}
+										style={{ height: firstRow * rowHeight }}
+									/>
+								</tr>
+							)}
+							{visible.slice(firstRow, lastRow).map((item, offset) => (
 								<tr
 									key={`${item.index}:${item.entry.key}`}
+									data-row
+									aria-rowindex={firstRow + offset + 2}
 									aria-selected={item.index === selectedIndex}
 									onClick={() => select(item.index)}
 									data-problem={marksOf(item).length > 0 || undefined}
@@ -1547,6 +1696,14 @@ export const BibEntriesView: React.FC<BibEntriesViewProps> = ({
 									)}
 								</tr>
 							))}
+							{lastRow < visible.length && (
+								<tr className='bib-row-spacer'>
+									<td
+										colSpan={latexRead ? 7 : 6}
+										style={{ height: (visible.length - lastRow) * rowHeight }}
+									/>
+								</tr>
+							)}
 						</tbody>
 					</table>
 					{visible.length === 0 && (
