@@ -39,6 +39,7 @@ import {
 	collectValues,
 	fieldDefault,
 	chooseLatexMainFile,
+	isMarkdownPath,
 	findInputFiles,
 	resolveLabel,
 } from '../../utils/compilerUtils';
@@ -153,19 +154,32 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		}
 	}, [registerProperty]);
 
-	// The open file, unless it is a LaTeX part (a chapter, say): as on
-	// Overleaf, the document that includes it is compiled instead.
-	useEffect(() => {
-		let candidate: string | undefined;
+	// The open file, when this compiler takes it.
+	const openFile = useMemo(() => {
 		if (
 			selectedLinkedFilePath &&
 			availableFiles.includes(selectedLinkedFilePath)
 		) {
-			candidate = selectedLinkedFilePath;
-		} else if (selectedFileId) {
-			const file = findFileById(fileTree, selectedFileId);
-			if (file && availableFiles.includes(file.path)) candidate = file.path;
+			return selectedLinkedFilePath;
 		}
+		if (selectedFileId) {
+			const file = findFileById(fileTree, selectedFileId);
+			if (file && availableFiles.includes(file.path)) return file.path;
+		}
+		return undefined;
+	}, [selectedLinkedFilePath, selectedFileId, fileTree, availableFiles]);
+	// A Markdown file open compiles itself, whatever the main document: any
+	// is a document of its own for Pandoc, and compiling it is what one
+	// means with it open.
+	const openMarkdown =
+		openFile && isMarkdownPath(openFile) ? openFile : undefined;
+
+	// The open file, unless it is a LaTeX part (a chapter, say): as on
+	// Overleaf, the document that includes it is compiled instead. Markdown
+	// files are left out: one compiled before is not a LaTeX part's.
+	useEffect(() => {
+		const candidate =
+			openFile && !isMarkdownPath(openFile) ? openFile : undefined;
 
 		if (!provider.inputExtensions.includes('tex')) {
 			if (candidate) setAutoMainFile(candidate);
@@ -186,14 +200,7 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		return () => {
 			current = false;
 		};
-	}, [
-		selectedLinkedFilePath,
-		selectedFileId,
-		fileTree,
-		availableFiles,
-		autoMainFile,
-		provider.inputExtensions,
-	]);
+	}, [openFile, availableFiles, autoMainFile, provider.inputExtensions]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
@@ -213,7 +220,7 @@ const ExternalCompileButton: React.FC<ExternalCompileButtonProps> = ({
 		settings.mainFile && availableFiles.includes(settings.mainFile)
 			? settings.mainFile
 			: undefined;
-	const effectiveMainFile = projectMainFile || autoMainFile;
+	const effectiveMainFile = openMarkdown || projectMainFile || autoMainFile;
 
 	const effectiveAutoCompileOnSave =
 		getProperty(autoCompilePropertyId, { scope: 'project', projectId }) ===

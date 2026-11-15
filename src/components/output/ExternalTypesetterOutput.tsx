@@ -31,6 +31,7 @@ import OutputFilesMenu from './OutputFilesMenu';
 import SourceMapFloatingButton from './SourceMapFloatingButton';
 import {
 	chooseLatexMainFile,
+	isMarkdownPath,
 	collectValues,
 	findInputFiles,
 	outputExtension,
@@ -198,6 +199,8 @@ const ExternalTypesetterOutput: React.FC<ExternalTypesetterOutputProps> = ({
 			const file = await getFile(selectedFileId);
 			if (file && matches.includes(file.path)) candidate = file.path;
 		}
+		// A Markdown file open compiles itself (ExternalCompileButton).
+		if (candidate && isMarkdownPath(candidate)) return candidate;
 		if (settings.mainFile && matches.includes(settings.mainFile)) {
 			return settings.mainFile;
 		}

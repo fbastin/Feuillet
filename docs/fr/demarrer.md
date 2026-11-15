@@ -459,10 +459,11 @@ commandes (**Ctrl+P**) offre aussi **Exporter en Markdown**.
 
 Un document Markdown se compile aussi en PDF, sur le serveur TeX Live :
 Pandoc en fait un document LaTeX, qui se compile ensuite avec le moteur du
-projet. Un fichier `.md` est un document à compiler quand il commence par
-un en-tête YAML (`title:`, `author:`…); il se compile quand il est ouvert,
-ou quand il est choisi comme fichier principal dans les options de
-compilation, et à défaut de document LaTeX dans le projet. Les citations
+projet. Un fichier `.md` ouvert se compile lui-même, quel que soit le
+document principal; pour compiler celui-ci, ouvrez un fichier LaTeX. Un
+`.md` peut aussi être choisi comme fichier principal dans les options de
+compilation, et un `.md` qui commence par un en-tête YAML (`title:`,
+`author:`…) l'est d'office dans un projet sans document LaTeX. Les citations
 de Pandoc (`[@clé, p. 3]`, `@clé`) sont mises en forme d'après la
 bibliographie que nomme l'en-tête (`bibliography: refs.bib`), dans le style
 qu'il nomme éventuellement (`csl: apa.csl`), et suivies des références à la
