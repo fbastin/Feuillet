@@ -140,12 +140,27 @@ const createCompiler = ({ url, origin, ticketFor = () => null, timeoutMs = 240_0
 	return { compile, status };
 };
 
+// The transcript of LaTeX's last pass: the LOG: section of what the TeX
+// Live server sends (server/texlive/server.js, formatLog), which Feuillet's
+// log viewer reads too. latexmk's output after it holds every pass, and the
+// warnings of the first ones (rerun Biber, labels may have changed,
+// references not yet defined) are gone by the last. A log of another shape,
+// or without a transcript, is read whole.
+const lastPassOf = (log) => {
+	const start = /(?:^|\n)LOG:\n/.exec(log);
+	if (!start) return log;
+	const after = log.slice(start.index + start[0].length);
+	const end = after.search(/^(?:==|STDOUT:|STDERR:)\s*$/m);
+	const transcript = end === -1 ? after : after.slice(0, end);
+	return transcript.trim() ? transcript : log;
+};
+
 /**
  * The errors and warnings of a LaTeX log, as {errors: [{message, line,
- * file, context}], warnings: [...], pages}.
+ * file, context}], warnings: [...], pages}: those of the last pass.
  */
 const summarizeLog = (log) => {
-	const lines = log.split('\n');
+	const lines = lastPassOf(log).split('\n');
 	// The file being read, from the parentheses TeX writes as it opens and
 	// closes files: every parenthesis counts, so that those of messages
 	// close themselves. Approximate, as in every log viewer.
@@ -210,7 +225,7 @@ const summarizeLog = (log) => {
 		}
 	}
 
-	const pages = /Output written on \S+ \((\d+) pages?/.exec(log);
+	const pages = /Output written on \S+ \((\d+) pages?/.exec(lines.join('\n'));
 	// The same error repeats on each pass.
 	const unique = (list) => {
 		const seen = new Set();

@@ -4,7 +4,9 @@
 // Markdown with Pandoc on the TeX Live server (server/texlive/server.js), as
 // Overleaf's export and import: a project's LaTeX, its included files and
 // its citations, to GitHub Markdown; a Markdown file to a LaTeX document.
-// The real server, run here, with this machine's Pandoc; skipped without,
+// And what assistants are told of a compile (server/collab/compile.js):
+// the warnings of LaTeX's last pass, not those latexmk's earlier passes
+// printed. The real server, run here, with this machine's Pandoc; skipped without,
 // or without the server's own packages (npm install in server/texlive),
 // as in the continuous integration, which installs only the application's.
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
@@ -12,6 +14,8 @@ import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+
+const { summarizeLog } = require('../../../server/collab/compile.js');
 
 const SERVER = path.join(__dirname, '../../../server/texlive');
 const SERVER_WS = path.join(SERVER, 'node_modules/ws');
@@ -269,6 +273,42 @@ maybe('Pandoc on the TeX Live server', () => {
 		});
 		expect(reply.mimeType).toBe('application/pdf');
 		expect(reply.log).toMatch(/Package Pandoc Warning: .*nobody2020/);
+		// Assistants are told too.
+		expect(summarizeLog(reply.log).warnings.map((w: { message: string }) => w.message)).toEqual(
+			expect.arrayContaining([expect.stringMatching(/Package Pandoc Warning: .*nobody2020/)]),
+		);
+	}, 120_000);
+
+	it('tells assistants the warnings of the last pass, not of the first ones', async () => {
+		const reply = await ask({
+			mainFile: 'main.tex',
+			format: 'pdf',
+			files: [
+				file(
+					'main.tex',
+					String.raw`\documentclass{article}
+\usepackage{biblatex}
+\addbibresource{refs.bib}
+\begin{document}
+\section{Intro}\label{sec:intro}
+As \textcite{knuth} shows in section~\ref{sec:intro}, and \ref{sec:none}.
+\printbibliography
+\end{document}
+`,
+				),
+				PROJECT[2],
+			],
+		});
+		expect(reply.status).toBe(0);
+		// latexmk's output holds the first pass's.
+		expect(reply.log).toMatch(/Please \(re\)run Biber/);
+		const summary = summarizeLog(reply.log);
+		const messages = summary.warnings.map((w: { message: string }) => w.message).join('\n');
+		expect(messages).not.toMatch(/Biber|Rerun|knuth/);
+		// What is still wrong at the end is told.
+		expect(messages).toMatch(/Reference `sec:none' on page 1 undefined/);
+		expect(summary.errors).toEqual([]);
+		expect(summary.pages).toBe(1);
 	}, 120_000);
 
 	it('says why Pandoc cannot make LaTeX of a Markdown file', async () => {
