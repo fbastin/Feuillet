@@ -57,6 +57,20 @@ describe('reviewSegments', () => {
         expect(types('cat', 'dog')).toEqual(['delete', 'insert']);
     });
 
+    it('should show texts with little in common whole, the old before the new', () => {
+        const original = "\\prompt{Écris une phrase sur l'écoulement des fluides.}";
+        const current = "Les fluides s'écoulent.";
+        expect(computeReviewSegments(original, current)).toEqual([
+            { type: 'delete', text: original, from: 0, to: 0 },
+            { type: 'insert', text: current, from: 0, to: current.length },
+        ]);
+    });
+
+    it('should still show a small change within the words it keeps', () => {
+        expect(types('colour', 'color')).toEqual(['equal', 'delete', 'equal']);
+        expect(types('the quick brown fox', 'the slow brown fox')).toContain('equal');
+    });
+
     it('should cover the whole current text with equal and insert segments', () => {
         const current = 'the quick brown fox';
         const covered = computeReviewSegments('the slow fox', current)

@@ -21,6 +21,7 @@ import {
 import { AssistantIcon } from '../common/Icons';
 import Modal from '../common/Modal';
 import { OPEN_PROFILE_EVENT } from '../profile/ProfileSettingsModal';
+import AssistantRequestsPanel from './AssistantRequestsPanel';
 
 export interface AskClaudeLocation {
 	path?: string;
@@ -97,6 +98,15 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 						'Claude opened in a new tab with your request. It is also copied: paste it there if the message box is empty.',
 					)
 				: t('Claude opened in a new tab with your request.'),
+		);
+	};
+
+	const openAssistantsTab = () => {
+		close();
+		document.dispatchEvent(
+			new CustomEvent(OPEN_PROFILE_EVENT, {
+				detail: { tab: 'assistants' },
+			}),
 		);
 	};
 
@@ -216,6 +226,19 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 								{notice}
 							</div>
 						)}
+						{context.projectId && (
+							<AssistantRequestsPanel
+								projectId={context.projectId}
+								onAskForRequests={() =>
+									setRequest(
+										t(
+											'Answer the requests for you in this project (\\prompt): list them with list_requests, then answer each with answer_request.',
+										),
+									)
+								}
+								onSetUp={openAssistantsTab}
+							/>
+						)}
 						<p className='ui-meta'>
 							{t(
 								'Claude works on the project through the Feuillet connector, and its changes come back here as suggestions.',
@@ -224,14 +247,7 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 								type='button'
 								className='ask-claude-setup'
 								data-action='set-up-connector'
-								onClick={() => {
-									close();
-									document.dispatchEvent(
-										new CustomEvent(OPEN_PROFILE_EVENT, {
-											detail: { tab: 'assistants' },
-										}),
-									);
-								}}
+								onClick={openAssistantsTab}
 							>
 								{t('Set up the connector')}
 							</button>

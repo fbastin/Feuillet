@@ -186,6 +186,46 @@ export interface AssistantConnection {
 	lastUsedAt: number;
 }
 
+/** A request to assistants in a project (\prompt, feuillet.sty). */
+export interface AssistantRequest {
+	id: string;
+	path: string;
+	line: number;
+	/** The assistant it is for; empty for any. */
+	agent: string;
+	text: string;
+}
+
+export interface AssistantRequests {
+	project: { id: string; name: string; access: 'edit' | 'review' | 'view' };
+	requests: AssistantRequest[];
+	/** The project defines its own \prompt: requests are \feuilletprompt. */
+	ownPrompt: boolean;
+	/** The project loads feuillet.sty. */
+	loads: boolean;
+}
+
+/** Claude answering a project's requests through the API (promptRunner.js). */
+export interface AssistantRun {
+	id: string;
+	project: string;
+	state: 'running' | 'done' | 'stopped' | 'failed';
+	model: string;
+	requests: number;
+	answered: number;
+	turns: number;
+	tokens: { input: number; output: number };
+	startedAt: number;
+	endedAt?: number;
+	summary?: string;
+	error?: {
+		code: string;
+		status?: number | null;
+		message?: string;
+		category?: string | null;
+	};
+}
+
 /**
  * A Git token, as the profile lists it: never the token itself, shown only
  * when it is made (server/collab/accounts.js).
@@ -1292,6 +1332,63 @@ class AccountSyncService {
 						typeof entry?.id === 'string' && typeof entry.name === 'string',
 				)
 			: [];
+	}
+
+	/**
+	 * A project's requests to assistants; null without a server account, or
+	 * from a server that does not list them yet.
+	 */
+	async assistantRequests(project: string): Promise<AssistantRequests | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session || !project) return null;
+		try {
+			const result = await this.request(
+				session.server,
+				'GET',
+				`/prompts/requests?project=${encodeURIComponent(project)}`,
+				{ token: session.token },
+			);
+			return Array.isArray(result?.requests) ? result : null;
+		} catch (error) {
+			if (error instanceof AccountServerError && error.status === 404)
+				return null;
+			throw error;
+		}
+	}
+
+	/**
+	 * Has Claude answer a project's requests through the API, with the
+	 * account's key, which the server keeps only for this run. Gives the
+	 * run's id, or null when no request is for this assistant.
+	 */
+	async startAssistantRun(options: {
+		project: string;
+		key: string;
+		model?: string;
+		name?: string;
+	}): Promise<string | null> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) throw new AccountServerError('signed_out');
+		const result = await this.request(session.server, 'POST', '/prompts/run', {
+			token: session.token,
+			body: options,
+		});
+		return typeof result?.run === 'string' ? result.run : null;
+	}
+
+	/** Where a run stands; `stop` stops it first. */
+	async assistantRun(id: string, stop = false): Promise<AssistantRun> {
+		const userId = this.userId;
+		const session = userId ? this.getSession(userId) : null;
+		if (!userId || !session) throw new AccountServerError('signed_out');
+		return this.request(
+			session.server,
+			stop ? 'POST' : 'GET',
+			stop ? '/prompts/run/stop' : `/prompts/run?id=${encodeURIComponent(id)}`,
+			{ token: session.token, ...(stop ? { body: { id } } : {}) },
+		);
 	}
 
 	/**

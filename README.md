@@ -48,7 +48,10 @@ and compiling with TeX Live.
 - **Claude.** An MCP connector with its own OAuth, so that Claude (claude.ai,
   the desktop app or Claude Code) reads, searches, compiles, comments and
   suggests changes under the user's own subscription; an "Ask Claude" button
-  in the editor.
+  in the editor. Requests for assistants written in the documents,
+  `\prompt{…}` with the `feuillet` package, which Claude answers with
+  suggestions that replace them, through the connector or, with the user's
+  own API key, from Feuillet itself.
 - **Editor.** A visual editor with figure and table toolbars, a LaTeX code
   check, spell checking with Hunspell (in 15 languages), grammar and style
   checking with LanguageTool on the server

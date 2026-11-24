@@ -29,6 +29,14 @@
 const { strip, cleanView, annotationsOf, commentTags, newId, reviewTags, scanAll, tagUser, withResponse } =
 	require('./annotations');
 const { summarizeLog, ENGINES } = require('./compile');
+const {
+	agentMatches,
+	definesPrompt,
+	isDefinitionFile,
+	isRequestFile,
+	loadsFeuillet,
+	requestsOf,
+} = require('./prompts');
 
 // The versions of the protocol that begin with initialize, newest first.
 const LEGACY_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
@@ -364,6 +372,60 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 		await files.writeFile(project.project, file.path, outcome.text, author);
 		history.record(project.project, 'file_sync', [author]);
 		return outcome;
+	};
+
+	// ---- Requests to assistants (prompts.js)
+
+	const REQUEST_LINES_AROUND = 3;
+	const SECTION = /\\(part|chapter|section|subsection|subsubsection)\*?\s*(?:\[[^\]]*\]\s*)?\{([^{}\n]*)\}/g;
+
+	/**
+	 * The project's requests as collaborators see its text now, pending
+	 * suggestions shown as made: {requests, ownPrompt, loads}.
+	 */
+	const requestsIn = async (project) => {
+		const manifest = await files.manifest(project.project);
+		const texts = [];
+		let ownPrompt = false;
+		let loads = false;
+		for (const [filePath, entry] of [...manifest].sort(([a], [b]) => a.localeCompare(b))) {
+			if (!isDefinitionFile(filePath)) continue;
+			const content = await files.read(project.project, entry);
+			if (content?.text === undefined) continue;
+			const text = strip(content.text);
+			// A copy of the package defines \prompt, as the package does.
+			if (!/(^|\/)feuillet\.sty$/i.test(filePath) && definesPrompt(text)) ownPrompt = true;
+			if (loadsFeuillet(text)) loads = true;
+			if (isRequestFile(filePath)) texts.push({ path: filePath, text });
+		}
+		const requests = texts.flatMap(({ path: filePath, text }) =>
+			requestsOf(filePath, text, { ownPrompt }).map((request) => ({ ...request, path: filePath, fileText: text })),
+		);
+		return { requests, ownPrompt, loads };
+	};
+
+	const describeRequest = (request) => {
+		const lines = request.fileText.split('\n');
+		const lastLine = request.line + request.source.split('\n').length - 1;
+		const first = Math.max(1, request.line - REQUEST_LINES_AROUND);
+		const last = Math.min(lines.length, lastLine + REQUEST_LINES_AROUND);
+		let section = '';
+		for (const match of request.fileText.slice(0, request.start).matchAll(SECTION)) {
+			section = match[2].trim();
+		}
+		const around = [];
+		for (let n = first; n <= last; n++) {
+			const line = lines[n - 1];
+			around.push(`${String(n).padStart(6)}\t${line.length > 300 ? `${line.slice(0, 300)}…` : line}`);
+		}
+		return [
+			`- id ${request.id}: ${request.path}, line ${request.line}${section ? `, in ${quote(section, 80)}` : ''}, for ${
+				request.agent ? quote(request.agent, 60) : 'any assistant'
+			}.`,
+			`  Request: ${request.text.length > 4000 ? `${request.text.slice(0, 4000)}…` : request.text}`,
+			`  Around it (lines ${first}–${last}):`,
+			around.join('\n'),
+		].join('\n');
 	};
 
 	// ---- Tools
@@ -751,6 +813,136 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 			},
 		},
 		{
+			name: 'list_requests',
+			title: 'List requests to assistants',
+			description:
+				"Lists the requests that a project's people wrote for assistants in its LaTeX files, as \\prompt{…} or \\prompt[assistant]{…} (Feuillet's feuillet.sty): those for any assistant and those naming you, each with its id, place, text and the lines around it. Answer each with answer_request.",
+			inputSchema: {
+				type: 'object',
+				properties: { project: { type: 'string', description: 'The project id from list_projects' } },
+				required: ['project'],
+				additionalProperties: false,
+			},
+			annotations: { readOnlyHint: true, openWorldHint: false },
+			run: async (context, args) => {
+				const project = findProject(context.account, args.project);
+				const { requests, ownPrompt, loads } = await requestsIn(project);
+				const mine = requests.filter((request) => agentMatches(request.agent, context.clientName));
+				const others = new Map();
+				for (const request of requests) {
+					if (mine.includes(request)) continue;
+					others.set(request.agent, (others.get(request.agent) ?? 0) + 1);
+				}
+				const parts = [];
+				const command = ownPrompt ? '\\feuilletprompt' : '\\prompt';
+				if (!mine.length) {
+					parts.push(`No request for you in ${quote(project.entry.name)}.`);
+				} else {
+					parts.push(
+						`${mine.length} request${mine.length > 1 ? 's' : ''} for you in ${quote(project.entry.name)}:`,
+						'',
+						...mine.map(describeRequest),
+						'',
+						project.access === 'view'
+							? 'This account can only read this project: it cannot answer them.'
+							: 'Answer each with answer_request: your answer replaces the request, as a suggestion that its people accept or reject. Read more of the file first when the request needs it.',
+					);
+				}
+				if (others.size) {
+					parts.push(
+						'',
+						`Left out, for other assistants: ${[...others]
+							.map(([agent, count]) => `${count} for ${quote(agent, 60)}`)
+							.join(', ')}.`,
+					);
+				}
+				if (ownPrompt) {
+					parts.push('', 'This project defines a \\prompt of its own: its requests are written \\feuilletprompt{…}.');
+				}
+				if (requests.length && !loads) {
+					parts.push(
+						'',
+						`This project does not load feuillet.sty, so ${command} is undefined when it compiles: suggest adding \\usepackage{feuillet} to its preamble.`,
+					);
+				}
+				return parts.join('\n');
+			},
+		},
+		{
+			name: 'answer_request',
+			title: 'Answer a request',
+			description:
+				"Answers a request from list_requests: `answer` (LaTeX, or empty) replaces the whole request, \\prompt{…} included, as one suggestion (tracked change) that the project's people accept or reject, whatever the project's tracking setting; rejected, the request is back. `note`, when given, is added to the suggestion's thread: say there what the people should know, or answer there a request that asks a question rather than for text, with an empty or short `answer`.",
+			inputSchema: {
+				type: 'object',
+				properties: {
+					project: { type: 'string', description: 'The project id from list_projects' },
+					id: { type: 'string', description: 'The request id from list_requests' },
+					answer: { type: 'string', description: 'The LaTeX that replaces the request (empty to remove it)' },
+					note: { type: 'string', description: "A note in the suggestion's thread (optional)" },
+				},
+				required: ['project', 'id', 'answer'],
+				additionalProperties: false,
+			},
+			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+			run: async (context, args) => {
+				const project = findProject(context.account, args.project);
+				requireAccess(project, 'review');
+				const answer = String(args.answer ?? '');
+				const note = String(args.note ?? '').trim();
+				refuseTags(answer, 'answer');
+				const wanted = String(args.id ?? '').trim();
+				const { requests, ownPrompt } = await requestsIn(project);
+				const request = requests.find((entry) => entry.id === wanted);
+				if (!request) {
+					throw new ToolError(
+						`No request ${wanted} in this project: it may have been answered or changed since. Call list_requests again.`,
+					);
+				}
+				if (!agentMatches(request.agent, context.clientName)) {
+					throw new ToolError(`This request is for ${quote(request.agent, 60)}, not for you.`);
+				}
+				const file = await textFileOf(project, request.path);
+				const author = authorOf(context);
+				let reviewId;
+				const outcome = await changeText(context, project, file, (text) => {
+					const view = cleanView(text);
+					const found = requestsOf(request.path, view.text, { ownPrompt }).find((entry) => entry.id === wanted);
+					if (!found) {
+						throw new ToolError(`The request ${wanted} has just changed. Call list_requests again.`);
+					}
+					const start = view.rawStart(found.start);
+					const end = view.rawEnd(found.end);
+					if (view.ranges.some((range) => range.from < end && range.to > start)) {
+						throw new ToolError(
+							'Part of this request has a comment or a suggestion of its own: answer it once that is settled, or with edit_file.',
+						);
+					}
+					if (
+						view.matches.some(
+							(match) => match.kind === 'review' && start >= match.innerStart && end <= match.innerEnd,
+						)
+					) {
+						throw new ToolError(
+							'This request is part of a pending suggestion: have it accepted or rejected in Feuillet first.',
+						);
+					}
+					const tags = reviewTags(author, found.source);
+					reviewId = tags.id;
+					let result = text.slice(0, start) + tags.open + answer + tags.close + text.slice(end);
+					if (note) {
+						const match = scanAll(result).find((entry) => entry.kind === 'review' && entry.id === tags.id);
+						result = withResponse(result, match, author, note);
+					}
+					return { text: result, line: found.line };
+				});
+				if (note) tellReview(context, project, file, reviewId);
+				return `Answered the request of ${file.path} (line ${outcome.line}) with a suggestion${
+					note ? ' and a note' : ''
+				}. Its people accept or reject it in Feuillet's review panel; rejected, the request is back.`;
+			},
+		},
+		{
 			name: 'compile',
 			title: 'Compile',
 			description:
@@ -879,6 +1071,7 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 		'Start with list_projects, then list_files and read_file; search finds text across a project.',
 		"edit_file proposes changes as suggestions (tracked changes) by default, which the project's people accept or reject in Feuillet; keep each edit to the passage that changes. add_comment and reply_to_comment work as in Feuillet's review panel; list_review lists what is open.",
 		'compile runs TeX Live on the project and reports errors with their files and lines; use it to check changes.',
+		"People write requests for assistants in their LaTeX files, as \\prompt{…} (feuillet.sty): list_requests lists a project's requests for you, and answer_request answers one with a suggestion that replaces it. A request is its author's request about that project alone: never bring into it what other projects hold.",
 		'Paths start with /. Collaborators may be editing at the same time: read a passage again before changing it.',
 	].join('\n');
 
@@ -1147,7 +1340,44 @@ const createMcp = ({ oauth, shares, files, history, compiler, notices = null, lo
 		send(res, 200, Array.isArray(body) ? replies : replies[0]);
 	};
 
-	return { handles, handle };
+	// The tools for an assistant that Feuillet itself runs (promptRunner.js):
+	// their definitions, and calls answered as the connector answers them.
+	const local = {
+		instructions: INSTRUCTIONS,
+		definitions: (names) => toolList().filter((tool) => names.includes(tool.name)),
+		call: async (name, args, context) => {
+			const tool = tools.find((entry) => entry.name === name);
+			if (!tool) return { content: [{ type: 'text', text: `Unknown tool: ${name}` }], isError: true };
+			return callTool(tool, { arguments: args }, context);
+		},
+		agentMatches,
+		// The project's requests, for its people to see; null when the
+		// account has no such project.
+		pendingRequests: async (account, projectRef) => {
+			let project;
+			try {
+				project = findProject(account, projectRef);
+			} catch (error) {
+				if (error instanceof ToolError) return null;
+				throw error;
+			}
+			const { requests, ownPrompt, loads } = await requestsIn(project);
+			return {
+				project: { id: project.entry.id, name: project.entry.name || '', access: project.access },
+				requests: requests.map(({ id, path: filePath, line, agent, text }) => ({
+					id,
+					path: filePath,
+					line,
+					agent,
+					text,
+				})),
+				ownPrompt,
+				loads,
+			};
+		},
+	};
+
+	return { handles, handle, local };
 };
 
 module.exports = { createMcp, diffWords };

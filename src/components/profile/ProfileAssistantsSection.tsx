@@ -13,6 +13,7 @@ import {
 	accountSyncService,
 } from '../../services/AccountSyncService';
 import CopyField from '../common/CopyField';
+import ProfileAssistantApiSection from './ProfileAssistantApiSection';
 import ServerAccountLinkForm from './ServerAccountLinkForm';
 
 const dateOf = (time: number) =>
@@ -144,6 +145,19 @@ const ProfileAssistantsSection: React.FC = () => {
 							))}
 						</ul>
 					)}
+
+					<h4>{t('Requests in your documents')}</h4>
+					<p className='ui-meta'>
+						{t(
+							'Load the package with \\usepackage{feuillet}, then write \\prompt{…} where you want an assistant to write or check something; \\prompt[claude]{…} names the assistant. Ask Claude, in the editor, lists them; an assistant answers each with a suggestion that replaces it.',
+						)}
+					</p>
+					<CopyField
+						id='assistant-prompt-example'
+						value={'\\usepackage{feuillet}'}
+						mono
+					/>
+					<ProfileAssistantApiSection />
 				</>
 			)}
 		</div>

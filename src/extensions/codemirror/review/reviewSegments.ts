@@ -128,6 +128,23 @@ export function computeReviewSegments(
 		});
 	}
 
+	// Texts that share less than a third of their letters read better whole,
+	// the old struck out before the new, than cut into the few words they
+	// share: an answer in place of a request (\prompt), a sentence written
+	// anew.
+	const letters = (text: string) => text.replace(/\s/g, '').length;
+	const shared = segments.reduce(
+		(sum, segment) =>
+			segment.type === 'equal' ? sum + letters(segment.text) : sum,
+		0,
+	);
+	if (shared * 3 < Math.max(letters(originalText), letters(currentText))) {
+		return [
+			{ type: 'delete', text: originalText, from: 0, to: 0 },
+			{ type: 'insert', text: currentText, from: 0, to: currentText.length },
+		];
+	}
+
 	return segments;
 }
 

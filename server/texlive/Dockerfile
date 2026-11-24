@@ -37,6 +37,16 @@ RUN (sysvar=$(kpsewhich -var-value TEXMFSYSVAR) \
     && echo 'LuaTeX font names cached.') \
     || echo 'Font caches will be built during compiles.'
 
+# Feuillet's own package, which any project loads with \usepackage{feuillet}:
+# requests to assistants (\prompt, server/collab/prompts.js).
+COPY texmf/ /tmp/feuillet-texmf/
+RUN local=$(kpsewhich -var-value TEXMFLOCAL) \
+    && mkdir -p "$local" \
+    && cp -R /tmp/feuillet-texmf/. "$local"/ \
+    && rm -rf /tmp/feuillet-texmf \
+    && mktexlsr "$local" \
+    && kpsewhich feuillet.sty
+
 # Biber is a self-extracting program. It is unpacked once here instead of
 # into /tmp, where nothing may run; server.js links each session to it.
 ENV BIBER_DIR=/opt/biber

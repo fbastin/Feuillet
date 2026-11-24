@@ -30,7 +30,9 @@
 //  - downloads files from the web for signed-in accounts (/fetch,
 //    fetch.js), as Overleaf's "From external URL";
 //  - lets assistants such as Claude work on an account's projects once it
-//    agrees (/mcp, mcp.js; /oauth/..., oauth.js);
+//    agrees (/mcp, mcp.js; /oauth/..., oauth.js), and has Claude answer a
+//    project's requests to assistants with the account's own API key, kept
+//    for that run only (/prompts/..., promptRunner.js);
 //  - shows its administrators the server's state and its accounts, which
 //    they may delete (/admin/..., admin.js), as Overleaf Server's admin
 //    panel;
@@ -133,6 +135,7 @@ const { createHistory } = require('./history');
 const { createMcp } = require('./mcp');
 const { createOAuth } = require('./oauth');
 const { createProjectFiles } = require('./projectFiles');
+const { createPromptRunner } = require('./promptRunner');
 const { createReviewGuard } = require('./review');
 const { createShares } = require('./shares');
 
@@ -427,6 +430,11 @@ const mcp = createMcp({
 	compiler,
 	log,
 });
+const promptRunner = createPromptRunner({
+	accounts,
+	connector: mcp.local,
+	log,
+});
 
 const gitBridge = createGitBridge({
 	dir: gitDir,
@@ -609,7 +617,9 @@ const server = http.createServer((req, res) => {
 										? site
 										: oauth.handlesAccount(url)
 											? { handle: (request, response) => oauth.handleAccount(request, response) }
-											: null;
+											: promptRunner.handles(url)
+												? promptRunner
+												: null;
 	if (api) {
 		const origin = req.headers.origin;
 		if (origin && !isAllowedOrigin(origin)) {

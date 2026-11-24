@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 
 import { InfoIcon } from './Icons';
 import Modal from './Modal';
-import { APP_SOURCE_URL } from '@/branding';
+import { APP_NAME, APP_SOURCE_URL } from '@/branding';
 import {
 	type SiteInfo,
 	accountSyncService,
@@ -170,6 +170,13 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose }) => {
 						<strong>{t('What only passes through:')}</strong>&nbsp;
 						{t(
 							'signing in with GitHub goes through the server, which does not keep the token: your browser encrypts and keeps it. The PDF of a GitHub release goes through it too, with the token, to be handed to GitHub. A file imported from a web address is downloaded by the server for you, without being kept.',
+						)}
+					</li>
+					<li>
+						<strong>{t('Requests answered with your API key:')}</strong>&nbsp;
+						{t(
+							"your browser encrypts and keeps your Anthropic API key. When Claude answers a project's requests from {app}, the server receives it for those calls alone and keeps it nowhere, not even in its logs; what Claude reads of the project then goes to Anthropic under your API account. The server remembers how the answering went, never the key, for an hour after it ends.",
+							{ app: APP_NAME },
 						)}
 					</li>
 					<li>

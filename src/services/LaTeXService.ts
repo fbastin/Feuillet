@@ -12,6 +12,7 @@ import type { BusyTeXEngineType } from '../extensions/texlyre-busytex/BusyTeXEng
 import type { CompileResult } from '../types/compilation';
 import type { FileNode } from '../types/files';
 import { downloadFiles } from '../utils/archiveUtils';
+import { withFeuilletSty } from '../utils/feuilletPackage';
 import { fileStoreService } from './FileStoreService';
 import {
 	notificationService,
@@ -240,12 +241,13 @@ class LaTeXService {
 
 		try {
 			this.showLoadingNotification(t('Compiling for export...'), operationId);
+			const tree = await withFeuilletSty(fileTree);
 
 			if (isBusyTeXEngine(targetEngine)) {
 				await this.exportWithBusyTeX(
 					targetEngine,
 					mainFileName,
-					fileTree,
+					tree,
 					options,
 					operationId,
 				);
@@ -253,7 +255,7 @@ class LaTeXService {
 				await this.exportWithSwift(
 					targetEngine as SwiftEngineType,
 					mainFileName,
-					fileTree,
+					tree,
 					options,
 					operationId,
 				);
@@ -362,8 +364,10 @@ class LaTeXService {
 	private async runCompile(
 		engine: EngineType,
 		mainFileName: string,
-		fileTree: FileNode[],
+		projectTree: FileNode[],
 	): Promise<CompileResult> {
+		// \usepackage{feuillet} works here as on the TeX Live server.
+		const fileTree = await withFeuilletSty(projectTree);
 		if (isBusyTeXEngine(engine)) {
 			const nodesWithContent = await this.loadFileContents(
 				this.collectAllFiles(fileTree),

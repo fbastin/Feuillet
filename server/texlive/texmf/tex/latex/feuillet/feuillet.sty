@@ -1,0 +1,167 @@
+% feuillet.sty
+% Requests to assistants, in Feuillet (https://feuillet.slashbin.net):
+%
+%   \usepackage{feuillet}
+%   \prompt{Write a paragraph that sums up section 2.}
+%   \prompt[claude]{Check that this proof's notation follows section 1.}
+%
+% An assistant connected to Feuillet lists a project's requests and answers
+% each with a suggestion (a tracked change) that replaces it: accepted, the
+% request is gone and its answer is the document's text; rejected, the
+% request is back, for another try. The optional argument names the
+% assistant a request is for; without it, any may answer.
+%
+% Until then the PDF shows each request where it stands, and the log warns
+% of it, with its line. With [final] (or \documentclass[final]), the PDF no
+% longer shows them; the log still does.
+%
+% The request is read as it is written: %, #, $, _, &, ~ and \ are its own
+% characters, and it may have several paragraphs; only its braces must
+% pair. Within another command's argument, such as \section{...}, it is
+% read as that argument was: there it may not hold % nor #.
+%
+% \feuilletprompt is the same command, always defined; \prompt is defined
+% at \begin{document} unless something else (a class, a package, the
+% document) has defined it, in which case requests are written with
+% \feuilletprompt.
+%
+% How a request looks: \feuilletpromptstyle (colour, font) and
+% \feuilletpromptmark, which a document may redefine.
+
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{feuillet}[2026/11/24 v1.0 Requests to assistants in Feuillet]
+
+\newif\iffeuillet@show
+\feuillet@showtrue
+\DeclareOption{final}{\feuillet@showfalse}
+\DeclareOption{draft}{\feuillet@showtrue}
+\ProcessOptions\relax
+
+\ExplSyntaxOn
+
+\int_new:N \g__feuillet_count_int
+\tl_new:N \l__feuillet_text_tl
+
+% Feuillet's green, with LaTeX's own colours (l3color), which need neither
+% color nor xcolor; with \color in a LaTeX older than them, if the document
+% loads one of those.
+\cs_if_exist:NTF \color_select:n
+  {
+    \color_set:nnn { feuilletprompt } { RGB } { 31 , 107 , 61 }
+    \NewDocumentCommand \feuilletpromptstyle { }
+      { \color_select:n { feuilletprompt } }
+  }
+  {
+    \AddToHook { begindocument/before }
+      {
+        \cs_if_exist:NT \definecolor
+          { \definecolor { feuilletprompt } { RGB } { 31 , 107 , 61 } }
+      }
+    \NewDocumentCommand \feuilletpromptstyle { }
+      { \cs_if_exist:NT \color { \color { feuilletprompt } } }
+  }
+\NewDocumentCommand \feuilletpromptmark { } { \ensuremath { \triangleright } }
+
+\NewDocumentCommand \feuilletprompt { o }
+  {
+    \group_begin:
+      % The request's characters as written, its braces still pairing.
+      \char_set_catcode_other:N \\
+      \char_set_catcode_other:N \$
+      \char_set_catcode_other:N \&
+      \char_set_catcode_other:N \#
+      \char_set_catcode_other:N \^
+      \char_set_catcode_other:N \_
+      \char_set_catcode_other:N \%
+      \char_set_catcode_other:N \~
+      \__feuillet_read:nn {#1}
+  }
+
+\cs_new_protected:Npn \__feuillet_read:nn #1#2
+  {
+    \group_end:
+    \__feuillet_request:nn {#1} {#2}
+  }
+
+\cs_new_protected:Npn \__feuillet_request:nn #1#2
+  {
+    \int_gincr:N \g__feuillet_count_int
+    \IfValueTF {#1}
+      { \PackageWarning { feuillet } { Request~ for~ #1~ pending } }
+      { \PackageWarning { feuillet } { Request~ for~ an~ assistant~ pending } }
+    \iffeuillet@show
+      \mode_if_math:TF
+        { \mbox { \__feuillet_show:nn {#1} {#2} } }
+        { \__feuillet_show:nn {#1} {#2} }
+    \else
+      % Hidden, it leaves one space between the words around it, not two.
+      \exp_after:wN \ignorespaces
+    \fi
+  }
+
+\cs_new_protected:Npn \__feuillet_show:nn #1#2
+  {
+    \tl_set:Nn \l__feuillet_text_tl {#2}
+    \tl_replace_all:Nnn \l__feuillet_text_tl { \par } { ~ }
+    % Its braces shown too: read again with them as characters, accented
+    % letters as the document reads them.
+    \exp_args:NNnV \tl_set_rescan:Nnn \l__feuillet_text_tl
+      {
+        \char_set_catcode_other:N \\
+        \char_set_catcode_other:N \{
+        \char_set_catcode_other:N \}
+        \char_set_catcode_other:N \$
+        \char_set_catcode_other:N \&
+        \char_set_catcode_other:N \#
+        \char_set_catcode_other:N \^
+        \char_set_catcode_other:N \_
+        \char_set_catcode_other:N \%
+        \char_set_catcode_other:N \~
+      }
+      \l__feuillet_text_tl
+    \mode_leave_vertical:
+    \group_begin:
+      \feuilletpromptstyle
+      [ \feuilletpromptmark \nobreak \,
+      \IfValueT {#1} { \textsf {#1} : ~ }
+      % Typewriter, whose glyphs show \, { and _ as they are; its spaces
+      % stretch, for the lines to break.
+      \ttfamily
+      \skip_set:Nn \spaceskip { 0.5em plus 0.5em minus 0.2em }
+      \skip_set_eq:NN \xspaceskip \spaceskip
+      \tl_use:N \l__feuillet_text_tl
+      ]
+    \group_end:
+  }
+
+% \prompt, last thing at \begin{document}, unless something else has it.
+\AddToHook { begindocument/end }
+  {
+    \cs_if_exist:NTF \prompt
+      {
+        \PackageWarningNoLine { feuillet }
+          {
+            \token_to_str:N \prompt \c_space_tl is~ already~ defined:~
+            write~ requests~ with~ \token_to_str:N \feuilletprompt
+          }
+      }
+      { \NewCommandCopy \prompt \feuilletprompt }
+  }
+
+\AddToHook { enddocument/afterlastpage }
+  {
+    \int_compare:nNnT { \g__feuillet_count_int } > { 0 }
+      {
+        \PackageWarningNoLine { feuillet }
+          {
+            \int_use:N \g__feuillet_count_int \c_space_tl
+            \int_compare:nNnTF { \g__feuillet_count_int } = { 1 }
+              { request~ for~ assistants~ is~ pending }
+              { requests~ for~ assistants~ are~ pending }
+          }
+      }
+  }
+
+\ExplSyntaxOff
+
+\endinput
