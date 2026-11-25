@@ -42,8 +42,13 @@
 %
 % This work consists of the file feuillet.sty.
 
-\NeedsTeXFormat{LaTeX2e}[2020/10/01]
-\ProvidesPackage{feuillet}[2026/11/24 v1.0 Requests to assistants in Feuillet]
+\NeedsTeXFormat{LaTeX2e}[2020/02/02]
+\ProvidesPackage{feuillet}[2026/11/25 v1.1 Requests to assistants in Feuillet]
+
+% A LaTeX older than October 2020 (the browser's SwiftLaTeX has February's)
+% has neither \NewDocumentCommand, given by xparse, nor hooks nor
+% \NewCommandCopy, for which \AtBeginDocument, \AtEndDocument and \let do.
+\ifdefined\NewDocumentCommand\else\RequirePackage{xparse}\fi
 
 \newif\iffeuillet@show
 \feuillet@showtrue
@@ -56,6 +61,11 @@
 \int_new:N \g__feuillet_count_int
 \tl_new:N \l__feuillet_text_tl
 
+% Code for a point of \begin{document} or \end{document}: the hook when
+% LaTeX has hooks, else what it had before them.
+\cs_new_protected:Npn \__feuillet_hook:nNn #1#2#3
+  { \cs_if_exist:NTF \AddToHook { \AddToHook {#1} {#3} } { #2 {#3} } }
+
 % Feuillet's green, with LaTeX's own colours (l3color), which need neither
 % color nor xcolor; with \color in a LaTeX older than them, if the document
 % loads one of those.
@@ -66,7 +76,7 @@
       { \color_select:n { feuilletprompt } }
   }
   {
-    \AddToHook { begindocument/before }
+    \__feuillet_hook:nNn { begindocument/before } \AtBeginDocument
       {
         \cs_if_exist:NT \definecolor
           { \definecolor { feuilletprompt } { RGB } { 31 , 107 , 61 } }
@@ -149,7 +159,7 @@
   }
 
 % \prompt, last thing at \begin{document}, unless something else has it.
-\AddToHook { begindocument/end }
+\__feuillet_hook:nNn { begindocument/end } \AtBeginDocument
   {
     \cs_if_exist:NTF \prompt
       {
@@ -159,10 +169,14 @@
             write~ requests~ with~ \token_to_str:N \feuilletprompt
           }
       }
-      { \NewCommandCopy \prompt \feuilletprompt }
+      {
+        \cs_if_exist:NTF \NewCommandCopy
+          { \NewCommandCopy \prompt \feuilletprompt }
+          { \cs_set_eq:NN \prompt \feuilletprompt }
+      }
   }
 
-\AddToHook { enddocument/afterlastpage }
+\__feuillet_hook:nNn { enddocument/afterlastpage } \AtEndDocument
   {
     \int_compare:nNnT { \g__feuillet_count_int } > { 0 }
       {

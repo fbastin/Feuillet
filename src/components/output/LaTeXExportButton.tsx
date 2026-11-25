@@ -89,7 +89,7 @@ const LaTeXExportButton: React.FC<LaTeXExportButtonProps> = ({
 	const settingEngine =
 		(getSetting('latex-engine')?.value as LaTeXEngine) ??
 		latexEngine ??
-		'pdftex';
+		'busytex-pdftex';
 	const settingBundle =
 		(getSetting('latex-busytex-bundles')?.value as string) ?? 'recommended';
 

@@ -120,7 +120,7 @@ list, a guest session's too. The package can also be downloaded at the
 site's address followed by `/feuillet.sty`
 (`https://feuillet.example.org/feuillet.sty`): put it next to the document,
 or in `texmf/tex/latex/feuillet/` of your personal tree (`kpsewhich
--var-value TEXMFHOME`). It needs a LaTeX from October 2020 or later.
+-var-value TEXMFHOME`). It needs a LaTeX from February 2020 or later.
 
 A guest session sees its requests in the PDF, but no assistant answers
 them: the connector and the API work only on projects kept on the server,

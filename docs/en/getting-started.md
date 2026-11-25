@@ -372,6 +372,12 @@ move to TeX Live, with their engine, the next time an editor opens them. The
 browser compiler is still offered: choose **LaTeX** as the compiler in the
 project's details (the pencil next to its name), and the project keeps it.
 
+The browser compiler compiles with BusyTeX (TeX Live 2026), whose files come
+from Feuillet's own site; the first load takes half a minute. SwiftLaTeX's
+engines are still in the compile options: they compile with TeX Live 2020
+and download their files from TeXlyre's server, which does not always
+answer; when they cannot load their format, the log says so.
+
 ### Compiling with your own TeX Live
 
 Compiling on Feuillet's server takes an account. Without one, a guest

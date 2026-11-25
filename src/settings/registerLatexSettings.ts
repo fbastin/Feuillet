@@ -15,7 +15,7 @@ export function useRegisterLatexSettings() {
 		settingsRegistered.current = true;
 
 		const initialEngine =
-			(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'pdftex';
+			(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'busytex-pdftex';
 		const initialTexliveEndpoint =
 			(getSetting('latex-texlive-endpoint')?.value as string) ??
 			'http://texlive.localhost:8082';

@@ -34,7 +34,7 @@
     "image-viewer-auto-center": true,
     "image-viewer-enable-filters": true,
     "image-viewer-quality": "high",
-    "latex-engine": "pdftex",
+    "latex-engine": "busytex-pdftex",
     "latex-store-cache": true,
     "latex-store-working-directory": false,
     "latex-texlive-endpoint": "https://texlive.texlyre.org",

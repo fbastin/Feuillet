@@ -114,7 +114,7 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 	const projectId = fileStoreService.getCurrentProjectId() || undefined;
 
 	const settingEngine =
-		(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'pdftex';
+		(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'busytex-pdftex';
 	const settingBundle =
 		(getSetting('latex-busytex-bundles')?.value as string) ?? 'recommended';
 	const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
@@ -178,7 +178,7 @@ const LaTeXCompileButton: React.FC<LaTeXCompileButtonProps> = ({
 			id: 'latex-engine',
 			category: 'Compilation',
 			subcategory: 'LaTeX',
-			defaultValue: 'pdftex',
+			defaultValue: 'busytex-pdftex',
 		});
 
 		registerProperty({

@@ -4688,5 +4688,7 @@
   "{count} of {total} requests were answered before._one": "Claude avait déjà répondu à {{count}} demande sur {{total}}.",
   "{count} of {total} requests were answered before._other": "Claude avait déjà répondu à {{count}} demandes sur {{total}}.",
   "Assistants answer the requests (\\prompt) of projects kept on the server, with an account.": "Les assistants répondent aux demandes (\\prompt) des projets gardés sur le serveur, avec un compte.",
-  "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.": "Pour compiler avec votre propre LaTeX un projet qui charge feuillet.sty (une archive, votre propre TeX Live), ajoutez-en une copie au projet."
+  "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.": "Pour compiler avec votre propre LaTeX un projet qui charge feuillet.sty (une archive, votre propre TeX Live), ajoutez-en une copie au projet.",
+  "The engine could not load its format: {format}": "Le moteur n'a pas pu charger son format : {{format}}",
+  "This compiler in the browser could not download its files, so it read nothing of the document. Choose a BusyTeX engine in the compile options, or TeX Live as the compiler, then compile again.": "Ce compilateur du navigateur n'a pas pu télécharger ses fichiers : il n'a rien lu du document. Choisissez un moteur BusyTeX dans les options de compilation, ou TeX Live comme compilateur, puis compilez de nouveau."
 }

@@ -124,7 +124,7 @@ même liste, une session invitée comprise. Le paquet se télécharge aussi à
 l'adresse du site suivie de `/feuillet.sty`
 (`https://feuillet.exemple.org/feuillet.sty`) : mettez-le à côté du document,
 ou dans `texmf/tex/latex/feuillet/` de votre arbre personnel (`kpsewhich
--var-value TEXMFHOME`). Il demande un LaTeX d'octobre 2020 ou plus récent.
+-var-value TEXMFHOME`). Il demande un LaTeX de février 2020 ou plus récent.
 
 Une session invitée voit ses demandes dans le PDF, mais aucun assistant n'y
 répond : le connecteur et l'API ne travaillent que sur les projets gardés

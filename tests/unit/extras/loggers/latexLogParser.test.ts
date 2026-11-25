@@ -19,6 +19,20 @@ Output written on main.pdf (1 page).`;
             expect(parseLatexLog(log)).toHaveLength(0);
         });
 
+        it("should report a browser compiler that could not load its format", () => {
+            const log = `This is pdfTeX, Version 3.14159265-2.6-1.40.21 (SwiftLaTeX PDFTeX 0.3.0) (preloaded format=swiftlatexpdftex)
+I can't find the format file \`swiftlatexpdftex.fmt'!`;
+
+            const result = parseLatexLog(log);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].type).toBe('error');
+            expect(result[0].message).toBe(
+                'The engine could not load its format: swiftlatexpdftex.fmt',
+            );
+            expect(result[0].hint).toMatch(/BusyTeX/);
+        });
+
         it('should parse a LaTeX error with line number', () => {
             const log = `! LaTeX Error: Something went wrong.
 l.42 \\badcommand`;

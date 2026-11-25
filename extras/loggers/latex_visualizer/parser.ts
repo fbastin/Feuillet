@@ -511,6 +511,23 @@ function extractSimpleDiagnostic(
 		}
 	}
 
+	// A compiler in the browser that could not download its files (its
+	// package server unreachable): TeX stops before reading the document.
+	const missingFormat = line.match(/I can't find the format file [`']([^']+)'/);
+	if (missingFormat) {
+		return {
+			type: 'error',
+			message: t('The engine could not load its format: {format}', {
+				format: missingFormat[1],
+			}),
+			line: undefined,
+			file: contextFile,
+			hint: t(
+				'This compiler in the browser could not download its files, so it read nothing of the document. Choose a BusyTeX engine in the compile options, or TeX Live as the compiler, then compile again.',
+			),
+		};
+	}
+
 	if (
 		line.includes('Fatal error occurred') ||
 		line.includes('Emergency stop')

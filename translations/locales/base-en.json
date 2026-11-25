@@ -4961,5 +4961,7 @@
   "{count} of {total} requests were answered before._one": "{{count}} of {{total}} requests were answered before.",
   "{count} of {total} requests were answered before._other": "{{count}} of {{total}} requests were answered before.",
   "Assistants answer the requests (\\prompt) of projects kept on the server, with an account.": "Assistants answer the requests (\\prompt) of projects kept on the server, with an account.",
-  "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.": "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project."
+  "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.": "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.",
+  "The engine could not load its format: {format}": "The engine could not load its format: {{format}}",
+  "This compiler in the browser could not download its files, so it read nothing of the document. Choose a BusyTeX engine in the compile options, or TeX Live as the compiler, then compile again.": "This compiler in the browser could not download its files, so it read nothing of the document. Choose a BusyTeX engine in the compile options, or TeX Live as the compiler, then compile again."
 }

@@ -404,6 +404,13 @@ qu'un éditeur les ouvre. Le compilateur du navigateur reste offert :
 choisissez **LaTeX** comme compilateur dans les détails du projet (le crayon
 à côté de son nom), et le projet le garde.
 
+Le compilateur du navigateur compile avec BusyTeX (TeX Live 2026), dont les
+fichiers viennent du site de Feuillet; le premier chargement prend une
+demi-minute. Les moteurs de SwiftLaTeX restent dans les options de
+compilation : ils compilent avec TeX Live 2020 et téléchargent leurs
+fichiers du serveur de TeXlyre, qui ne répond pas toujours; s'ils n'arrivent
+pas à charger leur format, le journal le dit.
+
 ### Compiler avec votre propre TeX Live
 
 Compiler sur le serveur de Feuillet demande un compte. Sans compte, une

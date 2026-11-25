@@ -549,7 +549,7 @@ export class GitBackupImportService<TTarget> {
 			id: projectMetadata.id,
 			name: projectMetadata.name,
 			type: projectMetadata.type || 'latex',
-			latexEngine: projectMetadata.latexEngine || 'pdftex',
+			latexEngine: projectMetadata.latexEngine || 'busytex-pdftex',
 			typstEngine: projectMetadata.typstEngine || 'typst',
 			typstOutputFormat: projectMetadata.typstOutputFormat || 'pdf',
 			mainFile: projectMetadata.mainFile || 'main.tex',

@@ -67,7 +67,7 @@ export const LaTeXProvider: React.FC<LaTeXProviderProps> = ({
 	const requestRef = useRef(0);
 
 	const latexEngine =
-		(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'pdftex';
+		(getSetting('latex-engine')?.value as LaTeXEngine) ?? 'busytex-pdftex';
 	// One PDF viewer, as on Overleaf: TeXlyre's Canvas view of the same PDF
 	// is no longer offered.
 	const currentFormat: LaTeXOutputFormat = 'pdf';

@@ -26,6 +26,7 @@ import './i18n';
 import App from './App';
 import { accountPreferencesService } from './services/AccountPreferencesService';
 import { authService } from './services/AuthService';
+import { moveEnginesToBusyTeX } from './utils/browserEngineMigration';
 import { isMobileUserAgent } from './utils/browserUtils';
 import { FORCED_DEFAULTS_KEY } from './utils/userDataUtils';
 import { applyStoredViewport } from './utils/viewportUtils';
@@ -210,6 +211,14 @@ async function initUserData(): Promise<void> {
 		);
 	} catch (error) {
 		moduleLog.warn('Failed to load default user data:', error);
+	}
+	// Once: from SwiftLaTeX (TeX Live 2020, files from TeXlyre's server) to
+	// BusyTeX (TeX Live 2026, files from this site).
+	try {
+		const moved = moveEnginesToBusyTeX(localStorage);
+		if (moved) moduleLog.info(`Browser compiler moved to BusyTeX (${moved})`);
+	} catch (error) {
+		moduleLog.warn('Could not move the browser compiler to BusyTeX:', error);
 	}
 }
 
