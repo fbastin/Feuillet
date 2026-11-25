@@ -2447,6 +2447,15 @@ textarea:focus,
 	overflow: hidden !important;
 }
 
+/* CodeMirror puts an image on each side of a widget, for the cursor; a line
+   may break around an image, so a comment or a suggestion that begins inside
+   a word cut it in two at the end of a line ("dire" / "ctement"). Out of the
+   text's flow, they still place the cursor but no longer break the word. */
+.cm-line .cm-widgetBuffer:has(+ .ui-hidden-tag),
+.cm-line .ui-hidden-tag + .cm-widgetBuffer {
+	position: absolute;
+}
+
 .ui-token-field {
 	display: flex;
 	flex-wrap: wrap;
