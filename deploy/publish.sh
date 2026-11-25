@@ -46,8 +46,21 @@ if ! [[ $DOMAIN =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])
 fi
 WEBROOT=${WEBROOT:-/var/www/$DOMAIN}
 
+# With sudo, rsync would give the web root and its files to root, as the
+# directory it builds in is root's: the next publication, without sudo,
+# could no longer replace them.
+if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
+	echo "Run $0 without sudo: it publishes as $SUDO_USER, to whom deploy/install.sh gave $WEBROOT." >&2
+	exit 1
+fi
+if [ ! -d "$WEBROOT" ]; then
+	echo "$WEBROOT is missing; run sudo deploy/install.sh first." >&2
+	exit 1
+fi
 if [ ! -w "$WEBROOT" ]; then
-	echo "$WEBROOT is missing or not writable; run sudo deploy/install.sh first." >&2
+	me=$(id -un)
+	echo "$WEBROOT belongs to $(stat -c %U "$WEBROOT"), and $me may not write there (a publication with sudo does that). Give it back:" >&2
+	echo "  sudo chown -R $me:www-data $WEBROOT && sudo chmod 2775 $WEBROOT" >&2
 	exit 1
 fi
 
