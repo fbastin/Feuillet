@@ -120,7 +120,15 @@ suggestion.
 
 Pour compiler le projet ailleurs que dans Feuillet (Git, archive), ajoutez
 au projet une copie de `feuillet.sty` : **Ajouter feuillet.sty**, dans la
-même liste.
+même liste, une session invitée comprise. Le paquet se télécharge aussi à
+l'adresse du site suivie de `/feuillet.sty`
+(`https://feuillet.exemple.org/feuillet.sty`) : mettez-le à côté du document,
+ou dans `texmf/tex/latex/feuillet/` de votre arbre personnel (`kpsewhich
+-var-value TEXMFHOME`). Il demande un LaTeX d'octobre 2020 ou plus récent.
+
+Une session invitée voit ses demandes dans le PDF, mais aucun assistant n'y
+répond : le connecteur et l'API ne travaillent que sur les projets gardés
+sur le serveur, avec un compte.
 
 ## Déconnecter Claude
 

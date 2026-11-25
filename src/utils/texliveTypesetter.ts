@@ -31,12 +31,18 @@ const ENGINE_FIELD: TypesetterUIField = {
 	],
 };
 
-/** What the TeX Live server says of its years (its /health). */
+/** What the TeX Live server says of itself (its /health). */
 export interface TexliveYears {
 	/** The latest's, which "latest" compiles with. */
 	year: number | null;
 	/** Every year a compile may ask for, the latest's included. */
 	years: number[];
+	/**
+	 * Whether it compiles only with a ticket, that is for an account:
+	 * Feuillet's does; one that someone runs on their own machine with their
+	 * own TeX Live does not. Null when it does not say.
+	 */
+	tickets?: boolean | null;
 }
 
 /** Where the TeX Live server says which years it offers. */
@@ -60,9 +66,11 @@ export const parseTexliveYears = (value: unknown): TexliveYears | null => {
 	const isYear = (entry: unknown): entry is number =>
 		Number.isInteger(entry) && (entry as number) > 1990;
 	if (!Array.isArray(years)) return null;
+	const { tickets } = value as { tickets?: unknown };
 	return {
 		year: isYear(year) ? year : null,
 		years: [...new Set(years.filter(isYear))].sort((a, b) => b - a),
+		tickets: typeof tickets === 'boolean' ? tickets : null,
 	};
 };
 
@@ -169,8 +177,13 @@ export function createTexliveTypesetterConfig(
 				rendererPluginId: 'pdf-renderer',
 			},
 		],
-		// With a ticket, which the server asks for (compileTicketAuth.ts).
-		transportConfig: { type: 'websocket', url, auth: COMPILE_TICKET_AUTH },
+		// With a ticket (compileTicketAuth.ts), unless the server says it
+		// needs none: one run on a person's own machine, with their own TeX
+		// Live, compiles for guests too, who have no account to get one.
+		transportConfig:
+			years?.tickets === false
+				? { type: 'websocket', url }
+				: { type: 'websocket', url, auth: COMPILE_TICKET_AUTH },
 		capabilities: { outline: false, stop: true },
 		ui: {
 			compile: {

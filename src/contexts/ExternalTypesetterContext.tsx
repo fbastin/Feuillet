@@ -55,6 +55,7 @@ import {
 import { declaredLanguage } from '../utils/spellingUtils';
 import { toBytes } from '../utils/fileUtils';
 import { cleanBytes } from '../utils/fileCommentUtils';
+import { FEUILLET_STY_PATH, loadFeuilletSty } from '../utils/feuilletPackage';
 
 interface ExternalExportOptions {
 	includeLog?: boolean;
@@ -334,6 +335,22 @@ export const ExternalTypesetterProvider: React.FC<
 					: cleanBytes(node.content),
 				lastModified: node.lastModified,
 			});
+		}
+
+		// \usepackage{feuillet} compiles on any server, one with a person's
+		// own TeX Live too, unless the project has its own copy.
+		if (
+			files.some((file) => file.path.endsWith('.tex')) &&
+			!files.some((file) => file.path === FEUILLET_STY_PATH)
+		) {
+			const sty = await loadFeuilletSty();
+			if (sty) {
+				files.push({
+					path: FEUILLET_STY_PATH,
+					content: new TextEncoder().encode(sty),
+					lastModified: 0,
+				});
+			}
 		}
 
 		return files;

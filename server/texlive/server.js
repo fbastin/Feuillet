@@ -63,7 +63,10 @@
 // When the server runs as root (the Docker image), every connection compiles
 // under its own unprivileged uid, in a directory only that uid can open, so a
 // document cannot reach the files of other connections. Running as another
-// user (local development), all compiles share that user.
+// user (local development, or someone's own machine compiling for Feuillet
+// with their own TeX Live), all compiles share that user, and TeX opens no
+// file by an absolute path or above the main file's folder (openin_any and
+// openout_any "p"): a document cannot read that user's files.
 //
 // Environment:
 //   HOST, PORT          listen address (default 0.0.0.0:7045)
@@ -764,6 +767,10 @@ class Session {
 		};
 		if (this.uid === null) {
 			env.HOME = process.env.HOME;
+			// Under the server's own user, the project's files and TeX's own
+			// only, not the rest of that user's.
+			env.openin_any = 'p';
+			env.openout_any = 'p';
 		} else {
 			env.HOME = this.home;
 			env.TMPDIR = this.tmp;

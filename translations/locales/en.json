@@ -4686,5 +4686,7 @@
   "Stopped: {count} of {total} requests answered._one": "Stopped: {{count}} of {{total}} requests answered.",
   "Stopped: {count} of {total} requests answered._other": "Stopped: {{count}} of {{total}} requests answered.",
   "{count} of {total} requests were answered before._one": "{{count}} of {{total}} requests were answered before.",
-  "{count} of {total} requests were answered before._other": "{{count}} of {{total}} requests were answered before."
+  "{count} of {total} requests were answered before._other": "{{count}} of {{total}} requests were answered before.",
+  "Assistants answer the requests (\\prompt) of projects kept on the server, with an account.": "Assistants answer the requests (\\prompt) of projects kept on the server, with an account.",
+  "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.": "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project."
 }

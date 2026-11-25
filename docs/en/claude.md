@@ -116,7 +116,15 @@ is in the suggestion's thread.
 
 To compile the project elsewhere than in Feuillet (Git, an archive), add a
 copy of `feuillet.sty` to the project: **Add feuillet.sty** in the same
-list.
+list, a guest session's too. The package can also be downloaded at the
+site's address followed by `/feuillet.sty`
+(`https://feuillet.example.org/feuillet.sty`): put it next to the document,
+or in `texmf/tex/latex/feuillet/` of your personal tree (`kpsewhich
+-var-value TEXMFHOME`). It needs a LaTeX from October 2020 or later.
+
+A guest session sees its requests in the PDF, but no assistant answers
+them: the connector and the API work only on projects kept on the server,
+with an account.
 
 ## Disconnecting Claude
 

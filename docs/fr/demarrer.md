@@ -404,6 +404,32 @@ qu'un éditeur les ouvre. Le compilateur du navigateur reste offert :
 choisissez **LaTeX** comme compilateur dans les détails du projet (le crayon
 à côté de son nom), et le projet le garde.
 
+### Compiler avec votre propre TeX Live
+
+Compiler sur le serveur de Feuillet demande un compte. Sans compte, une
+session invitée compile dans le navigateur (ci-dessus), ou avec votre propre
+TeX Live, par le serveur de compilation de Feuillet lancé sur votre machine.
+Il faut Node.js 22 et TeX Live, avec `latexmk` :
+
+```
+git clone https://github.com/fbastin/Feuillet.git
+cd Feuillet/server/texlive
+npm ci --omit=dev
+HOST=127.0.0.1 ALLOWED_ORIGINS=https://feuillet.exemple.org node server.js
+```
+
+Puis, dans Feuillet, **Paramètres**, **Compilation**, donnez
+`ws://127.0.0.1:7045/` comme **Serveur de compilation TeX Live**. Ce serveur
+ne demande pas de compte, et Feuillet ne lui présente rien; votre navigateur
+peut vous demander d'autoriser l'accès au réseau local. Feuillet lui envoie
+aussi `feuillet.sty`, si le projet n'en a pas sa propre copie.
+
+`ALLOWED_ORIGINS` ne laisse que Feuillet s'y connecter. Les documents n'y
+lisent que leurs propres fichiers et ceux de TeX Live (ni chemin absolu, ni
+rien au-dessus du dossier du document principal), et n'y lancent pas de
+programmes : `\write18` y est restreint, comme dans une installation de TeX
+Live ordinaire.
+
 ### Comprendre une erreur
 
 Le **Journal** liste les erreurs et les avertissements avec leur fichier et

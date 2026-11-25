@@ -31,6 +31,17 @@ async function copyUserdataFiles() {
 	console.log('✓ Userdata files copied to public');
 }
 
+// feuillet.sty, at the site's root for anyone to download (its own LaTeX,
+// a guest's project): the same file as the TeX Live server's.
+async function copyFeuilletPackage() {
+	const rootDir = path.resolve(__dirname, '..');
+	await fs.copy(
+		path.join(rootDir, 'server/texlive/texmf/tex/latex/feuillet/feuillet.sty'),
+		path.join(rootDir, 'public', 'feuillet.sty'),
+	);
+	console.log('✓ feuillet.sty copied to public');
+}
+
 async function setupAssets() {
 	console.log('=== Setting up assets ===\n');
 
@@ -43,6 +54,7 @@ async function setupAssets() {
 		await copyWasmLatexToolsAssets();
 		await downloadCoreAssets();
 		await copyUserdataFiles();
+		await copyFeuilletPackage();
 
 		console.log('\n✅ Asset setup complete');
 	} catch (err) {

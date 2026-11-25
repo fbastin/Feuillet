@@ -372,6 +372,31 @@ move to TeX Live, with their engine, the next time an editor opens them. The
 browser compiler is still offered: choose **LaTeX** as the compiler in the
 project's details (the pencil next to its name), and the project keeps it.
 
+### Compiling with your own TeX Live
+
+Compiling on Feuillet's server takes an account. Without one, a guest
+session compiles in the browser (above), or with your own TeX Live, through
+Feuillet's compile server run on your machine. It takes Node.js 22 and TeX
+Live, with `latexmk`:
+
+```
+git clone https://github.com/fbastin/Feuillet.git
+cd Feuillet/server/texlive
+npm ci --omit=dev
+HOST=127.0.0.1 ALLOWED_ORIGINS=https://feuillet.example.org node server.js
+```
+
+Then, in Feuillet, **Settings**, **Compilation**, give `ws://127.0.0.1:7045/`
+as the **TeX Live compile server**. That server asks for no account, and
+Feuillet shows it nothing; your browser may ask you to allow access to the
+local network. Feuillet also sends it `feuillet.sty`, unless the project has
+its own copy.
+
+`ALLOWED_ORIGINS` lets only Feuillet connect to it. Documents read there
+only their own files and TeX Live's (no absolute path, nothing above the
+main document's folder), and run no programs there: `\write18` is
+restricted, as in an ordinary TeX Live installation.
+
 ### Understanding an error
 
 The **Log** lists errors and warnings with their file and line; a click goes

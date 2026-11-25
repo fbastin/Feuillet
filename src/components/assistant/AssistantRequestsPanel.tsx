@@ -126,12 +126,61 @@ const AssistantRequestsPanel: React.FC<AssistantRequestsPanelProps> = ({
 		};
 	}, [runId, projectId, load]);
 
-	if (!found) {
-		return found === undefined ? (
+	const addPackage = async () => {
+		const content = await loadFeuilletSty();
+		if (!content) return;
+		await uploadFiles(
+			[new File([content], FEUILLET_STY_NAME, { type: 'text/x-tex' })],
+			'/',
+		);
+		setAdded(true);
+	};
+
+	const addPackageButton = (
+		<button
+			type='button'
+			className='ask-claude-setup'
+			data-action='add-feuillet-sty'
+			onClick={() => void addPackage()}
+		>
+			{t('Add feuillet.sty')}
+		</button>
+	);
+
+	if (found === undefined) {
+		return (
 			<p className='ui-meta' data-role='assistant-requests-loading'>
 				{t('Looking for requests in the project…')}
 			</p>
-		) : null;
+		);
+	}
+
+	// A guest, or a project not on the server: no assistant reaches it, but
+	// its documents may load the package, to compile elsewhere too.
+	if (found === null) {
+		return (
+			<section
+				className='ask-claude-requests ui-stack'
+				data-gap='xs'
+				data-role='assistant-requests'
+				data-server='false'
+			>
+				<h4>{t('Requests in the project')}</h4>
+				<p className='ui-meta'>
+					{t(
+						'Assistants answer the requests (\\prompt) of projects kept on the server, with an account.',
+					)}
+				</p>
+				{!added && !hasFeuilletSty(fileTree) && (
+					<p className='ui-meta'>
+						{t(
+							'To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.',
+						)}{' '}
+						{addPackageButton}
+					</p>
+				)}
+			</section>
+		);
 	}
 
 	const start = async () => {
@@ -182,16 +231,6 @@ const AssistantRequestsPanel: React.FC<AssistantRequestsPanelProps> = ({
 		try {
 			setRun(await accountSyncService.assistantRun(runId, true));
 		} catch {}
-	};
-
-	const addPackage = async () => {
-		const content = await loadFeuilletSty();
-		if (!content) return;
-		await uploadFiles(
-			[new File([content], FEUILLET_STY_NAME, { type: 'text/x-tex' })],
-			'/',
-		);
-		setAdded(true);
 	};
 
 	const running = run?.state === 'running' || (runId !== null && !run);
@@ -343,14 +382,7 @@ const AssistantRequestsPanel: React.FC<AssistantRequestsPanelProps> = ({
 						'{app} has feuillet.sty; to compile the project elsewhere too (Git, archives), add a copy of it to the project.',
 						{ app: APP_NAME },
 					)}{' '}
-					<button
-						type='button'
-						className='ask-claude-setup'
-						data-action='add-feuillet-sty'
-						onClick={() => void addPackage()}
-					>
-						{t('Add feuillet.sty')}
-					</button>
+					{addPackageButton}
 				</p>
 			)}
 		</section>

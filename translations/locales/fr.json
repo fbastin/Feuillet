@@ -4686,5 +4686,7 @@
   "Stopped: {count} of {total} requests answered._one": "Arrêté : {{count}} demande sur {{total}} a une réponse.",
   "Stopped: {count} of {total} requests answered._other": "Arrêté : {{count}} demandes sur {{total}} ont une réponse.",
   "{count} of {total} requests were answered before._one": "Claude avait déjà répondu à {{count}} demande sur {{total}}.",
-  "{count} of {total} requests were answered before._other": "Claude avait déjà répondu à {{count}} demandes sur {{total}}."
+  "{count} of {total} requests were answered before._other": "Claude avait déjà répondu à {{count}} demandes sur {{total}}.",
+  "Assistants answer the requests (\\prompt) of projects kept on the server, with an account.": "Les assistants répondent aux demandes (\\prompt) des projets gardés sur le serveur, avec un compte.",
+  "To compile with your own LaTeX a project that loads feuillet.sty (an archive, your own TeX Live), add a copy of it to the project.": "Pour compiler avec votre propre LaTeX un projet qui charge feuillet.sty (une archive, votre propre TeX Live), ajoutez-en une copie au projet."
 }

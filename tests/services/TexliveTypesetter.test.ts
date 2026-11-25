@@ -1,6 +1,7 @@
 import { typesetterRegistryService } from '@src/services/TypesetterRegistryService';
 import type { TypesetterProvider } from '@src/types/compilation';
 import {
+	COMPILE_TICKET_AUTH,
 	TEXLIVE_TYPESETTER_ID,
 	createTexliveTypesetterConfig,
 	parseTexliveYears,
@@ -129,12 +130,46 @@ describe('the years of TeX Live', () => {
 		expect(parseTexliveYears({ year: 2026, years: [2025, 2026, 2025] })).toEqual({
 			year: 2026,
 			years: [2026, 2025],
+			tickets: null,
 		});
 		expect(parseTexliveYears({ status: 'ok' })).toBeNull();
 		expect(parseTexliveYears({ year: 'x', years: [2026, 'y', 12] })).toEqual({
 			year: null,
 			years: [2026],
+			tickets: null,
 		});
+	});
+
+	// Feuillet's compiles for accounts only; one that someone runs on their
+	// own machine, with their own TeX Live, needs no ticket, and a guest
+	// compiles there.
+	it('ask for a ticket unless the server says it needs none', () => {
+		expect(
+			parseTexliveYears({ year: 2026, years: [2026], tickets: true })?.tickets,
+		).toBe(true);
+		expect(
+			parseTexliveYears({ year: 2023, years: [2023], tickets: false })?.tickets,
+		).toBe(false);
+		expect(createTexliveTypesetterConfig(URL).transportConfig).toEqual({
+			type: 'websocket',
+			url: URL,
+			auth: COMPILE_TICKET_AUTH,
+		});
+		expect(
+			createTexliveTypesetterConfig(URL, {
+				year: 2026,
+				years: [2026],
+				tickets: true,
+			}).transportConfig,
+		).toEqual({ type: 'websocket', url: URL, auth: COMPILE_TICKET_AUTH });
+		const own = 'ws://127.0.0.1:7045/';
+		expect(
+			createTexliveTypesetterConfig(own, {
+				year: 2023,
+				years: [2023],
+				tickets: false,
+			}).transportConfig,
+		).toEqual({ type: 'websocket', url: own });
 	});
 
 	it("offer the latest, then each year, arXiv's said, as the project's choice", () => {
