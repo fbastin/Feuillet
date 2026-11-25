@@ -14,7 +14,9 @@ import {
 	ASK_CLAUDE_EVENT,
 	type AskClaudeContext,
 	type AskClaudeRequest,
+	answerRequestsText,
 	askClaudePrompt,
+	askClaudeRequestsPrompt,
 	claudeUrl,
 	passageOf,
 } from '../../utils/askClaude';
@@ -42,6 +44,8 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 	const { data } = useCollab<DocumentList>();
 	const [context, setContext] = useState<AskClaudeContext | null>(null);
 	const [request, setRequest] = useState('');
+	// Asking for the project's requests, not about where the cursor is.
+	const [answering, setAnswering] = useState(false);
 	const [notice, setNotice] = useState<string | null>(null);
 
 	const open = () => {
@@ -51,6 +55,7 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 			...getLocation(),
 		});
 		setRequest('');
+		setAnswering(false);
 		setNotice(null);
 	};
 	const close = () => setContext(null);
@@ -70,14 +75,19 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 				...location,
 			});
 			setRequest(asked);
+			setAnswering(false);
 			setNotice(null);
 		};
 		document.addEventListener(ASK_CLAUDE_EVENT, ask);
 		return () => document.removeEventListener(ASK_CLAUDE_EVENT, ask);
 	}, [projectName]);
 
-	const passage = passageOf(context?.selection);
-	const prompt = context ? askClaudePrompt(context, request) : '';
+	const passage = answering ? passageOf() : passageOf(context?.selection);
+	const prompt = context
+		? answering
+			? askClaudeRequestsPrompt(context, request)
+			: askClaudePrompt(context, request)
+		: '';
 
 	const copy = async () => {
 		try {
@@ -152,7 +162,7 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 				{context && (
 					<div className='ask-claude ui-stack' data-gap='sm'>
 						<p className='ui-meta' data-role='ask-claude-location'>
-							{context.path
+							{context.path && !answering
 								? t('Project "{project}", {path}, line {line}', {
 										project: context.projectName || t('Untitled Project'),
 										path: context.path,
@@ -183,7 +193,10 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 									? t('For example: make this paragraph shorter.')
 									: t('For example: add a related work section.')
 							}
-							onChange={(event) => setRequest(event.target.value)}
+							onChange={(event) => {
+								setRequest(event.target.value);
+								if (!event.target.value.trim()) setAnswering(false);
+							}}
 						/>
 						<div className='ask-claude-presets' data-role='ask-claude-presets'>
 							{presets.map((preset) => (
@@ -191,7 +204,10 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 									key={preset}
 									type='button'
 									className='button secondary'
-									onClick={() => setRequest(preset)}
+									onClick={() => {
+										setRequest(preset);
+										setAnswering(false);
+									}}
 								>
 									{preset}
 								</button>
@@ -229,13 +245,10 @@ const AskClaudeButton: React.FC<AskClaudeButtonProps> = ({
 						{context.projectId && (
 							<AssistantRequestsPanel
 								projectId={context.projectId}
-								onAskForRequests={() =>
-									setRequest(
-										t(
-											'Answer the requests for you in this project (\\prompt): list them with list_requests, then answer each with answer_request.',
-										),
-									)
-								}
+								onAskForRequests={() => {
+									setRequest(answerRequestsText());
+									setAnswering(true);
+								}}
 								onSetUp={openAssistantsTab}
 							/>
 						)}

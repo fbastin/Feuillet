@@ -72,6 +72,37 @@ export function askClaudePrompt(
 }
 
 /**
+ * What to ask for the project's requests (\prompt, feuillet.sty). It says
+ * what they are and how to answer them without the connector's
+ * list_requests and answer_request too: a client may keep the tools the
+ * connector had when it was added (claude.ai's apps do), and then knows
+ * nothing of requests; search and edit_file are as old as the connector.
+ */
+export const answerRequestsText = (): string =>
+	t(
+		"Answer the requests for assistants in this project. People write them in its LaTeX files as \\prompt{…} (Feuillet's feuillet.sty package), or \\prompt[name]{…} for one assistant; each asks for text or for work where it stands. List them with list_requests, then answer each with answer_request: your answer replaces the whole request, \\prompt{…} included, as a suggestion that people accept or reject. If you do not have these tools, find the requests with search (\\prompt), read each with the text around it, and replace each whole \\prompt{…} with its answer through edit_file, as a suggestion. Leave the requests that name another assistant, and those in comments.",
+	);
+
+/**
+ * The message for the project's requests: the project, then the request,
+ * which says itself how to answer (the cursor's place does not matter).
+ */
+export function askClaudeRequestsPrompt(
+	context: AskClaudeContext,
+	request: string,
+): string {
+	const project = context.projectName.trim() || t('Untitled Project');
+	return [
+		t('In my Feuillet project "{project}" (id {id}):', {
+			project,
+			id: context.projectId,
+		}),
+		'',
+		request.trim(),
+	].join('\n');
+}
+
+/**
  * Opens « Ask Claude » from elsewhere than its button (an error of the
  * log, say), with where and what already filled in.
  */

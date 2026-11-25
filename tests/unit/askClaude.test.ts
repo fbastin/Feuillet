@@ -1,6 +1,8 @@
 import {
 	MAX_PASSAGE_CHARS,
+	answerRequestsText,
 	askClaudePrompt,
+	askClaudeRequestsPrompt,
 	claudeUrl,
 	passageOf,
 } from '../../src/utils/askClaude';
@@ -60,6 +62,34 @@ describe('Ask Claude', () => {
 		);
 		expect(prompt).toContain('```bibtex');
 		expect(prompt).toContain('(The passage is cut short: read the file for the rest.)');
+	});
+
+	it('asks for the requests with all Claude needs, even an old connector', () => {
+		const prompt = askClaudeRequestsPrompt(
+			{ ...context, selection: 'Le chat dort.' },
+			answerRequestsText(),
+		);
+		const [where, blank, request, ...rest] = prompt.split('\n');
+		// The project only: the cursor's file, line and passage do not matter.
+		expect(where).toBe('In my Feuillet project "Thèse" (id abc-123):');
+		expect(blank).toBe('');
+		expect(rest).toEqual([]);
+		expect(prompt).not.toContain('Le chat dort.');
+		expect(prompt).not.toContain('Use the Feuillet connector');
+		// What requests are, and how to answer them with or without the
+		// connector's newer tools (a client may keep its first tool list).
+		for (const words of [
+			'\\prompt{…}',
+			'\\prompt[name]{…}',
+			'list_requests',
+			'answer_request',
+			'If you do not have these tools',
+			'search (\\prompt)',
+			'edit_file, as a suggestion',
+			'name another assistant',
+		]) {
+			expect(request).toContain(words);
+		}
 	});
 
 	it('opens claude.ai with the message', () => {
