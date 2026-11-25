@@ -180,6 +180,11 @@ Feuillet, like TeXlyre, is licensed under the GNU Affero General Public
 License v3.0 (AGPL-3.0). See [LICENSE](LICENSE) for the complete license
 text.
 
+The LaTeX package `feuillet.sty`
+([`server/texlive/texmf/tex/latex/feuillet/`](server/texlive/texmf/tex/latex/feuillet/feuillet.sty)),
+which documents load and carry with them, is under the LaTeX Project Public
+License (LPPL) 1.3c or later instead.
+
 ## Funding of TeXlyre
 
 [TeXlyre is funded by NLnet](https://nlnet.nl/project/Texlyre/) through the
